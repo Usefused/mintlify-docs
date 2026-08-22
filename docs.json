@@ -15,62 +15,58 @@
             "group": "Get Started",
             "pages": [
               "introduction",
-              "quickstart",
-              "concepts"
+              "deploy-an-engine",
+              "quickstart"
             ]
           },
           {
-            "group": "Services",
+            "group": "Workspace",
             "pages": [
-              "guides/services-overview",
-              "guides/ingest-openapi",
-              "guides/ingest-graphql",
-              "guides/service-library"
+              "workspace/enable-a-service",
+              "workspace/bring-your-own-api",
+              "workspace/manage-versions",
+              "workspace/handle-provider-limits",
+              "workspace/share-access"
             ]
           },
           {
-            "group": "SDKs",
+            "group": "App (SDK)",
             "pages": [
-              "guides/sdk-overview",
-              "guides/sdk-typescript",
-              "guides/sdk-python",
-              "guides/sdk-webhooks"
+              "app/build-an-sdk",
+              "app/ship-a-new-version",
+              "app/receive-events",
+              "app/issue-tokens",
+              "app/run-an-operation",
+              {
+                "group": "Unified Operations",
+                "pages": [
+                  "app/unified/declare",
+                  "app/unified/call"
+                ]
+              }
             ]
           },
           {
-            "group": "MCP Servers",
+            "group": "MCP",
             "pages": [
-              "guides/mcp-overview",
-              "guides/mcp-deploy-cloud",
-              "guides/mcp-self-host"
+              "mcp/deploy-a-server",
+              "mcp/use-the-server",
+              "mcp/agent-tokens",
+              "mcp/oauth-tokens"
             ]
           },
           {
-            "group": "Dashboard",
+            "group": "Bucket",
             "pages": [
-              "guides/dashboard-overview",
-              "guides/authentication",
-              "guides/drift-detection"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "CLI Reference",
-        "groups": [
-          {
-            "group": "Installation",
-            "pages": [
-              "cli/overview",
-              "cli/installation"
+              "bucket/store-credentials",
+              "bucket/connect-user-accounts",
+              "bucket/share-a-bucket"
             ]
           },
           {
-            "group": "Commands",
+            "group": "Staying current",
             "pages": [
-              "cli/create",
-              "cli/update",
-              "cli/download"
+              "notifications"
             ]
           }
         ]
@@ -81,7 +77,7 @@
     "links": [
       {
         "label": "Get Access",
-        "href": "https://usefused.com/#access"
+        "href": "https://usefused.com/signup"
       }
     ],
     "primary": {

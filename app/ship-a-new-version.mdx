@@ -1,0 +1,96 @@
+---
+title: "Ship a new version"
+description: "Change what an SDK exposes without rewriting the contract of software already in production."
+---
+
+An SDK version is immutable. That is the point: code that shipped last quarter keeps calling exactly what it was built against, while you publish something new alongside it.
+
+## Immutable means immutable
+
+Re-applying identical content to the same version is a no-op — no regeneration, no token rotation. Change the services, operations, auth, injections, or language under an existing version and apply returns `app_version_immutable`.
+
+The fix is always the same: bump the version and publish that.
+
+```yaml
+name: support-sdk
+version: "1.1.0"   # was 1.0.0
+```
+
+```bash
+fused-cli sdk validate
+fused-cli sdk plan
+fused-cli sdk apply --download
+```
+
+<Note>
+  Do not edit a generated package to impersonate another version. The Engine authorizes the opaque `app_id` embedded in the package, not a version number the client reports.
+</Note>
+
+## What carries across versions
+
+| Thing | Scope |
+|---|---|
+| SDK ID | One per name, shared by every version |
+| Version ID | One per explicit version, immutable |
+| Execution tokens | Shared across every active or deprecated version |
+| Operation scope | Enforced per version |
+
+Because tokens belong to the SDK rather than a version, a new version that expands capability expands what existing tokens can reach. The plan reports which tokens are affected. If two teams must not share capability, give them different SDK names rather than different versions of one.
+
+There is no implicit "latest." Every command that resolves a version wants `name@version` or a Version ID.
+
+## Inspect what shipped
+
+```bash
+fused-cli sdk list
+fused-cli sdk show support-sdk@1.1.0
+fused-cli sdk services support-sdk@1.1.0
+fused-cli sdk buckets support-sdk
+```
+
+`sdk list` shows `SDK_ID`, stable across versions, and `VERSION_ID`, identifying one exact immutable version.
+
+## Flags
+
+### `sdk download`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--out` | Output directory | `fused-cli sdk download support-sdk@1.1.0 --out ./vendor` |
+| `--json` | Prints SDK, Version ID, status, and output path | `fused-cli sdk download support-sdk@1.1.0 --json` |
+
+### `sdk list`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--limit` | Rows to read | `fused-cli sdk list --limit 50` |
+| `--offset` | Rows to skip | `fused-cli sdk list --offset 50` |
+
+### `sdk openapi`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--operation` | Exports one exact physical or Unified operation | `fused-cli sdk openapi support-sdk@1.1.0 --operation issueUpdate` |
+| `--out` | Output file path | `fused-cli sdk openapi support-sdk@1.1.0 --out ./support.yaml` |
+| `--format` | `yaml` or `json` | `fused-cli sdk openapi support-sdk@1.1.0 --format json` |
+| `--json` | Prints export metadata only, including a `sha256:` of the file | `fused-cli sdk openapi support-sdk@1.1.0 --json` |
+
+`sdk openapi` always writes a file and never prints the document to stdout. It needs your ordinary control credential and `app.read` — an execution token cannot authorize the export.
+
+## Pull the Engine's state back down
+
+```bash
+fused-cli sdk sync support-sdk -f .fused/sdks/support-sdk.yaml
+```
+
+Sync full-mirrors the exact Engine app version your local file declares. Anything the Engine no longer selects is removed locally rather than flagged, and Engine values win on conflict. There is no implicit latest lookup and no sync-time upgrade — change `version` yourself, then plan and apply it deliberately.
+
+One quirk worth expecting: sync freezes the current selection into an explicit sorted operation list, so a service configured with `select_all: true` does not come back as `select_all: true`.
+
+## Retiring a version
+
+The CLI has no SDK deprecate or deactivate command. Those lifecycle actions live in the Engine's App UI and API. If you find yourself reaching for `fused-cli sdk deactivate`, it does not exist — do not improvise one.
+
+<Card title="Issue execution tokens" icon="ticket" href="/app/issue-tokens">
+  A new version does not need a new token. It may need you to review the old ones.
+</Card>

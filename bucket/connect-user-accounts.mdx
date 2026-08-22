@@ -1,0 +1,111 @@
+---
+title: "Connect a user's account"
+description: "Run OAuth once, per end user, and let the Engine keep the tokens working."
+---
+
+When your product acts on behalf of individual users, each one needs their own provider connection. The Engine owns that flow end to end: the app registration, the consent round trip, encrypted token storage, and refresh. Tokens are never returned to your application.
+
+There are two separate things here, easy to conflate:
+
+- **The app registration** — your `client_id` and `client_secret` with the provider. One per bucket and service.
+- **A user connection** — one person's grant against that registration. Many per registration.
+
+## Register the OAuth app
+
+This is an immediate admin action. No `workspace.yaml` field, no plan or apply — it takes effect on save.
+
+```bash
+printf '%s' 'client_id=abc;client_secret=xyz;redirect_uri=https://engine.example.com/workspace/connect/callback' \
+  | fused-cli connect set jira --bucket prod-credentials --value-stdin
+```
+
+Or answer per field:
+
+```bash
+fused-cli connect set jira --bucket prod-credentials --interactive
+```
+
+There are no `--client-id`, `--client-secret`, or `--redirect-uri` flags. The whole registration is one `;`-delimited value, and the key names must be exactly `client_id`, `client_secret`, and `redirect_uri`.
+
+<Note>
+  Every field is required the first time. Afterwards, **omitting** a field leaves it unchanged — so rotating just the redirect URI does not mean resupplying the secret. A key present but blank (`client_secret=`) is rejected as an attempt to erase a credential. Omitted means "leave as-is"; blank means "make it empty," and only one of those is allowed.
+</Note>
+
+### `connect set` flags
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--bucket` | Bucket to register against (required) | `fused-cli connect set jira --bucket prod-credentials --interactive` |
+| `--value-stdin` | Reads the registration from stdin | `printf '%s' 'client_id=…;client_secret=…;redirect_uri=…' \| fused-cli connect set jira --bucket prod --value-stdin` |
+| `--interactive` | Prompts per field | `fused-cli connect set jira --bucket prod --interactive` |
+| `--type` | `oauth` or `oidc` | `fused-cli connect set jira --bucket prod --type oauth --interactive` |
+| `--auth-name` | Exact Registry scheme when the type has several | `fused-cli connect set jira --bucket prod --type oauth --auth-name jira-cloud --interactive` |
+
+## Check what is registered
+
+```bash
+fused-cli connect get jira --bucket prod-credentials
+```
+
+You get `auth_type`, `auth_name`, `enabled`, and `redirect_uri` in plaintext, plus `has_client_id` and `has_client_secret` as booleans — never the decrypted values.
+
+This is the only way to check registration state. `bucket services` shows a count, and `workspace.yaml` and `workspace sync` do not reflect it at all, because app registration was deliberately kept out of the declarative surface.
+
+## Connect a user
+
+```bash
+fused-cli workspace service connect jira \
+  --bucket prod-credentials \
+  --user-ref user_123 \
+  --scope read:jira-work \
+  --scope write:jira-work
+```
+
+Omit `--scope` to request the service's declared scope catalogue. OIDC subsets must include `openid`.
+
+### `workspace service connect` flags
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--bucket` | Bucket holding the registration (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
+| `--user-ref` | Stable end-user reference (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
+| `--scope` | Requests one scope; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --scope read:jira-work` |
+| `--sdk` | Attributes the session to an SDK for audit | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --sdk support-sdk@1.1.0` |
+| `--resource-input` | Tenant input as `key=value`; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --resource-input site=acme` |
+
+That `--user-ref` is the same value your application later sends as `endUserRef`, or an agent sends as `X-Fused-End-User-Ref`. Keep it stable.
+
+## Refresh happens without you
+
+Nobody refreshes a token through the CLI or the SDK. The Engine refreshes eligible connections at startup and hourly, scheduling from whichever expires first.
+
+An expired access token is not a reconnect — the Engine can rotate it while the refresh token is still good. A connection becomes `reconnect_required` only when refresh material is missing, expired, revoked, or rejected. Then you run the same connect flow again for that bucket, service, auth name, and user reference.
+
+<Warning>
+  Never treat an unexpected provider 401 or 403 as permission to replay a mutation.
+</Warning>
+
+## One user, several tenants
+
+A single OAuth token can front several provider sites, shops, or accounts. The Engine discovers them and picks a default when there is exactly one.
+
+```bash
+fused-cli workspace connection resources list <connection-id> --json
+fused-cli workspace connection resources set-default <connection-id> <resource-id>
+fused-cli workspace connection resources rediscover <connection-id>
+```
+
+With several resources and no default, a call must pass an explicit `X-Fused-Resource-ID` or `resourceId`, or it fails with a structured ambiguity error. `rediscover` drops resources the provider no longer returns; if the default disappears, selection falls back to the ordinary rules rather than routing to a stale tenant.
+
+## Who has connected
+
+```bash
+fused-cli bucket connections prod-credentials --service jira
+fused-cli bucket connections prod-credentials --user user_123
+```
+
+This lists every end user who has connected to any service through the bucket, and whether their token is healthy. Do not confuse it with `workspace connection resources`, which is about one already-connected user's reachable tenants.
+
+<Card title="Share the bucket" icon="users" href="/bucket/share-a-bucket">
+  Let other teams select this bucket without handing them its contents.
+</Card>

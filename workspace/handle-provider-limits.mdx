@@ -1,0 +1,177 @@
+---
+title: "Handle provider limits and failures"
+description: "Rate limits, retries, and pagination handled once in the runtime instead of in every feature."
+---
+
+An application makes one call. What happens when the provider rate-limits it, returns a 503, or splits the answer across forty pages is decided here — once, on the workspace service, and inherited by every SDK and MCP server that uses it.
+
+The outcome: no feature anyone on your team writes needs its own retry loop, token bucket, or page walker.
+
+<Note>
+  This is workspace config, and only workspace config. `rate_limit`, `retry`, and `pagination` are rejected in `sdk.yaml` and `mcp.yaml` — generated clients contain no local window, semaphore, retry loop, jitter, or sleep, and that is deliberate.
+</Note>
+
+## Where it goes
+
+```yaml
+apiVersion: fused/v1
+kind: workspace
+services:
+  stripe:
+    execution_policy:          # default for every version below
+      rate_limit: { }
+      retry: { }
+      pagination: { }
+    versions:
+      - version: "2024-06-20"
+        execution_policy:      # overrides the default, for this version only
+          rate_limit: { }
+```
+
+A version-level policy wins over the service default for that version. Apply it the ordinary way:
+
+```bash
+fused-cli workspace plan
+fused-cli workspace apply
+```
+
+## Rate limits and concurrency
+
+An ordered set of simultaneous dimensions. Each declares its unit, how bucket identity is derived, its cost model, and exactly one algorithm branch.
+
+```yaml
+rate_limit:
+  version: 3
+  policies:
+    - name: minute_requests
+      mode: enforce                    # enforce | observe
+      unit: requests                   # requests | points | complexity | quota_units
+      identity:
+        inputs: [{kind: connection}]
+      cost:
+        default: 1
+      algorithm: fixed_window
+      fixed_window: {limit: 300, duration_ms: 60000}
+      response_signals:
+        remaining: {source: header, name: X-RateLimit-Remaining}
+        reset: {signal: {source: header, name: X-RateLimit-Reset}, format: unix_seconds}
+  cooldown:
+    statuses: [{min: 429, max: 429}]
+    headers: [{name: Retry-After, formats: [delta_seconds, http_date], max_delay_ms: 60000}]
+```
+
+| Choice | What it gives you |
+|---|---|
+| `mode: observe` | Measures without blocking — use it to learn a provider's real ceiling before enforcing one |
+| `identity.inputs` | Decides what shares a bucket: a connection, an account, a named shared credential family |
+| `response_signals` | Lets the Engine read the provider's own remaining and reset values instead of guessing |
+| `cooldown` | Backs off on a status or `Retry-After` header, bounded by `max_delay_ms` |
+
+Algorithms available: `fixed_window`, rolling window, token bucket, and concurrency. Because identity can be a shared credential family, one limit can be coordinated across every caller using the same provider account — which local client-side limiting cannot do.
+
+## Retries
+
+Ordered rules. Within one predicate field values are ORed; across fields they are ANDed. The first matching rule's action applies.
+
+```yaml
+retry:
+  version: 3
+  rules:
+    - predicates:
+        methods: [POST]
+        operation_kinds: [write]
+        statuses: [{min: 429, max: 429}, {min: 500, max: 599}]
+        body_replayability: replayable
+        idempotency_key: {requirement: required, header: Idempotency-Key}
+      action:
+        max_attempts: 3
+        max_elapsed_ms: 30000
+        backoff: {strategy: exponential, base_delay_ms: 250, max_delay_ms: 5000, jitter_ms: 100}
+        retry_after_headers: [{name: Retry-After, formats: [delta_seconds, http_date], max_delay_ms: 10000}]
+```
+
+<Note>
+  Retrying a write needs explicit `body_replayability` and `idempotency_key` predicates. Never infer that a call is safe to replay from its HTTP method or the provider's name — a `POST` is not automatically idempotent, and guessing wrong duplicates real records.
+</Note>
+
+`retry_config` is accepted as an alternative spelling. Setting both is rejected, so one policy cannot silently mask another.
+
+## Pagination
+
+An ordered request → response → continuation contract. The Engine walks the pages and streams each successful one as a separate execution chunk; your client makes one logical call.
+
+```yaml
+pagination:
+  version: 3
+  request:
+    - {state: cursor, target: {location: query, name: cursor}, value_type: string, apply: subsequent}
+  response:
+    items: {path: "$.items"}
+    values:
+      - {name: next_cursor, source: {location: body, path: "$.metadata.next_cursor", value_type: string}}
+  continuation:
+    - {kind: token, state: cursor, response_value: next_cursor}
+  termination:
+    stop_on_empty_items: true
+    stop_on_missing_values: [next_cursor]
+    repeated_value: error
+  limits: {max_pages: 100, max_items: 10000, max_bytes: 16777216, max_duration_ms: 120000}
+```
+
+Continuations compose token, offset, page, RFC Link, and next-URL state; GraphQL policies can pin result aliases and separate first and subsequent page templates.
+
+<Warning>
+  Always declare `termination`, `repeated_value` handling, and all four `limits`. A next-URL continuation additionally needs an explicit same-origin or allowlist policy — otherwise a provider response could redirect the Engine at an unreviewed origin while carrying your credential.
+</Warning>
+
+A caller may only ever *lower* the ceiling, with `fused.pagination.maxPages` / `max_pages`. Continuation strategy, tokens, paths, and next URLs are never caller-owned.
+
+## Fixing a wrong base URL
+
+When a spec declares the wrong server, or none at all:
+
+```yaml
+execution_policy:
+  base_url: "https://api.example.com/current"
+  server_variables: {tenant: acme, region: eu1}
+```
+
+`base_url` layers on top of the spec-derived value, which stays intact and inspectable underneath. `server_variables` binds imported OpenAPI server-template variables — keys must name variables declared on the effective operation server, and at most 128 entries are allowed.
+
+<Warning>
+  These values are **literal only**. They are validated against `^[A-Za-z0-9._~-]{1,512}$`, so a `${bucket.env.KEY}` reference is rejected here. Dynamic bucket values are an app-level feature: use an [SDK or MCP injection](/bucket/store-credentials#inject-a-bucket-value-into-a-request) with `location: server_variable`. Where both exist, this workspace map is the final authority.
+</Warning>
+
+A connection-resource forced binding (`${resource.base_url}`) still wins at dispatch time. `execution_policy.base_url` is the static fallback beneath it, not a way to override a live connection's routing.
+
+`server_variables` never leaves your Engine, even with `public: true`, and `workspace sync` preserves the local map. There is no owner-editable path for `default_headers` today.
+
+## Local effect vs publishing
+
+These are two independent things, and confusing them is the most common mistake here.
+
+| | Effect |
+|---|---|
+| Declaring a policy | Takes effect **locally and immediately on apply** — whether or not you own the service, whether or not `public` is set |
+| `public: true` | *Additionally* publishes it to the Registry so every other consumer of the service inherits it |
+
+So a non-owner declaring `execution_policy` without `public` is not a no-op — it is the normal case: enforce this here, affect nobody else. Only the owning account can set `public: true`; the Engine rejects it from anyone else at apply.
+
+Other Engine deployments that inherit a published value get a `registry_execution_policy_changed` notification the next time their poller runs.
+
+<Note>
+  Do not confuse this `public` with a service's own top-level `public`, which controls Registry visibility of the service page. Both are owner-only and both are called `public`, but they publish entirely different things.
+</Note>
+
+## Clearing an override
+
+```yaml
+execution_policy:
+  reset: true
+```
+
+`reset` drops your **local** override for that tier back to the Registry-sourced snapshot. It touches nothing you have published — there is no unpublish; a prior publish stands until superseded. Pair `reset` with nothing else.
+
+<Card title="Know when a policy changes" icon="bell" href="/notifications">
+  Inheriting a Registry default means someone else can change it. That is what the notification is for.
+</Card>

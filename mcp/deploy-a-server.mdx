@@ -1,0 +1,123 @@
+---
+title: "Deploy an MCP server"
+description: "Stand up one Engine-hosted MCP server that reaches every service an agent is allowed to use."
+---
+
+An MCP server is an Engine-hosted runtime with its own URL. It never builds or downloads a package — apply stands it up, and it stays live until you deactivate it.
+
+One server can span several internal and external services, so an agent needs one connection rather than one per provider.
+
+## Author and deploy
+
+```bash
+fused-cli mcp init support-agent \
+  --service 'linear=v1' \
+  --operation 'linear=issueUpdate' \
+  --select-all 'slack'
+```
+
+That writes `.fused/mcps/support-agent.yaml`:
+
+```yaml
+apiVersion: fused/v1
+kind: mcp
+name: support-agent
+version: "1.0.0"
+bucket: default
+services:
+  linear:
+    version: "v1"
+    operations: ["issueUpdate"]
+    auth: { type: "oauth" }
+    connect: { scopes: ["read:issues"] }
+  slack:
+    version: "v1"
+    select_all: true
+```
+
+<Steps>
+  <Step title="Validate">
+    ```bash
+    fused-cli mcp validate
+    ```
+  </Step>
+  <Step title="Preview">
+    ```bash
+    fused-cli mcp plan
+    ```
+  </Step>
+  <Step title="Stand it up">
+    ```bash
+    fused-cli mcp apply
+    fused-cli mcp list
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  The first successful apply may return an execution token once. An idempotent apply will not reveal it again. Store it immediately.
+</Warning>
+
+## Flags
+
+### `mcp init`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--service` | Adds a service at a version; repeatable | `fused-cli mcp init support --service 'linear=v1'` |
+| `--operation` | Selects one operation; repeatable | `fused-cli mcp init support --operation 'linear=issueUpdate'` |
+| `--select-all` | Takes every operation of a service | `fused-cli mcp init support --select-all 'slack'` |
+| `--extend` | Adds to an existing config rather than refusing to overwrite | `fused-cli mcp init support --extend --select-all 'slack'` |
+| `--bucket` | References an existing bucket; never creates one | `fused-cli mcp init support --bucket agent-credentials` |
+| `--version` | Sets the config version; defaults to `1.0.0` | `fused-cli mcp init support --version 2.0.0` |
+
+`--language` is SDK-only. An MCP server is a runtime, not a generated package.
+
+`mcp init` also resolves server-template variables for the operations you selected and writes the matching `server_variable` injections, reporting a count of what it generated. The behaviour is identical to the SDK side — [how init fills in routing](/app/build-an-sdk#init-fills-in-the-routing-you-would-otherwise-miss).
+
+### `mcp plan`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--json` | Prints the plan result and required permissions | `fused-cli mcp plan --json` |
+| `--owner-team` | Sets the owning team; defaults to you | `fused-cli mcp plan --owner-team support` |
+| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli mcp plan --receipt-out ./ci/mcp.plan.json` |
+
+MCP planning has no interactive credential remediation. That flag exists on SDK plans only.
+
+### `mcp apply`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--plan-id` | Applies one exact remote plan | `fused-cli mcp apply --plan-id pln_6b2…` |
+| `--receipt` | Applies from a specific receipt | `fused-cli mcp apply --receipt ./ci/mcp.plan.json` |
+
+`--download` and `--json` are SDK-only. An MCP server has no package to download.
+
+## What an MCP config cannot do
+
+- **No webhooks.** `webhooks` and `webhooks_select_all` are rejected on an MCP config by both the CLI and the Engine. Treat event delivery as an SDK-only surface.
+- **No unified operations.** `unified_operations` is available to TypeScript and Python SDK configs, not to `kind: mcp`.
+- **No implicit latest.** Every version reference is explicit.
+
+## Versions
+
+One MCP name has one stable MCP ID shared by every version, and each explicit version has its own immutable Version ID. Multiple versions can run at once.
+
+Applying identical content to the same version is a no-op. Changing its operation, auth, or injection scope returns `app_version_immutable` — publish a new version instead.
+
+## Deactivating
+
+```bash
+fused-cli mcp deactivate support-agent@1.0.0
+```
+
+<Warning>
+  This is irreversible. The Engine writes a tombstone, stops that runtime, and will not allow that MCP name and version to be recreated. Sibling versions and shared tokens survive.
+</Warning>
+
+Unlike removing a workspace service, deactivation is immediate and is not gated behind a blocker for configs that still reference it. There is no MCP deprecate or undeprecate command — do not invent one.
+
+<Card title="Create a token for an agent" icon="shield-halved" href="/mcp/agent-tokens">
+  A deployed server is not the same as a safe one. Narrow the token next.
+</Card>

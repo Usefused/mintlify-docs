@@ -1,0 +1,94 @@
+---
+title: "Use the MCP server"
+description: "Connect a client, open a session, and let an agent work across every approved service."
+---
+
+A deployed MCP server exposes a Streamable HTTP endpoint. Any MCP client that speaks JSON-RPC over it can connect with a bearer token — one connection reaching every service the server selects.
+
+## Find the URL
+
+```bash
+fused-cli mcp list
+```
+
+The runtime URL carries the exact opaque version ID, which is the authoritative identity of what you are calling:
+
+```text
+https://<engine-host>/mcp/<version-id>
+```
+
+Note there is no `/sse` suffix — `mcp list` returns the Streamable HTTP URL directly.
+
+<Note>
+  The older `/mcp/<version-id>/sse` route still works, and existing clients on it keep running. It is transitional compatibility rather than the current transport, so point new clients at the Streamable HTTP URL above.
+</Note>
+
+## Open a session
+
+POST a JSON-RPC `initialize` request with your token:
+
+```http
+POST /mcp/<version-id> HTTP/1.1
+Host: <engine-host>
+Authorization: Bearer <MCP execution token>
+Content-Type: application/json
+```
+
+The Engine returns an `Mcp-Session-Id`. Send that opaque header on every subsequent POST, GET, and DELETE. Send `MCP-Protocol-Version` too if your client negotiates one.
+
+`DELETE` ends that session and nothing more. It is not revocation — use [`mcp token revoke`](/mcp/agent-tokens) for that.
+
+## The two tools
+
+The agent-facing surface is deliberately small. A large tool catalogue is what fills a model's context before it has done anything useful; two tools plus just-in-time discovery does not.
+
+<CardGroup cols={2}>
+  <Card title="search_docs" icon="magnifying-glass">
+    Returns the operations, parameters, and calling shapes relevant to the task at hand.
+  </Card>
+  <Card title="execute" icon="play">
+    Runs a single approved call, or TypeScript chaining several, away from credentials, the filesystem, and open network access.
+  </Card>
+</CardGroup>
+
+The working loop is: search for what is relevant, then execute against it.
+
+```text
+search_docs("create an issue and notify the channel")
+  → the operations that match, with their parameters
+
+execute(<script calling those operations>)
+  → results
+```
+
+Chaining several operations inside one `execute` does not bundle them into a single approval. The Engine authorizes each underlying operation on its own merits, and anything outside the token's allowlist is refused even mid-script.
+
+## What tools never accept
+
+Neither the tool schema nor its `call()` function takes a provider token, an API key, an auth scheme name, or a Fused user selector as a parameter.
+
+The agent picks operations and provider arguments. Everything else — which credential, which connected account, which tenant — is resolved by Engine middleware before dispatch. For a dynamic token, those selectors are configured once on the connection rather than per call. See [tokens for OAuth services](/mcp/oauth-tokens).
+
+## Provider arguments
+
+Arguments come from the imported canonical request schema. Two behaviours are worth expecting:
+
+- **Map-valued objects** keep their `additional_properties` value schema. Validate each entry rather than treating the object as untyped.
+- **Resource-name path values** are passed normally. Where the contract marks slash-preserving expansion, the Engine keeps embedded `/` separators and still escapes unsafe segment characters. Do not pre-encode.
+
+## Pagination
+
+Pagination is inherited from the selected endpoint and its effective service-version policy. Do not add pagination fields to the MCP config or to tool schemas.
+
+The Engine performs the provider requests and streams each successful page as a separate execution chunk. An agent never loops pages or passes continuation tokens itself.
+
+## Useful commands
+
+| Command | What it tells you |
+|---|---|
+| `fused-cli mcp list` | Name, version, ID, active state, and the runtime URL |
+| `fused-cli mcp token list <mcp>` | Which tokens exist, their allowlist, expiry, and last use |
+
+<Card title="Create a token for an agent" icon="ticket" href="/mcp/agent-tokens">
+  The token from your first apply allows everything and never expires. Narrow it before an agent uses it.
+</Card>

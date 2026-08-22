@@ -1,0 +1,168 @@
+---
+title: "Get an Engine running"
+sidebarTitle: "Get an Engine running"
+description: "Stand up the runtime everything else in Fused talks to."
+---
+
+Every `fused-cli` command talks to an Engine. If you do not have one yet, nothing else on this site will work — so start here.
+
+There are two ways to get one.
+
+<CardGroup cols={2}>
+  <Card title="Fused-hosted" icon="cloud">
+    Choose a hosted Engine when you create your account and Fused provisions an isolated one for you. You get a URL — skip to [pointing the CLI at it](#point-the-cli-at-it).
+  </Card>
+  <Card title="Self-hosted" icon="server">
+    Run the Engine in your own infrastructure, so credentials, payloads, and execution records never leave it. The rest of this page.
+  </Card>
+</CardGroup>
+
+## What you need first
+
+- **PostgreSQL 16+**. The Engine creates and upgrades its own tables on startup, through one standard connection string. There is no provider-specific branching.
+- **A Fused license key**, from your Fused onboarding contact or the dashboard.
+
+<Warning>
+  The Engine exits during startup without a valid license key, before serving any HTTP, webhook, or gRPC traffic. There is no offline mode that bypasses the Registry handshake.
+</Warning>
+
+## Install the binary
+
+```bash
+OS=$(uname -s)
+ARCH=$(uname -m | sed 's/aarch64/arm64/')
+ARCHIVE="fused_${OS}_${ARCH}.tar.gz"
+BASE="https://github.com/Usefused/engine/releases/latest/download"
+
+curl -LO "${BASE}/${ARCHIVE}"
+curl -LO "${BASE}/checksums.txt"
+sha256sum --check --ignore-missing checksums.txt
+
+tar -xzf "${ARCHIVE}"
+mv fused-engine /usr/local/bin/
+```
+
+That pulls the newest release. For a repeatable build, swap `latest/download` for `download/<tag>` using a tag from the [releases page](https://github.com/Usefused/engine/releases).
+
+Then start it:
+
+```bash
+export FUSED_DATABASE_URL="postgres://fused:password@localhost:5432/fused?sslmode=disable"
+export FUSED_LICENSE_KEY="<provided-by-fused>"
+
+fused-engine start
+```
+
+That brings up the REST API and dashboard on `:8081`, the SDK gRPC listener on `:50051`, and — since no external NATS is configured — an embedded NATS server on `:4222`.
+
+## Or run the container
+
+Two image variants are published:
+
+| Image | Contains |
+|---|---|
+| `ghcr.io/usefused/engine:latest` | Engine with the embedded Admin UI |
+| `ghcr.io/usefused/engine:headless` | Engine API and runtime, no UI |
+
+Both are moving tags. Every release is also published under its own version tag — `:<tag>` and `:<tag>-headless` — and production deployments should pin one.
+
+```bash
+docker pull ghcr.io/usefused/engine:latest
+
+docker run \
+  -e FUSED_LICENSE_KEY="<license key>" \
+  -e FUSED_DATABASE_URL="postgres://…" \
+  -e FUSED_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -p 8081:8081 -p 50051:50051 \
+  ghcr.io/usefused/engine:latest
+```
+
+<Note>
+  All three environment variables are required. A container started with only the license key will not come up.
+</Note>
+
+If a pull fails with `unauthorized`, the package may not be public yet. Authenticate with a GitHub token carrying `read:packages`:
+
+```bash
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u <your-github-username> --password-stdin
+```
+
+## The encryption key
+
+`FUSED_ENCRYPTION_KEY` is a 32-byte AES key encrypting everything at rest — webhook signing secrets, auth credentials in Engine-local storage, and connect session state.
+
+```bash
+openssl rand -base64 32
+```
+
+<Warning>
+  `engine.yaml.example` ships with a default encryption key, and that value is **committed to a public repository**. Anyone can decrypt secrets encrypted with it. Use it for local throwaway development only, and never anywhere real.
+</Warning>
+
+## Configuration and precedence
+
+Settings come from flags, environment variables, or `engine.yaml` (`--config`, defaulting to `engine.yaml`). **Flags win over environment variables, which win over the config file.**
+
+```yaml
+encryption_key: "…"
+database:
+  url: "postgres://fused:password@localhost:5432/fused?sslmode=disable"
+engine:
+  # public_url: "https://engine.example.com"
+  # public_grpc_url: "https://engine-exec.example.com"
+  worker_counts:
+    mcp_analytics: 2
+    webhook_config: 2
+    webhook_analytics: 2
+observability:
+  otel_target: "localhost:4317"
+```
+
+The license key resolves in its own order: `--license-key`, then `FUSED_LICENSE_KEY` in a local `.env`, then `engine.license_key` in `engine.yaml`, then an inherited `FUSED_LICENSE_KEY` process variable. `FUSED_API_KEY` is never a license source.
+
+Prefer a deployment-managed `.env` or secret-backed config in production. Do not commit production keys to `engine.yaml`.
+
+Common overrides:
+
+| Variable | What it does |
+|---|---|
+| `FUSED_DATABASE_MAX_CONNS` | Pool ceiling; standalone defaults to `10`, hosted starter Engines to `2` |
+| `FUSED_DATABASE_MAX_CONN_IDLE_TIME` | Idle retention; standalone `30m`, hosted `2m` |
+| `FUSED_ENGINE_PUBLIC_URL` / `FUSED_ENGINE_PUBLIC_GRPC_URL` | External addresses the Admin UI shows as copy-ready. These describe routes; they do not create DNS or load-balancer config |
+| `FUSED_REGISTRY_ENDPOINT` | Only when Fused support directs you away from the Fused Cloud default |
+| `--port` / `--grpc-port` / `--webhook-port` | Move the listeners |
+
+## Confirm it is up
+
+```bash
+curl http://<engine-host>:8081/health
+```
+
+## Point the CLI at it
+
+```bash
+fused-cli --engine-url https://engine.example.com login
+fused-cli whoami
+```
+
+`login` opens the Engine's sign-in page — managed Fused Auth, or an existing Engine API key. The credential is generated locally and the Engine stores only its hash, so the browser never sees it. Use `--no-browser` on a headless machine to print the URL and approve from another device.
+
+To save the URL rather than passing it each time:
+
+```bash
+fused-cli config set engine-url https://engine.example.com
+fused-cli config list
+```
+
+`whoami` shows which credential actually won the precedence chain — worth checking when a saved login, `FUSED_API_KEY`, and `FUSED_LICENSE_KEY` might all be present.
+
+## Before production
+
+- **Pin a version tag.** `latest` moves; a deploy that reruns should not quietly change Engine underneath you.
+- **Set a real encryption key.** Not the committed example.
+- **External NATS for replicas.** The embedded server is single-instance. Horizontal replication needs `NATS_URL` without embedded credentials, plus exactly one of `NATS_CREDS_FILE`, `NATS_NKEY_SEED_FILE`, `NATS_TOKEN`, or paired `NATS_USERNAME`/`NATS_PASSWORD`. Mount credential and TLS files read-only; never bake them into an image.
+- **Check your licence terms.** The Engine is source-available under PolyForm Noncommercial 1.0.0. Commercial or production use needs a separate written agreement with Fused in addition to a valid key.
+
+<Card title="Quickstart" icon="rocket" href="/quickstart">
+  With an Engine reachable, enable a service and ship an SDK.
+</Card>

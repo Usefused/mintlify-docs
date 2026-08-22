@@ -1,0 +1,63 @@
+---
+title: "Issue execution tokens"
+description: "Give a running application a credential that calls your SDK — and nothing else."
+---
+
+An SDK execution token authenticates your application to the Engine at runtime. It is not your CLI key, and it is not a provider credential. Keeping those three straight is most of what there is to know here.
+
+## Three credentials, three jobs
+
+| Credential | Authenticates | Where it lives |
+|---|---|---|
+| CLI API key | Management calls to the Engine | Your local CLI config |
+| SDK execution token | `app_id` + token runtime calls | Your application's secret manager |
+| Provider credentials | The Engine to the provider | The SDK's Engine bucket |
+
+Never pass the License Key or a provider credential as an execution token, and never put any of them in the SDK config.
+
+## Generate one
+
+```bash
+fused-cli sdk token generate support-sdk ci-runner --expires-in 4h
+fused-cli sdk token list support-sdk
+fused-cli sdk token revoke support-sdk ci-runner
+```
+
+The plaintext prints exactly once. Capture it immediately and store it somewhere real.
+
+Omit `--expires-in` for a non-expiring service credential; use it for temporary access you would rather not have to remember to revoke.
+
+<Note>
+  A token belongs to the SDK, not one version. It works with every active or deprecated version, while each version still enforces its own operation scope. `--expires-in` limits *time*, not which operations the token may call.
+</Note>
+
+There is no `--allow` flag on an SDK token. That exists on MCP tokens, where narrowing an agent's reach is the common case. If you need two audiences with different capability, publish two SDKs rather than trying to split one token.
+
+## Flags
+
+### `sdk token generate`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--expires-in` | Makes the token temporary | `fused-cli sdk token generate support-sdk ci --expires-in 4h` |
+| `--json` | Returns the one-time token, expiry, and metadata as an object | `fused-cli sdk token generate support-sdk ci --json` |
+
+Use `--json` in automation. Do not parse the token out of human-readable apply text.
+
+## The token the first apply gives you
+
+The first successful `sdk apply` returns an execution token once, in the response where the Engine created it. In JSON output it appears as `execution_token` on that one response only. An idempotent re-apply will not return it again.
+
+If you lose it, generate a new named token rather than re-applying and hoping.
+
+## After an Engine reset
+
+The Registry is not an SDK configuration archive and cannot restore SDKs after an Engine database reset. Recovery is: reapply your local SDK config, then issue a new execution token. This is a good reason to keep `.fused/` in source control.
+
+## Permissions
+
+Generating, listing, and revoking tokens all require `app.tokens.manage`. That is deliberately separate from `app.manage` — a team can own and update an SDK without being able to mint credentials for it, or the reverse.
+
+<Card title="Run an operation" icon="play" href="/app/run-an-operation">
+  With a token in hand, call an operation and confirm the whole path works.
+</Card>

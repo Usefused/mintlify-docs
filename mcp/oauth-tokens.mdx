@@ -1,0 +1,132 @@
+---
+title: "Tokens for OAuth services"
+description: "Give an agent access to a provider that acts on behalf of individual users."
+---
+
+An API key belongs to your company. An OAuth connection belongs to one person. When an agent calls a service like Jira, Google, or Slack, the provider needs to know *which* connected user it is acting for — and Fused calls that identifier the **end-user reference**.
+
+This page covers getting one to the Engine.
+
+## Before the token exists
+
+An OAuth token resolves against a connection that must already be there. Two things have to happen first, both covered in the Bucket section:
+
+<Steps>
+  <Step title="Register the OAuth app">
+    Your `client_id`, `client_secret`, and `redirect_uri` with the provider, stored against a bucket.
+    ```bash
+    fused-cli connect set jira --bucket default --type oauth --auth-name OAuth2 --interactive
+    fused-cli connect get jira --bucket default
+    ```
+  </Step>
+  <Step title="Connect a user">
+    One person's grant against that registration. The `--user-ref` you choose here is the value everything downstream uses.
+    ```bash
+    fused-cli workspace service connect jira \
+      --bucket default \
+      --user-ref user_123 \
+      --scope read:jira-work
+    ```
+  </Step>
+</Steps>
+
+Keep `--user-ref` stable and meaningful — it is your identifier for that person, not the provider's.
+
+## Two ways to bind a token
+
+The choice is made when you issue the token, and it decides who can steer it afterwards.
+
+| | Dynamic | Fixed |
+|---|---|---|
+| Who picks the user | The caller, per request, via headers | You, once, at issuance |
+| Client requirement | Must be able to set custom headers | Only needs `Authorization` |
+| Good for | One agent serving many end users | One agent scoped to one customer |
+
+### Dynamic — the caller names the user
+
+Issue an ordinary token, then send selectors as headers on the MCP connection:
+
+```bash
+fused-cli mcp token generate support-agent triage-bot \
+  --allow createIssue \
+  --expires-in 1h
+```
+
+```text
+Authorization: Bearer <MCP execution token>
+X-Fused-End-User-Ref: user_123
+X-Fused-Resource-ID: <optional connection-resource UUID>
+```
+
+| Header | When you need it |
+|---|---|
+| `X-Fused-End-User-Ref` | Required for connected OAuth or OIDC calls |
+| `X-Fused-Resource-ID` | Required when that connection reaches several provider tenants and none is default |
+
+Configure these once on the connection, not on each tool call. Tool schemas never accept a user selector as a parameter.
+
+### Fixed — the token names the user
+
+`--fixed-binding` resolves a service, auth scheme, user, and optional resource at issuance. Caller headers cannot override it.
+
+```bash
+fused-cli mcp token generate support-agent acme-only \
+  --expires-in 1h \
+  --fixed-binding '9f2c1e04-…,OAuth2,user_123,7d41a8b2-…'
+```
+
+The tuple is `service-id,auth-name,end-user-ref[,resource-id]`. Repeat the flag once per service the token may reach — different services on one token may intentionally use different end-user references.
+
+The CLI rejects malformed UUIDs. The Engine rejects duplicate or unavailable bindings atomically, so a partially-bound token is never issued.
+
+<Note>
+  Reach for fixed binding when the MCP client only supports an `Authorization` header, or whenever a token must be permanently limited to one customer's account. It removes a whole class of "the agent acted as the wrong user" mistakes, because the caller has no say in it.
+</Note>
+
+## Flags
+
+### `mcp token generate`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--fixed-binding` | Pins `service-id,auth-name,end-user-ref[,resource-id]`; repeatable | `fused-cli mcp token generate support acme --fixed-binding '9f2c…,OAuth2,user_123'` |
+| `--allow` | Restricts the token to exact operation IDs | `fused-cli mcp token generate support acme --allow createIssue` |
+| `--expires-in` | Gives the token a lifetime | `fused-cli mcp token generate support acme --expires-in 1h` |
+
+## When one user has several tenants
+
+A single OAuth token can front several provider sites, shops, or accounts. The Engine discovers them and picks a default when there is exactly one.
+
+```bash
+fused-cli workspace connection resources list <connection-id> --json
+fused-cli workspace connection resources set-default <connection-id> <resource-id>
+fused-cli workspace connection resources rediscover <connection-id>
+```
+
+With several resources and no default, a call that names no resource fails with a structured ambiguity error rather than guessing a tenant. Fix it by setting a default, or by passing `X-Fused-Resource-ID` per call.
+
+Find the connection ID with:
+
+```bash
+fused-cli bucket connections default --service jira --user user_123
+```
+
+## Who refreshes the token
+
+Nobody, manually. The Engine refreshes eligible connections at startup and hourly, scheduling from whichever expires first. An expired access token is not a reconnect — the Engine rotates it while the refresh grant is still valid.
+
+A connection becomes `reconnect_required` only when refresh material is missing, expired, revoked, or rejected by the provider. Then you run the same connect flow again for the same bucket, service, auth name, and user reference.
+
+<Warning>
+  Never treat an unexpected provider 401 or 403 as permission to replay a mutation.
+</Warning>
+
+## What the agent never sees
+
+The MCP token authenticates the client to the Engine. That is all it does. Provider credentials and OAuth tokens stay in the server's bucket, are never sent to the MCP client, and never appear in the agent's context.
+
+Do not add a second token format or an MCP-client OAuth flow. SDK and MCP deliberately share one execution-token contract, and provider OAuth stays inside the Engine.
+
+<Card title="Connect a user's account" icon="user-check" href="/bucket/connect-user-accounts">
+  The full connect flow, resource selection, and what happens when a grant lapses.
+</Card>

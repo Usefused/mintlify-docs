@@ -1,0 +1,97 @@
+---
+title: "Share access with teams"
+description: "Give a team exactly the services, buckets, and apps it needs — and nothing else."
+---
+
+Access in Fused is granted per resource, not per person's good intentions. A team can be allowed to *use* a bucket-backed app without being allowed to read what is in the bucket. This page covers granting that access and checking it before you need it.
+
+## Roles and grants
+
+A workspace role sets the baseline. Grants narrow or extend it per resource.
+
+```bash
+fused-cli team access workspace set platform admin
+fused-cli team access service grant payments stripe use
+fused-cli team access bucket grant payments prod-credentials use
+fused-cli team access app grant payments app_7f31… read
+```
+
+The canonical workspace roles are `owner`, `admin`, `builder`, and `viewer`. Activation permissions come with Admin and Owner; Builder and Viewer do not carry them.
+
+Levels differ by resource type:
+
+| Resource | Levels | What `use` means |
+|---|---|---|
+| Service | `use`, `manage` | Supplies `service.read` and `service.consume` |
+| Bucket | `use`, `manage` | Select the bucket for an app, without secret administration |
+| App (SDK or MCP) | `read`, `use`, `manage` | Applies to every version of that app |
+
+App grants need the `SDK_ID` or `MCP_ID` shown by `sdk list` and `mcp list`. The generic `app` command cannot infer which kind you mean from a name that both might share.
+
+## Check before you plan
+
+Preflight the owning team against every dependency, so a plan does not fail halfway through on a missing grant.
+
+```bash
+fused-cli team eligible-owners
+fused-cli team build-access payments --resource service
+fused-cli team build-access payments --resource bucket
+fused-cli sdk plan --owner-team payments
+```
+
+`build-access` lists what is available to *both* you and the team — which is the set that will actually work.
+
+## Share with the whole workspace
+
+When the audience really is everyone, a workspace-wide grant beats maintaining a grant per team.
+
+```bash
+fused-cli workspace access bucket grant shared-credentials
+fused-cli workspace access app grant app_7f31…
+fused-cli workspace access list --resource bucket
+```
+
+This gives every authenticated member and eligible owning team bounded *use*. Ownership does not move, secrets stay unreadable, and lifecycle and token management stay where they were. Revoke removes only that global binding — owner and explicit team bindings survive.
+
+<Note>
+  A workspace-wide app grant does not replace the runtime token. Callers still need a valid execution token.
+</Note>
+
+## Flags
+
+### `workspace access list`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--resource` | Filters to `bucket` or `app` | `fused-cli workspace access list --resource app` |
+| `--limit` | Rows to return | `fused-cli workspace access list --limit 50` |
+| `--offset` | Rows to skip | `fused-cli workspace access list --offset 50` |
+
+### `team build-access`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--resource` | `service` or `bucket` | `fused-cli team build-access payments --resource bucket` |
+| `--search` | Narrows by name | `fused-cli team build-access payments --resource service --search stripe` |
+| `--limit` | Rows to return | `fused-cli team build-access payments --resource service --limit 50` |
+
+### `team member add`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--role` | `member` (default) or `manager` | `fused-cli team member add payments ada@example.com --role manager` |
+
+### `team create`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--slug` | Sets the slug explicitly | `fused-cli team create "Payments" --slug payments` |
+| `--description` | Describes the team | `fused-cli team create "Payments" --description "Billing and invoicing"` |
+
+## When you are denied
+
+Stop. Keep the config and plan you had prepared, and report the exact missing permission and resource. Do not self-grant, switch credentials, or retry with broader authority — a scoped `service.manage` grant does not include the workspace-level `workspace.update` that applying activation needs, so guessing tends to produce a second confusing failure rather than a fix.
+
+<Card title="Store credentials in a bucket" icon="key" href="/bucket/store-credentials">
+  Access decides who may select a bucket. The bucket decides what credentials they get to use without seeing.
+</Card>

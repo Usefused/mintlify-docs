@@ -1,0 +1,97 @@
+---
+title: "Manage versions and deprecation"
+description: "Run several versions of a service at once, and retire one without breaking what already shipped."
+---
+
+Providers change their APIs on their schedule. Version management is how you absorb that on yours — running old and new side by side, warning consumers before anything moves, and removing a version only once nothing depends on it.
+
+## Run more than one version
+
+A workspace service holds a list of enabled versions. Add one and the old one keeps working.
+
+```bash
+fused-cli workspace service version add stripe 2024-06-20
+fused-cli workspace service versions stripe
+fused-cli workspace plan && fused-cli workspace apply
+```
+
+In `workspace.yaml`, `versions` is a list of objects, one per enabled version — not a list of version strings:
+
+```yaml
+services:
+  stripe:
+    versions:
+      - version: "2024-04-10"
+      - version: "2024-06-20"
+```
+
+Anything scoped to a version — visibility, execution policy, connection profiles — nests inside that version's entry. Flat version strings fail to parse, which is deliberate: it stops a policy from drifting away from the version it belongs to.
+
+## Announce a deprecation
+
+A deprecation is advisory. It records intent — a date and a reason — while the service stays fully active, so existing SDK and MCP configs keep working while their owners migrate.
+
+```bash
+fused-cli workspace service deprecate stripe \
+  --at 2026-12-01 \
+  --reason "Provider retires this version"
+
+fused-cli workspace service version deprecate stripe 2024-04-10 \
+  --at 2026-12-01 \
+  --reason "Superseded by 2024-06-20"
+```
+
+<Note>
+  Nothing is cut off on the date you set. There is no automatic date-triggered removal. Treat `--at` as the date you intend to run the delete, once you have confirmed nothing still depends on it.
+</Note>
+
+## Remove it for real
+
+Removal is a separate, deliberate step.
+
+```bash
+fused-cli workspace service version delete stripe 2024-04-10
+fused-cli workspace service delete stripe
+```
+
+If any SDK or MCP config in the same Registry account still references what you are removing, the plan comes back with a blocker instead of quietly breaking those configs. `--force` accepts that and removes it anyway — and writes a `workspace_service_removed` or `workspace_version_removed` notification recording that you made the call.
+
+## Flags
+
+### `workspace service deprecate` / `workspace service version deprecate`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--at` | Effective date, `YYYY-MM-DD` | `fused-cli workspace service deprecate stripe --at 2026-12-01` |
+| `--reason` | Why, for the people who will read the notification | `fused-cli workspace service deprecate stripe --at 2026-12-01 --reason "Provider EOL"` |
+
+### `workspace service delete` / `workspace service version delete`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--force` | Removes it despite SDK or MCP configs that still reference it | `fused-cli workspace service version delete stripe 2024-04-10 --force` |
+
+### `workspace service operations`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--q` | Searches operations server-side | `fused-cli workspace service operations stripe --q refund` |
+| `--version` | Pins the lookup to one enabled version | `fused-cli workspace service operations stripe --version 2024-06-20` |
+| `--limit` | Rows to read | `fused-cli workspace service operations stripe --q refund --limit 50` |
+| `--offset` | Rows to skip | `fused-cli workspace service operations stripe --q refund --offset 50` |
+
+## Check what a version actually offers
+
+Before you point an app at a new version, confirm the operations you depend on still exist under it.
+
+```bash
+fused-cli service versions stripe
+fused-cli workspace service operations stripe --version 2024-06-20 --q refund
+fused-cli service operation show stripe createRefund --version 2024-06-20
+```
+
+Request and response contracts are opt-in on `service operation show` — add `--include-request` or `--include-responses` — so a large schema does not arrive unless you asked for it.
+
+<Card title="Ship a new SDK version" icon="rocket" href="/app/ship-a-new-version">
+  Once a new service version is enabled, publish an SDK version that uses it.
+</Card>

@@ -1,176 +1,119 @@
 ---
-title: "Get Started with Fused: Build Your First SDK in Minutes"
+title: "Quickstart"
 sidebarTitle: "Quickstart"
-description: "Install fused-cli, set your API key, and generate a typed SDK or MCP server from a natural language description in under 5 minutes."
+description: "Install the CLI, enable a service, and ship a working SDK."
 ---
 
-Fused lets you go from an API description to a fully typed, published SDK in a single CLI command. This guide walks you through installing `fused-cli`, authenticating with your API key, and generating a real multi-service SDK that combines Jira, GitHub, and Slack into one business-capability package — the kind of integration that would normally take days to wire up by hand.
+From nothing to a typed package your application can call. Roughly ten minutes, most of it waiting on a browser tab.
 
-## Prerequisites
+<Note>
+  This assumes you already have an Engine to talk to — hosted, or one you started yourself. If not, [get one running first](/deploy-an-engine); every command below needs it.
+</Note>
 
-Before you begin, make sure you have the following:
-
-- **A Fused account** — [request access at usefused.com](https://usefused.com/#access) if you don't have one yet.
-- **Your `FUSED_API_KEY`** — found in the **API Keys** section of your Fused dashboard.
-- **Node.js 18+** — required to install and run the generated SDK packages.
-
-## Step 1 — Install fused-cli
-
-Choose the installation method that matches your environment:
-
-<Tabs>
-  <Tab title="macOS / Linux">
-    ```bash
-    curl -sSL https://raw.githubusercontent.com/Usefused/cli/main/install.sh | bash
-    ```
-  </Tab>
-  <Tab title="Windows (PowerShell)">
-    ```powershell
-    irm https://raw.githubusercontent.com/Usefused/cli/main/install.ps1 | iex
-    ```
-  </Tab>
-  <Tab title="Go install">
-    ```bash
-    go install github.com/Usefused/cli@latest
-    ```
-  </Tab>
-</Tabs>
-
-Verify the installation succeeded:
+## Install
 
 ```bash
+curl -sSL https://raw.githubusercontent.com/Usefused/cli/main/install.sh | bash
 fused-cli --version
 ```
 
-## Step 2 — Set your API key
+For automated or non-interactive installs, set `ASSUME_YES=1` to skip the confirmation prompt.
 
-Export your key as an environment variable so every `fused-cli` command can authenticate automatically:
-
-```bash
-export FUSED_API_KEY="sk_test_..."
-```
-
-<Tip>
-  Add this line to your shell profile (`~/.zshrc`, `~/.bashrc`, or equivalent) so you don't have to re-export it in every new terminal session. You can also pass the key explicitly on any command using the `--api-key` flag.
-</Tip>
-
-## Step 3 — Generate your first SDK
-
-Run `fused-cli create` with a name, version, and a plain-English description of what you want the SDK to do. Fused resolves the right services, scopes the relevant endpoints, and publishes a typed npm package.
+## Sign in
 
 ```bash
-fused-cli create \
-  --name onboarding-sdk \
-  --version 1.0.0 \
-  --type sdk \
-  --language typescript \
-  -d "When a new employee joins, use Jira to create an onboarding ticket, use GitHub to provision repository access, and use Slack to send a welcome message"
+fused-cli login
 ```
 
-The key flags for `fused-cli create` are:
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--name` | — | Name for the generated artefact (required) |
-| `--version` | — | Semantic version string, e.g. `1.0.0` |
-| `-d` | — | Plain-English description of the desired workflow (required) |
-| `--type` | `sdk` | Artefact type: `sdk` or `mcp` |
-| `--language` | `typescript` | Output language: `typescript` or `python` |
-| `--deploy` | — | Deploy a TypeScript MCP server directly to Fused-Run |
-| `-y` | — | Skip the interactive Cart UI and proceed automatically |
-
-<Tip>
-  Before the SDK is generated, Fused opens the **Cart UI** in your browser — an interactive checklist of every endpoint that will be included. Review and deselect any operations you don't need before confirming. This keeps your SDK lean and your bundle size small. Pass `-y` to skip the Cart UI in automated or CI workflows.
-</Tip>
-
-Fused will:
-
-1. Resolve the Jira, GitHub, and Slack services from its registry.
-2. Scope each service to only the endpoints your description requires.
-3. Bundle them into a single `@acme/onboarding-sdk` npm package.
-4. Publish the package and print the install command.
-
-## Step 4 — Install and use the generated SDK
-
-Install the published package into your project:
+This opens your Engine's sign-in page and saves a subject-scoped credential after you approve it. The credential never passes through the browser and is never printed.
 
 ```bash
-npm install @acme/onboarding-sdk
+fused-cli whoami
 ```
-
-Then import and use the typed client in your application:
-
-```typescript
-import { FusedSDK as OnboardingSDK } from "@acme/onboarding-sdk";
-
-const sdk = new OnboardingSDK({
-  jira: { token: "jira_..." },
-  github: { token: "ghp_..." },
-  slack: { token: "xoxb_..." }
-});
-
-// Create an onboarding ticket in Jira
-const ticket = await sdk.jira.issues.create({
-  project: "ONBOARD",
-  summary: "Onboard new engineer: Jane Doe",
-  issueType: "Task",
-  assignee: "jane.doe"
-});
-
-// Provision repository access on GitHub
-await sdk.github.repos.addCollaborator({
-  owner: "acme-corp",
-  repo: "platform",
-  username: "jane-doe-gh",
-  permission: "push"
-});
-
-// Send a welcome message in Slack
-await sdk.slack.chat.postMessage({
-  channel: "#engineering",
-  text: `👋 Welcome Jane! ${ticket.data.key} created and repo access granted.`
-});
-```
-
-Every method is fully typed — your editor will autocomplete parameters, flag mismatched types, and surface the response shape inline, with no manual type definitions required.
 
 <Note>
-  Each service within the bundle authenticates independently. You can supply tokens at initialisation time (as above) or set them as environment variables — see the [SDK guides](/guides/sdk-overview) for all supported auth patterns.
+  On a headless machine, `fused-cli login --no-browser` prints the URL instead of trying to open one.
 </Note>
 
-## Other CLI commands
-
-Once you have an artefact, you can iterate on it or retrieve it later using two additional commands:
-
-**Update an existing artefact** — re-run generation using the same name as a baseline, optionally changing type, language, or adding `--deploy`:
+## Enable a service
 
 ```bash
-# Update the most recent version
-fused-cli update onboarding-sdk
-
-# Update a specific version
-fused-cli update onboarding-sdk@1.0.0 --type mcp --deploy
+fused-cli workspace services list --q linear
+fused-cli workspace service add linear --version v1
+fused-cli workspace plan
+fused-cli workspace apply
 ```
 
-**Download a previously built artefact** — retrieve the source `.zip` without re-generating:
+If nothing suitable comes back, [import the API yourself](/workspace/bring-your-own-api) — a spec, a GraphQL endpoint, or the provider's documentation will do.
+
+## Store a credential
 
 ```bash
-# Download the latest build
-fused-cli download onboarding-sdk
-
-# Download a specific version to a local directory
-fused-cli download onboarding-sdk@1.0.0 --output ./my-sdk
+fused-cli bucket list
+printf '%s' "$LINEAR_TOKEN" | fused-cli secret set linear --value-stdin
 ```
 
-## Next steps
+Values are rejected in argv, so pipe them. Secrets take effect immediately — there is nothing to apply.
 
-You've generated a multi-service SDK from a single plain-English description. From here you can:
+## Build an SDK
+
+```bash
+fused-cli sdk init support-sdk \
+  --service 'linear=v1' \
+  --operation 'linear=issueUpdate'
+
+fused-cli sdk validate
+fused-cli sdk plan
+fused-cli sdk apply --download
+```
+
+<Warning>
+  The first successful apply prints the SDK execution token **once**. Capture it now — a repeat apply will not show it again.
+</Warning>
+
+## Call it
+
+```bash
+export FUSED_SDK_TOKEN='...'
+
+fused-cli sdk invoke support-sdk@1.0.0 issueUpdate \
+  --params '{"id":"ISS-42","state":"done"}'
+
+fused-cli sdk activity support-sdk@1.0.0
+```
+
+The last command shows the execution receipt: what was called, how long the provider took, and what came back.
+
+## What you just did
+
+```text
+workspace  →  enabled a service your whole company can now use
+bucket     →  stored a credential your code will never see
+app        →  published an immutable, typed SDK version
+```
+
+## Where to go next
 
 <CardGroup cols={2}>
-  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
-    Explore every `fused-cli` command and flag, including `create`, `update`, and `download`.
+  <Card title="Build an SDK properly" icon="cube" href="/app/build-an-sdk">
+    Multiple services, operation selection, and choosing an auth scheme.
   </Card>
-  <Card title="SDK Guides" icon="code" href="/guides/sdk-overview">
-    Learn about SDK scoping, versioning, auth configuration, and multi-service bundles.
+  <Card title="Deploy an MCP server" icon="robot" href="/mcp/deploy-a-server">
+    The same approved operations, shaped for an agent.
+  </Card>
+  <Card title="Connect user accounts" icon="user-check" href="/bucket/connect-user-accounts">
+    OAuth per end user, with refresh handled by the Engine.
+  </Card>
+  <Card title="Share access" icon="users" href="/workspace/share-access">
+    Give a team what it needs without giving it everything.
   </Card>
 </CardGroup>
+
+## Prefer your coding agent to drive this?
+
+The CLI ships skills that teach Claude Code, Codex, Cursor, Windsurf, and Antigravity the exact workflows above.
+
+```bash
+fused-cli skill list
+fused-cli skill install --for claude
+```

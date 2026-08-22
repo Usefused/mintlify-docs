@@ -1,0 +1,101 @@
+---
+title: "Enable a service"
+description: "Make a service available to every SDK and MCP server in your workspace."
+---
+
+Nothing in Fused can call a service until your workspace has enabled it. This page takes a service from "exists in the Registry" to "usable by your apps."
+
+The workspace config is the allowlist: which services are enabled, at which versions. It lives at `.fused/workspace.yaml` and reaches the Engine through plan and apply.
+
+## Find it before you add it
+
+Reuse an already-enabled service where one fits. Workspace search filters the services you can already see, so an empty result means "nothing suitable is visible to you" — not "this service is not enabled."
+
+```bash
+fused-cli workspace services list --q stripe
+fused-cli workspace has "Stripe"
+```
+
+`workspace has` matches the service *name*, not the slug. Use it as an exact check, not as your primary search.
+
+If nothing suitable exists yet, [bring the API in yourself](/workspace/bring-your-own-api).
+
+## Add, plan, apply
+
+<Steps>
+  <Step title="Add the service to your config">
+    ```bash
+    fused-cli workspace service add stripe --version 2024-06-20
+    ```
+    This edits your local file. It does not activate anything.
+  </Step>
+  <Step title="Preview what will change">
+    ```bash
+    fused-cli workspace plan
+    ```
+    The plan reports the Engine's required permissions and writes a receipt to `.fused/.state/`.
+  </Step>
+  <Step title="Activate it">
+    ```bash
+    fused-cli workspace apply
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Applying a workspace config activates and deactivates services for the whole workspace. The CLI warns you when the target Engine reports `environment=production`. Read that warning before you continue.
+</Warning>
+
+Starting from nothing, `fused-cli workspace init` creates the skeleton, and `--extend` adds to it without replacing what is already there.
+
+## Flags
+
+### `workspace service add`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--version` | Default version to enable | `fused-cli workspace service add stripe --version 2024-06-20` |
+| `--service-id` | Stores a known service ID when you are editing a local config directly | `fused-cli workspace service add stripe --service-id 9f2c…` |
+
+### `workspace init`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--service` | Enables a service inline; repeatable, version optional | `fused-cli workspace init --service 'stripe=2024-06-20'` |
+| `--extend` | Adds to an existing file instead of refusing to overwrite it | `fused-cli workspace init --extend --service 'slack=v1'` |
+
+Creation never replaces an existing file. Extension is additive and idempotent — re-running it reports `unchanged` rather than duplicating a service.
+
+### `workspace plan` / `workspace apply`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--json` | Prints the plan result, summary, and required permissions instead of writing a receipt | `fused-cli workspace plan --json` |
+| `--receipt-out` | Writes the plan receipt somewhere specific | `fused-cli workspace plan --receipt-out ./ci/ws.plan.json` |
+| `--plan-id` | Applies one exact remote plan | `fused-cli workspace apply --plan-id pln_8c1…` |
+| `--receipt` | Applies from a specific receipt rather than the most recent | `fused-cli workspace apply --receipt ./ci/ws.plan.json` |
+
+## Mirror the Engine's actual state
+
+`workspace sync` rewrites your local `services:` map from what the Engine reports as activated right now.
+
+```bash
+fused-cli workspace sync -f .fused/workspace.yaml
+```
+
+This is a full mirror, not a merge. A service the Engine no longer reports is **removed from your local file**, and an empty remote result empties the map. Sync only touches the fields it owns, so anything else you have hand-written under a service survives.
+
+## When permission is the blocker
+
+Finding a service does not mean you may add it. Planning needs `workspace.read` and `service.manage` on every changed service; applying also needs `workspace.update`. The built-in Admin and Owner roles carry these. Builder and Viewer do not.
+
+If you are denied, keep your draft and plan, and ask an administrator for the exact missing scope rather than working around it:
+
+```bash
+fused-cli team access service grant platform stripe manage
+fused-cli team access workspace set platform admin
+```
+
+<Card title="Bring your own API in" icon="file-import" href="/workspace/bring-your-own-api">
+  No Registry service yet? Import one from a spec, a GraphQL endpoint, or the provider's docs.
+</Card>

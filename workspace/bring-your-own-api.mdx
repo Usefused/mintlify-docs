@@ -1,0 +1,108 @@
+---
+title: "Bring your own API in"
+description: "Turn a spec, a GraphQL endpoint, or a documentation page into a versioned service."
+---
+
+Your internal billing API, a partner's API, the SaaS tool nobody has integrated yet — if it has a description, Fused can turn it into a service your workspace can enable. If it has no description at all, Fused can read the provider's documentation instead.
+
+Import is a two-step review: `plan` parses the source and diffs it against the live service, `apply` commits exactly what you reviewed.
+
+## Import from a spec
+
+The format is detected automatically — OpenAPI 3, Swagger 2, Google Discovery, AsyncAPI, Postman Collection, WSDL, GraphQL SDL, or an introspectable GraphQL endpoint.
+
+```bash
+fused-cli import plan ./openapi.json \
+  --name "Internal Billing API" \
+  --slug billing-api \
+  --target endpoints
+
+fused-cli import apply
+```
+
+Remote sources work the same way:
+
+```bash
+fused-cli import plan \
+  --url https://developer.example.com/asyncapi.yaml \
+  --name "Events API" \
+  --slug events-api \
+  --version 2026-08
+```
+
+<Note>
+  Formats that carry no version of their own — Postman collections especially — need `--version`. Without it, planning stops with `import_version_required` and writes no receipt. The CLI never invents a version.
+</Note>
+
+## Import from documentation
+
+When a provider never published a spec, discovery reads their docs.
+
+```bash
+fused-cli import docs \
+  --url https://docs.example.com/api \
+  --name "Docs API" \
+  --slug docs-api \
+  --version 1.0
+```
+
+Every discovered endpoint is selected by default. Narrow it with `--review` or `--select`.
+
+## Flags
+
+### `import plan`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--name` | Service name (required) | `fused-cli import plan ./api.json --name "Billing API" --slug billing` |
+| `--slug` | Account-scoped slug to create or update (required) | `fused-cli import plan ./api.json --name Billing --slug billing-api` |
+| `--url` | Imports from an HTTP(S) source instead of a local file | `fused-cli import plan --url https://api.example.com/openapi.json --name X --slug x` |
+| `--version` | Provider version when the source declares none | `fused-cli import plan ./collection.json --name X --slug x --version 2026-08` |
+| `--target` | What to import: `all`, `endpoints`, or `webhooks` | `fused-cli import plan ./api.yaml --name X --slug x --target all` |
+| `--overlay` | A local overlay that corrects or extends provider metadata | `fused-cli import plan ./api.json --name X --slug x --overlay ./billing.overlay.yaml` |
+| `--strict` | Rejects the import when any warning or error diagnostic is raised | `fused-cli import plan ./api.json --name X --slug x --strict` |
+| `--public` | Marks a new service public in the Registry | `fused-cli import plan ./api.json --name X --slug x --public` |
+| `--category` | Category for a new service | `fused-cli import plan ./api.json --name X --slug x --category payments` |
+| `--json` | Returns the raw plan response for CI or an agent | `fused-cli import plan ./api.json --name X --slug x --json` |
+| `--receipt-out` | Writes the plan receipt to a chosen path | `fused-cli import plan ./api.json --name X --slug x --receipt-out ./ci/import.json` |
+
+### `import apply`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--plan-id` | Applies one exact remote plan; needs `--review-hash` | `fused-cli import apply --plan-id pln_31a… --review-hash sha256:…` |
+| `--review-hash` | The combined Registry review hash paired with `--plan-id` | `fused-cli import apply --plan-id pln_31a… --review-hash sha256:…` |
+| `--receipt` | Applies a specific receipt instead of the most recent | `fused-cli import apply --receipt ./ci/import.json` |
+
+### `import docs`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--url` | Documentation URL to read (required) | `fused-cli import docs --url https://docs.example.com/api --name X --slug x --version 1.0` |
+| `--review` | Review discovered endpoints before extraction | `fused-cli import docs --url … --name X --slug x --version 1.0 --review` |
+| `--select` | Import one endpoint as `METHOD:/path`; repeatable | `fused-cli import docs --url … --name X --slug x --version 1.0 --select 'GET:/invoices'` |
+| `--no-workspace-add` | Skips adding the new service to your workspace | `fused-cli import docs --url … --name X --slug x --version 1.0 --no-workspace-add` |
+
+## Overlays beat forking
+
+An overlay corrects or extends provider metadata without you maintaining a fork of their spec. It stays local; the Registry parses, validates, and merges it, then returns one combined review hash. The receipt binds apply to that exact source *and* overlay — so what you reviewed is what lands, not whatever the URL happens to return later.
+
+## Diagnostics
+
+Planning reports structured diagnostics wherever provider metadata cannot be represented exactly. Treat the diagnostic codes as the stable contract for automation; the messages are written for people.
+
+- `--json` gives you the diagnostic objects unchanged.
+- `--strict` fails the plan on warnings and errors.
+- Info-level diagnostics never fail strict mode.
+
+<Warning>
+  Import plan and apply allow 20 minutes by default. If apply times out, its outcome is unknown — the Registry may have committed before the response was lost. Do not replay the receipt. Check `workspace services list -q <slug>` and `service show <slug>` first.
+</Warning>
+
+## Re-importing
+
+Importing the same provider version again creates a new internal revision rather than mutating the published one. A different provider version creates that version. Your slug resolves within your own Registry account: a matching slug updates that service, an unknown slug creates it.
+
+<Card title="Enable it in your workspace" icon="toggle-on" href="/workspace/enable-a-service">
+  Import registers the service. Enabling it is what makes it callable.
+</Card>

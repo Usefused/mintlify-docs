@@ -1,0 +1,179 @@
+---
+title: "Build an SDK"
+description: "Turn a set of approved operations into a typed package your product can import."
+---
+
+An SDK is a typed package containing only the services and operations one product needs. Authentication, retries, pagination, and provider quirks stay in the Engine. Your application code gets methods.
+
+## Author the config
+
+```bash
+fused-cli sdk init support-sdk \
+  --service 'linear=v1' \
+  --operation 'linear=issueUpdate' \
+  --service 'slack=v1' \
+  --operation 'slack=chatPostMessage'
+```
+
+That writes `.fused/sdks/support-sdk.yaml`:
+
+```yaml
+apiVersion: fused/v1
+kind: sdk
+name: support-sdk
+version: "1.0.0"
+language: typescript
+bucket: default
+services:
+  linear:
+    version: "v1"
+    operations: ["issueUpdate"]
+  slack:
+    version: "v1"
+    operations: ["chatPostMessage"]
+```
+
+Each service key is an activated service's Registry slug. Confirm one with `fused-cli workspace services list -q <slug>` — being visible in the Registry is not the same as being enabled here.
+
+`operations` and `select_all: true` are alternatives. Exactly one is required per service, never both and never neither.
+
+## Plan, apply, download
+
+<Steps>
+  <Step title="Validate the config">
+    ```bash
+    fused-cli sdk validate
+    ```
+  </Step>
+  <Step title="Preview">
+    ```bash
+    fused-cli sdk plan
+    ```
+    Plans are read-only. The receipt binds apply to this exact file content and this exact Engine.
+  </Step>
+  <Step title="Generate">
+    ```bash
+    fused-cli sdk apply --download
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  The first successful apply prints the SDK execution token **once**. Capture it immediately — an idempotent re-apply will not show it again, and it is never written to the config, the receipt, or CLI state.
+</Warning>
+
+## Flags
+
+### `sdk init`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--service` | Adds a service at a version; repeatable | `fused-cli sdk init support --service 'linear=v1'` |
+| `--operation` | Selects one operation; repeatable | `fused-cli sdk init support --operation 'linear=issueUpdate'` |
+| `--select-all` | Takes every operation of a service | `fused-cli sdk init support --select-all 'linear'` |
+| `--extend` | Adds to an existing config instead of refusing to overwrite | `fused-cli sdk init support --extend --service 'slack=v1'` |
+| `--bucket` | References an existing bucket; never creates one | `fused-cli sdk init support --bucket prod-credentials` |
+| `--version` | Sets the config version; defaults to `1.0.0` | `fused-cli sdk init support --version 2.0.0` |
+| `--language` | SDK target language; defaults to TypeScript | `fused-cli sdk init support --language python` |
+
+Creating never replaces an existing file. `--extend` is additive and idempotent — re-running it reports `unchanged` rather than duplicating a service.
+
+### init fills in the routing you would otherwise miss
+
+Some provider hosts are templated — `https://api-{app_id}.sendbird.com` cannot be called until something supplies `app_id`. Rather than letting you find that out at dispatch time, `init` resolves it up front.
+
+After merging your selections it asks the Engine which server-template variables the selected operations declare — one batched request covering every service, not a lookup per service. For each variable not already handled, it writes an injection:
+
+```yaml
+services:
+  sendbird:
+    version: "v3"
+    operations: [listChannels]
+    injections:
+      - location: server_variable
+        name: app_id
+        value: ${bucket.env.SENDBIRD_APP_ID}
+        mode: force
+```
+
+The bucket key is derived from the service and variable names. A provider-qualified service uses its slug tail, so `@sendbird/sendbird` and `sendbird` produce the same `SENDBIRD_APP_ID`, and a variable already carrying the service prefix is not prefixed twice.
+
+Then it reports how many it wrote, and nothing more:
+
+```text
+Created sdk config skeleton at .fused/sdks/support-sdk.yaml.
+Generated server-variable bindings: 2.
+```
+
+A count is all you get by design — neither the human output nor `--json` (`generated_binding_count`) reveals variable or key names.
+
+<Note>
+  **Your entries win.** A binding is generated only when no injection already targets that variable. One you wrote yourself is preserved untouched, including its `mode` and value. Duplication is judged on location and variable name alone, so your spelling and routing policy survive re-running `init`.
+</Note>
+
+<Warning>
+  The generated value is a **reference, not a value**. Create the matching bucket entry with `fused-cli value set` before planning, or dispatch has nothing to resolve. `fused-cli value list <bucket>` shows what is already there.
+</Warning>
+
+Two more behaviours worth knowing: an empty skeleton with no services makes no Engine call and works offline, and if the requirements read fails, `init` writes **no file** rather than leaving you a scaffold that cannot execute.
+
+### `sdk plan`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--json` | Prints the plan result and required permissions | `fused-cli sdk plan --json` |
+| `--interactive` | Securely fills credentials the Engine reports missing, then retries once | `fused-cli sdk plan --interactive` |
+| `--owner-team` | Sets the owning team; defaults to you | `fused-cli sdk plan --owner-team payments` |
+| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli sdk plan --receipt-out ./ci/sdk.plan.json` |
+
+`--interactive` is incompatible with `--json`, `--no-input`, and `CI=true`. It never creates or substitutes a bucket.
+
+### `sdk apply`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--download` | Downloads the package after generating it | `fused-cli sdk apply --download` |
+| `--json` | Returns apply, generation, and download outcomes | `fused-cli sdk apply --json` |
+| `--plan-id` | Applies one exact remote plan | `fused-cli sdk apply --plan-id pln_a91…` |
+| `--receipt` | Applies from a specific receipt | `fused-cli sdk apply --receipt ./ci/sdk.plan.json` |
+
+For pipelines, prefer separate apply and download steps so a failed transfer can be retried without replaying the apply.
+
+## Adjust the selection
+
+```bash
+fused-cli sdk service add zendesk --version v2
+fused-cli sdk operation add linear issueCreate issueArchive
+fused-cli sdk operation remove slack chatDelete
+```
+
+`sdk operation add` accepts `--interactive` to pick from a list, and `--apply` (or `--download`, which implies it) to push the change straight through.
+
+## Choosing auth
+
+`auth.type` picks a Registry-declared scheme — `basic`, `bearer`, `api_key`, `oauth`, `oidc`, or `mtls` — and `auth.name` disambiguates two schemes of the same type.
+
+```yaml
+services:
+  linear:
+    version: "v1"
+    operations: ["issueUpdate"]
+    auth: { type: "oauth" }
+    connect: { scopes: ["read:issues", "write:issues"] }
+```
+
+Leave it out and the Engine picks each operation's first provider-declared alternative. `connect.scopes` is a ceiling: an application can request fewer scopes per user, never more.
+
+The operation's imported security requirements are authoritative, and they are an ordered **OR of ANDs**: alternatives are OR, schemes within one alternative are AND, and an empty alternative permits anonymous execution.
+
+<Warning>
+  Do not collapse an AND alternative down to the one convenient scheme. A single selector never replaces a secondary credential such as an mTLS certificate or an additional API token — planning validates bucket metadata for every scheme in the chosen AND set.
+</Warning>
+
+Where a service declares several named schemes of one type, carry both the type and the exact name. Never rely on declaration order.
+
+Credentials themselves never appear in this file. They resolve from the bucket at generation and dispatch time.
+
+<Card title="Store the credentials" icon="key" href="/bucket/store-credentials">
+  A plan that reports `bucket_credentials_missing` is telling you the bucket is not ready yet.
+</Card>

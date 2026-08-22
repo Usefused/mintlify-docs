@@ -1,0 +1,104 @@
+---
+title: "Know when something changes"
+sidebarTitle: "Notifications"
+description: "Provider drift, version changes, and the records of your own destructive decisions."
+---
+
+Providers change their APIs without asking. Fused watches for that on your behalf and tells you during `plan` and `apply` — but only about services you actually use, and only about endpoints you actually selected.
+
+There is nothing to configure here. No `kind:` file, nothing to plan or apply. This page is about reading output.
+
+## Where you see them
+
+On the CLI, the only surface is the block printed after each config's plan or apply line:
+
+```text
+Plan created for sdk:jira-sdk (Plan ID: ...)
+Workspace notifications for sdk:jira-sdk
+- breaking engine registry_version_changed: version 2026-07-01 changed endpoints, affecting 2 of your configs.
+- non-breaking registry jira@2026-07-01: endpoint drift detected against the live provider spec.
+```
+
+There is deliberately **no `fused-cli notifications` command**. The auto-print answers "what should I know while I am taking this action," which needs no read/unread concept. Browsing, marking read, and dismissing are a UI job — the bell panel and the contextual banner on a service, SDK, or MCP page.
+
+## Two mechanisms, one list
+
+That block merges two genuinely different things. The `source` label is the only thing separating them, so read it.
+
+| | `source: engine` | `source: registry` |
+|---|---|---|
+| What it is | Stored workspace notifications | Live provider-API **drift** snapshots |
+| When produced | A background poller reads each activated service's changelog every few minutes | Fetched fresh from the Registry on every `plan` call |
+| Stored where | The Engine's own database | Nowhere — not persisted on the Engine side |
+| Can be dismissed | Yes, via the UI | No |
+
+Drift is the one to pay attention to. It compares the live provider spec against what the Registry has recorded, so it catches a provider changing something before anyone has cut a new service version for it — the gap between "they shipped a change" and "it reached your catalogue."
+
+## What triggers a notification
+
+**Things you did.** `workspace_service_removed` and `workspace_version_removed` are decision-audit records, created only when `workspace service delete --force` or `workspace service version delete --force` overrides the removal blocker while a config still referenced what you removed. You already knew — the record exists so it is traceable later.
+
+**Things you did not do.** These come from the poller:
+
+| Type | Meaning |
+|---|---|
+| `registry_version_added` | A new version of a service you use |
+| `registry_version_changed` | Endpoints added, removed, or changed |
+| `registry_version_deprecated` | A version you use is on its way out |
+| `registry_version_removed` | A version you use is gone |
+| `registry_execution_policy_changed` | The Registry default policy changed |
+| `registry_connection_profile_changed` | The baseline connection profile changed |
+
+## They are targeted, not broadcast
+
+Nothing is created unless the Engine has determined the change affects something you use. That filtering is stricter than it first appears:
+
+- A **version** change is matched against which of your SDK and MCP configs select that service and version. For `changed` specifically, it is narrowed again to configs that selected the exact endpoint that moved — a config with an explicit operation list is never told about an endpoint it never picked.
+- An **execution policy** change only reaches you if you have *no* local override for that service and version. A local override already shadows the Registry default, so the change is moot for you.
+- A **connection profile** change only reaches you if you are still on the Registry baseline layer for that service, version, and auth type.
+
+If nothing of yours is affected, nothing is created.
+
+## Severity
+
+`breaking` or `non-breaking`, and informational either way — neither blocks `plan` or `apply` the way a removal blocker does.
+
+| Type | Severity |
+|---|---|
+| `registry_version_added`, `registry_version_deprecated` | Always `non-breaking` — deprecated still works today |
+| `registry_version_removed` | Always `breaking` |
+| `registry_version_changed` | `breaking` if an endpoint you use was removed or changed breakingly; otherwise `non-breaking` |
+| `registry_execution_policy_changed`, `registry_connection_profile_changed` | Derived from the underlying diff; in practice always `non-breaking` today |
+
+That last row is a property of what gets diffed, not a hardcoded rule — do not rely on it staying true.
+
+## Marking read and dismissing
+
+Three states: `pending`, `acknowledged`, `dismissed`.
+
+- **Mark read** keeps it visible but de-emphasized. There is no "mark unread."
+- **Dismiss** removes it for good. Terminal — there is no undismiss.
+
+Both go through the `updateWorkspaceNotificationStatus` mutation on the Engine's own GraphQL schema at `/engine/graphql`, not through `fused-cli`. The `id` is the notification's own row id — strip the `engine:` or `registry:` prefix that the merged inbox query exposes.
+
+<Warning>
+  The CLI auto-print only queries `pending` rows. Acknowledging a notification in the UI — not just dismissing it — also stops it appearing in `plan` and `apply` from that point on. If one you were expecting has gone quiet and the underlying condition has not changed, someone already resolved it.
+</Warning>
+
+Read and dismiss state is workspace-global, not per-user. Whoever resolves a notification resolves it for everyone on that Engine deployment.
+
+## Why the same one keeps appearing
+
+Dedupe stops a *second* row being created for the same cause while the first is still `pending` — `workspace_*` on `(plan_id, action_id)`, `registry_*` on the changelog row's own ID. It does not hide the first one. A notification that keeps showing up on every `plan` is one row that nobody has acknowledged yet, not a new row each time.
+
+Dedupe only matches `pending` rows. Once acknowledged or dismissed, a row is no longer a dedupe match, so re-encountering the same underlying change can create a fresh one. That is accepted behaviour, not a bug.
+
+## Permissions
+
+Reading requires `workspace.read`. Acknowledging or dismissing requires `notification.update`, which Builder includes and Viewer does not. There is no notification-scoped team grant.
+
+If an update is denied, leave the notification alone and pass the ID and status to someone authorised.
+
+<Card title="Manage versions and deprecation" icon="clock-rotate-left" href="/workspace/manage-versions">
+  What to actually do when a version you depend on is deprecated or removed.
+</Card>

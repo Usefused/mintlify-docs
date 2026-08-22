@@ -1,0 +1,146 @@
+---
+title: "Receive provider events"
+description: "Register inbound webhooks and route their events to the SDK that asked for them."
+---
+
+A payment clears, an issue moves, a subscription lapses. The Engine verifies the provider's signature, classifies the event, queues it durably, and delivers it to the application that subscribed — so your team writes the response rather than the retry loop.
+
+This takes two pieces that are deliberately separate:
+
+1. A **`kind: webhook` config** registers the inbound ingress — it makes Fused *accept* the delivery.
+2. An **SDK attaches to it** and lists which events it wants — that is what makes the event arrive.
+
+Registering alone routes nothing.
+
+<Note>
+  Delivery is an SDK surface. A `kind: mcp` config cannot select webhooks at all — neither `webhooks` nor `webhooks_select_all` is valid on an MCP service.
+</Note>
+
+## Register the ingress
+
+A `kind: webhook` config is a named, team-owned bundle that can span several services, with its own plan and apply lifecycle.
+
+```yaml
+apiVersion: fused/v1
+kind: webhook
+name: team-x-webhooks
+services:
+  jira:
+    secret: "${bucket.default.secret.jira_signing}"
+  github:
+    secret: "${bucket.default.secret.github_signing}"
+```
+
+```bash
+fused-cli webhook validate
+fused-cli webhook plan
+fused-cli webhook apply
+```
+
+Apply prints each registration's URL, which is what you give the provider:
+
+```text
+<engine-url>/webhook/<name>-<service>
+```
+
+To look one up later without re-running apply:
+
+```bash
+fused-cli workspace service webhooks jira
+```
+
+Its `SIGNATURE` column reads `set` or `none` — never the secret itself.
+
+### About `name` and `secret`
+
+`name` is this config's identity. The pair `(service, name)` must be globally unique per account: a second config trying to claim a pair another config already owns is a plan-time conflict, never a silent takeover.
+
+`services.<slug>.secret` is the signing secret used to verify inbound deliveries. It takes a bucket reference — either `` `${bucket.<name>.secret.<key>}` `` or the shorthand `` `${bucket.secret.<key>}` `` against the `default` bucket. Omit it entirely for a provider that does not sign its webhooks.
+
+<Warning>
+  The bucket segment is mandatory here, unlike SDK and MCP injections. Webhook verification has no dispatch-selected bucket to fall back on, so it cannot infer one. The reference must also be the entire field value — no surrounding text.
+</Warning>
+
+Removing a service from the map, or deleting the file, is an ordinary apply-time diff. There is no imperative delete command.
+
+## Attach an SDK and pick events
+
+```yaml
+apiVersion: fused/v1
+kind: sdk
+name: jira-sdk
+version: "1.2.0"
+bucket: default
+webhook_attachment: team-x-webhooks
+services:
+  jira:
+    operations: [createIssue]
+    webhooks: ["issue.created", "issue.updated"]
+  github:
+    operations: [listRepos]
+    webhooks: ["push"]
+```
+
+`webhook_attachment` is top-level, a sibling of `name` and `bucket` — not nested under `services`, because one webhook config can span services the SDK also uses.
+
+Manage the event list from the CLI if you prefer:
+
+```bash
+fused-cli sdk webhook add jira issue.created issue.updated
+fused-cli sdk webhook remove jira issue.updated
+```
+
+`sdk webhook add` accepts `--interactive` when you would rather pick from a list than remember event IDs.
+
+## The rules that bite
+
+| Rule | What happens if you miss it |
+|---|---|
+| An omitted or empty `webhooks` list means **no events** | Silence. Opt-in is always explicit; there is no implicit "all" |
+| `webhook_attachment` is required as soon as any service selects webhooks | Rejected at plan time, locally and by the Engine |
+| One attachment per SDK | A list is not supported yet |
+| The named config must exist **and** register every service selecting webhooks | Rejected with a named error at plan and again at apply |
+
+That last check is Engine-side only. The CLI can confirm `webhook_attachment` is non-empty, but it has no store access to look the config up — so a name that was never applied passes local validation and fails at the Engine. That is deliberate: it fails loudly rather than never delivering.
+
+`webhooks_select_all: true` is the webhook counterpart to `select_all` for operations. The two are independent — you can select all events and only some operations, or the reverse.
+
+Delivery is scoped to the attachment. The bridge resolves which webhook config a connecting SDK attached to from its own applied config, so two registrations for the same service and event never cross-deliver.
+
+## Verification headers
+
+Where a service's imported contract declares `verification_headers`, treat that list as the complete reviewed header set. Source order and spelling are preserved; Fused drops blank and case-insensitive duplicate names.
+
+Only when a `signature_header` list is absent does OpenAPI import infer one from required header parameters on webhook operations. Do not add guessed provider headers.
+
+## Flags
+
+### `webhook plan`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--json` | Prints the plan result and notifications instead of writing a receipt | `fused-cli webhook plan --json` |
+| `--owner-team` | Sets the owning team; defaults to you | `fused-cli webhook plan --owner-team payments` |
+| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli webhook plan --receipt-out ./ci/wh.plan.json` |
+
+### `webhook apply`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--plan-id` | Applies one exact remote plan | `fused-cli webhook apply --plan-id pln_44c…` |
+| `--receipt` | Applies from a specific receipt | `fused-cli webhook apply --receipt ./ci/wh.plan.json` |
+
+## Permissions
+
+| Action | Needs |
+|---|---|
+| Plan a new bundle | `app.create` and `service.read` |
+| Plan an update | `app.manage` and `service.read` |
+| Any secret reference | `bucket.read` for each named bucket |
+| Apply | `service.consume` per service, plus `bucket.use` per referenced bucket |
+
+A registration with no secret reference carries no bucket permission requirement at all.
+
+<Card title="Store the signing secret" icon="key" href="/bucket/store-credentials">
+  The reference resolves at verification time. The secret must be in the bucket before then.
+</Card>

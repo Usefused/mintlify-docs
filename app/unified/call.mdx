@@ -1,0 +1,142 @@
+---
+title: "Call a unified operation"
+description: "Choose targets, route each service, and read what comes back."
+---
+
+Calling a unified operation means naming which steps to run and how to route each service. Nothing fans out by default — that is deliberate.
+
+## From your application
+
+```typescript
+const result = await sdk.unified.issues.create(
+  { title: "Fix login" },
+  { targets: ["github", "gitlab"], idempotencyKey: "issue-42" },
+);
+
+console.log(result.primary_id, result.title, result.provider_ids);
+```
+
+In TypeScript `targets` is a call option; in Python it is the second argument.
+
+## Targets
+
+`targets` is the exact subset of binding steps to execute. One or many are valid, and the set must be **dependency-closed** — if a step you name depends on another, name that one too. Dependencies are never invoked secretly on your behalf.
+
+| Property | Where | What it does |
+|---|---|---|
+| `targets` | Required call option | The dependency-closed set of binding steps to run |
+| `idempotencyKey` / `idempotency_key` | Call option | A stable caller key; generated clients create a UUID when omitted |
+
+## Selectors
+
+Selectors are keyed by **configured service**, while `targets` is keyed by **binding step**. That difference matters when several steps share one service: they share the one selector for it.
+
+| Selector | TypeScript / Python | What it does |
+|---|---|---|
+| `environment` | `environment` | Chooses a declared provider environment |
+| `endUserRef` | `end_user_ref` | Routes OAuth or OIDC steps through a connected user |
+| `authType` | `auth_type` | Disambiguates `oauth`, `oidc`, or another declared type |
+| `authName` | `auth_name` | Disambiguates several declared schemes of the same type |
+| `resourceId` | `resource_id` | Chooses an already connected tenant or account UUID |
+
+```typescript
+const result = await sdk.unified.issues.create(
+  { title: "Fix login" },
+  {
+    targets: ["jira"],
+    selectors: {
+      jira: {
+        endUserRef: "user-42",
+        authType: "oauth",
+        authName: "OAuth2",
+        resourceId: selectedResource.id,
+      },
+    },
+  },
+);
+```
+
+For a single selected OAuth or OIDC scheme, `endUserRef` alone is usually enough. One service selector is preflighted once and reused by every selected step and active rollback on that service.
+
+<Warning>
+  Selectors carry routing identifiers only — never provider tokens or secrets. A selector keyed by an alias step is invalid unless that alias is also the real configured service key.
+</Warning>
+
+## What preflight checks
+
+Before any provider call, the Engine validates the dependency-closed target set, the selectors, the exact endpoints, and execution-token permission for every selected forward step and active rollback.
+
+Any preflight failure rejects the call with **zero physical calls** and no envelope. Inactive rollback declarations are not preflighted.
+
+## Reading the result
+
+Without an operation-level `output`, you get the all-settled envelope:
+
+```json
+{
+  "results": [
+    { "target": "github", "status": "success", "data": { } },
+    { "target": "gitlab", "status": "error",   "error": { } }
+  ],
+  "rollbacks": [
+    { "target": "github", "status": "success", "triggeredBy": "gitlab" }
+  ]
+}
+```
+
+Forward results preserve target order and carry `success`, `error`, or `skipped`. Rollbacks carry `success` or `error` plus `triggeredBy` / `triggered_by`. One provider failure never erases another result.
+
+With an operation-level `output`, your constructed object replaces that envelope entirely — no `data` wrapper, no `{results, rollbacks}`. A binding-level output without an operation output replaces only that target's `data` inside the ordinary envelope.
+
+## When connected auth fails
+
+Forward and rollback connected-auth failures return an `authAction` / `auth_action` so your application can complete the existing SDK auth flow and retry deliberately.
+
+| `authAction` | What it means |
+|---|---|
+| `connect` | This user has never connected to that service |
+| `reconnect` | The grant lapsed or was revoked; run consent again |
+| `select_resource` | Several tenants are reachable and none was chosen |
+
+Handle these rather than retrying blindly — a retry without the corresponding action will fail the same way.
+
+## From the CLI
+
+`sdk invoke` runs the same execution path, which makes it a useful smoke test.
+
+```bash
+fused-cli sdk invoke issues@1.0.0 issues.create \
+  --target github \
+  --target gitlab \
+  --params '{"title":"Fix login"}'
+```
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--target` | A binding step to run; repeat 1–16 times, required for unified | `fused-cli sdk invoke issues@1.0.0 issues.create --target github` |
+| `--selectors` | Unified service-selector map, inline JSON or `@file` | `fused-cli sdk invoke issues@1.0.0 issues.create --target jira --selectors @./sel.json` |
+| `--params` | The operation input | `fused-cli sdk invoke issues@1.0.0 issues.create --target github --params '{"title":"x"}'` |
+| `--idempotency-key` | A stable logical-request key | `fused-cli sdk invoke issues@1.0.0 issues.create --target github --idempotency-key run-7` |
+| `--json` | Prints endpoint, kind, results, rollbacks, and timing | `fused-cli sdk invoke issues@1.0.0 issues.create --target github --json` |
+
+Unified execution never defaults to every declared target, from the CLI or from generated code. Naming them is the safeguard.
+
+<Note>
+  The CLI path bounds a unified aggregate response at 17 MiB and each provider document at 1 MiB. Generated SDKs keep their broader gRPC transports.
+</Note>
+
+## Pagination
+
+Pagination is inherited from each endpoint and its effective service-version policy. Physical calls may only *lower* the limit, and unified calls take a target-keyed `pagination` map beside `targets` and `selectors`.
+
+It remains one buffered graph call. Never loop pages or pass continuation tokens yourself.
+
+## Permissions
+
+A generated call needs the SDK identity plus an execution token authorized for every selected forward operation and active rollback. There is no separate unified scope.
+
+CLI lookup needs `app.read`; `sdk activity` also needs `audit.read`.
+
+<Card title="Declare a unified operation" icon="sitemap" href="/app/unified/declare">
+  Bindings, dependencies, rollback, and shaping the return value.
+</Card>

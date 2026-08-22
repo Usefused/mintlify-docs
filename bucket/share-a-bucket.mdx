@@ -1,0 +1,80 @@
+---
+title: "Share a bucket"
+description: "Let another team build on your credentials without being able to read them."
+---
+
+Access and secrecy are separate decisions in Fused. A team can select a bucket for its SDK or MCP server, ship a product on it, and never be able to read a single secret inside it.
+
+That separation is what lets one platform team own credentials for the whole company without becoming a ticket queue.
+
+## Grant one team
+
+```bash
+fused-cli team access bucket grant payments prod-credentials use
+fused-cli team access bucket grant payments prod-credentials manage
+```
+
+| Level | What it permits |
+|---|---|
+| `use` | Select the bucket for an app. No secret administration. |
+| `manage` | Value, credential, and connection management. |
+
+Revoke with the same shape:
+
+```bash
+fused-cli team access bucket revoke payments prod-credentials use
+```
+
+## Grant the whole workspace
+
+When the audience really is everyone, one workspace-wide grant beats a grant per team.
+
+```bash
+fused-cli workspace access bucket grant shared-credentials
+fused-cli workspace access list --resource bucket
+fused-cli workspace access bucket revoke shared-credentials
+```
+
+This gives every authenticated member and eligible owning team bounded *use*. It does not let them read values, change secrets, or manage connections. Ownership does not move.
+
+Revoking removes only that global binding — owner and explicit team bindings survive it.
+
+## Check before you promise
+
+Before telling a team their SDK will build, confirm the bucket is genuinely available to both of you:
+
+```bash
+fused-cli team build-access payments --resource bucket
+fused-cli sdk plan --owner-team payments
+```
+
+`build-access` lists what is available to the caller *and* the team, which is the set that will actually work at plan time.
+
+## When to create a second bucket
+
+Reach for a new bucket when there is a real boundary — a separate environment, a tenant that must not share credentials, an enterprise isolation requirement. Not because an example named one.
+
+```bash
+fused-cli bucket create staging-credentials
+```
+
+Creating a bucket needs workspace `bucket.manage`, and creation does not grant `bucket.use`. Run the action you intended afterwards and stop if it is denied.
+
+## Permissions
+
+| Action | Needs |
+|---|---|
+| List or show a bucket | `bucket.read` |
+| Create a bucket | `bucket.manage` |
+| Change secrets | `credentials.manage` |
+| Register an OAuth app | `credentials.manage` and `service.consume` |
+| Start a user connect session | `connection.manage`, `bucket.use`, `service.consume` |
+| List connections | `connection.read` |
+
+## If you are denied
+
+Stop the blocked action and keep whatever config or connection details you had prepared. Report the exact bucket and the missing permission. Do not self-grant, switch credentials, or retry with broader authority — and do not run an access-changing command on someone's behalf unless they asked and you are authorised.
+
+<Card title="Build an SDK on it" icon="cube" href="/app/build-an-sdk">
+  A shared bucket is most useful the moment another team points an SDK at it.
+</Card>

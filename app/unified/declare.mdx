@@ -1,0 +1,146 @@
+---
+title: "Declare a unified operation"
+description: "Turn several provider calls into one typed SDK method, with dependencies and rollback."
+---
+
+A unified operation is one generated SDK method that calls several provider operations, waits for declared dependencies, and compensates the successful ones when a later step fails. Your application calls one method; the ordering, mapping, and unwinding happen in the Engine.
+
+<Note>
+  Unified operations are available in **TypeScript and Python** `kind: sdk` configs. They are invalid in Go SDKs and in `kind: mcp` configs.
+</Note>
+
+They wrap operations already selected in `services`. They grant no new scope and carry no credentials.
+
+## The shape
+
+`unified_operations` sits at the top level, beside `services`:
+
+```yaml
+apiVersion: fused/v1
+kind: sdk
+name: issues
+version: "1.0.0"
+language: typescript
+services:
+  github: {operations: [createIssue, deleteIssue]}
+  gitlab: {operations: [createIssue]}
+
+unified_operations:
+  issues.create:
+    input:
+      type: object
+      required: [title]
+      properties: {title: {type: string}}
+    bindings:
+      github:
+        operation: createIssue
+        input: {title: "${input.title}"}
+        rollback: {operation: deleteIssue, input: {id: "${response.github.id}"}}
+      gitlab: createIssue
+```
+
+Dot-separated names become the generated namespace: `issues.create` produces `sdk.unified.issues.create`.
+
+## Operation properties
+
+| Property | Required | What it does |
+|---|---|---|
+| `input` | Yes | JSON Schema for the generated method's input |
+| `bindings` | Yes | Map of step names to selected provider operations; max 16 |
+| `output` | No | Final projection. Its constructed object becomes the exact return value |
+| `description` | No | Metadata retained with the immutable definition |
+
+An SDK may declare at most 64 unified operations.
+
+## Binding properties
+
+A binding is either a bare operation ID or an expanded object.
+
+```yaml
+bindings:
+  gitlab: createIssue          # compact: step key also selects the service
+  github:                      # expanded
+    service: github
+    operation: createIssue
+    input: {title: "${input.title}"}
+    depends_on: [gitlab]
+    rollback:
+      operation: deleteIssue
+      input: {id: "${response.github.id}"}
+```
+
+| Property | What it does |
+|---|---|
+| `service` | The configured service key. Omitted, it defaults to the binding key |
+| `operation` | Exact case-sensitive `operationId`, already selected for that service |
+| `input` | Maps unified input and direct dependency responses into the provider request |
+| `depends_on` | Makes this step wait for the named steps |
+| `rollback.operation` | An operation on the same service that compensates this one |
+| `output` | Optional projection for this step's result |
+
+Each binding key is a unique step name used by `depends_on`, response references, caller `targets`, and the returned `result.target`. It does not have to match a service key — several steps may use one service, and they stay separate steps with separate results.
+
+Quote a provider-qualified service that starts with `@`, like `"@acme/github"`.
+
+## How execution runs
+
+Ready steps run as their dependencies settle — up to four physical calls at a time, with no global level barrier. After all forward calls settle, rollback runs: direct, deduplicated, reverse-dependency ordered, and all-settled.
+
+A step's input-mapping failure, physical-call failure, response failure, or dependency skip compensates only its **successful direct dependencies that declare rollback**.
+
+<Warning>
+  Binding output mapping errors happen *after* the provider call succeeded. They neither trigger rollback nor block dependants, which consume the retained raw provider response.
+</Warning>
+
+`depends_on` values must be exact binding keys. Self-dependencies, duplicates, unknown targets, and cycles are all invalid. There is no `on_failure` or fallback — application code owns fallback.
+
+## Mapping values
+
+`bindings.<step>.input`, `rollback.input`, and output values are DynamicValue documents. Operation-level `input` is plain JSON Schema.
+
+DynamicValue preserves JSON types. A complete reference like `` `${response.drive.files}` `` stays an array; mixed strings interpolate non-null scalars. Objects, arrays, or null fail interpolation before dispatch. Use `` `$${` `` for a literal `` `${` ``.
+
+What each location may read:
+
+| Location | Can reference |
+|---|---|
+| `bindings.<step>.input` | `input.*`, `target`, and `response.<direct-dependency>.*` |
+| `rollback.input` | `input.*`, `target`, and that step's own `response.<step>.*` |
+| Operation `output` | `input.*` and `response.<declared-target>.*` after bindings settle |
+| Binding `output` | `input.*`, `target`, and that binding's raw `response.<step>.*` |
+
+Two operators are available: `??` selects the first present non-null value, and a terminal `?` omits a missing value. Anything else fails.
+
+## Shaping the return value
+
+Without `output`, the call returns the all-settled `{results, rollbacks}` envelope. With it, your constructed object *is* the return value — no `data` wrapper, no envelope.
+
+```yaml
+    output:
+      type: object
+      required: [primary_id, title, provider_ids]
+      properties:
+        primary_id: "${response.github.id}"
+        title: "${response.github.issue.title}"
+        provider_ids:
+          type: array
+          value: ["${response.github.id}", "${response.gitlab.iid}"]
+          items: {type: string}
+```
+
+Binding outputs run first and become the response values the operation output reads. Scalar shorthand infers its type from the authored JSON scalar; expanded scalars use `{type, value}`. Arrays take one `value` plus optional schema-only `items`.
+
+The `{schema, mapping}` form is invalid — use only the recursive output tree.
+
+## Validate before you apply
+
+```bash
+fused-cli sdk validate -f .fused/sdks/issues.yaml --json
+fused-cli sdk plan -f .fused/sdks/issues.yaml --json
+```
+
+Unified operations live inside an immutable SDK version like everything else. Changing one under an existing version returns `app_version_immutable` — publish a new version.
+
+<Card title="Call a unified operation" icon="play" href="/app/unified/call">
+  Targets, selectors, and reading the results envelope.
+</Card>
