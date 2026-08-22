@@ -89,9 +89,7 @@ Read and dismiss state is workspace-global, not per-user. Whoever resolves a not
 
 ## Why the same one keeps appearing
 
-Dedupe stops a *second* row being created for the same cause while the first is still `pending` — `workspace_*` on `(plan_id, action_id)`, `registry_*` on the changelog row's own ID. It does not hide the first one. A notification that keeps showing up on every `plan` is one row that nobody has acknowledged yet, not a new row each time.
-
-Dedupe only matches `pending` rows. Once acknowledged or dismissed, a row is no longer a dedupe match, so re-encountering the same underlying change can create a fresh one. That is accepted behaviour, not a bug.
+A notification showing up on every `plan` is one unresolved row, not a new one each time — the same cause never creates a second row while the first is still pending. Mark it read or dismiss it and it stops.
 
 ## Permissions
 

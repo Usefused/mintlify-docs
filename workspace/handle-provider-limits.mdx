@@ -37,68 +37,75 @@ fused-cli workspace apply
 
 ## Rate limits and concurrency
 
-An ordered set of simultaneous dimensions. Each declares its unit, how bucket identity is derived, its cost model, and exactly one algorithm branch.
+`rate_limit.policies` is a list of dimensions enforced at the same time — a per-minute cap and a concurrency ceiling can coexist.
 
 ```yaml
 rate_limit:
   version: 3
   policies:
     - name: minute_requests
-      mode: enforce                    # enforce | observe
-      unit: requests                   # requests | points | complexity | quota_units
-      identity:
-        inputs: [{kind: connection}]
-      cost:
-        default: 1
+      mode: enforce
+      unit: requests
+      identity: {inputs: [{kind: connection}]}
       algorithm: fixed_window
       fixed_window: {limit: 300, duration_ms: 60000}
-      response_signals:
-        remaining: {source: header, name: X-RateLimit-Remaining}
-        reset: {signal: {source: header, name: X-RateLimit-Reset}, format: unix_seconds}
-  cooldown:
-    statuses: [{min: 429, max: 429}]
-    headers: [{name: Retry-After, formats: [delta_seconds, http_date], max_delay_ms: 60000}]
 ```
 
-| Choice | What it gives you |
-|---|---|
-| `mode: observe` | Measures without blocking — use it to learn a provider's real ceiling before enforcing one |
-| `identity.inputs` | Decides what shares a bucket: a connection, an account, a named shared credential family |
-| `response_signals` | Lets the Engine read the provider's own remaining and reset values instead of guessing |
-| `cooldown` | Backs off on a status or `Retry-After` header, bounded by `max_delay_ms` |
+| Property | What it does | Values |
+|---|---|---|
+| `mode` | Enforce the limit, or measure it without blocking | `enforce`, `observe` |
+| `unit` | What gets counted | `requests`, `points`, `complexity`, `quota_units` |
+| `identity.inputs` | What shares one bucket | `connection`, `account`, named shared credential family |
+| `cost.default` / `cost.rules` | What one call costs; rules override per operation | any number |
+| `algorithm` | Exactly one branch, configured in a block of the same name | `fixed_window`, rolling window, token bucket, concurrency |
+| `response_signals` | Read the provider's own limit, remaining, reset or cost from a header or body path | — |
+| `cooldown` | Back off on a status range or `Retry-After`, bounded by `max_delay_ms` | — |
 
-Algorithms available: `fixed_window`, rolling window, token bucket, and concurrency. Because identity can be a shared credential family, one limit can be coordinated across every caller using the same provider account — which local client-side limiting cannot do.
+<Tip>
+  Start with `mode: observe` to learn a provider's real ceiling before enforcing one. And because identity can be a shared credential family, a limit can be coordinated across every caller using the same provider account — something client-side limiting cannot do.
+</Tip>
 
 ## Retries
 
-Ordered rules. Within one predicate field values are ORed; across fields they are ANDed. The first matching rule's action applies.
+`retry.rules` is evaluated in order. Values within one predicate field are ORed, fields are ANDed, and the first matching rule's action applies.
 
 ```yaml
 retry:
   version: 3
   rules:
     - predicates:
-        methods: [POST]
-        operation_kinds: [write]
         statuses: [{min: 429, max: 429}, {min: 500, max: 599}]
         body_replayability: replayable
-        idempotency_key: {requirement: required, header: Idempotency-Key}
       action:
         max_attempts: 3
-        max_elapsed_ms: 30000
         backoff: {strategy: exponential, base_delay_ms: 250, max_delay_ms: 5000, jitter_ms: 100}
-        retry_after_headers: [{name: Retry-After, formats: [delta_seconds, http_date], max_delay_ms: 10000}]
 ```
 
+| Predicate | Matches on |
+|---|---|
+| `methods` | HTTP methods |
+| `operation_kinds` | `read`, `write`, `delete`, `stream`, `query`, `mutation` |
+| `statuses` | Status ranges, as `{min, max}` |
+| `body_replayability` | Whether the body can be sent again |
+| `idempotency_key` | `{requirement: any \| required \| absent, header}` |
+| `required_provider_headers` | Headers that must be present |
+
+| Action | What it bounds |
+|---|---|
+| `max_attempts` | Total tries |
+| `max_elapsed_ms` | Wall clock across all tries |
+| `backoff` | `strategy`, `base_delay_ms`, `max_delay_ms`, `jitter_ms` |
+| `retry_after_headers` | Which provider headers to honour, and their cap |
+
 <Note>
-  Retrying a write needs explicit `body_replayability` and `idempotency_key` predicates. Never infer that a call is safe to replay from its HTTP method or the provider's name — a `POST` is not automatically idempotent, and guessing wrong duplicates real records.
+  Retrying a write needs explicit `body_replayability` and `idempotency_key` predicates. A `POST` is not automatically idempotent, and guessing wrong duplicates real records.
 </Note>
 
-`retry_config` is accepted as an alternative spelling. Setting both is rejected, so one policy cannot silently mask another.
+`retry_config` is an accepted alternative spelling. Setting both is rejected.
 
 ## Pagination
 
-An ordered request → response → continuation contract. The Engine walks the pages and streams each successful one as a separate execution chunk; your client makes one logical call.
+The Engine walks the pages and streams each one as a separate chunk; your client makes a single call.
 
 ```yaml
 pagination:
@@ -108,23 +115,27 @@ pagination:
   response:
     items: {path: "$.items"}
     values:
-      - {name: next_cursor, source: {location: body, path: "$.metadata.next_cursor", value_type: string}}
+      - {name: next_cursor, source: {location: body, path: "$.metadata.next_cursor"}}
   continuation:
     - {kind: token, state: cursor, response_value: next_cursor}
-  termination:
-    stop_on_empty_items: true
-    stop_on_missing_values: [next_cursor]
-    repeated_value: error
+  termination: {stop_on_empty_items: true, stop_on_missing_values: [next_cursor], repeated_value: error}
   limits: {max_pages: 100, max_items: 10000, max_bytes: 16777216, max_duration_ms: 120000}
 ```
 
-Continuations compose token, offset, page, RFC Link, and next-URL state; GraphQL policies can pin result aliases and separate first and subsequent page templates.
+| Property | What it does |
+|---|---|
+| `request` | Binds state or constants to a query, header, body or GraphQL-variable target. `apply` scopes it to `all`, `first` or `subsequent` pages |
+| `response.items` | Where the page's items live |
+| `response.values` | Named values pulled from a body path, header, RFC Link, GraphQL result, or the last item |
+| `continuation` | How the next page is addressed — `token`, `offset`, `page`, RFC Link, or next URL. These compose |
+| `termination` | When to stop, and what a repeated value means |
+| `limits` | `max_pages`, `max_items`, `max_bytes`, `max_duration_ms` — all four required |
 
 <Warning>
-  Always declare `termination`, `repeated_value` handling, and all four `limits`. A next-URL continuation additionally needs an explicit same-origin or allowlist policy — otherwise a provider response could redirect the Engine at an unreviewed origin while carrying your credential.
+  A next-URL continuation needs an explicit same-origin or allowlist policy. Without one, a provider response could redirect the Engine at an unreviewed origin while carrying your credential.
 </Warning>
 
-A caller may only ever *lower* the ceiling, with `fused.pagination.maxPages` / `max_pages`. Continuation strategy, tokens, paths, and next URLs are never caller-owned.
+Callers may only *lower* the ceiling, via `max_pages`. Strategy, tokens, paths and next URLs are never caller-owned.
 
 ## Fixing a wrong base URL
 

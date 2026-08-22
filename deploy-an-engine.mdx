@@ -126,8 +126,7 @@ Common overrides:
 
 | Variable | What it does |
 |---|---|
-| `FUSED_DATABASE_MAX_CONNS` | Pool ceiling; standalone defaults to `10`, hosted starter Engines to `2` |
-| `FUSED_DATABASE_MAX_CONN_IDLE_TIME` | Idle retention; standalone `30m`, hosted `2m` |
+| `FUSED_DATABASE_MAX_CONNS` | Pool ceiling, when the default of `10` is too many |
 | `FUSED_ENGINE_PUBLIC_URL` / `FUSED_ENGINE_PUBLIC_GRPC_URL` | External addresses the Admin UI shows as copy-ready. These describe routes; they do not create DNS or load-balancer config |
 | `FUSED_REGISTRY_ENDPOINT` | Only when Fused support directs you away from the Fused Cloud default |
 | `--port` / `--grpc-port` / `--webhook-port` | Move the listeners |

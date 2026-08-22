@@ -101,11 +101,11 @@ fused-cli sdk webhook remove jira issue.updated
 | One attachment per SDK | A list is not supported yet |
 | The named config must exist **and** register every service selecting webhooks | Rejected with a named error at plan and again at apply |
 
-That last check is Engine-side only. The CLI can confirm `webhook_attachment` is non-empty, but it has no store access to look the config up — so a name that was never applied passes local validation and fails at the Engine. That is deliberate: it fails loudly rather than never delivering.
+That last one is checked by the Engine rather than the CLI, so a name that was never applied passes `validate` and fails at plan.
 
-`webhooks_select_all: true` is the webhook counterpart to `select_all` for operations. The two are independent — you can select all events and only some operations, or the reverse.
+`webhooks_select_all: true` takes every event a service offers. It is independent of `select_all` for operations — you can take all events and only some operations, or the reverse.
 
-Delivery is scoped to the attachment. The bridge resolves which webhook config a connecting SDK attached to from its own applied config, so two registrations for the same service and event never cross-deliver.
+Two registrations for the same service and event never cross-deliver: an SDK only receives from the config it attached to.
 
 ## Verification headers
 

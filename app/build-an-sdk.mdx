@@ -37,6 +37,24 @@ Each service key is an activated service's Registry slug. Confirm one with `fuse
 
 `operations` and `select_all: true` are alternatives. Exactly one is required per service, never both and never neither.
 
+## init fills in the routing for you
+
+Some provider hosts are templated — `https://api-{app_id}.sendbird.com` needs an `app_id` before it can be called. `init` spots those and writes the injection itself:
+
+```yaml
+injections:
+  - location: server_variable
+    name: app_id
+    value: ${bucket.env.SENDBIRD_APP_ID}
+    mode: force
+```
+
+It reports how many it added. Re-running it never overwrites an injection you wrote yourself.
+
+<Warning>
+  That value is a reference. Create the matching bucket entry with `fused-cli value set` before you plan, or there is nothing for dispatch to resolve.
+</Warning>
+
 ## Plan, apply, download
 
 <Steps>
@@ -74,48 +92,9 @@ Each service key is an activated service's Registry slug. Confirm one with `fuse
 | `--extend` | Adds to an existing config instead of refusing to overwrite | `fused-cli sdk init support --extend --service 'slack=v1'` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli sdk init support --bucket prod-credentials` |
 | `--version` | Sets the config version; defaults to `1.0.0` | `fused-cli sdk init support --version 2.0.0` |
-| `--language` | SDK target language; defaults to TypeScript | `fused-cli sdk init support --language python` |
+| `--language` | `typescript` (default) or `python` | `fused-cli sdk init support --language python` |
 
 Creating never replaces an existing file. `--extend` is additive and idempotent — re-running it reports `unchanged` rather than duplicating a service.
-
-### init fills in the routing you would otherwise miss
-
-Some provider hosts are templated — `https://api-{app_id}.sendbird.com` cannot be called until something supplies `app_id`. Rather than letting you find that out at dispatch time, `init` resolves it up front.
-
-After merging your selections it asks the Engine which server-template variables the selected operations declare — one batched request covering every service, not a lookup per service. For each variable not already handled, it writes an injection:
-
-```yaml
-services:
-  sendbird:
-    version: "v3"
-    operations: [listChannels]
-    injections:
-      - location: server_variable
-        name: app_id
-        value: ${bucket.env.SENDBIRD_APP_ID}
-        mode: force
-```
-
-The bucket key is derived from the service and variable names. A provider-qualified service uses its slug tail, so `@sendbird/sendbird` and `sendbird` produce the same `SENDBIRD_APP_ID`, and a variable already carrying the service prefix is not prefixed twice.
-
-Then it reports how many it wrote, and nothing more:
-
-```text
-Created sdk config skeleton at .fused/sdks/support-sdk.yaml.
-Generated server-variable bindings: 2.
-```
-
-A count is all you get by design — neither the human output nor `--json` (`generated_binding_count`) reveals variable or key names.
-
-<Note>
-  **Your entries win.** A binding is generated only when no injection already targets that variable. One you wrote yourself is preserved untouched, including its `mode` and value. Duplication is judged on location and variable name alone, so your spelling and routing policy survive re-running `init`.
-</Note>
-
-<Warning>
-  The generated value is a **reference, not a value**. Create the matching bucket entry with `fused-cli value set` before planning, or dispatch has nothing to resolve. `fused-cli value list <bucket>` shows what is already there.
-</Warning>
-
-Two more behaviours worth knowing: an empty skeleton with no services makes no Engine call and works offline, and if the requirements read fails, `init` writes **no file** rather than leaving you a scaffold that cannot execute.
 
 ### `sdk plan`
 

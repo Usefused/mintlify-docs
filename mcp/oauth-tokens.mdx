@@ -72,12 +72,25 @@ Configure these once on the connection, not on each tool call. Tool schemas neve
 ```bash
 fused-cli mcp token generate support-agent acme-only \
   --expires-in 1h \
-  --fixed-binding '9f2c1e04-…,OAuth2,user_123,7d41a8b2-…'
+  --fixed-binding 'jira,OAuth2,user_123,7d41a8b2-…'
 ```
 
-The tuple is `service-id,auth-name,end-user-ref[,resource-id]`. Repeat the flag once per service the token may reach — different services on one token may intentionally use different end-user references.
+The tuple is `service-slug,auth-name,end-user-ref[,resource-id]`. Use the same
+service slug you use in workspace and MCP configuration; internal service UUIDs
+are never part of this command.
 
-The CLI rejects malformed UUIDs. The Engine rejects duplicate or unavailable bindings atomically, so a partially-bound token is never issued.
+Repeat the flag once per service/auth pair the token may reach. Different
+services on one token may intentionally use different end-user references:
+
+```bash
+fused-cli mcp token generate workspace-agent customer-only \
+  --allow listProjects \
+  --allow gmail.users.getProfile \
+  --fixed-binding 'jira,JiraOAuth,jira-customer-a' \
+  --fixed-binding 'gmail,oauth2,google-customer-a'
+```
+
+A token is either fully bound or not issued — there is no partially-bound state to clean up.
 
 <Note>
   Reach for fixed binding when the MCP client only supports an `Authorization` header, or whenever a token must be permanently limited to one customer's account. It removes a whole class of "the agent acted as the wrong user" mistakes, because the caller has no say in it.
@@ -89,7 +102,7 @@ The CLI rejects malformed UUIDs. The Engine rejects duplicate or unavailable bin
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--fixed-binding` | Pins `service-id,auth-name,end-user-ref[,resource-id]`; repeatable | `fused-cli mcp token generate support acme --fixed-binding '9f2c…,OAuth2,user_123'` |
+| `--fixed-binding` | Pins `service-slug,auth-name,end-user-ref[,resource-id]`; repeatable | `fused-cli mcp token generate support acme --fixed-binding 'jira,OAuth2,user_123'` |
 | `--allow` | Restricts the token to exact operation IDs | `fused-cli mcp token generate support acme --allow createIssue` |
 | `--expires-in` | Gives the token a lifetime | `fused-cli mcp token generate support acme --expires-in 1h` |
 
