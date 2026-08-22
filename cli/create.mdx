@@ -1,0 +1,127 @@
+---
+title: "fused-cli create: Generate a New SDK or MCP Server"
+sidebarTitle: "Create"
+description: "fused-cli create generates a typed SDK or MCP server from a natural language description. Key flags: --name, --type, --language, --deploy, -y."
+---
+
+`fused-cli create` is the primary command for generating new integration code with Fused. You give it a name and a plain-English description of the business capability you want to automate, and Fused's intent AI figures out which services and endpoints to connect — then generates a fully typed SDK or MCP server that implements the workflow.
+
+## Usage
+
+```bash
+fused-cli create --name <name> -d "<description>" [flags]
+```
+
+## Flags
+
+<ParamField path="--name" type="string" required>
+  The name of the SDK or MCP server to generate. Used as the package or project name in the generated code and as the identifier you reference in future `update` and `download` commands.
+</ParamField>
+
+<ParamField path="-d, --description" type="string" required>
+  A natural language description of the business capability the SDK or MCP server should implement. Be specific about which services you want to connect and what actions should happen. For example: `"When a new employee joins, use Jira to create an onboarding ticket, use GitHub to provision repository access, and use Slack to send a welcome message"`.
+</ParamField>
+
+<ParamField path="--version" type="string" default="1.0.0">
+  The version string to stamp on the generated artifact. Uses semantic versioning format (`MAJOR.MINOR.PATCH`).
+</ParamField>
+
+<ParamField path="--type, -t" type="string" default="sdk">
+  The type of artifact to generate. Accepted values:
+  - `sdk` — a typed client library you import directly into your application
+  - `mcp` — a Model Context Protocol server that exposes the integration as agent-callable tools
+</ParamField>
+
+<ParamField path="--language, -l" type="string" default="typescript">
+  The programming language for the generated code. Accepted values:
+  - `typescript`
+  - `python`
+</ParamField>
+
+<ParamField path="--deploy" type="boolean" default="false">
+  Deploy the generated MCP server to **Fused-Run** immediately after building. Requires `--type mcp` and `--language typescript` (or the defaults). After deployment completes you receive a live SSE endpoint URL.
+</ParamField>
+
+<ParamField path="-y, --yes" type="boolean" default="false">
+  Skip the interactive Cart UI and proceed non-interactively with the endpoint set that Fused's intent AI selected. Useful in CI/CD pipelines or scripts.
+</ParamField>
+
+<ParamField path="--api-key" type="string">
+  Your Fused API key. Overrides the `FUSED_API_KEY` environment variable for this invocation.
+</ParamField>
+
+## The interactive Cart UI
+
+By default, `fused-cli create` opens an interactive terminal UI after the intent AI resolves your description. The Cart UI shows every API endpoint selected for your workflow. Before generation begins you can:
+
+- **Review** the full list of endpoints and the services they belong to
+- **Add** additional endpoints you want included
+- **Remove** any endpoints you don't need
+
+Once you confirm the cart, the build starts. The Cart UI is bypassed when you pass `-y` / `--yes`.
+
+<Tip>
+  Use the Cart UI to keep your generated artifact lean. Removing unused endpoints reduces bundle size for SDKs and lowers the tool count exposed to your AI agent in MCP servers.
+</Tip>
+
+## After generation
+
+<Tabs>
+  <Tab title="SDK or local MCP">
+    When you generate an SDK (or an MCP server without `--deploy`), `fused-cli` downloads a `.zip` archive to your current working directory. The archive contains the complete project — source files, dependencies manifest, and a `README.md` with usage instructions.
+
+    Extract and install:
+
+    ```bash
+    unzip onboarding-sdk.zip -d ./onboarding-sdk
+    cd onboarding-sdk
+    npm install   # for TypeScript
+    # or
+    pip install . # for Python
+    ```
+  </Tab>
+  <Tab title="Deployed MCP server">
+    When you pass `--deploy`, `fused-cli` builds and publishes the MCP server to Fused-Run. After the command completes you see output similar to:
+
+    ```
+    ✓ Build complete
+    ✓ Deployed to Fused-Run
+    
+    SSE URL: https://run.usefused.com/mcp/sales-mcp/sse
+    ```
+
+    Point any MCP-compatible client (Claude Desktop, Cursor, etc.) at that SSE URL to start using your new tools immediately.
+  </Tab>
+</Tabs>
+
+## Examples
+
+<CodeGroup>
+  ```bash TypeScript SDK
+  fused-cli create \
+    --name onboarding-sdk \
+    --version 1.0.0 \
+    -d "When a new employee joins, use Jira to create an onboarding ticket, use GitHub to provision repository access, and use Slack to send a welcome message"
+  ```
+
+  ```bash Python MCP (non-interactive)
+  fused-cli create \
+    --name support-agent-mcp \
+    --type mcp \
+    --language python \
+    -y \
+    -d "Search Zendesk for tickets and use Linear to update corresponding issues"
+  ```
+
+  ```bash TypeScript MCP deployed to Fused-Run
+  fused-cli create \
+    --name sales-mcp \
+    --type mcp \
+    --deploy \
+    -d "Read Salesforce leads and fetch Intercom conversations"
+  ```
+</CodeGroup>
+
+<Warning>
+  `--deploy` is only supported for TypeScript MCP servers. Passing `--deploy` with `--language python` or `--type sdk` will return an error.
+</Warning>

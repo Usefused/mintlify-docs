@@ -1,0 +1,205 @@
+---
+title: "Python SDK: Install, Configure, and Use with Fused"
+sidebarTitle: "Python SDK"
+description: "Install and use your Fused-generated Python SDK. Covers pip installation, client instantiation, calling service methods, and error handling."
+---
+
+Your Fused-generated Python SDK is a standard Python package you install via pip and import like any other library. It uses idiomatic snake_case method names, typed dataclasses for requests and responses, and ships with auth, retries, and error handling already wired up — no boilerplate required in your application code.
+
+## Installation
+
+<Steps>
+  <Step title="Download and extract">
+    After generating your SDK from the dashboard or CLI, download the `.zip` and extract it:
+
+    ```bash
+    unzip acme_onboarding_sdk.zip -d ./packages/acme_onboarding_sdk
+    ```
+  </Step>
+  <Step title="Install with pip">
+    Install the package in editable mode for local development, or build a wheel to distribute internally:
+
+    ```bash
+    # Editable install (recommended for development)
+    pip install -e ./packages/acme_onboarding_sdk
+
+    # Or build and install a wheel
+    cd packages/acme_onboarding_sdk
+    pip install build
+    python -m build
+    pip install dist/acme_onboarding_sdk-0.1.0-py3-none-any.whl
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Like the TypeScript SDK, the generated Python package has **no Fused runtime dependency**. The output is plain Python source code. You can read every file, modify it, and deploy it to any environment without any Fused packages present.
+</Note>
+
+## Import and instantiate
+
+The generated entry point exports a class named `FusedSDK`. Rename it at import time to reflect the business domain it represents:
+
+```python
+from acme_onboarding_sdk import FusedSDK as OnboardingSDK
+
+sdk = OnboardingSDK(
+    jira={"token": "jira_..."},
+    github={"token": "ghp_..."},
+    slack={"token": "xoxb_..."}
+)
+```
+
+Pass credentials for each bundled service as dictionaries. The SDK never reads credentials from the environment implicitly — sourcing is always explicit in your code.
+
+## Constructor options
+
+Each service key accepts a dictionary of configuration options:
+
+| Key | Type | Description |
+|---|---|---|
+| `token` | `str` | Bearer token or API key for the service |
+| `retries` | `int` | Number of retry attempts on transient failures (default: `2`) |
+| `timeout` | `float` | Request timeout in seconds (default: `10.0`) |
+| `base_url` | `str` | Override the base URL for self-hosted or sandbox environments |
+
+```python
+sdk = OnboardingSDK(
+    jira={"token": "jira_...", "retries": 3, "timeout": 15.0},
+    github={"token": "ghp_...", "retries": 2},
+    slack={"token": "xoxb_..."}
+)
+```
+
+## Calling service methods
+
+Methods are organized by service and resource using snake_case naming conventions. Pass arguments as keyword arguments and receive typed response objects:
+
+```python
+from acme_onboarding_sdk import FusedSDK as OnboardingSDK
+
+sdk = OnboardingSDK(
+    jira={"token": "jira_..."},
+    github={"token": "ghp_..."},
+    slack={"token": "xoxb_..."}
+)
+
+ticket = sdk.jira.issues.create(
+    project="ONBOARD",
+    summary="Onboard new engineer: Jane Doe",
+    issue_type="Task",
+    assignee="jane.doe"
+)
+
+sdk.github.repos.add_collaborator(
+    owner="acme-corp",
+    repo="platform",
+    username="jane-doe-gh",
+    permission="push"
+)
+
+sdk.slack.chat.post_message(
+    channel="#engineering",
+    text=f"👋 Welcome Jane! {ticket['key']} created and repo access granted."
+)
+```
+
+Response data is returned as a typed object (or dictionary, depending on the service). Check the generated module's type stubs for the exact shape of each response.
+
+## Typed error handling
+
+The SDK raises typed exception classes for every known failure mode. Catch specific exceptions to handle them explicitly:
+
+```python
+from acme_onboarding_sdk import FusedSDK as OnboardingSDK
+from acme_onboarding_sdk.errors import (
+    JiraAuthError,
+    JiraRateLimitError,
+    GithubRepoNotFoundError
+)
+
+sdk = OnboardingSDK(
+    jira={"token": "jira_..."},
+    github={"token": "ghp_..."}
+)
+
+try:
+    ticket = sdk.jira.issues.create(
+        project="ONBOARD",
+        summary="Onboard new engineer: Jane Doe",
+        issue_type="Task",
+        assignee="jane.doe"
+    )
+except JiraAuthError as e:
+    print(f"Jira token is invalid or expired: {e}")
+except JiraRateLimitError as e:
+    print(f"Jira rate limit hit. Retry after: {e.retry_after}s")
+except GithubRepoNotFoundError as e:
+    print(f"Repository not found: {e}")
+```
+
+All generated exception classes extend a common `FusedError` base, so you can catch the base class when you want a single handler for all SDK errors.
+
+## Async support
+
+The generated Python SDK ships with both synchronous and asynchronous clients. Use the async client with `asyncio`, FastAPI, or any other async framework:
+
+```python
+import asyncio
+from acme_onboarding_sdk.async_client import FusedSDK as OnboardingSDK
+
+async def onboard_engineer(name: str, github_username: str):
+    sdk = OnboardingSDK(
+        jira={"token": "jira_..."},
+        github={"token": "ghp_..."},
+        slack={"token": "xoxb_..."}
+    )
+
+    ticket = await sdk.jira.issues.create(
+        project="ONBOARD",
+        summary=f"Onboard new engineer: {name}",
+        issue_type="Task",
+        assignee=github_username
+    )
+
+    await sdk.github.repos.add_collaborator(
+        owner="acme-corp",
+        repo="platform",
+        username=github_username,
+        permission="push"
+    )
+
+    await sdk.slack.chat.post_message(
+        channel="#engineering",
+        text=f"👋 Welcome {name}! Ticket {ticket['key']} created."
+    )
+
+asyncio.run(onboard_engineer("Jane Doe", "jane-doe-gh"))
+```
+
+<Tip>
+  Import `FusedSDK` from `acme_onboarding_sdk.async_client` for the async variant and from `acme_onboarding_sdk` for the synchronous variant. Both expose the same method signatures.
+</Tip>
+
+## MCP server support
+
+<Warning>
+  Python SDKs are available as a **download only**. Deploying a generated SDK as a hosted MCP server (via Fused-Run) is supported for **TypeScript SDKs only**. If you need an MCP server deployment, generate a TypeScript SDK for that use case.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="TypeScript SDK" icon="js" href="/guides/sdk-typescript">
+    Use the same bundled APIs from TypeScript, or deploy as a hosted MCP server.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/guides/sdk-webhooks">
+    Receive typed webhook events. Webhook receivers are TypeScript-only.
+  </Card>
+  <Card title="Overview" icon="grid" href="/guides/sdk-overview">
+    Learn about Business Capability SDKs and how to generate them.
+  </Card>
+  <Card title="CLI: create" icon="terminal" href="/cli/create">
+    Generate Python SDKs from the command line with fused-cli.
+  </Card>
+</CardGroup>

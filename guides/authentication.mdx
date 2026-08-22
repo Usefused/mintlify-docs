@@ -1,0 +1,117 @@
+---
+title: "Authenticate with Fused: API Key Setup and Best Practices"
+sidebarTitle: "Authentication"
+description: "Get your Fused API key from the dashboard and configure it for the CLI or SDK. Learn how to rotate keys and troubleshoot auth errors."
+---
+
+Every request you make to Fused — whether through the CLI or the SDK — is authenticated with an API key tied to your account. This guide walks you through getting your key, configuring it in your environment, keeping it secure, and resolving common authentication errors.
+
+<Note>
+  Fused is currently in early access. You receive your API key after your beta access request is approved. If you have not yet been approved, request access at [usefused.com](https://usefused.com).
+</Note>
+
+## Get your API key
+
+Your API key is available in the Fused dashboard:
+
+1. Sign in at [usefused.com/login](https://usefused.com/login).
+2. Go to **Settings → API Keys** in the left sidebar.
+3. Click **Create new key**, give it a descriptive name (e.g. `local-dev` or `ci-pipeline`), and confirm.
+4. Copy the key immediately — it is shown only once.
+
+API keys follow the format `sk_test_...`. Store the key somewhere safe before closing the dialog.
+
+## Configure the API key
+
+### Environment variable (recommended)
+
+Set the `FUSED_API_KEY` environment variable in your current shell session:
+
+```bash
+export FUSED_API_KEY="sk_test_your_key_here"
+```
+
+The CLI and SDK pick up this variable automatically — no additional flags are needed.
+
+### Persist in your shell profile
+
+To avoid re-exporting the key in every new terminal session, add the `export` line to your shell profile:
+
+```bash
+# ~/.bashrc or ~/.zshrc
+export FUSED_API_KEY="sk_test_your_key_here"
+```
+
+Reload your profile after editing:
+
+```bash
+source ~/.bashrc   # or source ~/.zshrc
+```
+
+### Pass per-command with --api-key
+
+If you prefer not to use an environment variable, pass the key directly to any CLI command with the `--api-key` flag:
+
+```bash
+fused-cli create --api-key sk_test_your_key_here --name my-service
+```
+
+<Warning>
+  Passing secrets on the command line can expose them in your shell history. Prefer environment variables or a secrets manager for day-to-day use.
+</Warning>
+
+## How the API key is used
+
+Your API key authenticates you to Fused's API on your behalf. When you run a CLI command or call the SDK, Fused uses the key to verify your identity, check your access level, and associate the action with your account.
+
+<Note>
+  Your Fused API key is **not** the same as the credentials you supply to individual services. Tokens for Jira, GitHub, and other upstream APIs are passed directly in the SDK constructor when you initialise a service client — they are kept in your environment and never sent to Fused.
+</Note>
+
+## Rotate your API key
+
+You should rotate your key any time you suspect it has been exposed, or as part of routine credential hygiene:
+
+<Steps>
+  <Step title="Generate a new key">
+    In the dashboard, go to **Settings → API Keys** and click **Create new key**. Copy the new key before closing the dialog.
+  </Step>
+  <Step title="Update your environment">
+    Replace the old value of `FUSED_API_KEY` in your shell profile, CI secrets store, or secrets manager with the new key.
+  </Step>
+  <Step title="Revoke the old key">
+    Back in the dashboard, find the old key in the list and click **Revoke**. Revoked keys are rejected immediately.
+  </Step>
+</Steps>
+
+## Security best practices
+
+<AccordionGroup>
+  <Accordion title="Never commit your API key to source control">
+    Add `.env` files and any file containing your key to `.gitignore`. Use a tool like [git-secrets](https://github.com/awslabs/git-secrets) or a pre-commit hook to prevent accidental commits.
+  </Accordion>
+  <Accordion title="Use environment variables or a secrets manager">
+    Store your key in your shell profile for local development and in a dedicated secrets manager (AWS Secrets Manager, HashiCorp Vault, GitHub Actions secrets, etc.) for CI/CD pipelines.
+  </Accordion>
+  <Accordion title="Use separate keys per environment">
+    Create distinct keys for local development, staging, and production. This limits the blast radius if a key is compromised and makes it easy to revoke access for one environment without disrupting others.
+  </Accordion>
+  <Accordion title="Rotate keys if compromised">
+    If you suspect a key has been leaked — for example, if it appears in a public repository or log file — revoke it immediately and issue a replacement. There is no delay between revocation and enforcement.
+  </Accordion>
+</AccordionGroup>
+
+## Common authentication errors
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    The request did not include a valid API key, or the key value is incorrect. Check that `FUSED_API_KEY` is exported in your current shell session and that you copied the full key (including the `sk_test_` prefix) without trailing whitespace.
+  </Accordion>
+  <Accordion title="403 Forbidden">
+    The API key is valid but does not have permission to perform the requested action. This can happen if the key was scoped with restricted permissions at creation time. Generate a new key with the required permissions, or contact your account administrator.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Run `echo $FUSED_API_KEY` to confirm the variable is set correctly in your current session before debugging further.
+</Tip>

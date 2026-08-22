@@ -1,0 +1,227 @@
+---
+title: "TypeScript SDK: Install, Configure, and Use with Fused"
+sidebarTitle: "TypeScript SDK"
+description: "Install and configure your Fused-generated TypeScript SDK. Covers constructor options, calling service methods, typed error handling, and retries."
+---
+
+Your Fused-generated TypeScript SDK is a plain TypeScript package — no Fused runtime required in production. Once you extract the download and install it, you get a fully typed client that handles auth, retries, and tracing for every service you bundled, with zero boilerplate in your application code.
+
+## Installation
+
+<Steps>
+  <Step title="Download and extract">
+    After generating your SDK from the dashboard or CLI, download the `.zip` and extract it to a location in your project or monorepo:
+
+    ```bash
+    unzip acme-onboarding-sdk.zip -d ./packages/acme-onboarding-sdk
+    ```
+  </Step>
+  <Step title="Install the package dependencies">
+    The generated package ships with its own `package.json`. Install its dependencies first:
+
+    ```bash
+    cd packages/acme-onboarding-sdk
+    npm install
+    ```
+  </Step>
+  <Step title="Add it to your application">
+    Install the package into your application from the local path, or publish it to your private npm registry and install it from there:
+
+    ```bash
+    # Local path install
+    npm install ../packages/acme-onboarding-sdk
+
+    # Or from a private registry after publishing
+    npm install @acme/onboarding-sdk
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  The generated SDK has **no Fused runtime dependency**. The output is plain TypeScript source code that is compiled alongside your application. You can inspect every file, modify it, and deploy it without any Fused packages present at runtime.
+</Note>
+
+## Import and instantiate
+
+The generated entry point exports a class named `FusedSDK`. Rename it at import time to reflect the business domain your SDK represents:
+
+```typescript
+import { FusedSDK as OnboardingSDK } from "@acme/onboarding-sdk";
+
+const sdk = new OnboardingSDK({
+  jira: { token: "jira_..." },
+  github: { token: "ghp_..." },
+  slack: { token: "xoxb_..." }
+});
+```
+
+Pass credentials for each bundled service in the constructor. The SDK never reads from environment variables implicitly — credential sourcing is always explicit in your code.
+
+## Constructor options
+
+Each service key in the constructor accepts a configuration object. All services support:
+
+| Option | Type | Description |
+|---|---|---|
+| `token` | `string` | Bearer token or API key for the service |
+| `retries` | `number` | Number of retry attempts on transient failures (default: `2`) |
+| `timeout` | `number` | Request timeout in milliseconds (default: `10000`) |
+| `baseUrl` | `string` | Override the base URL, useful for self-hosted or sandbox environments |
+
+```typescript
+const sdk = new OnboardingSDK({
+  jira: { token: "jira_...", retries: 3, timeout: 15000 },
+  github: { token: "ghp_...", retries: 2 },
+  slack: { token: "xoxb_..." }
+});
+```
+
+## Calling service methods
+
+Methods are organized by service and resource, mirroring the structure of the underlying APIs. Call them with fully typed arguments and get typed responses back:
+
+```typescript
+import { FusedSDK as OnboardingSDK } from "@acme/onboarding-sdk";
+
+const sdk = new OnboardingSDK({
+  jira: { token: "jira_..." },
+  github: { token: "ghp_..." },
+  slack: { token: "xoxb_..." }
+});
+
+const ticket = await sdk.jira.issues.create({
+  project: "ONBOARD",
+  summary: "Onboard new engineer: Jane Doe",
+  issueType: "Task",
+  assignee: "jane.doe"
+});
+
+await sdk.github.repos.addCollaborator({
+  owner: "acme-corp",
+  repo: "platform",
+  username: "jane-doe-gh",
+  permission: "push"
+});
+
+await sdk.slack.chat.postMessage({
+  channel: "#engineering",
+  text: `👋 Welcome Jane! ${ticket.data.key} created and repo access granted.`
+});
+```
+
+Every method returns a `Promise` that resolves to a typed response object. Response data lives on the `.data` property, keeping the raw HTTP response metadata accessible without polluting your business logic.
+
+## Typed error handling
+
+Every failure mode the SDK can encounter is represented as a typed error class. Catch and narrow errors to handle specific failure cases:
+
+```typescript
+import {
+  FusedSDK as OnboardingSDK,
+  JiraAuthError,
+  JiraRateLimitError,
+  GithubRepoNotFoundError
+} from "@acme/onboarding-sdk";
+
+const sdk = new OnboardingSDK({
+  jira: { token: "jira_..." },
+  github: { token: "ghp_..." }
+});
+
+try {
+  const ticket = await sdk.jira.issues.create({
+    project: "ONBOARD",
+    summary: "Onboard new engineer: Jane Doe",
+    issueType: "Task",
+    assignee: "jane.doe"
+  });
+} catch (err) {
+  if (err instanceof JiraAuthError) {
+    console.error("Jira token is invalid or expired:", err.message);
+  } else if (err instanceof JiraRateLimitError) {
+    console.warn("Jira rate limit hit. Retry after:", err.retryAfter);
+  } else {
+    throw err;
+  }
+}
+```
+
+<Tip>
+  TypeScript's `instanceof` narrowing works because the generated error classes extend a common base. Your IDE will autocomplete the available error types for each service as you type.
+</Tip>
+
+## Retries
+
+Retries are built in and configurable per service. The SDK retries on network errors and `5xx` responses using exponential backoff with jitter. Configure the number of attempts in the constructor:
+
+```typescript
+const sdk = new OnboardingSDK({
+  jira: { token: "jira_...", retries: 3 },
+  github: { token: "ghp_...", retries: 2 },
+  slack: { token: "xoxb_...", retries: 1 }
+});
+```
+
+Set `retries: 0` to disable retries for a service entirely — useful when calling idempotent endpoints where you want to handle retry logic yourself.
+
+## Usage environments
+
+The generated SDK works anywhere TypeScript runs:
+
+<Tabs>
+  <Tab title="Node.js">
+    Import and instantiate the SDK in any Node.js application. The constructor is synchronous; all network calls are async:
+
+    ```typescript
+    import { FusedSDK as OnboardingSDK } from "@acme/onboarding-sdk";
+
+    const sdk = new OnboardingSDK({
+      jira: { token: process.env.JIRA_TOKEN! },
+      github: { token: process.env.GITHUB_TOKEN! },
+      slack: { token: process.env.SLACK_TOKEN! }
+    });
+
+    export { sdk };
+    ```
+  </Tab>
+  <Tab title="Serverless (AWS Lambda / Vercel)">
+    Instantiate the SDK outside the handler function so it's reused across warm invocations:
+
+    ```typescript
+    import { FusedSDK as OnboardingSDK } from "@acme/onboarding-sdk";
+
+    const sdk = new OnboardingSDK({
+      jira: { token: process.env.JIRA_TOKEN! },
+      github: { token: process.env.GITHUB_TOKEN! },
+      slack: { token: process.env.SLACK_TOKEN! }
+    });
+
+    export const handler = async (event: unknown) => {
+      await sdk.slack.chat.postMessage({
+        channel: "#ops",
+        text: "Lambda invoked!"
+      });
+    };
+    ```
+  </Tab>
+  <Tab title="Edge runtimes">
+    The generated SDK uses the Fetch API under the hood and is compatible with edge runtimes (Cloudflare Workers, Vercel Edge Functions) that expose a global `fetch`.
+  </Tab>
+</Tabs>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/guides/sdk-webhooks">
+    Receive typed webhook events from your bundled services with no public ingress required.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/guides/sdk-python">
+    Use the same bundled APIs from Python with idiomatic snake_case methods.
+  </Card>
+  <Card title="Overview" icon="grid" href="/guides/sdk-overview">
+    Learn how Business Capability SDKs are structured and how to generate them.
+  </Card>
+  <Card title="CLI: create" icon="terminal" href="/cli/create">
+    Automate SDK generation with fused-cli in your CI pipeline.
+  </Card>
+</CardGroup>

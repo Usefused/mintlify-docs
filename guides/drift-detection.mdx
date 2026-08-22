@@ -1,0 +1,95 @@
+---
+title: "API Drift Detection: Stay in Sync with Upstream Changes"
+sidebarTitle: "Drift Detection"
+description: "Fused monitors the upstream APIs in your service definitions and alerts you when changes could break your generated SDKs, MCP servers, or webhooks."
+---
+
+Upstream APIs change without warning — endpoints get removed, parameters are renamed, response shapes shift, and new authentication requirements appear. When those changes happen after you have already generated artefacts, your SDKs and MCP servers can silently fall out of sync. Fused's drift detection continuously monitors the specs behind your ingested services and alerts you before a breaking change reaches production.
+
+## What drift is
+
+Drift occurs when the upstream API specification for a service no longer matches the version that was used to generate your current artefacts. Even a small change — a renamed field, a removed query parameter, a new required header — can break generated code that your applications depend on.
+
+Fused tracks the spec version at the time of each generation and compares it against the live upstream spec on an ongoing basis. When a discrepancy is found, Fused flags the affected service as **drifted** and records the specific differences.
+
+## What triggers a drift alert
+
+Fused raises a drift alert when it detects any of the following changes in an upstream spec:
+
+<AccordionGroup>
+  <Accordion title="Added or removed endpoints">
+    A new path was added to the API, or an existing path was removed. Removed endpoints are particularly important because generated SDK methods that reference them will fail at runtime.
+  </Accordion>
+  <Accordion title="Changed parameters">
+    A request parameter was added, removed, renamed, or had its type changed. This includes path parameters, query parameters, headers, and request body fields.
+  </Accordion>
+  <Accordion title="Changed response shapes">
+    The structure of a response object changed — for example, a field was removed or a previously optional field became required.
+  </Accordion>
+  <Accordion title="New or removed webhook event types">
+    An AsyncAPI spec gained new event types or retired existing ones, which may affect your webhook subscriptions and event handlers.
+  </Accordion>
+  <Accordion title="Auth scheme changes">
+    The authentication scheme for an endpoint changed — for example, switching from API key to OAuth, or adding a required scope.
+  </Accordion>
+</AccordionGroup>
+
+## Where to see drift alerts
+
+You can view all drift alerts from the dashboard:
+
+1. Go to **Services** in the left sidebar.
+2. Click the name of the service you want to inspect.
+3. Select the **Drift** tab on the service detail page.
+
+The Drift tab shows a diff between the spec version your artefacts were generated from and the current upstream spec. Changed, added, and removed items are highlighted so you can assess the impact before taking action.
+
+A **Drift detected** status badge also appears on the service card in the Services list view, so you can see at a glance which services need attention.
+
+## What to do when drift is detected
+
+<Steps>
+  <Step title="Review the diff">
+    Open the service's **Drift** tab and read through the diff. Identify which changes are breaking (removed endpoints, changed parameters) versus additive (new endpoints, new optional fields).
+  </Step>
+  <Step title="Re-ingest the updated spec">
+    Once you understand the changes, click **Re-ingest** to pull in the latest version of the upstream spec. Fused validates the new spec and creates an updated service record.
+  </Step>
+  <Step title="Regenerate affected artefacts">
+    Navigate to each artefact tab (SDK, MCP Server, Webhooks) and click **Generate** to produce new artefacts from the updated spec. Fused creates a new version entry in the version history for each artefact.
+  </Step>
+  <Step title="Download and redeploy">
+    Download the newly generated artefacts and deploy them to your environments. Verify that your application code handles any breaking changes identified in the diff before promoting to production.
+  </Step>
+</Steps>
+
+<Warning>
+  Do not skip the diff review step. Regenerating artefacts will incorporate all upstream changes, including breaking ones. If your application code has not been updated to handle removed endpoints or changed parameters, deploying the new artefacts will cause runtime errors.
+</Warning>
+
+## Drift notifications
+
+Rather than checking the dashboard manually, you can configure Fused to send you an email alert as soon as drift is detected:
+
+1. Go to **Settings → Notifications** in the dashboard.
+2. Enable **Drift alerts** and enter the email addresses that should receive notifications.
+3. Save your preferences.
+
+You will receive an email whenever a monitored service transitions to the **Drift detected** state, with a summary of what changed and a direct link to the service's Drift tab.
+
+<Tip>
+  Set up drift notifications for every service that powers a production integration. Being alerted early gives you time to review, update, and redeploy before the upstream change causes an outage.
+</Tip>
+
+## Library services vs. custom services
+
+<Info>
+  How drift is resolved differs depending on whether you are using a service from the Fused service library or a custom service you ingested yourself.
+</Info>
+
+| Service type | Who monitors the spec | How to resolve drift |
+|---|---|---|
+| **Library service** | The Fused team | Fused updates the service and notifies you. Review and regenerate your artefacts when prompted. |
+| **Custom service** | You | Re-ingest the updated spec manually after receiving a drift alert, then regenerate your artefacts. |
+
+For custom services, Fused detects that the upstream spec has changed but cannot fetch or apply the update on your behalf. You are responsible for obtaining the latest spec from the API provider and re-ingesting it through the dashboard or CLI.

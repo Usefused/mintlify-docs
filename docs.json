@@ -1,0 +1,99 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "luma",
+  "name": "Fused",
+  "colors": {
+    "primary": "#040404"
+  },
+  "favicon": "https://media.brand.dev/1bebb410-f7fb-43b3-b789-6dd6c0d59d42.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guide",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "concepts"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "guides/services-overview",
+              "guides/ingest-openapi",
+              "guides/ingest-graphql",
+              "guides/service-library"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "guides/sdk-overview",
+              "guides/sdk-typescript",
+              "guides/sdk-python",
+              "guides/sdk-webhooks"
+            ]
+          },
+          {
+            "group": "MCP Servers",
+            "pages": [
+              "guides/mcp-overview",
+              "guides/mcp-deploy-cloud",
+              "guides/mcp-self-host"
+            ]
+          },
+          {
+            "group": "Dashboard",
+            "pages": [
+              "guides/dashboard-overview",
+              "guides/authentication",
+              "guides/drift-detection"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Installation",
+            "pages": [
+              "cli/overview",
+              "cli/installation"
+            ]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/create",
+              "cli/update",
+              "cli/download"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Get Access",
+        "href": "https://usefused.com/#access"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://usefused.com/login"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/usefused",
+      "github": "https://github.com/usefused/cli"
+    }
+  }
+}

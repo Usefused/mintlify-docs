@@ -1,0 +1,101 @@
+{
+  "projectType": "saas",
+  "projectName": "Fused",
+  "projectDescription": "Fused is an integration layer that turns any API definition into typed SDKs, MCP servers, and webhook receivers — defined once, consumed by every team.",
+  "theme": "luma",
+  "primaryColor": "#040404",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guide",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "concepts"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "guides/services-overview",
+              "guides/ingest-openapi",
+              "guides/ingest-graphql",
+              "guides/service-library"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "guides/sdk-overview",
+              "guides/sdk-typescript",
+              "guides/sdk-python",
+              "guides/sdk-webhooks"
+            ]
+          },
+          {
+            "group": "MCP Servers",
+            "pages": [
+              "guides/mcp-overview",
+              "guides/mcp-deploy-cloud",
+              "guides/mcp-self-host"
+            ]
+          },
+          {
+            "group": "Dashboard",
+            "pages": [
+              "guides/dashboard-overview",
+              "guides/authentication",
+              "guides/drift-detection"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Installation",
+            "pages": [
+              "cli/overview",
+              "cli/installation"
+            ]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/create",
+              "cli/update",
+              "cli/download"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Service ingestion from OpenAPI, GraphQL, Postman Collections, Docs URLs, and internal APIs",
+    "Auto-generated typed SDKs in TypeScript and Python — no vendor runtime dependency",
+    "MCP server generation with search_docs and execute_tool capabilities",
+    "Typed webhook receivers delivered over outbound WebSocket connections",
+    "Centralised auth, retries, tracing, and error handling across all generated artefacts",
+    "Drift detection to keep generated artefacts in sync when upstream APIs change",
+    "fused-cli for natural language SDK and MCP generation from the terminal",
+    "Fused-Run managed cloud hosting for TypeScript MCP servers"
+  ],
+  "publicApiSurface": [
+    "fused-cli create --name <name> --type sdk|mcp --language typescript|python --deploy -d \"<description>\"",
+    "fused-cli update <sdk-name>[@version] --type --language --deploy",
+    "fused-cli download <sdk-name>[@version] --output <dir>",
+    "FUSED_API_KEY environment variable / --api-key flag",
+    "FusedSDK constructor (generated, named per business domain)",
+    "fusedWebhooks.registerReceiver(name, apiKey)",
+    "receiver.on(EventEnum, handler)",
+    "MCP tool: search_docs(query)",
+    "MCP tool: execute_tool(typescript_code)"
+  ]
+}

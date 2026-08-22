@@ -1,0 +1,60 @@
+---
+title: "Fused: Generate Typed SDKs, MCP Servers & Webhooks"
+sidebarTitle: "Introduction"
+description: "Fused turns any API definition into typed SDKs, MCP servers, and webhook receivers your whole team shares — defined once, inherited everywhere."
+---
+
+Fused is the integration layer that transforms any API definition — OpenAPI specs, GraphQL schemas, Postman Collections, documentation URLs, or internal APIs — into production-ready typed SDKs, MCP servers, and webhook receivers. Instead of every team writing their own one-off API wrappers, you define a service once in Fused and every team inherits the same typed, versioned, drift-detected artefacts. Whether you're a platform engineer standardising third-party integrations, an AI engineer wiring up LLM tool calls, or a backend developer consuming webhooks, Fused gives your whole organisation a single source of truth for every API your product touches.
+
+## Explore Fused
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install the CLI and generate your first typed SDK or MCP server in under five minutes.
+  </Card>
+  <Card title="Core Concepts" icon="lightbulb" href="/concepts">
+    Learn how Fused models services, artefacts, scoping, and drift detection.
+  </Card>
+  <Card title="Services" icon="server" href="/guides/services-overview">
+    Ingest any API definition and turn it into a reusable Fused service.
+  </Card>
+  <Card title="SDKs" icon="code" href="/guides/sdk-overview">
+    Generate scoped, typed SDKs — single-service or bundled across multiple APIs.
+  </Card>
+  <Card title="MCP Servers" icon="robot" href="/guides/mcp-overview">
+    Give your AI agents semantic search and code-execution tools over any API.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Full reference for every `fused-cli` command, flag, and config option.
+  </Card>
+</CardGroup>
+
+## What Fused generates
+
+Point Fused at any API definition and choose the artefacts you need. All three are generated from the same underlying service definition, so they stay in sync automatically.
+
+<CardGroup cols={3}>
+  <Card title="Typed SDKs" icon="brackets-curly">
+    Fully typed TypeScript or Python clients scoped to exactly the endpoints your team uses — single-service or bundled across multiple APIs into one business-capability SDK.
+  </Card>
+  <Card title="MCP Servers" icon="server">
+    Model Context Protocol servers that expose `search_docs` and `execute_tool` so any AI agent or LLM can discover and call your APIs safely. TypeScript servers deploy to Fused-Run; Python servers are self-hosted.
+  </Card>
+  <Card title="Typed Webhooks" icon="webhook">
+    Outbound WebSocket connections that deliver fully typed webhook events to your app — no public ingress required, no manual payload parsing.
+  </Card>
+</CardGroup>
+
+## How it works
+
+<Steps>
+  <Step title="Ingest a service">
+    Provide Fused with an API definition — paste an OpenAPI URL, upload a Postman Collection, link a GraphQL schema, or describe the API in plain English. Fused extracts endpoints, authentication schemes, webhook events, and operational settings into a versioned service definition.
+  </Step>
+  <Step title="Pick your artefacts">
+    Open the Cart UI to browse every endpoint in the service. Select the operations your team actually needs, choose which artefacts to generate (SDK, MCP server, webhook receiver, or all three), and configure scoping and auth settings.
+  </Step>
+  <Step title="Use the generated code">
+    Install the published npm package, point your MCP client at the hosted server URL, or connect your WebSocket listener. Your artefacts are typed, versioned, and monitored for upstream API drift from day one.
+  </Step>
+</Steps>
