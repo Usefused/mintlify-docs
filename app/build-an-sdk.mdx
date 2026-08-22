@@ -80,6 +80,30 @@ It reports how many it added. Re-running it never overwrites an injection you wr
   The first successful apply prints the SDK execution token **once**. Capture it immediately — an idempotent re-apply will not show it again, and it is never written to the config, the receipt, or CLI state.
 </Warning>
 
+## Point the client at the Engine
+
+The generated client takes `engineUrl` — but it wants the Engine's **gRPC** address, not the HTTP one you give the CLI.
+
+```typescript
+const sdk = new FusedSDK({
+  engineUrl: process.env.FUSED_ENGINE_GRPC_URL,
+  token: process.env.FUSED_SDK_TOKEN,
+});
+```
+
+It resolves the target in this order, first non-empty wins:
+
+1. `engineUrl` / `engine_url` passed to the constructor
+2. `FUSED_ENGINE_GRPC_URL`
+3. `FUSED_ENGINE_URL`
+4. `http://127.0.0.1:50051`
+
+<Warning>
+  Step 3 is the one that catches people. `FUSED_ENGINE_URL` is the **HTTP** management URL the CLI uses. If it is set in your environment and you do not pass `engineUrl`, the client speaks gRPC at the REST port and the server answers **HTTP 405**. Set `FUSED_ENGINE_GRPC_URL` explicitly and the ambiguity goes away.
+</Warning>
+
+Each `FusedSDK` instance opens one gRPC channel that every service on it shares, so there is no per-service connection cost.
+
 ## Flags
 
 ### `sdk init`

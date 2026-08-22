@@ -30,7 +30,7 @@ Anything absent from `--allow` is denied. Repeat the flag, or pass a comma-separ
 |---|---|---|
 | `--allow` | Permits one operation ID; repeatable or comma-separated | `fused-cli mcp token generate support triage --allow issueUpdate` |
 | `--expires-in` | Gives the token a lifetime | `fused-cli mcp token generate support triage --expires-in 15m` |
-| `--fixed-binding` | Pins a service, auth scheme, and user at issuance; repeatable | `fused-cli mcp token generate support triage --fixed-binding 'jira,OAuth2,user_123'` |
+| `--fixed-binding` | Pins one service slug, auth scheme, and user; repeat it for different services | `fused-cli mcp token generate support triage --fixed-binding 'jira,OAuth2,user_123'` |
 
 `--expires-in` takes a positive whole-second duration such as `15m`, `4h`, or `7d`. Omit it for a non-expiring service credential.
 

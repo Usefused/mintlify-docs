@@ -55,6 +55,10 @@ fused-engine start
 
 That brings up the REST API and dashboard on `:8081`, the SDK gRPC listener on `:50051`, and — since no external NATS is configured — an embedded NATS server on `:4222`.
 
+<Note>
+  Those first two are different audiences. `fused-cli` talks to `:8081`; a generated SDK talks gRPC to `:50051`. Both get called an "Engine URL", so it is worth exporting `FUSED_ENGINE_URL` and `FUSED_ENGINE_GRPC_URL` as separate values from the start.
+</Note>
+
 ## Or run the container
 
 Two image variants are published:
