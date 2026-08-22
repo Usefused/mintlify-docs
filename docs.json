@@ -9,7 +9,7 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Guide",
+        "tab": "Documentation",
         "groups": [
           {
             "group": "Get Started",
@@ -20,51 +20,65 @@
             ]
           },
           {
-            "group": "Workspace",
+            "group": "Guides",
             "pages": [
-              "workspace/enable-a-service",
-              "workspace/bring-your-own-api",
-              "workspace/manage-versions",
-              "workspace/handle-provider-limits",
-              "workspace/share-access"
-            ]
-          },
-          {
-            "group": "App (SDK)",
-            "pages": [
-              "app/build-an-sdk",
-              "app/ship-a-new-version",
-              "app/receive-events",
-              "app/issue-tokens",
-              "app/run-an-operation",
               {
-                "group": "Unified Operations",
+                "group": "Workspace",
+                "icon": "toggle-on",
+                "expanded": false,
                 "pages": [
-                  "app/unified/declare",
-                  "app/unified/call"
+                  "workspace/enable-a-service",
+                  "workspace/bring-your-own-api",
+                  "workspace/manage-versions",
+                  "workspace/handle-provider-limits",
+                  "workspace/share-access"
+                ]
+              },
+              {
+                "group": "App (SDK)",
+                "icon": "cube",
+                "expanded": false,
+                "pages": [
+                  "app/build-an-sdk",
+                  "app/ship-a-new-version",
+                  "app/receive-events",
+                  "app/issue-tokens",
+                  "app/run-an-operation",
+                  {
+                    "group": "Unified Operations",
+                    "expanded": false,
+                    "pages": [
+                      "app/unified/declare",
+                      "app/unified/call"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "MCP",
+                "icon": "robot",
+                "expanded": false,
+                "pages": [
+                  "mcp/deploy-a-server",
+                  "mcp/use-the-server",
+                  "mcp/agent-tokens",
+                  "mcp/oauth-tokens"
+                ]
+              },
+              {
+                "group": "Bucket",
+                "icon": "key",
+                "expanded": false,
+                "pages": [
+                  "bucket/store-credentials",
+                  "bucket/connect-user-accounts",
+                  "bucket/share-a-bucket"
                 ]
               }
             ]
           },
           {
-            "group": "MCP",
-            "pages": [
-              "mcp/deploy-a-server",
-              "mcp/use-the-server",
-              "mcp/agent-tokens",
-              "mcp/oauth-tokens"
-            ]
-          },
-          {
-            "group": "Bucket",
-            "pages": [
-              "bucket/store-credentials",
-              "bucket/connect-user-accounts",
-              "bucket/share-a-bucket"
-            ]
-          },
-          {
-            "group": "Staying current",
+            "group": "Reference",
             "pages": [
               "notifications"
             ]
@@ -75,6 +89,14 @@
   },
   "navbar": {
     "links": [
+      {
+        "label": "CLI",
+        "href": "https://github.com/Usefused/cli"
+      },
+      {
+        "label": "Engine",
+        "href": "https://github.com/Usefused/engine"
+      },
       {
         "label": "Get Access",
         "href": "https://usefused.com/signup"
@@ -89,7 +111,43 @@
   "footer": {
     "socials": {
       "x": "https://x.com/usefused",
-      "github": "https://github.com/usefused/cli"
-    }
+      "github": "https://github.com/Usefused"
+    },
+    "links": [
+      {
+        "header": "Source",
+        "items": [
+          {
+            "label": "Fused CLI",
+            "href": "https://github.com/Usefused/cli"
+          },
+          {
+            "label": "Fused Engine",
+            "href": "https://github.com/Usefused/engine"
+          },
+          {
+            "label": "Engine releases",
+            "href": "https://github.com/Usefused/engine/releases"
+          }
+        ]
+      },
+      {
+        "header": "Fused",
+        "items": [
+          {
+            "label": "Home",
+            "href": "https://usefused.com"
+          },
+          {
+            "label": "Pricing",
+            "href": "https://usefused.com/pricing"
+          },
+          {
+            "label": "Dashboard",
+            "href": "https://usefused.com/login"
+          }
+        ]
+      }
+    ]
   }
 }

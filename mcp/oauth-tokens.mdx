@@ -77,7 +77,8 @@ fused-cli mcp token generate support-agent acme-only \
 
 The tuple is `service-slug,auth-name,end-user-ref[,resource-id]`. Use the same
 service slug you use in workspace and MCP configuration; internal service UUIDs
-are never part of this command.
+are never part of this command. Both `jira` and a provider-qualified slug such
+as `@atlassian/jira` use the ordinary workspace service-reference resolver.
 
 Repeat the flag once per service/auth pair the token may reach. Different
 services on one token may intentionally use different end-user references:
