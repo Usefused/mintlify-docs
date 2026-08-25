@@ -20,7 +20,7 @@ There are two ways to get one.
 ## What you need first
 
 - **PostgreSQL 16+**. The Engine creates and upgrades its own tables on startup, through one standard connection string. There is no provider-specific branching.
-- **A Fused license key**, from your Fused onboarding contact or the dashboard.
+- **A Fused license key**. [Signing up](https://usefused.com/signup) issues one; choose the license-only path and the key is yours to deploy with. An onboarding contact can also provide it.
 
 <Warning>
   The Engine exits during startup without a valid license key, before serving any HTTP, webhook, or gRPC traffic. There is no offline mode that bypasses the Registry handshake.
@@ -164,7 +164,11 @@ fused-cli config list
 - **Pin a version tag.** `latest` moves; a deploy that reruns should not quietly change Engine underneath you.
 - **Set a real encryption key.** Not the committed example.
 - **External NATS for replicas.** The embedded server is single-instance. Horizontal replication needs `NATS_URL` without embedded credentials, plus exactly one of `NATS_CREDS_FILE`, `NATS_NKEY_SEED_FILE`, `NATS_TOKEN`, or paired `NATS_USERNAME`/`NATS_PASSWORD`. Mount credential and TLS files read-only; never bake them into an image.
-- **Check your licence terms.** The Engine is source-available under PolyForm Noncommercial 1.0.0. Commercial or production use needs a separate written agreement with Fused in addition to a valid key.
+- **Check your license terms.** The Engine is source-available under PolyForm Noncommercial 1.0.0. Commercial or production use needs a separate written agreement with Fused in addition to a valid key.
+
+<Note>
+  That last one is worth starting early. If you are deploying this for a company, [register your interest](https://usefused.com/?plan=enterprise#enterprise-interest) — production licensing, SSO, and support are all settled in the same conversation, and it is a shorter one before you have shipped than after.
+</Note>
 
 <Card title="Quickstart" icon="rocket" href="/quickstart">
   With an Engine reachable, enable a service and ship an SDK.

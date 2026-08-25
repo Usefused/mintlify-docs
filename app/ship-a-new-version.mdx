@@ -22,6 +22,12 @@ fused-cli sdk plan
 fused-cli sdk apply --download
 ```
 
+## When the Registry moves under you
+
+`app_version_immutable` is about something you changed. Its sibling is about something Fused changed: when the Registry advances the selection schema your published versions were built against, applying an older plan returns `app_selection_schema_version_mismatch` (HTTP 409), and `fused-cli sdk sync` refuses a version whose schema is newer than the CLI understands.
+
+Neither is a data loss. Re-plan so the selections are rebuilt against the current schema, then apply. If `sync` is the one complaining, upgrade `fused-cli` first — it is telling you the Engine is ahead of it.
+
 <Note>
   Do not edit a generated package to impersonate another version. The Engine authorizes the opaque `app_id` embedded in the package, not a version number the client reports.
 </Note>

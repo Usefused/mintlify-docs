@@ -34,19 +34,30 @@ fused-cli import plan \
   Formats that carry no version of their own — Postman collections especially — need `--version`. Without it, planning stops with `import_version_required` and writes no receipt. The CLI never invents a version.
 </Note>
 
-## Import from documentation
+## When you only have a URL
 
-When a provider never published a spec, discovery reads their docs.
+`import plan` expects you to know where the spec lives. `import discover` does not — point it at the provider and it finds a machine-readable spec if one exists, and crawls the documentation if it does not.
 
 ```bash
-fused-cli import docs \
-  --url https://docs.example.com/api \
+fused-cli import discover \
+  --url https://developer.example.com \
   --name "Docs API" \
-  --slug docs-api \
-  --version 1.0
+  --slug docs-api
 ```
 
-Every discovered endpoint is selected by default. Narrow it with `--review` or `--select`.
+Discovery is a session rather than a single shot. It resolves the source, pulls out the operations, extracts a contract, and proposes optional Fused enrichment — then stops and waits for you to review. In a terminal it opens the Engine's review page; `--no-browser` prints the URL and waits instead.
+
+It never applies. When the session reaches `plan_ready` it writes the same receipt `import plan` would, at `.fused/.state/import.plan.json`, and you commit it the same way:
+
+```bash
+fused-cli import apply
+```
+
+Sessions outlive the command. Resume one with `--session <id>`; the identity and crawl limits it started with are fixed and cannot be changed on resume.
+
+<Note>
+  Nothing is interactive in CI. Pass `--all` or repeat `--select 'GET:/invoices'`, then either repeat `--accept-proposal <id>` or pass `--reject-enrichment`. Non-interactive runs never open or wait for browser review.
+</Note>
 
 ## Flags
 
@@ -74,14 +85,29 @@ Every discovered endpoint is selected by default. Narrow it with `--review` or `
 | `--review-hash` | The combined Registry review hash paired with `--plan-id` | `fused-cli import apply --plan-id pln_31a… --review-hash sha256:…` |
 | `--receipt` | Applies a specific receipt instead of the most recent | `fused-cli import apply --receipt ./ci/import.json` |
 
-### `import docs`
+### `import discover`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--url` | Documentation URL to read (required) | `fused-cli import docs --url https://docs.example.com/api --name X --slug x --version 1.0` |
-| `--review` | Review discovered endpoints before extraction | `fused-cli import docs --url … --name X --slug x --version 1.0 --review` |
-| `--select` | Import one endpoint as `METHOD:/path`; repeatable | `fused-cli import docs --url … --name X --slug x --version 1.0 --select 'GET:/invoices'` |
-| `--no-workspace-add` | Skips adding the new service to your workspace | `fused-cli import docs --url … --name X --slug x --version 1.0 --no-workspace-add` |
+| `--url` | Provider spec or documentation URL; required unless resuming | `fused-cli import discover --url https://developer.example.com --name X --slug x` |
+| `--name` | Service name; required unless resuming | `fused-cli import discover --url … --name "Docs API" --slug docs-api` |
+| `--slug` | Account-scoped slug to create or update; required unless resuming | `fused-cli import discover --url … --name X --slug docs-api` |
+| `--session` | Resumes a session; its identity and limits are already fixed | `fused-cli import discover --session ses_9f2…` |
+| `--source-mode` | `auto` finds a spec and falls back to docs; force one with `spec` or `docs` | `fused-cli import discover --url … --name X --slug x --source-mode docs` |
+| `--all` | Selects every discovered operation | `fused-cli import discover --url … --name X --slug x --all` |
+| `--select` | Selects one operation as `METHOD:/path`; repeatable | `fused-cli import discover --url … --name X --slug x --select 'GET:/invoices'` |
+| `--accept-proposal` | Accepts one enrichment proposal by ID; repeatable | `fused-cli import discover --session ses_9f2… --accept-proposal prp_4c1…` |
+| `--reject-enrichment` | Takes the contract as extracted, with no enrichment | `fused-cli import discover --url … --name X --slug x --all --reject-enrichment` |
+| `--overlay` | A local Fused overlay reviewed alongside the discovered contract | `fused-cli import discover --url … --name X --slug x --overlay ./billing.overlay.json` |
+| `--version` | Provider version when discovery cannot find one | `fused-cli import discover --url … --name X --slug x --version 2026-08` |
+| `--no-browser` | Prints the review URL and waits, rather than opening it | `fused-cli import discover --url … --name X --slug x --no-browser` |
+| `--receipt-out` | Writes the receipt somewhere other than the default path | `fused-cli import discover --url … --name X --slug x --receipt-out ./ci/import.json` |
+| `--json` | Prints the plan-ready snapshot for CI or an agent | `fused-cli import discover --url … --name X --slug x --all --json` |
+| `--timeout` | Caps the whole session; defaults to 20m | `fused-cli import discover --url … --name X --slug x --timeout 45m` |
+
+`--workers`, `--max-pages`, and `--max-depth` request crawl limits. The Registry clamps whatever you ask for, so treat them as hints rather than guarantees.
+
+`--all` and `--select` are alternatives, as are `--accept-proposal` and `--reject-enrichment`.
 
 ## Overlays beat forking
 

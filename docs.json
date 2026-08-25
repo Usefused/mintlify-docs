@@ -96,16 +96,12 @@
       {
         "label": "Engine",
         "href": "https://github.com/Usefused/engine"
-      },
-      {
-        "label": "Get Access",
-        "href": "https://usefused.com/signup"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://usefused.com/login"
+      "label": "Get Access",
+      "href": "https://usefused.com/signup"
     }
   },
   "footer": {
@@ -143,8 +139,8 @@
             "href": "https://usefused.com/pricing"
           },
           {
-            "label": "Dashboard",
-            "href": "https://usefused.com/login"
+            "label": "Contact",
+            "href": "https://usefused.com/?plan=enterprise#enterprise-interest"
           }
         ]
       }
