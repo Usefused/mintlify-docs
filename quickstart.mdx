@@ -73,16 +73,52 @@ fused-cli sdk apply --download
 
 ## Call it
 
-```bash
+Three ways in. Same Engine execution behind all of them, and the same execution token.
+
+| Way | Reach for it when | What it needs |
+|---|---|---|
+| `fused-cli sdk invoke` | Checking the path works, or poking an operation by hand | The CLI and the token |
+| The typed package | Your application calls this for real | The downloaded package and the Engine's **gRPC** address |
+| `POST /v1/apps/{id}/executions` | You are not in TypeScript or Python, or you would rather not ship a package | The Engine's **HTTP** address and the version ID from apply |
+
+<CodeGroup>
+
+```bash CLI
 export FUSED_SDK_TOKEN='...'
 
 fused-cli sdk invoke support-sdk@1.0.0 issueUpdate \
   --params '{"id":"ISS-42","state":"done"}'
+```
 
+```typescript Typed package
+import { FusedSDK } from 'support-sdk';
+
+const sdk = new FusedSDK({
+  grpcUrl: process.env.FUSED_ENGINE_GRPC_URL,
+  token: process.env.FUSED_SDK_TOKEN,
+});
+
+await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
+```
+
+```bash REST
+curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
+  -H "Authorization: Bearer $FUSED_SDK_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"issueUpdate","input":{"id":"ISS-42","state":"done"}}'
+```
+
+</CodeGroup>
+
+Services sit on the client in PascalCase, and operations follow the provider's own grouping — so `issueUpdate` may be `sdk.Linear.issues.update` instead. The package's generated `README.md` lists the exact paths for the operations *you* selected.
+
+Whichever one you used, the receipt is the same:
+
+```bash
 fused-cli sdk activity support-sdk@1.0.0
 ```
 
-The last command shows the execution receipt: what was called, how long the provider took, and what came back.
+It shows what ran, how long the provider took, and what came back.
 
 ## What you just did
 

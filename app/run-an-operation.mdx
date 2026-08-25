@@ -57,6 +57,33 @@ This is a debug surface, not a production transport. It accepts one buffered JSO
 
 It produces one logical Engine execution and does not retry locally or follow redirects itself — the Engine owns retries, pagination, and continuation.
 
+## Calling it without the CLI
+
+`sdk invoke` is a debug surface. The runtime equivalent is one REST endpoint on the Engine's HTTP port, and it is the only runtime REST route the Engine exposes:
+
+```bash
+curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
+  -H "Authorization: Bearer $FUSED_SDK_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"issueUpdate","input":{"id":"ISS-42","state":"done"}}'
+```
+
+`$VERSION_ID` is the app version UUID that apply printed — not the SDK name, and not the family ID.
+
+| Body field | For |
+|---|---|
+| `operation` | The operation ID, same string you pass to `sdk invoke` |
+| `input` | The operation's parameters |
+| `selector` | One physical selector: `environment`, `end_user_ref`, `auth_type`, `auth_name`, `resource_id` |
+| `targets` / `selectors` | Unified only: which services to run, and a selector per service |
+| `pagination` / `target_pagination` | `{"max_pages": n}`, physical and Unified respectively |
+
+<Warning>
+  Unified execution **requires** an `Idempotency-Key` header and rejects the call with `idempotency_key_required` without one. Physical operations accept the header but do not insist on it. Either way, supply it at most once.
+</Warning>
+
+This is the same execution the typed package makes, so a version applied with `generate: false` is fully callable here — see [build an SDK](/app/build-an-sdk#skip-the-package). `fused-cli sdk openapi` gives you the contract to generate a client from.
+
 ## Read the receipts
 
 Every execution leaves a canonical receipt.
