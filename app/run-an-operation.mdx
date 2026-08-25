@@ -7,6 +7,12 @@ description: "Call one operation through the Engine to confirm the whole path wo
 
 ## Call something
 
+```text
+fused-cli sdk invoke <sdk-name@version-or-version-id> <operation>
+```
+
+The version reference is required and exact — `sdk invoke` never picks a version for you.
+
 ```bash
 export FUSED_SDK_TOKEN='...'
 

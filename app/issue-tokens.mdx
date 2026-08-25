@@ -17,6 +17,12 @@ Never pass the License Key or a provider credential as an execution token, and n
 
 ## Generate one
 
+```text
+fused-cli sdk token generate <sdk-name-or-id> <token-name>
+```
+
+Both are yours to name: the first identifies the SDK, the second labels the token so you can revoke it later without guessing.
+
 ```bash
 fused-cli sdk token generate support-sdk ci-runner --expires-in 4h
 fused-cli sdk token list support-sdk

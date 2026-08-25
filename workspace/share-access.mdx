@@ -9,6 +9,19 @@ Access in Fused is granted per resource, not per person's good intentions. A tea
 
 A workspace role sets the baseline. Grants narrow or extend it per resource.
 
+Every one of these commands takes the same three things in the same order: **the team, the resource, then the level.** The command words are fixed; everything in `<angle brackets>` is yours to fill in.
+
+| Command | Team | Resource | Level |
+|---|---|---|---|
+| `team access workspace set` | `<team-slug-or-id>` | — | `owner` · `admin` · `builder` · `viewer` |
+| `team access service grant` | `<team-slug-or-id>` | `<service-slug-or-id>` | `use` · `manage` |
+| `team access bucket grant` | `<team-slug-or-id>` | `<bucket-name-or-id>` | `use` · `manage` |
+| `team access app grant` | `<team-slug-or-id>` | `<sdk-or-mcp-id>` | `read` · `use` · `manage` |
+
+Swap `grant` for `revoke` to take access away, with the same three arguments. The workspace role is `clear` rather than `revoke`, and it takes no level: `team access workspace clear <team-slug-or-id>`.
+
+So for a team whose slug is `payments`:
+
 ```bash
 fused-cli team access workspace set platform admin
 fused-cli team access service grant payments stripe use
@@ -16,17 +29,29 @@ fused-cli team access bucket grant payments prod-credentials use
 fused-cli team access app grant payments app_7f31… read
 ```
 
-The canonical workspace roles are `owner`, `admin`, `builder`, and `viewer`. Activation permissions come with Admin and Owner; Builder and Viewer do not carry them.
+Activation permissions come with Admin and Owner; Builder and Viewer do not carry them.
 
-Levels differ by resource type:
+What each level actually buys:
 
-| Resource | Levels | What `use` means |
+| Resource | Level | Permissions it carries |
 |---|---|---|
-| Service | `use`, `manage` | Supplies `service.read` and `service.consume` |
-| Bucket | `use`, `manage` | Select the bucket for an app, without secret administration |
-| App (SDK or MCP) | `read`, `use`, `manage` | Applies to every version of that app |
+| Service | `use` | `service.read`, `service.consume` |
+| Service | `manage` | The above plus `service.manage` |
+| Bucket | `use` | `bucket.read`, `bucket.use` — select the bucket for an app, without seeing what is in it |
+| Bucket | `manage` | The above plus `bucket.values.read`, `bucket.manage`, `credentials.*`, `connection.*` |
+| App | `read` | `app.read` — it shows up in listings, nothing more |
+| App | `use` | The above plus `app.use` — actually call it |
+| App | `manage` | The above plus `app.manage` and `app.tokens.manage` |
 
-App grants need the `SDK_ID` or `MCP_ID` shown by `sdk list` and `mcp list`. The generic `app` command cannot infer which kind you mean from a name that both might share.
+App levels apply to every version of that app.
+
+<Warning>
+  Bucket `manage` includes `bucket.values.read`. That is the line this whole page exists to draw — `use` lets a team build on a credential they can never read, and `manage` hands them the credential. Grant `use` unless someone genuinely needs to administer the secrets.
+</Warning>
+
+<Note>
+  App grants need the ID from `sdk list` or `mcp list`, not a name. One `app` command covers both kinds, so it cannot infer which you mean from a name they might share.
+</Note>
 
 ## Check before you plan
 

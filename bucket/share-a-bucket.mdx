@@ -9,6 +9,12 @@ That separation is what lets one platform team own credentials for the whole com
 
 ## Grant one team
 
+```text
+fused-cli team access bucket <grant|revoke> <team-slug-or-id> <bucket-name-or-id> <use|manage>
+```
+
+The team and the bucket are yours; `grant`/`revoke` and the level come from fixed sets.
+
 ```bash
 fused-cli team access bucket grant payments prod-credentials use
 fused-cli team access bucket grant payments prod-credentials manage

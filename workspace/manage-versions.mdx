@@ -9,6 +9,12 @@ Providers change their APIs on their schedule. Version management is how you abs
 
 A workspace service holds a list of enabled versions. Add one and the old one keeps working.
 
+```text
+fused-cli workspace service version <add|delete|deprecate> <service-slug> <version>
+```
+
+Only the last two are yours — the service slug and the provider's version string.
+
 ```bash
 fused-cli workspace service version add stripe 2024-06-20
 fused-cli workspace service versions stripe

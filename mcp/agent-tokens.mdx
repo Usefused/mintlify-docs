@@ -9,6 +9,12 @@ A token can only ever **narrow** what its MCP version already exposes. It cannot
 
 ## Generate a narrowed token
 
+```text
+fused-cli mcp token generate <mcp-name-or-id> <token-name>
+```
+
+Both are yours to choose: the first identifies the MCP server, the second names this particular token so you can revoke it by name.
+
 ```bash
 fused-cli mcp token generate support-agent triage-bot \
   --allow issueUpdate \
@@ -75,7 +81,7 @@ Applications that need to issue tokens for dynamic agent sessions can use the En
 Ownership and audience are separate concerns. The owning person or team keeps management authority even when the server is offered company-wide:
 
 ```bash
-fused-cli workspace access app grant <mcp-id>
+fused-cli workspace access app grant <sdk-or-mcp-id>
 ```
 
 That adds bounded workspace-wide use across every version without handing over token or lifecycle management — and callers still need an execution token at runtime.
