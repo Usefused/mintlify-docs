@@ -40,6 +40,7 @@
                 "expanded": false,
                 "pages": [
                   "app/build-an-sdk",
+                  "app/use-in-your-app",
                   "app/ship-a-new-version",
                   "app/receive-events",
                   "app/issue-tokens",

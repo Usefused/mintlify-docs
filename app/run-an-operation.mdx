@@ -1,9 +1,14 @@
 ---
-title: "Run an operation"
-description: "Call one operation through the Engine to confirm the whole path works."
+title: "Run an operation from the terminal"
+sidebarTitle: "Run an operation"
+description: "Prove the whole path works before you write any application code against it."
 ---
 
-`sdk invoke` is the smoke test. It resolves one exact SDK version, calls the Engine's execution route with your execution token, and prints what came back — no application code required.
+This page is about `sdk invoke` — a smoke test, not a transport. It resolves one exact SDK version, calls the Engine with your execution token, and prints what came back, so you can confirm credentials, scope, and routing before wiring anything up.
+
+<Note>
+  Your application should not shell out to this. Import the generated package, or call the REST route below — both are covered in [using it in your app](/app/use-in-your-app).
+</Note>
 
 ## Call something
 

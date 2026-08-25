@@ -93,6 +93,57 @@ fused-cli sdk webhook remove jira issue.updated
 
 `sdk webhook add` accepts `--interactive` when you would rather pick from a list than remember event IDs.
 
+## Handle them in your code
+
+The generated package ships the receiver. Your process **dials out** to the Engine and events stream back down that connection, so there is no public endpoint to host, no ingress to open, and no signature to verify yourself — this works unchanged on a laptop, in a private VPC, or on a serverless container.
+
+<CodeGroup>
+
+```typescript TypeScript
+import { FusedWebhooks } from 'support-sdk';
+
+const receiver = FusedWebhooks.registerReceiver('support', process.env.FUSED_API_KEY!);
+
+receiver.on('issue.created', async (payload, ctx) => {
+  try {
+    await triage(payload);
+    ctx.ack();
+  } catch {
+    ctx.nack();
+  }
+});
+
+receiver.on(['issue.updated', 'issue.deleted'], handleChange);
+```
+
+```python Python
+from fused.support_sdk import FusedWebhooks
+
+receiver = FusedWebhooks.register_receiver("support", os.environ["FUSED_API_KEY"])
+
+@receiver.on("issue.created")
+async def on_created(payload, ctx):
+    try:
+        await triage(payload)
+        await ctx.ack()
+    except Exception:
+        await ctx.nack()
+
+receiver.on(["issue.updated", "issue.deleted"], handle_change)
+```
+
+</CodeGroup>
+
+The receiver name is yours. `on` takes one event or a list, and only events you registered a handler for are dispatched.
+
+| Behaviour | What it means for you |
+|---|---|
+| Auto-ack | A handler that returns without calling `ctx.ack()` or `ctx.nack()` acknowledges. Call `nack()` explicitly to get the event redelivered |
+| Auto-reconnect | Backs off from 1s to a 30s cap on its own, so a dropped connection needs no supervision |
+| Stops retrying on auth failure | `UNAUTHENTICATED` and `PERMISSION_DENIED` disable reconnect rather than hammering the Engine with a bad key |
+
+Call `receiver.close()` on shutdown. Python also exposes `SyncFusedWebhooks` when your process has no event loop.
+
 ## The rules that bite
 
 | Rule | What happens if you miss it |

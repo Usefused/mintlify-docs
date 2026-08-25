@@ -95,10 +95,11 @@ import { FusedSDK } from 'support-sdk';
 
 const sdk = new FusedSDK({
   grpcUrl: process.env.FUSED_ENGINE_GRPC_URL,
-  token: process.env.FUSED_SDK_TOKEN,
+  token: process.env.FUSED_SDK_TOKEN!,
 });
 
-await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
+const result = await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
+if (result.ok) console.log(result.data);
 ```
 
 ```bash REST
@@ -110,7 +111,7 @@ curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
 
 </CodeGroup>
 
-Services sit on the client in PascalCase, and operations follow the provider's own grouping — so `issueUpdate` may be `sdk.Linear.issues.update` instead. The package's generated `README.md` lists the exact paths for the operations *you* selected.
+A call returns `{ ok, status, data, error }` rather than the payload itself, and services sit on the client in PascalCase with operations following the provider's own grouping — so `issueUpdate` may be `sdk.Linear.issues.update`. [Using it in your app](/app/use-in-your-app) covers the whole shape; your package's generated `README.md` lists the exact paths for the operations *you* selected.
 
 Whichever one you used, the receipt is the same:
 
