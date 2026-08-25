@@ -63,11 +63,24 @@ execute(<script calling those operations>)
 
 Chaining several operations inside one `execute` does not bundle them into a single approval. The Engine authorizes each underlying operation on its own merits, and anything outside the token's allowlist is refused even mid-script.
 
+## Unified operations
+
+`search_docs` returns token-authorized Unified operations beside physical operations under their exact authored names. Call one through the same `execute` tool:
+
+```typescript
+return await call("issues.create", {
+  input: {title: "Fix login"},
+  targets: ["jira"],
+});
+```
+
+`targets` is always required. It names the exact binding steps to run, must include every declared dependency of those steps, and never defaults to all bindings. A Unified call may also include target-keyed `selectors`, `pagination`, and an `idempotencyKey`. See [call a unified operation](/app/unified/call) for the complete contract.
+
 ## What tools never accept
 
-Neither the tool schema nor its `call()` function takes a provider token, an API key, an auth scheme name, or a Fused user selector as a parameter.
+Neither the tool schema nor its `call()` function accepts a provider token, API key, client secret, or other provider credential.
 
-The agent picks operations and provider arguments. Everything else — which credential, which connected account, which tenant — is resolved by Engine middleware before dispatch. For a dynamic token, those selectors are configured once on the connection rather than per call. See [tokens for OAuth services](/mcp/oauth-tokens).
+Physical calls use the session's connected-user routing. Unified calls mirror the SDK and may carry non-secret service selectors such as `endUserRef`, `authType`, `authName`, and `resourceId`; Engine middleware still resolves the actual credential before dispatch. A fixed-binding token remains authoritative and ignores a conflicting caller user or resource selector. See [tokens for OAuth services](/mcp/oauth-tokens).
 
 ## Provider arguments
 
@@ -78,9 +91,9 @@ Arguments come from the imported canonical request schema. Two behaviours are wo
 
 ## Pagination
 
-Pagination is inherited from the selected endpoint and its effective service-version policy. Do not add pagination fields to the MCP config or to tool schemas.
+Pagination is inherited from the selected endpoint and its effective service-version policy. Do not add pagination fields to the MCP config or to physical tool schemas. A Unified call may only lower the bound for a selected forward target through its target-keyed `pagination` option.
 
-The Engine performs the provider requests and streams each successful page as a separate execution chunk. An agent never loops pages or passes continuation tokens itself.
+For an ordinary physical call, the Engine streams each successful page as a separate execution chunk. A Unified call remains one buffered graph result. In both cases, the agent never loops pages or passes continuation tokens itself.
 
 ## Useful commands
 

@@ -94,10 +94,10 @@ MCP planning has no interactive credential remediation. That flag exists on SDK 
 
 `--download` and `--json` are SDK-only. An MCP server has no package to download.
 
-## What an MCP config cannot do
+## MCP-specific constraints
 
 - **No webhooks.** `webhooks` and `webhooks_select_all` are rejected on an MCP config by both the CLI and the Engine. Treat event delivery as an SDK-only surface.
-- **No unified operations.** `unified_operations` is available to TypeScript and Python SDK configs, not to `kind: mcp`.
+- **Unified operations require explicit targets.** A top-level `unified_operations` map uses the same bindings, dependencies, rollback, mapping, and output contract as an SDK. Each operation authorized by the execution token appears in `search_docs` and runs through the existing `execute` tool with `await call(operationId, {input, targets, selectors?, pagination?, idempotencyKey?})`. `targets` is always required, must be dependency-closed, and never defaults to every declared binding. See [declare a unified operation](/app/unified/declare) and [call a unified operation](/app/unified/call).
 - **No implicit latest.** Every version reference is explicit.
 
 ## Versions

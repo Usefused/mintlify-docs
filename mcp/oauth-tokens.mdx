@@ -62,16 +62,16 @@ X-Fused-End-User-Ref: user_123
 X-Fused-Resource-ID: <optional connection-resource UUID>
 ```
 
-| Header | When you need it |
+| Header | When you need it for physical calls |
 |---|---|
 | `X-Fused-End-User-Ref` | Required for connected OAuth or OIDC calls |
 | `X-Fused-Resource-ID` | Required when that connection reaches several provider tenants and none is default |
 
-Configure these once on the connection, not on each tool call. Tool schemas never accept a user selector as a parameter.
+Configure these once on the connection as the routing context for physical calls. A Unified call may instead provide non-secret, target-keyed `selectors` for the services in its selected graph; a dynamic token honors those selectors at execution time. See [call a unified operation](/app/unified/call).
 
 ### Fixed — the token names the user
 
-`--fixed-binding` resolves a service, auth scheme, user, and optional resource at issuance. Caller headers cannot override it.
+`--fixed-binding` resolves a service, auth scheme, user, and optional resource at issuance. Caller headers and Unified call selectors cannot override it.
 
 ```bash
 fused-cli mcp token generate support-agent acme-only \

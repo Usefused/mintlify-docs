@@ -41,10 +41,18 @@
                 "pages": [
                   "app/build-an-sdk",
                   "app/use-in-your-app",
+                  {
+                    "group": "Run an operation",
+                    "expanded": false,
+                    "pages": [
+                      "app/run-an-operation",
+                      "app/testing/from-the-cli",
+                      "app/testing/over-rest"
+                    ]
+                  },
                   "app/ship-a-new-version",
                   "app/receive-events",
                   "app/issue-tokens",
-                  "app/run-an-operation",
                   {
                     "group": "Unified Operations",
                     "expanded": false,

@@ -1,10 +1,10 @@
 ---
 title: "Use it in your app"
 sidebarTitle: "Use it in your app"
-description: "Install the generated package, call an operation, and handle what comes back."
+description: "Install the generated package and stand up a client your application can hold."
 ---
 
-The CLI builds and ships the SDK. Your application is what actually calls it. This page is that side — install to teardown, in TypeScript and Python.
+The CLI builds and ships the SDK. Your application is what actually calls it. This page gets the package installed and a client running; [run an operation](/app/run-an-operation) is the call itself.
 
 The package is an ordinary npm or pip package. There is no Fused runtime to deploy alongside it; it opens one gRPC connection to your Engine and that is the whole dependency.
 
@@ -59,147 +59,6 @@ sdk = FusedSDK({
 
 `token` is the execution token from apply. `grpcUrl` is optional — it falls back to `FUSED_ENGINE_GRPC_URL`, then `FUSED_ENGINE_URL`, then localhost. Set it explicitly; [the fallback has a trap](/app/build-an-sdk#point-the-client-at-the-engine).
 
-## Call an operation
-
-Services sit on the client in PascalCase. Operations either sit directly on the service or nest under a resource, following the provider's own grouping — your package's `README.md` lists the exact paths.
-
-Python puts both clients on the same object: `sdk.Linear` is synchronous, `sdk.AsyncLinear` is not. Resources and methods are snake_case.
-
-<CodeGroup>
-
-```typescript TypeScript
-const result = await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
-
-if (result.ok) {
-  console.log(result.data);
-} else {
-  console.error(result.status, result.error);
-}
-```
-
-```python Python
-result = await sdk.AsyncLinear.issue_update({"id": "ISS-42", "state": "done"})
-
-if result["ok"]:
-    print(result["data"])
-else:
-    print(result["status"], result["error"])
-```
-
-</CodeGroup>
-
-<Warning>
-  A call returns `{ ok, status, data, error }` — not the payload. On `ok: false` the provider answered, and answered with a declared error; `data` is `null` and `error` holds their response. Ignoring `ok` and reading `data` is the mistake this shape exists to prevent.
-</Warning>
-
-## Two kinds of failure
-
-`ok: false` means the provider replied and said no. Anything that stopped the call reaching that point is **thrown** instead, already typed:
-
-| Thrown | Means | Carries |
-|---|---|---|
-| `AuthError` | The credential the Engine holds was rejected | `integration`, `endpoint` |
-| `RateLimitError` | The provider throttled you past Engine retry | `retryAfterMs` |
-| `ExecutionTimeoutError` | Your deadline or the Engine's policy expired first | `timeoutMs`, `code` |
-| `ReconnectRequiredError` | A connected user's grant needs re-consent | `endUserRef`, `connectionId`, `reason` |
-| `IntegrationError` | Base class for the above | `integration`, `endpoint`, `statusCode`, `responseBody` |
-
-So a real call site branches on `ok` and catches around it:
-
-<CodeGroup>
-
-```typescript TypeScript
-import { ReconnectRequiredError, RateLimitError } from 'support-sdk';
-
-try {
-  const result = await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
-  if (!result.ok) return handleProviderRejection(result.error);
-  return result.data;
-} catch (err) {
-  if (err instanceof ReconnectRequiredError) return promptReconnect(err.endUserRef);
-  if (err instanceof RateLimitError) return retryAfter(err.retryAfterMs);
-  throw err;
-}
-```
-
-```python Python
-from fused.support_sdk import ReconnectRequiredError, RateLimitError
-
-try:
-    result = await sdk.AsyncLinear.issue_update({"id": "ISS-42", "state": "done"})
-    if not result["ok"]:
-        return handle_provider_rejection(result["error"])
-    return result["data"]
-except ReconnectRequiredError as err:
-    return prompt_reconnect(err.end_user_ref)
-except RateLimitError as err:
-    return retry_after(err.retry_after_ms)
-```
-
-</CodeGroup>
-
-<Note>
-  `ReconnectRequiredError` is the one worth handling deliberately. It means a specific end user's consent lapsed — not that your SDK token is bad. Start a replacement with [`sdk.auth.startConnectSession`](/bucket/connect-user-accounts), and do not infer it from a bare 401.
-</Note>
-
-## Per-call options
-
-Anything about *this* call rather than the SDK goes in a `fused` block: which end user to act as, which auth scheme to pick when a service declares several, and a page ceiling.
-
-<CodeGroup>
-
-```typescript TypeScript
-await sdk.Linear.issueList({
-  pageSize: 100,
-  fused: {
-    endUserRef: 'customer-123',
-    pagination: { maxPages: 5 },
-  },
-});
-```
-
-```python Python
-await sdk.AsyncLinear.issue_list(
-    {"pageSize": 100},
-    options={"fused": {
-        "end_user_ref": "customer-123",
-        "pagination": {"max_pages": 5},
-    }},
-)
-```
-
-</CodeGroup>
-
-`maxPages` tightens the Engine's own limit and must sit strictly below it. You still get one aggregated result from one execution — do not build a second page loop around it.
-
-## Streaming operations
-
-An operation the provider streams comes back as an async iterable on `data`, with the same envelope around it.
-
-<CodeGroup>
-
-```typescript TypeScript
-const stream = await sdk.Acme.eventsWatch({ since: cursor });
-
-if (stream.ok) {
-  for await (const event of stream.data) {
-    handle(event);
-  }
-}
-```
-
-```python Python
-stream = await sdk.AsyncAcme.events_watch({"since": cursor})
-
-if stream["ok"]:
-    async for event in stream["data"]:
-        handle(event)
-```
-
-</CodeGroup>
-
-Stopping iteration cancels the underlying call. Bound long streams with `streamIdleTimeoutMs` and `maxStreamDurationMs` on the client.
-
 ## Shut it down
 
 The channel is long-lived, so close it when your process does.
@@ -220,6 +79,11 @@ await sdk.close()
 
 </CodeGroup>
 
-<Card title="Receive events" icon="webhook" href="/app/receive-events">
-  The other half of your application code: reacting to what the provider sends you.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Run an operation" icon="code" href="/app/run-an-operation">
+    The call itself: what you pass, what comes back, and what can go wrong.
+  </Card>
+  <Card title="Receive events" icon="webhook" href="/app/receive-events">
+    The other half of your application code: reacting to what the provider sends you.
+  </Card>
+</CardGroup>

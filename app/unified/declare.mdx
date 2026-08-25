@@ -1,12 +1,12 @@
 ---
 title: "Declare a unified operation"
-description: "Turn several provider calls into one typed SDK method, with dependencies and rollback."
+description: "Turn several provider calls into one SDK or MCP operation, with dependencies and rollback."
 ---
 
-A unified operation is one generated SDK method that calls several provider operations, waits for declared dependencies, and compensates the successful ones when a later step fails. Your application calls one method; the ordering, mapping, and unwinding happen in the Engine.
+A unified operation is one logical SDK or MCP operation that calls several provider operations, waits for declared dependencies, and compensates the successful ones when a later step fails. The caller makes one call; the ordering, mapping, and unwinding happen in the Engine.
 
 <Note>
-  Unified operations require a **TypeScript or Python** `kind: sdk` config. They are not valid in `kind: mcp`.
+  Unified operations work in **TypeScript or Python** `kind: sdk` configs and in `kind: mcp` configs. Go SDK generation does not support them. MCP exposes each token-authorized authored name through `search_docs` and executes it through the existing `execute` tool.
 </Note>
 
 They wrap operations already selected in `services`. They grant no new scope and carry no credentials.
@@ -39,18 +39,20 @@ unified_operations:
       gitlab: createIssue
 ```
 
-Dot-separated names become the generated namespace: `issues.create` produces `sdk.unified.issues.create`.
+For MCP, use `kind: mcp`, omit `language`, and keep the same `unified_operations` block.
+
+In an SDK, dot-separated names become the generated namespace: `issues.create` produces `sdk.unified.issues.create`. MCP preserves `issues.create` as the exact operation name returned by `search_docs` and accepted by `execute`.
 
 ## Operation properties
 
 | Property | Required | What it does |
 |---|---|---|
-| `input` | Yes | JSON Schema for the generated method's input |
+| `input` | Yes | JSON Schema for the logical operation's public input |
 | `bindings` | Yes | Map of step names to selected provider operations; max 16 |
 | `output` | No | Final projection. Its constructed object becomes the exact return value |
 | `description` | No | Metadata retained with the immutable definition |
 
-An SDK may declare at most 64 unified operations.
+An SDK or MCP app version may declare at most 64 unified operations.
 
 ## Binding properties
 
@@ -133,11 +135,16 @@ The `{schema, mapping}` form is invalid — use only the recursive output tree.
 ## Validate before you apply
 
 ```bash
+# SDK
 fused-cli sdk validate -f .fused/sdks/issues.yaml --json
 fused-cli sdk plan -f .fused/sdks/issues.yaml --json
+
+# MCP
+fused-cli mcp validate -f .fused/mcps/issues.yaml --json
+fused-cli mcp plan -f .fused/mcps/issues.yaml --json
 ```
 
-Unified operations live inside an immutable SDK version like everything else. Changing one under an existing version returns `app_version_immutable` — publish a new version.
+Unified operations live inside an immutable SDK or MCP app version like everything else. Changing one under an existing version returns `app_version_immutable` — publish a new version.
 
 <Card title="Call a unified operation" icon="play" href="/app/unified/call">
   Targets, selectors, and reading the results envelope.

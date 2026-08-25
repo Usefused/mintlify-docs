@@ -1,0 +1,81 @@
+---
+title: "Test from the CLI"
+description: "Prove credentials, scope, and routing from a terminal or a CI job — without writing application code."
+---
+
+`sdk invoke` exists for the moment before you trust something: a freshly applied version, a rotated credential, a new operation in a pipeline. It resolves one exact SDK version, calls the Engine with your execution token, and prints what came back.
+
+<Warning>
+  Your application should never shell out to this. It is a debug and CI surface with its own limits — [run an operation](/app/run-an-operation) is how your code calls the same path.
+</Warning>
+
+## Call something
+
+```text
+fused-cli sdk invoke <sdk-name@version-or-version-id> <operation>
+```
+
+The version reference is required and exact — `sdk invoke` never picks a version for you, which is the property that makes it useful in CI.
+
+```bash
+export FUSED_SDK_TOKEN='...'
+
+fused-cli sdk invoke support-sdk@1.1.0 issueUpdate \
+  --params '{"id":"ISS-42","state":"done"}'
+```
+
+Physical operations require a JSON object for `--params`. Any JSON option also accepts `@file`, or `-` for stdin, which keeps large payloads and anything sensitive out of your shell history.
+
+```bash
+fused-cli sdk invoke support-sdk@1.1.0 issueUpdate --params @./payload.json
+```
+
+## In a pipeline
+
+Keep the token out of the environment where you can, and gate on the structured output rather than the exit code alone.
+
+```bash
+printf '%s' "$CI_SDK_TOKEN" | fused-cli sdk invoke support-sdk@1.1.0 healthPing \
+  --token-stdin \
+  --idempotency-key "release-${GIT_SHA}" \
+  --json
+```
+
+`--json` prints the endpoint, kind, results, rollbacks, and timing, so a job can assert on what actually ran. A stable `--idempotency-key` keeps a retried job from counting as a second logical request.
+
+## Flags
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--params` | One duplicate-free JSON value, `@file`, or `-` | `fused-cli sdk invoke support-sdk@1.1.0 issueUpdate --params '{"id":"ISS-42"}'` |
+| `--token-env` | Reads the token from another variable | `fused-cli sdk invoke support-sdk@1.1.0 op --token-env CI_SDK_TOKEN` |
+| `--token-stdin` | Reads the token from stdin, avoiding the environment | `printf '%s' "$TOKEN" \| fused-cli sdk invoke support-sdk@1.1.0 op --token-stdin` |
+| `--environment` | Provider environment selector, sugar for `--selector` | `fused-cli sdk invoke support-sdk@1.1.0 op --environment sandbox` |
+| `--selector` | Strict physical selector JSON or `@file` | `fused-cli sdk invoke support-sdk@1.1.0 op --selector '{"environment":"sandbox"}'` |
+| `--target` | Required for Unified operations; repeat 1–16 times | `fused-cli sdk invoke support-sdk@1.1.0 syncCustomer --target linear --target slack` |
+| `--selectors` | Unified service-selector map or `@file` | `fused-cli sdk invoke support-sdk@1.1.0 syncCustomer --selectors @./sel.json` |
+| `--idempotency-key` | A stable logical-request key; generated when omitted | `fused-cli sdk invoke support-sdk@1.1.0 op --idempotency-key run-2026-08-19-a` |
+| `--json` | Prints endpoint, kind, results, rollbacks, and timing | `fused-cli sdk invoke support-sdk@1.1.0 op --json` |
+
+The token comes from `FUSED_SDK_TOKEN` unless you redirect it. Management credentials and provider credentials are never substituted for it.
+
+## Unified operations
+
+A unified operation runs across several services in one call. Invoking one requires explicit targets, and never defaults to every declared target:
+
+```bash
+fused-cli sdk invoke support-sdk@1.1.0 escalateIssue \
+  --target linear \
+  --target slack \
+  --params '{"issueId":"ISS-42"}'
+```
+
+## Limits worth knowing
+
+This is a debug surface, not a production transport. It accepts one buffered JSON provider document up to 1 MiB, and bounds a Unified aggregate at 17 MiB. Generated SDKs keep their broader gRPC transports, so a payload that fails here may be perfectly fine from your application.
+
+It produces one logical Engine execution and does not retry locally or follow redirects itself — the Engine owns retries, pagination, and continuation.
+
+<Card title="Read the receipts" icon="receipt" href="/app/run-an-operation#read-the-receipts">
+  `sdk activity` shows what every execution did, whichever route made it.
+</Card>

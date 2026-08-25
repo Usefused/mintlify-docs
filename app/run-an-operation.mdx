@@ -1,104 +1,160 @@
 ---
-title: "Call an app from the CLI or REST"
-sidebarTitle: "CLI and REST calls"
-description: "The two ways to call an operation without importing the generated package."
+title: "Run an operation"
+description: "Call an approved operation from your application and handle what comes back."
 ---
 
-Most calls should come from the generated package — that is what it is for, and [using it in your app](/app/use-in-your-app) covers it. This page is the other two routes, and the only place `sdk invoke` is documented.
+Your SDK is installed and the client is up. This is the call itself — what you pass, what you get, and what can go wrong.
 
-| Route | Use it for | Not for |
-|---|---|---|
-| `fused-cli sdk invoke` | A one-off check from your terminal: credentials, scope, routing | Anything your application does. Do not shell out to it |
-| `POST /v1/apps/{id}/executions` | Production traffic from a language with no generated package | Nothing — this is a real transport |
+Services sit on the client in PascalCase. Operations either sit directly on the service or nest under a resource, following the provider's own grouping — your package's `README.md` lists the exact paths for the operations you selected.
 
-## Call something
+Python puts both clients on the same object: `sdk.Linear` is synchronous, `sdk.AsyncLinear` is not. Resources and methods are snake_case.
 
-```text
-fused-cli sdk invoke <sdk-name@version-or-version-id> <operation>
+<CodeGroup>
+
+```typescript TypeScript
+const result = await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
+
+if (result.ok) {
+  console.log(result.data);
+} else {
+  console.error(result.status, result.error);
+}
 ```
 
-The version reference is required and exact — `sdk invoke` never picks a version for you.
+```python Python
+result = await sdk.AsyncLinear.issue_update({"id": "ISS-42", "state": "done"})
 
-```bash
-export FUSED_SDK_TOKEN='...'
-
-fused-cli sdk invoke support-sdk@1.1.0 issueUpdate \
-  --params '{"id":"ISS-42","state":"done"}'
+if result["ok"]:
+    print(result["data"])
+else:
+    print(result["status"], result["error"])
 ```
 
-Physical operations require a JSON object for `--params`. Any JSON option also accepts `@file`, or `-` for stdin, which keeps large payloads and anything sensitive out of your shell history.
-
-```bash
-fused-cli sdk invoke support-sdk@1.1.0 issueUpdate --params @./payload.json
-```
-
-## Flags
-
-| Flag | What it does | Example |
-|---|---|---|
-| `--params` | One duplicate-free JSON value, `@file`, or `-` | `fused-cli sdk invoke support-sdk@1.1.0 issueUpdate --params '{"id":"ISS-42"}'` |
-| `--token-env` | Reads the token from another variable | `fused-cli sdk invoke support-sdk@1.1.0 op --token-env CI_SDK_TOKEN` |
-| `--token-stdin` | Reads the token from stdin, avoiding the environment | `printf '%s' "$TOKEN" \| fused-cli sdk invoke support-sdk@1.1.0 op --token-stdin` |
-| `--environment` | Provider environment selector, sugar for `--selector` | `fused-cli sdk invoke support-sdk@1.1.0 op --environment sandbox` |
-| `--selector` | Strict physical selector JSON or `@file` | `fused-cli sdk invoke support-sdk@1.1.0 op --selector '{"environment":"sandbox"}'` |
-| `--target` | Required for Unified operations; repeat 1–16 times | `fused-cli sdk invoke support-sdk@1.1.0 syncCustomer --target linear --target slack` |
-| `--selectors` | Unified service-selector map or `@file` | `fused-cli sdk invoke support-sdk@1.1.0 syncCustomer --selectors @./sel.json` |
-| `--idempotency-key` | A stable logical-request key; generated when omitted | `fused-cli sdk invoke support-sdk@1.1.0 op --idempotency-key run-2026-08-19-a` |
-| `--json` | Prints endpoint, kind, results, rollbacks, and timing | `fused-cli sdk invoke support-sdk@1.1.0 op --json` |
-
-The token comes from `FUSED_SDK_TOKEN` unless you redirect it. Management credentials and provider credentials are never substituted for it.
-
-## Unified operations
-
-A unified operation runs across several services in one call. Invoking one requires explicit targets, and never defaults to every declared target:
-
-```bash
-fused-cli sdk invoke support-sdk@1.1.0 escalateIssue \
-  --target linear \
-  --target slack \
-  --params '{"issueId":"ISS-42"}'
-```
-
-<Card title="Call a unified operation" icon="sitemap" href="/app/unified/call">
-  Targets, per-service selectors, the results envelope, and handling connected-auth failures.
-</Card>
-
-## Limits worth knowing
-
-This is a debug surface, not a production transport. It accepts one buffered JSON provider document up to 1 MiB, and bounds a Unified aggregate at 17 MiB. Generated SDKs keep their broader gRPC transports.
-
-It produces one logical Engine execution and does not retry locally or follow redirects itself — the Engine owns retries, pagination, and continuation.
-
-## Over REST
-
-This is the runtime route: one REST endpoint on the Engine's HTTP port, and the only runtime REST route the Engine exposes.
-
-```bash
-curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
-  -H "Authorization: Bearer $FUSED_SDK_TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"operation":"issueUpdate","input":{"id":"ISS-42","state":"done"}}'
-```
-
-`$VERSION_ID` is the app version UUID that apply printed — not the SDK name, and not the family ID.
-
-| Body field | For |
-|---|---|
-| `operation` | The operation ID, same string you pass to `sdk invoke` |
-| `input` | The operation's parameters |
-| `selector` | One physical selector: `environment`, `end_user_ref`, `auth_type`, `auth_name`, `resource_id` |
-| `targets` / `selectors` | Unified only: which services to run, and a selector per service |
-| `pagination` / `target_pagination` | `{"max_pages": n}`, physical and Unified respectively |
+</CodeGroup>
 
 <Warning>
-  Unified execution **requires** an `Idempotency-Key` header and rejects the call with `idempotency_key_required` without one. Physical operations accept the header but do not insist on it. Either way, supply it at most once.
+  A call returns `{ ok, status, data, error }` — not the payload. On `ok: false` the provider answered, and answered with a declared error; `data` is `null` and `error` holds their response. Ignoring `ok` and reading `data` is the mistake this shape exists to prevent.
 </Warning>
 
-This is the same execution the typed package makes, so a version applied with `generate: false` is fully callable here — see [build an SDK](/app/build-an-sdk#skip-the-package). `fused-cli sdk openapi` gives you the contract to generate a client from.
+## Two kinds of failure
+
+`ok: false` means the provider replied and said no. Anything that stopped the call reaching that point is **thrown** instead, already typed:
+
+| Thrown | Means | Carries |
+|---|---|---|
+| `AuthError` | The credential the Engine holds was rejected | `integration`, `endpoint` |
+| `RateLimitError` | The provider throttled you past Engine retry | `retryAfterMs` |
+| `ExecutionTimeoutError` | Your deadline or the Engine's policy expired first | `timeoutMs`, `code` |
+| `ReconnectRequiredError` | A connected user's grant needs re-consent | `endUserRef`, `connectionId`, `reason` |
+| `IntegrationError` | Base class for the above | `integration`, `endpoint`, `statusCode`, `responseBody` |
+
+So a real call site branches on `ok` and catches around it:
+
+<CodeGroup>
+
+```typescript TypeScript
+import { ReconnectRequiredError, RateLimitError } from 'support-sdk';
+
+try {
+  const result = await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
+  if (!result.ok) return handleProviderRejection(result.error);
+  return result.data;
+} catch (err) {
+  if (err instanceof ReconnectRequiredError) return promptReconnect(err.endUserRef);
+  if (err instanceof RateLimitError) return retryAfter(err.retryAfterMs);
+  throw err;
+}
+```
+
+```python Python
+from fused.support_sdk import ReconnectRequiredError, RateLimitError
+
+try:
+    result = await sdk.AsyncLinear.issue_update({"id": "ISS-42", "state": "done"})
+    if not result["ok"]:
+        return handle_provider_rejection(result["error"])
+    return result["data"]
+except ReconnectRequiredError as err:
+    return prompt_reconnect(err.end_user_ref)
+except RateLimitError as err:
+    return retry_after(err.retry_after_ms)
+```
+
+</CodeGroup>
+
+<Note>
+  `ReconnectRequiredError` is the one worth handling deliberately. It means a specific end user's consent lapsed — not that your SDK token is bad. Start a replacement with [`sdk.auth.startConnectSession`](/bucket/connect-user-accounts), and do not infer it from a bare 401.
+</Note>
+
+## Per-call options
+
+Anything about *this* call rather than the SDK goes in a `fused` block: which end user to act as, which auth scheme to pick when a service declares several, and a page ceiling.
+
+<CodeGroup>
+
+```typescript TypeScript
+await sdk.Linear.issueList({
+  pageSize: 100,
+  fused: {
+    endUserRef: 'customer-123',
+    pagination: { maxPages: 5 },
+  },
+});
+```
+
+```python Python
+await sdk.AsyncLinear.issue_list(
+    {"pageSize": 100},
+    options={"fused": {
+        "end_user_ref": "customer-123",
+        "pagination": {"max_pages": 5},
+    }},
+)
+```
+
+</CodeGroup>
+
+| Option | TypeScript / Python | What it does |
+|---|---|---|
+| End user | `endUserRef` / `end_user_ref` | Routes OAuth or OIDC through a connected user's grant |
+| Auth type | `authType` / `auth_type` | Picks `oauth`, `oidc`, `basic`, `bearer`, `api_key`, or `mtls` |
+| Auth name | `authName` / `auth_name` | Disambiguates several declared schemes of one type |
+| Resource | `resourceId` / `resource_id` | Chooses an already connected tenant or account |
+| Pagination | `pagination.maxPages` / `pagination.max_pages` | Tightens the Engine's page ceiling for this call |
+
+`maxPages` must sit strictly below the effective service policy — equality is rejected. You still get one aggregated result from one execution, so do not build a second page loop around it.
+
+## Streaming operations
+
+An operation the provider streams comes back as an async iterable on `data`, inside the same envelope.
+
+<CodeGroup>
+
+```typescript TypeScript
+const stream = await sdk.Acme.eventsWatch({ since: cursor });
+
+if (stream.ok) {
+  for await (const event of stream.data) {
+    handle(event);
+  }
+}
+```
+
+```python Python
+stream = await sdk.AsyncAcme.events_watch({"since": cursor})
+
+if stream["ok"]:
+    async for event in stream["data"]:
+        handle(event)
+```
+
+</CodeGroup>
+
+Stopping iteration cancels the underlying call. Bound long streams with `streamIdleTimeoutMs` and `maxStreamDurationMs` on the client.
 
 ## Read the receipts
 
-Every execution leaves a canonical receipt.
+Every execution leaves a canonical receipt, whichever route made it.
 
 ```bash
 fused-cli sdk activity support-sdk@1.1.0
@@ -109,6 +165,17 @@ The JSON page carries receipt and trace IDs, provider status, total and provider
 
 `sdk activity` needs both `app.read` and `audit.read`. Use it rather than querying Engine GraphQL directly.
 
-<Card title="Deploy an MCP server" icon="robot" href="/mcp/deploy-a-server">
-  Same Engine, same approved operations, shaped for an agent instead of an application.
+## Calling it another way
+
+<CardGroup cols={2}>
+  <Card title="Test from the CLI" icon="terminal" href="/app/testing/from-the-cli">
+    `sdk invoke` for a smoke test or a CI gate — not for application code.
+  </Card>
+  <Card title="Call over REST" icon="cloud" href="/app/testing/over-rest">
+    One HTTP endpoint, for languages with no generated package.
+  </Card>
+</CardGroup>
+
+<Card title="Call a unified operation" icon="sitemap" href="/app/unified/call">
+  One call across several services, with targets and per-service selectors.
 </Card>

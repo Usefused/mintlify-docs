@@ -125,7 +125,7 @@ curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
   -d '{"operation":"issues.create","input":{"title":"Fix login"},"targets":["github","gitlab"]}'
 ```
 
-For a one-off check from a terminal, `fused-cli sdk invoke` takes the same targets — see [calling from the CLI or REST](/app/run-an-operation) for its flags.
+For a one-off check from a terminal, `fused-cli sdk invoke` takes the same targets — see [testing from the CLI](/app/testing/from-the-cli) for its flags.
 
 Unified execution never defaults to every declared target, whichever route you take. Naming them is the safeguard.
 

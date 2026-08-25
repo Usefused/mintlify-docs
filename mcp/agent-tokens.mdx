@@ -26,6 +26,8 @@ fused-cli mcp token generate support-agent triage-bot \
 
 Anything absent from `--allow` is denied. Repeat the flag, or pass a comma-separated list. Omit it entirely and the token defaults to full access (`*`).
 
+Unified operations do not introduce a separate token scope. A narrowed token must allow the physical forward operations and any active rollback that the Unified graph can execute. `search_docs` exposes only Unified descriptors fully authorized by that token, and the Engine repeats authorization for the caller's selected graph before dispatch. Supplying `targets` cannot broaden the token.
+
 <Warning>
   The plaintext prints exactly once. Capture it immediately — `mcp token list` shows status and metadata but never the token or its hash.
 </Warning>
@@ -42,7 +44,7 @@ Anything absent from `--allow` is denied. Repeat the flag, or pass a comma-separ
 
 `--expires-in` takes a positive whole-second duration such as `15m`, `4h`, or `7d`. Omit it for a non-expiring service credential.
 
-`--fixed-binding` belongs to the connected-user story — see [tokens for OAuth services](/mcp/oauth-tokens).
+`--fixed-binding` belongs to the connected-user story — see [tokens for OAuth services](/mcp/oauth-tokens). For a fixed token, the stored service/auth/user/resource binding is authoritative even if a Unified call supplies a conflicting selector.
 
 ## One token per audience
 
