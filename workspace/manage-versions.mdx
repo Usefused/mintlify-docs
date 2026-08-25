@@ -90,6 +90,10 @@ If any SDK or MCP config in the same Registry account still references what you 
 
 Before you point an app at a new version, confirm the operations you depend on still exist under it.
 
+```text
+fused-cli service operation show <service-slug> <operation-name>
+```
+
 ```bash
 fused-cli service versions stripe
 fused-cli workspace service operations stripe --version 2024-06-20 --q refund

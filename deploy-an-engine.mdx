@@ -152,10 +152,16 @@ fused-cli whoami
 
 To save the URL rather than passing it each time:
 
+```text
+fused-cli config set <key> <value>
+```
+
 ```bash
 fused-cli config set engine-url https://engine.example.com
 fused-cli config list
 ```
+
+`fused-cli config list` shows the keys you can set.
 
 `whoami` shows which credential actually won the precedence chain — worth checking when a saved login, `FUSED_API_KEY`, and `FUSED_LICENSE_KEY` might all be present.
 

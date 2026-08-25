@@ -167,6 +167,13 @@ For pipelines, prefer separate apply and download steps so a failed transfer can
 
 ## Adjust the selection
 
+```text
+fused-cli sdk service   <add|remove> <service-slug>
+fused-cli sdk operation <add|remove> <service-slug> <operation-id...>
+```
+
+The service slug comes first, then as many operation IDs as you want:
+
 ```bash
 fused-cli sdk service add zendesk --version v2
 fused-cli sdk operation add linear issueCreate issueArchive

@@ -44,7 +44,11 @@ The choice is made when you issue the token, and it decides who can steer it aft
 
 ### Dynamic — the caller names the user
 
-Issue an ordinary token, then send selectors as headers on the MCP connection:
+Issue an ordinary token, then send selectors as headers on the MCP connection. Both positional arguments are yours — the server, then a name for this token:
+
+```text
+fused-cli mcp token generate <mcp-name-or-id> <token-name>
+```
 
 ```bash
 fused-cli mcp token generate support-agent triage-bot \

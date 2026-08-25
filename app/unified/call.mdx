@@ -104,6 +104,10 @@ Handle these rather than retrying blindly — a retry without the corresponding 
 
 `sdk invoke` runs the same execution path, which makes it a useful smoke test.
 
+```text
+fused-cli sdk invoke <sdk-name@version-or-version-id> <operation>
+```
+
 ```bash
 fused-cli sdk invoke issues@1.0.0 issues.create \
   --target github \
