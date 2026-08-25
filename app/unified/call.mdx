@@ -7,7 +7,9 @@ Calling a unified operation means naming which steps to run and how to route eac
 
 ## From your application
 
-```typescript
+<CodeGroup>
+
+```typescript TypeScript
 const result = await sdk.unified.issues.create(
   { title: "Fix login" },
   { targets: ["github", "gitlab"], idempotencyKey: "issue-42" },
@@ -15,6 +17,17 @@ const result = await sdk.unified.issues.create(
 
 console.log(result.primary_id, result.title, result.provider_ids);
 ```
+
+```python Python
+result = await sdk.unified.issues.create(
+    {"title": "Fix login"},
+    {"targets": ["github", "gitlab"], "idempotency_key": "issue-42"},
+)
+
+print(result["primary_id"], result["title"], result["provider_ids"])
+```
+
+</CodeGroup>
 
 In TypeScript `targets` is a call option; in Python it is the second argument.
 
@@ -100,33 +113,24 @@ Forward and rollback connected-auth failures return an `authAction` / `auth_acti
 
 Handle these rather than retrying blindly — a retry without the corresponding action will fail the same way.
 
-## From the CLI
+## Without the generated package
 
-`sdk invoke` runs the same execution path, which makes it a useful smoke test.
-
-```text
-fused-cli sdk invoke <sdk-name@version-or-version-id> <operation>
-```
+Unified operations run over REST like any other, with `targets` and per-service `selectors` in the body. Unified execution is the case where `Idempotency-Key` is **required**, not optional:
 
 ```bash
-fused-cli sdk invoke issues@1.0.0 issues.create \
-  --target github \
-  --target gitlab \
-  --params '{"title":"Fix login"}'
+curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
+  -H "Authorization: Bearer $FUSED_SDK_TOKEN" \
+  -H 'Idempotency-Key: issue-42' \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"issues.create","input":{"title":"Fix login"},"targets":["github","gitlab"]}'
 ```
 
-| Flag | What it does | Example |
-|---|---|---|
-| `--target` | A binding step to run; repeat 1–16 times, required for unified | `fused-cli sdk invoke issues@1.0.0 issues.create --target github` |
-| `--selectors` | Unified service-selector map, inline JSON or `@file` | `fused-cli sdk invoke issues@1.0.0 issues.create --target jira --selectors @./sel.json` |
-| `--params` | The operation input | `fused-cli sdk invoke issues@1.0.0 issues.create --target github --params '{"title":"x"}'` |
-| `--idempotency-key` | A stable logical-request key | `fused-cli sdk invoke issues@1.0.0 issues.create --target github --idempotency-key run-7` |
-| `--json` | Prints endpoint, kind, results, rollbacks, and timing | `fused-cli sdk invoke issues@1.0.0 issues.create --target github --json` |
+For a one-off check from a terminal, `fused-cli sdk invoke` takes the same targets — see [calling from the CLI or REST](/app/run-an-operation) for its flags.
 
-Unified execution never defaults to every declared target, from the CLI or from generated code. Naming them is the safeguard.
+Unified execution never defaults to every declared target, whichever route you take. Naming them is the safeguard.
 
 <Note>
-  The CLI path bounds a unified aggregate response at 17 MiB and each provider document at 1 MiB. Generated SDKs keep their broader gRPC transports.
+  Both non-package routes bound a unified aggregate at 17 MiB and each provider document at 1 MiB. The generated package keeps its broader gRPC transport, so a large aggregate is a reason to use it rather than curl.
 </Note>
 
 ## Pagination

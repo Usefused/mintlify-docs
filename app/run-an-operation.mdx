@@ -1,14 +1,15 @@
 ---
-title: "Run an operation from the terminal"
-sidebarTitle: "Run an operation"
-description: "Prove the whole path works before you write any application code against it."
+title: "Call an app from the CLI or REST"
+sidebarTitle: "CLI and REST calls"
+description: "The two ways to call an operation without importing the generated package."
 ---
 
-This page is about `sdk invoke` — a smoke test, not a transport. It resolves one exact SDK version, calls the Engine with your execution token, and prints what came back, so you can confirm credentials, scope, and routing before wiring anything up.
+Most calls should come from the generated package — that is what it is for, and [using it in your app](/app/use-in-your-app) covers it. This page is the other two routes, and the only place `sdk invoke` is documented.
 
-<Note>
-  Your application should not shell out to this. Import the generated package, or call the REST route below — both are covered in [using it in your app](/app/use-in-your-app).
-</Note>
+| Route | Use it for | Not for |
+|---|---|---|
+| `fused-cli sdk invoke` | A one-off check from your terminal: credentials, scope, routing | Anything your application does. Do not shell out to it |
+| `POST /v1/apps/{id}/executions` | Production traffic from a language with no generated package | Nothing — this is a real transport |
 
 ## Call something
 
@@ -68,9 +69,9 @@ This is a debug surface, not a production transport. It accepts one buffered JSO
 
 It produces one logical Engine execution and does not retry locally or follow redirects itself — the Engine owns retries, pagination, and continuation.
 
-## Calling it without the CLI
+## Over REST
 
-`sdk invoke` is a debug surface. The runtime equivalent is one REST endpoint on the Engine's HTTP port, and it is the only runtime REST route the Engine exposes:
+This is the runtime route: one REST endpoint on the Engine's HTTP port, and the only runtime REST route the Engine exposes.
 
 ```bash
 curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
