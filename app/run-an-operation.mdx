@@ -33,7 +33,7 @@ else:
 </CodeGroup>
 
 <Warning>
-  A call returns `{ ok, status, data, error }` — not the payload. On `ok: false` the provider answered, and answered with a declared error; `data` is `null` and `error` holds their response. Ignoring `ok` and reading `data` is the mistake this shape exists to prevent.
+  Every call returns an envelope — `{ ok, status, data, error }` — never the raw payload. Check `ok` before touching `data`: if `ok` is `false`, the provider still responded, just with an error, so `data` will be `null` and `error` holds what they actually said.
 </Warning>
 
 ## Two kinds of failure
