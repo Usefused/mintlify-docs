@@ -92,6 +92,8 @@ Intent search returns three matches by default and accepts at most five. Prefer 
 
 Every `search_docs` response is bounded to 64 KiB of UTF-8 JSON. Check `schema_status.complete` before writing the call. When it is `false`, compare `included_sections` with `available_sections` and request only the missing section with the exact `operationId` and `section`. Physical operations expose `parameters`, `request`, and `response:<status>` sections. Unified operations expose `input`, `targets`, and `output`. You can add an RFC 6901 `schemaPath` to retrieve one smaller subtree when a section is still too large. Sections are returned whole or omitted, so never infer fields from an incomplete result.
 
+Query and exact physical detail also return a `pagination` object. Its `supported`, `caller_bound_supported`, optional `engine_max_pages`, and `usage` fields are authoritative for that operation. Follow them before writing `call()`; do not infer pagination from `GET` or from parameter names such as `page`, `cursor`, `offset`, or Gmail `maxResults`.
+
 Call `search_docs` without a query only when you need to browse. That mode returns a bounded, schema-free catalogue with `total` and `truncated` metadata. If you already know the public operation ID, use exact `operationId` lookup instead of intent search.
 
 Chaining several operations inside one `execute` does not bundle them into a single approval. The Engine authorizes each underlying operation on its own merits, and anything outside the token's allowlist is refused even mid-script.
@@ -192,9 +194,11 @@ Arguments come from the imported canonical request schema. Two behaviours are wo
 
 ## Pagination
 
-Pagination is inherited from the selected endpoint and its effective service-version policy. Do not add pagination fields to the MCP config or to physical operation schemas. An ordinary `call(operationId, params)` completes the reviewed provider pagination loop inside Engine and returns one aggregate before MCP result retention runs. The agent never loops pages or passes continuation tokens itself.
+Pagination is derived from the selected endpoint and its current effective service-version policy. Do not add pagination fields to the MCP config or to physical provider schemas. When `search_docs.pagination.supported` is true, an ordinary `call(operationId, params)` completes the reviewed provider pagination loop inside Engine and returns one aggregate before MCP result retention runs.
 
-Provider page-size parameters such as Gmail `maxResults` do not bound total traversal. When a goal intentionally needs only the first N provider pages, pass the canonical caller bound separately as `call(operationId, params, { pagination: { maxPages: N } })`. The bound can only tighten the reviewed Engine policy and is rejected for non-paginated operations. A Unified call keeps its target-keyed `pagination` inside the documented Unified invocation object.
+Provider page-size parameters such as Gmail `maxResults` do not bound total Engine traversal. When `caller_bound_supported` is true and a goal intentionally needs only the first N provider pages, pass the canonical caller bound separately as `call(operationId, params, { pagination: { maxPages: N } })`, using a positive N strictly lower than `engine_max_pages`. A supported one-page policy has `caller_bound_supported: false` because no positive lower bound exists.
+
+When `supported` is false, omit the third-argument pagination option. Engine makes one provider request for that call and does not traverse pages. Manually repeat a paged GET only when its documentation explicitly supplies the page input, continuation output, and stop condition: pass the page input in `params`, await the two-argument `call()`, read the continuation from the result, and repeat until that stop condition. Every page remains subject to the same ten-call and 30-second execute limits. Never guess those semantics from field names. A Unified call keeps its target-keyed `pagination` inside the documented Unified invocation object.
 
 If automatic traversal reaches an Engine pagination limit before the provider terminates, narrow the provider query or deliberately choose a smaller caller bound. Do not suppress the provider's continuation field through a partial-response selector to make an unfinished collection appear complete.
 
