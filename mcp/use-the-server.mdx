@@ -71,18 +71,21 @@ The agent-facing surface is deliberately small. A large tool catalogue is what f
 
 <CardGroup cols={2}>
   <Card title="search_docs" icon="magnifying-glass">
-    Ranks the operations relevant to the task and returns complete calling detail when it fits.
+    Ranks operations and returns calling detail, with exact lookup when pagination bounds or omitted schema sections require it.
   </Card>
   <Card title="execute" icon="play">
     Runs a single approved call, or TypeScript chaining several, away from credentials, the filesystem, and open network access.
   </Card>
 </CardGroup>
 
-The working loop is: search once with a concise description of the outcome, then execute the best complete match.
+The working loop is: search once with a concise description of the outcome, resolve exact detail when the result requires it, then execute the best complete match.
 
 ```text
 search_docs("create an issue and notify the channel")
   → up to three ranked physical and Unified operations, with callable detail
+
+search_docs({ operationId: "the.chosen.operation" })
+  → authoritative pagination fields before adding a pagination option
 
 execute(<script calling those operations>)
   → results
@@ -92,7 +95,9 @@ Intent search returns three matches by default and accepts at most five. Prefer 
 
 Every `search_docs` response is bounded to 64 KiB of UTF-8 JSON. Check `schema_status.complete` before writing the call. When it is `false`, compare `included_sections` with `available_sections` and request only the missing section with the exact `operationId` and `section`. Physical operations expose `parameters`, `request`, and `response:<status>` sections. Unified operations expose `input`, `targets`, and `output`. You can add an RFC 6901 `schemaPath` to retrieve one smaller subtree when a section is still too large. Sections are returned whole or omitted, so never infer fields from an incomplete result.
 
-Query and exact physical detail also return a `pagination` object. Its `supported`, `caller_bound_supported`, optional `engine_max_pages`, and `usage` fields are authoritative for that operation. Follow them before writing `call()`; do not infer pagination from `GET` or from parameter names such as `page`, `cursor`, `offset`, or Gmail `maxResults`.
+A ranked physical result that may support Engine pagination returns `pagination.supported: true` and `pagination.exact_lookup_required: true`. Its `usage` offers only an exact `operationId` lookup for full guidance or the safe two-argument `call(operationId, params)`. It deliberately omits `caller_bound_supported` and `engine_max_pages`, and neither mentions nor authorizes a numeric bound or third argument. Resolve exact detail before adding a pagination option, but not solely to make the safe two-argument call. Exact physical detail returns the authoritative `supported`, `caller_bound_supported`, optional `engine_max_pages`, and `usage` fields. A ranked result may instead establish `supported: false` and provide the exact two-argument form without another lookup solely for pagination, but it also omits `caller_bound_supported`. Exact mode alone exposes `caller_bound_supported` and `engine_max_pages`.
+
+Pagination guidance belongs only to the operation ID in the same result. Evaluate every physical call separately: guidance for `gmail.users.messages.list` never authorizes a third argument for `gmail.users.messages.get`. Do not infer pagination from `GET` or from parameter names such as `page`, `cursor`, `offset`, or Gmail `maxResults`.
 
 Call `search_docs` without a query only when you need to browse. That mode returns a bounded, schema-free catalogue with `total` and `truncated` metadata. If you already know the public operation ID, use exact `operationId` lookup instead of intent search.
 
@@ -177,7 +182,7 @@ return await call("issues.create", {
 });
 ```
 
-`targets` is always required. It names the exact binding steps to run, must include every declared dependency of those steps, and never defaults to all bindings. A Unified call may also include target-keyed `selectors`, `pagination`, and an `idempotencyKey`. See [call a unified operation](/app/unified/call) for the complete contract.
+`targets` is always required. It names the exact binding steps to run, must include every declared dependency of those steps, and never defaults to all bindings. A Unified call may also include target-keyed `selectors`, `pagination`, and an `idempotencyKey`. Physical-target pagination inside a Unified operation must use that target-keyed Unified `pagination` parameter, never the separate third argument used for a direct physical call. See [call a unified operation](/app/unified/call) for the complete contract.
 
 ## What tools never accept
 
@@ -194,11 +199,15 @@ Arguments come from the imported canonical request schema. Two behaviours are wo
 
 ## Pagination
 
-Pagination is derived from the selected endpoint and its current effective service-version policy. Do not add pagination fields to the MCP config or to physical provider schemas. When `search_docs.pagination.supported` is true, an ordinary `call(operationId, params)` completes the reviewed provider pagination loop inside Engine and returns one aggregate before MCP result retention runs.
+Pagination is derived from the selected endpoint and its current effective service-version policy. Do not add pagination fields to the MCP config or to physical provider schemas. Ranked `pagination.supported: true` guidance safely authorizes an ordinary `call(operationId, params)`, which completes the reviewed provider pagination loop inside Engine and returns one aggregate before MCP result retention runs.
 
-Provider page-size parameters such as Gmail `maxResults` do not bound total Engine traversal. When `caller_bound_supported` is true and a goal intentionally needs only the first N provider pages, pass the canonical caller bound separately as `call(operationId, params, { pagination: { maxPages: N } })`, using a positive N strictly lower than `engine_max_pages`. A supported one-page policy has `caller_bound_supported: false` because no positive lower bound exists.
+Provider page-size parameters such as Gmail `maxResults` do not bound total Engine traversal. Only when exact detail for that same `operationId` reports `caller_bound_supported: true` and a goal intentionally needs the first N provider pages may you pass the canonical caller bound as `call(operationId, params, { pagination: { maxPages: N } })`, using a positive N strictly lower than `engine_max_pages`. Never derive a numeric bound or third argument from a ranked result, including one with `supported: true`. A supported one-page policy has `caller_bound_supported: false` because no positive lower bound exists.
 
-When `supported` is false, omit the third-argument pagination option. Engine makes one provider request for that call and does not traverse pages. Manually repeat a paged GET only when its documentation explicitly supplies the page input, continuation output, and stop condition: pass the page input in `params`, await the two-argument `call()`, read the continuation from the result, and repeat until that stop condition. Every page remains subject to the same ten-call and 30-second execute limits. Never guess those semantics from field names. A Unified call keeps its target-keyed `pagination` inside the documented Unified invocation object.
+When available guidance reports `supported: false`, or exact detail reports `caller_bound_supported: false`, use the two-argument form and omit the pagination option. Engine makes one provider request for an unsupported call and does not traverse pages. Manually repeat a paged GET only when its documentation explicitly supplies the page input, continuation output, and stop condition: pass the page input in `params`, await the two-argument `call()`, read the continuation from the result, and repeat until that stop condition. Every page remains subject to the same ten-call and 30-second execute limits. Never guess those semantics from field names. A Unified call keeps its target-keyed `pagination` inside the documented Unified invocation object.
+
+Invalid physical pagination intent is rejected before that operation reaches its provider. This includes a missing or invalid `maxPages`, pagination on an unsupported operation, and a bound that does not strictly lower the Engine limit. When no earlier or concurrent call in the same `execute` may have dispatched, this isolated failure returns `execute_request: correct_arguments`, `provider_execution: not_started`, and `automatic_replay: false`; correct the current arguments using exact operation guidance. Invalid target-keyed physical pagination on a Unified call is also a pre-provider correction when isolated.
+
+If an earlier or concurrent call may have dispatched, the outer `execute` instead returns `execute_request: do_not_replay` with `provider_execution: unknown`, because the script may already have provider side effects. Inspect external state before issuing new work; do not replay the whole script merely because the pagination validation itself preceded its provider call.
 
 If automatic traversal reaches an Engine pagination limit before the provider terminates, narrow the provider query or deliberately choose a smaller caller bound. Do not suppress the provider's continuation field through a partial-response selector to make an unfinished collection appear complete.
 
