@@ -32,9 +32,36 @@ POST /mcp/<version-id> HTTP/1.1
 Host: <engine-host>
 Authorization: Bearer <MCP execution token>
 Content-Type: application/json
+
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"your-client","version":"1"}}}
 ```
 
-The Engine returns an `Mcp-Session-Id`. Send that opaque header on every subsequent POST, GET, and DELETE. Send `MCP-Protocol-Version` too if your client negotiates one.
+The Engine returns an `Mcp-Session-Id` and the negotiated `MCP-Protocol-Version`. Before listing or calling tools, complete the MCP lifecycle with a notification in a second POST carrying both returned headers:
+
+```json
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+```
+
+The Engine acknowledges the notification with HTTP 202 and no JSON-RPC response body. Send the opaque session header and negotiated protocol version on every subsequent POST, GET, and DELETE.
+
+The MCP client owns this transport identity. Do not expose it to the agent, ask the agent to invent one, or add it to `execute` arguments. The `execute` tool declares that `session.get`, `session.set`, and `session.page` are already attached inside its script and share state only across calls on the same MCP connection. Reinitializing creates fresh state; old `result_ref` values cannot cross into it.
+
+If a connection is unavailable, the Engine returns HTTP 404 with `MCP_SESSION_UNAVAILABLE` and a compact recovery contract:
+
+```json
+{
+  "recovery_action": "reinitialize_connection",
+  "execute_request": "reformat_if_session_state_used",
+  "provider_execution": "not_started",
+  "automatic_replay": false
+}
+```
+
+The client should initialize a new connection. An `execute` script that does not use prior session state can keep its arguments. Rebuild a script that uses `session.get`, `session.page`, or an earlier `result_ref`, because those values do not cross the reset.
+
+A partial provider dispatch, timeout, or lost runtime response instead returns `MCP_EXECUTION_OUTCOME_UNKNOWN` with `execute_request: do_not_replay` and `provider_execution: unknown`. Reconnect, inspect current state, and do not automatically replay `execute`, because a provider mutation may already have been accepted. Recovery fields never contain the opaque session ID or token. Detailed transport diagnostics remain internal OTEL attributes.
+
+The `execute_request` field tells the agent whether formatting must change. `correct_arguments` means reformat the current `execute` arguments and is paired with `provider_execution: not_started`. `adjust_projection` means provider work is complete; change only the session-local result projection. `use_next_request` means run the supplied request exactly. `unchanged` requires no script change, while `do_not_replay` prohibits resubmission until the external outcome has been inspected.
 
 `DELETE` ends that session and nothing more. It is not revocation — use [`mcp token revoke`](/mcp/agent-tokens) for that.
 
@@ -44,24 +71,98 @@ The agent-facing surface is deliberately small. A large tool catalogue is what f
 
 <CardGroup cols={2}>
   <Card title="search_docs" icon="magnifying-glass">
-    Returns the operations, parameters, and calling shapes relevant to the task at hand.
+    Ranks the operations relevant to the task and returns complete calling detail when it fits.
   </Card>
   <Card title="execute" icon="play">
     Runs a single approved call, or TypeScript chaining several, away from credentials, the filesystem, and open network access.
   </Card>
 </CardGroup>
 
-The working loop is: search for what is relevant, then execute against it.
+The working loop is: search once with a concise description of the outcome, then execute the best complete match.
 
 ```text
 search_docs("create an issue and notify the channel")
-  → the operations that match, with their parameters
+  → up to three ranked physical and Unified operations, with callable detail
 
 execute(<script calling those operations>)
   → results
 ```
 
+Intent search returns three matches by default and accepts at most five. Prefer a Unified operation when it already represents the complete outcome. If no result safely supports the request, retry once with more specific service and action terms. Do not guess an operation ID.
+
+Every `search_docs` response is bounded to 64 KiB of UTF-8 JSON. Check `schema_status.complete` before writing the call. When it is `false`, compare `included_sections` with `available_sections` and request only the missing section with the exact `operationId` and `section`. Physical operations expose `parameters`, `request`, and `response:<status>` sections. Unified operations expose `input`, `targets`, and `output`. You can add an RFC 6901 `schemaPath` to retrieve one smaller subtree when a section is still too large. Sections are returned whole or omitted, so never infer fields from an incomplete result.
+
+Call `search_docs` without a query only when you need to browse. That mode returns a bounded, schema-free catalogue with `total` and `truncated` metadata. If you already know the public operation ID, use exact `operationId` lookup instead of intent search.
+
 Chaining several operations inside one `execute` does not bundle them into a single approval. The Engine authorizes each underlying operation on its own merits, and anything outside the token's allowlist is refused even mid-script.
+
+## Execution deadlines and delays
+
+Each `execute` has a 30-second total budget and allows at most ten `call()` invocations. Provider calls, delays, and result serialization share that budget. A 15-second delay leaves roughly 15 seconds for everything else. You receive the result after the script finishes, not after each underlying call.
+
+Use `await sleep(milliseconds)` for a delay. Existing `await new Promise(resolve => setTimeout(resolve, milliseconds))` scripts also work. Timers return numeric handles for `clearTimeout`, accept finite delays from 0 to 2,147,483,647 milliseconds, and allow at most 1,000 pending timers per invocation. They do not survive the invocation's deadline.
+
+Await every operation. On completion, failure, cancellation, or timeout, Fused clears pending timers, aborts outstanding bridge HTTP requests, and blocks further calls from that invocation. Detached timers are not a background workflow mechanism. A timeout returns `MCP_EXECUTE_TIMEOUT`; a client cancellation observed by the runtime uses `MCP_EXECUTE_CANCELLED`.
+
+<Warning>
+  Cancellation cannot undo an action already accepted by a provider. A timed-out mutation may have succeeded, and a later step in your script may not have run. Do not automatically retry the script or assume rollback. Check the relevant execution receipts and, when needed, the provider's current state before deciding how to recover.
+</Warning>
+
+## Decode encoded provider data
+
+Use these helpers inside the existing `execute` tool; they do not add MCP tools or make provider calls:
+
+- `decodeBase64(text)` returns UTF-8 text from standard base64 or base64url, with or without padding.
+- `encodeBase64(text, urlSafe = false)` encodes UTF-8 text. Pass `true` for unpadded base64url.
+- `atob(text)` returns a binary string from standard base64. It is not a UTF-8 decoder and does not accept the URL-safe alphabet.
+
+```typescript
+const encoded = encodeBase64("Résumé", true);
+return decodeBase64(encoded);
+```
+
+Helpers accept strings only and allow at most 1 MiB of raw or decoded bytes per conversion. Encoded text is bounded to the corresponding base64 expansion (1,398,104 characters); whitespace counts toward that input limit. Malformed base64 is rejected. `decodeBase64` also rejects invalid UTF-8; use `atob` when you need binary byte values. The unrestricted Node `Buffer` API is not exposed.
+
+Decoding a Gmail message does not parse its MIME or RFC822 structure. Decode the needed content, select or parse the fields your task requires, and return only those fields under the normal output budget. These helpers do not remove the existing result-size limits.
+
+## Retrieve large results without repeating the operation
+
+`execute` returns results directly when they fit its output budget: 16 KiB of UTF-8 JSON by default. Set the optional `outputBudgetBytes` tool argument from 1,024 to 65,536 bytes when your client needs a different limit. This is a byte budget, not a token count; token usage depends on your model and data.
+
+For larger admitted results, Fused keeps a snapshot in the current session and returns a small `MCP_RESULT_STORED` envelope. It includes `result_ref`, expiry, byte size, the effective output budget, explicit same-session state, a directly executable `next_request`, and an explicitly incomplete structural preview. Run `next_request` through `execute` to begin a session-only read without reconstructing a call or repeating the provider operation. Its `collections` list advertises array paths, row counts, and observed immediate field names, so you can choose a different projection without another discovery call. Automatic previews and collection metadata do not include scalar values, such as message text or file contents.
+
+For example, a transaction collection can advertise this metadata:
+
+```json
+{
+  "path": "/transactions",
+  "count": 240,
+  "fields": ["id", "date", "merchant", "amount", "currency"],
+  "fields_complete": true
+}
+```
+
+Use `session.page` inside the existing `execute` tool to retrieve as many complete projected rows as fit. This reads the stored snapshot without repeating any provider calls:
+
+```typescript
+return session.page("<result_ref from the envelope>", {
+  path: "/transactions",
+  fields: ["date", "merchant", "amount", "currency"],
+  offset: 0
+});
+```
+
+`path` is an RFC 6901 JSON Pointer; omit it or use `""` for a root array. `fields` contains literal immediate object keys, not dotted paths. Omit `fields` to return whole rows, including primitive or mixed-type rows. Selected sparse fields stay absent where missing; a field absent from every row is rejected. An empty collection returns an empty complete page.
+
+Each page contains `items`, `offset`, `total`, `returned`, `nextOffset`, and `complete`. Continue with the same reference, path, fields, and output budget using the returned `nextOffset`. A null `nextOffset` and `complete: true` mean no rows remain after this page; they do not mean earlier pages are included. Return the page directly instead of collecting all pages into another oversized result. Fused counts the serialized page envelope, JSON escaping, and UTF-8 bytes when choosing the row count.
+
+Discovery is bounded: at most eight collections, 256 traversal nodes, eight levels, 32 children per node, 512 inspected rows per collection, and 32 field names of at most 128 UTF-8 bytes. `fields_complete: false` means some field information was omitted; `collections_complete: false` means some collection paths were omitted. A small output budget may reduce metadata further. You can select advertised fields immediately even when discovery is incomplete. Use `session.get(result_ref)` followed by ordinary JavaScript property access, `Object.keys(...)`, or string slicing to inspect additional stored values. `session.get` accepts exactly one string key; use `session.page` for an RFC 6901 array path. Extra `session.get` arguments fail explicitly instead of being ignored. Never infer that an unlisted field does not exist.
+
+If one selected row cannot fit, `MCP_RESULT_ROW_TOO_LARGE` asks you to choose fewer fields or use `session.get` to inspect a field or string slice. Fused never silently cuts a row or returns a non-progressing empty page. Do not repeat the original operation to recover from a paging error. If you only need a total or other aggregate, calculate it inside `execute` and return the answer rather than every transaction.
+
+Each session retains at most 16 snapshots and 4 MiB, evicting the oldest first. References expire five minutes after creation; reads do not extend their lifetime. Closing the session releases its snapshots, and another session cannot retrieve them. If you receive `MCP_RESULT_UNAVAILABLE`, the result is no longer available: decide explicitly whether repeating the operation is safe. Never automatically retry an operation with side effects.
+
+The existing 1 MiB limit for each physical result and final execution value still applies. Model-facing execution JSON is capped at 64 KiB. Error text uses the smaller of your output budget and 8 KiB. Retention is temporary navigation, not persistent storage or a way to bypass execution limits.
 
 ## Unified operations
 
@@ -91,9 +192,11 @@ Arguments come from the imported canonical request schema. Two behaviours are wo
 
 ## Pagination
 
-Pagination is inherited from the selected endpoint and its effective service-version policy. Do not add pagination fields to the MCP config or to physical tool schemas. A Unified call may only lower the bound for a selected forward target through its target-keyed `pagination` option.
+Pagination is inherited from the selected endpoint and its effective service-version policy. Do not add pagination fields to the MCP config or to physical operation schemas. An ordinary `call(operationId, params)` completes the reviewed provider pagination loop inside Engine and returns one aggregate before MCP result retention runs. The agent never loops pages or passes continuation tokens itself.
 
-For an ordinary physical call, the Engine streams each successful page as a separate execution chunk. A Unified call remains one buffered graph result. In both cases, the agent never loops pages or passes continuation tokens itself.
+Provider page-size parameters such as Gmail `maxResults` do not bound total traversal. When a goal intentionally needs only the first N provider pages, pass the canonical caller bound separately as `call(operationId, params, { pagination: { maxPages: N } })`. The bound can only tighten the reviewed Engine policy and is rejected for non-paginated operations. A Unified call keeps its target-keyed `pagination` inside the documented Unified invocation object.
+
+If automatic traversal reaches an Engine pagination limit before the provider terminates, narrow the provider query or deliberately choose a smaller caller bound. Do not suppress the provider's continuation field through a partial-response selector to make an unfinished collection appear complete.
 
 ## Useful commands
 
