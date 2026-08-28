@@ -3,7 +3,7 @@ title: "Deploy an MCP server"
 description: "Stand up one Engine-hosted MCP server that reaches every service an agent is allowed to use."
 ---
 
-An MCP server is an Engine-hosted runtime with its own URL. It never builds or downloads a package — apply stands it up, and it stays live until you deactivate it.
+An MCP server is an Engine-hosted runtime with its own stable URL. It never builds or downloads a package — apply stands it up, and it stays live until you deactivate it.
 
 One server can span several internal and external services, so an agent needs one connection rather than one per provider.
 
@@ -11,6 +11,7 @@ One server can span several internal and external services, so an agent needs on
 
 ```bash
 fused-cli mcp init support-agent \
+  --description 'Update support issues and notify the owning team in Slack.' \
   --service 'linear=v1' \
   --operation 'linear=issueUpdate' \
   --select-all 'slack'
@@ -23,6 +24,7 @@ apiVersion: fused/v1
 kind: mcp
 name: support-agent
 version: "1.0.0"
+description: Update support issues and notify the owning team in Slack.
 bucket: default
 services:
   linear:
@@ -34,6 +36,8 @@ services:
     version: "v1"
     select_all: true
 ```
+
+`description` is required. Summarize what the server helps an agent accomplish in one to three concise sentences. Keep operation IDs out of this overview; the agent discovers exact calls later through `search_docs`.
 
 <Steps>
   <Step title="Validate">
@@ -64,6 +68,7 @@ services:
 
 | Flag | What it does | Example |
 |---|---|---|
+| `--description` | Describes the server's business capability for an MCP client; required | `fused-cli mcp init support --description 'Read and update support issues.'` |
 | `--service` | Adds a service at a version; repeatable | `fused-cli mcp init support --service 'linear=v1'` |
 | `--operation` | Selects one operation; repeatable | `fused-cli mcp init support --operation 'linear=issueUpdate'` |
 | `--select-all` | Takes every operation of a service | `fused-cli mcp init support --select-all 'slack'` |
@@ -104,7 +109,20 @@ MCP planning has no interactive credential remediation. That flag exists on SDK 
 
 One MCP name has one stable MCP ID shared by every version, and each explicit version has its own immutable Version ID. Multiple versions can run at once.
 
-Applying identical content to the same version is a no-op. Changing its operation, auth, or injection scope returns `app_version_immutable` — publish a new version instead.
+Applying a version explicitly promotes it for new sessions on the stable MCP URL. Applying an older version again explicitly rolls the stable target back. Existing sessions continue on the immutable version they resolved during initialization.
+
+The CLI displays both endpoints after apply and in `mcp list`:
+
+| Endpoint | Use it for |
+|---|---|
+| Stable `/mcp/<mcp-id>` | Recommended for agents that should receive explicit version promotions without changing configuration |
+| Pinned `/mcp/<version-id>` | Clients that must remain on one exact immutable version |
+
+Applying identical content to the same version is a no-op. Changing its description, operation, auth, or injection scope returns `app_version_immutable` — publish a new version instead.
+
+<Note>
+  Deactivating the promoted version makes the stable URL unavailable. The Engine does not guess another sibling version; explicitly apply the version you want to promote next.
+</Note>
 
 ## Deactivating
 
@@ -118,6 +136,6 @@ fused-cli mcp deactivate support-agent@1.0.0
 
 Unlike removing a workspace service, deactivation is immediate and is not gated behind a blocker for configs that still reference it. There is no MCP deprecate or undeprecate command — do not invent one.
 
-<Card title="Create a token for an agent" icon="shield-halved" href="/mcp/agent-tokens">
-  A deployed server is not the same as a safe one. Narrow the token next.
+<Card title="Connect an agent with a scoped token" icon="shield-halved" href="/mcp/use-the-server">
+  Bind a token to the right connected user and place it in the MCP client.
 </Card>

@@ -1,95 +1,85 @@
 ---
 title: "Create a token for an agent"
-description: "Narrow an MCP token to exact operations and a short lifetime before an agent uses it."
+description: "Issue a scoped MCP token and optionally bind it to connected users."
 ---
 
-The token your first `mcp apply` returns allows every selected operation and never expires. That is a fine default for your own testing and a poor one for an agent running unattended.
+Give each agent or environment its own named token. You can then limit its operations or revoke it without affecting other callers.
 
-A token can only ever **narrow** what its MCP version already exposes. It cannot grant an operation the server does not offer, so scoping a token is always safe in the sense that it can only reduce reach.
+## Generate a token
 
-## Generate a narrowed token
+<CodeGroup>
 
-```text
-fused-cli mcp token generate <mcp-name-or-id> <token-name>
-fused-cli mcp token revoke   <mcp-name-or-id> <token-name>
-fused-cli mcp token list     <mcp-name-or-id>
-```
-
-Both are yours to choose: the first identifies the MCP server, the second names this particular token so you can revoke it by name.
-
-```bash
+```bash CLI
 fused-cli mcp token generate support-agent triage-bot \
   --allow issueUpdate \
-  --allow chatPostMessage \
-  --expires-in 15m
+  --allow chatPostMessage
 ```
 
-Anything absent from `--allow` is denied. Repeat the flag, or pass a comma-separated list. Omit it entirely and the token defaults to full access (`*`).
+```bash HTTP
+curl --request POST \
+  --url "$FUSED_ENGINE_URL/workspace/app-tokens?app_family_id=$MCP_ID" \
+  --header "X-API-Key: $FUSED_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "name": "triage-bot",
+    "allow": ["issueUpdate", "chatPostMessage"]
+  }'
+```
 
-Unified operations do not introduce a separate token scope. A narrowed token must allow the physical forward operations and any active rollback that the Unified graph can execute. `search_docs` exposes only Unified descriptors fully authorized by that token, and the Engine repeats authorization for the caller's selected graph before dispatch. Supplying `targets` cannot broaden the token.
+</CodeGroup>
+
+For HTTP, use the MCP ID returned by `mcp plan`, `mcp apply`, or `mcp list` as `MCP_ID`. The `token` field in the response is the execution token.
+
+Anything absent from `allow` is denied. Omit the scope to grant every operation exposed by the MCP server.
 
 <Warning>
-  The plaintext prints exactly once. Capture it immediately — `mcp token list` shows status and metadata but never the token or its hash.
+  The plaintext token is returned once. Store it when you generate it; token listings never return the token or its hash.
 </Warning>
 
-## Flags
+## Bind the token to a connected user
 
-### `mcp token generate`
+A fixed binding pins the token to a service, auth scheme, and connected-user reference. Add a resource UUID when the provider connection exposes selectable resources.
 
-| Flag | What it does | Example |
-|---|---|---|
-| `--allow` | Permits one operation ID; repeatable or comma-separated | `fused-cli mcp token generate support triage --allow issueUpdate` |
-| `--expires-in` | Gives the token a lifetime | `fused-cli mcp token generate support triage --expires-in 15m` |
-| `--fixed-binding` | Pins one service slug, auth scheme, and user; repeat it for different services | `fused-cli mcp token generate support triage --fixed-binding 'jira,OAuth2,user_123'` |
+<CodeGroup>
 
-`--expires-in` takes a positive whole-second duration such as `15m`, `4h`, or `7d`. Omit it for a non-expiring service credential.
-
-`--fixed-binding` belongs to the connected-user story — see [tokens for OAuth services](/mcp/oauth-tokens). For a fixed token, the stored service/auth/user/resource binding is authoritative even if a Unified call supplies a conflicting selector.
-
-## One token per audience
-
-Give each agent, environment, or job its own named token. It costs nothing and makes revocation a decision about one caller rather than a decision about everyone.
-
-```bash
-fused-cli mcp token generate support-agent triage-bot   --allow issueUpdate --expires-in 1h
-fused-cli mcp token generate support-agent nightly-sweep --allow issueList  --expires-in 24h
+```bash CLI
+fused-cli mcp token generate support-agent triage-bot \
+  --allow issueUpdate \
+  --fixed-binding 'jira,OAuth2,user_123'
 ```
 
-## List and revoke
+```bash HTTP
+curl --request POST \
+  --url "$FUSED_ENGINE_URL/workspace/app-tokens?app_family_id=$MCP_ID" \
+  --header "X-API-Key: $FUSED_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "name": "triage-bot",
+    "allow": ["issueUpdate"],
+    "binding_mode": "fixed",
+    "bindings": [
+      {
+        "service_slug": "jira",
+        "auth_name": "OAuth2",
+        "end_user_ref": "user_123"
+      }
+    ]
+  }'
+```
+
+</CodeGroup>
+
+Repeat `--fixed-binding` or add more objects to `bindings` when the agent uses multiple services. The stored binding remains authoritative if a request supplies a different selector.
+
+## List or revoke tokens
 
 ```bash
 fused-cli mcp token list support-agent
 fused-cli mcp token revoke support-agent triage-bot
 ```
 
-The listing includes active, expired, and revoked status, binding mode, and aggregate execution and session counts from retained history.
-
-<Note>
-  Ending an MCP session is not revocation. A session `DELETE` closes that session; the token stays valid until you revoke it.
-</Note>
-
-## Tokens and versions
-
-MCP execution tokens are shared across every version of a server. A token issued today keeps working when you publish a new version tomorrow — while each version still enforces its own operation scope.
-
-If two audiences must not share capability, deploy two MCP servers rather than trying to split one token between them.
-
-## Permissions
-
-Generating, listing, and revoking tokens all require `app.tokens.manage`. That is deliberately separate from `app.manage`: a team can own and update an MCP server without being able to mint credentials for it, or the reverse.
-
-Applications that need to issue tokens for dynamic agent sessions can use the Engine's equivalent app-token API. The caller still needs `app.tokens.manage`.
-
-## Sharing the server itself
-
-Ownership and audience are separate concerns. The owning person or team keeps management authority even when the server is offered company-wide:
-
-```bash
-fused-cli workspace access app grant <sdk-or-mcp-id>
-```
-
-That adds bounded workspace-wide use across every version without handing over token or lifecycle management — and callers still need an execution token at runtime.
+Tokens apply to the whole MCP app family, so they continue to work when you publish a new version. Generating, listing, and revoking tokens requires `app.tokens.manage`.
 
 <Card title="Tokens for OAuth services" icon="user-check" href="/mcp/oauth-tokens">
-  When the provider needs to know which end user the agent is acting for.
+  Choose between fixed and caller-selected connected users.
 </Card>
