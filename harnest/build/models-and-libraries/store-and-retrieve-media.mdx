@@ -1,0 +1,116 @@
+---
+title: "Store and retrieve media"
+sidebarTitle: "Store media"
+description: "Select a named asset store, persist media, and retrieve it through the invocation context."
+---
+
+Use `Stored(...)` when media must remain available after its current model turn.
+
+## Choose a lifetime
+
+| Outcome | Use | Result |
+|---|---|---|
+| Analyze media now | Inline media without `Stored(...)` | Private transient lease |
+| Return or replay media later | `Stored(store="...")` | Scoped asset reference |
+| Upload before invoking an agent | Session asset endpoint | Scoped asset reference |
+
+## Declare stored media
+
+```python models/capture.py
+from datetime import timedelta
+from typing import Annotated
+
+from pydantic import BaseModel
+
+from harnest import Stored
+from harnest.content import Image, ImageConstraints
+
+
+class CaptureResult(BaseModel):
+    screenshot: Annotated[
+        Image,
+        ImageConstraints(max_bytes=5 * 1024 * 1024),
+        Stored(
+            store="media",
+            path="screenshots",
+            expires_in=60,
+            retention=timedelta(days=7),
+        ),
+    ]
+```
+
+| Property | Controls |
+|---|---|
+| `store` | Named `AssetStorage` selected for this field |
+| `path` | Storage-specific path hint |
+| `expires_in` | Lifetime of each model-facing signed URL |
+| `retention` | Requested lifetime of the stored bytes |
+
+## Register the named store
+
+```python extensions/assets.py
+from harnest import AssetStorage, lifecycle
+from harnest.lib.assets import S3AssetStorage
+
+
+@lifecycle.asset_store(name="media")
+def media_assets() -> AssetStorage:
+    return S3AssetStorage(bucket="agent-media")
+```
+
+Store names are explicit. Harnest does not choose another backend or storage policy when the selected store is missing.
+
+## Use the stored result
+
+<Tabs>
+  <Tab title="Inside an invocation">
+    `context.assets` supplies the current authenticated user and session and routes the reference to its named store.
+
+    ```python
+    from harnest.context import context
+
+
+    record = await context.assets.stat(result.screenshot)
+    payload = await context.assets.get(
+        result.screenshot,
+        max_bytes=5 * 1024 * 1024,
+    )
+    async for chunk in context.assets.open(result.screenshot):
+        ...
+    temporary_url = await context.assets.url(
+        result.screenshot,
+        expires_in=60,
+    )
+    await context.assets.delete(result.screenshot)
+    ```
+
+    Calls outside an active Harnest invocation fail.
+  </Tab>
+  <Tab title="From an application">
+    Apply equivalent user-and-session ownership checks in the application's storage API.
+
+    | Endpoint | Outcome |
+    |---|---|
+    | `POST /sessions/{sessionId}/assets` | Upload into an existing session |
+    | `HEAD /sessions/{sessionId}/assets/{assetId}` | Inspect trusted metadata |
+    | `GET /sessions/{sessionId}/assets/{assetId}` | Download an owned asset |
+    | `DELETE /sessions/{sessionId}/assets/{assetId}` | Delete an owned asset |
+  </Tab>
+</Tabs>
+
+## Understand the model path
+
+| Stage | Harnest behavior |
+|---|---|
+| Tool or agent produces valid inline media | Saves it before framework persistence |
+| Framework stores the value | Persists only `assetId` and store name |
+| Model needs the media | Requests a fresh URL from `AssetURLStorage` |
+| Provider call completes | Discards the signed URL instead of adding it to history |
+
+The field's `expires_in` applies when the model URL is generated, not when media is captured.
+
+<Warning>
+  A server `@tool` whose output contains `Stored(...)` must use `async def`. Harnest rejects a synchronous declaration because storage requires an awaited operation.
+</Warning>
+
+See [Accept multimodal data](/harnest/build/models-and-libraries/typed-multimodal-contracts), [Checkpoints and storage](/harnest/runtime/checkpoints-and-storage), and [Neutral API](/harnest/runtime/serving/neutral-api).

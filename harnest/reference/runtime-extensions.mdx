@@ -19,7 +19,7 @@ Root files under `extensions/**/*.py` add behavior around the agent. Harnest dis
 | `@lifecycle.adk_plugin` | Many | ADK-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
 | `@lifecycle.langgraph_middleware` | Many | LangGraph-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
 | `@lifecycle.http_routes` | Many | Application HTTP routes | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
-| `@lifecycle.asset_store` | Zero or one | Multimodal asset storage | [Typed multimodal contracts](/harnest/build/models-and-libraries/typed-multimodal-contracts) |
+| `@lifecycle.asset_store(name="...")` | Many, with unique names | Multimodal asset storage | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
 | `@lifecycle.session_store` | Exactly one | Sessions and transcripts | [Storage](/harnest/runtime/checkpoints-and-storage) |
 | `@lifecycle.checkpointer` | Exactly one | In-progress execution | [Storage](/harnest/runtime/checkpoints-and-storage) |
 | `@lifecycle.authenticate` | Zero or more | Request identity | [Authentication](/harnest/runtime/authentication-and-credentials) |

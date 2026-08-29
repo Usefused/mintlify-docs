@@ -4,7 +4,7 @@ sidebarTitle: "Storage & checkpoints"
 description: "Choose session and checkpoint storage for development and production."
 ---
 
-Every compiled agent needs one session store and one checkpointer. Multimodal agents also use an asset store for session-owned media.
+Every compiled agent needs one session store and one checkpointer. Multimodal agents can also use named asset stores for session-owned media.
 
 | Store | Holds | Portable across frameworks? |
 |---|---|---:|
@@ -25,7 +25,7 @@ Harnest allows one running or waiting invocation per session. Atomic status upda
 
 Harnest supplies compatible `asyncpg` and `redis` drivers in the compiled environment.
 
-The default `MemoryAssetStore` is for development. Configure one root `@lifecycle.asset_store` factory for durable media storage. See [Typed multimodal contracts](/harnest/build/models-and-libraries/typed-multimodal-contracts).
+The default asset store is for development. Register durable stores by name with root `@lifecycle.asset_store(name="...")` factories, then select one explicitly with `Stored(store="...")` on each durable media field. See [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media).
 
 ## Configure a managed agent
 

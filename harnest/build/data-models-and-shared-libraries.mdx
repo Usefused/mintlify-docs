@@ -25,9 +25,14 @@ class OrderStatus(BaseModel):
 
 Use these contracts for agent, graph, tool, and client-tool input or output. The folder is root-only and needs no `__init__.py`.
 
-<Card title="Typed multimodal contracts" icon="shapes" href="/harnest/build/models-and-libraries/typed-multimodal-contracts">
-  Enforce Pydantic input, output, tool-result, and media contracts across both frameworks and every managed transport.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Accept multimodal data" icon="shapes" href="/harnest/build/models-and-libraries/typed-multimodal-contracts">
+    Validate images, audio, video, files, and custom data with Pydantic.
+  </Card>
+  <Card title="Store and retrieve media" icon="database" href="/harnest/build/models-and-libraries/store-and-retrieve-media">
+    Choose a named store and access scoped assets.
+  </Card>
+</CardGroup>
 
 ## `lib/`
 

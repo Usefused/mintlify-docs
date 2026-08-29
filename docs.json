@@ -139,7 +139,8 @@
                     "expanded": false,
                     "pages": [
                       "harnest/build/data-models-and-shared-libraries",
-                      "harnest/build/models-and-libraries/typed-multimodal-contracts"
+                      "harnest/build/models-and-libraries/typed-multimodal-contracts",
+                      "harnest/build/models-and-libraries/store-and-retrieve-media"
                     ]
                   },
                   {

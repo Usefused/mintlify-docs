@@ -1,158 +1,154 @@
 ---
-title: "Typed multimodal contracts"
-sidebarTitle: "Multimodal contracts"
-description: "Validate agent input, output, tool results, and portable media references with Pydantic."
+title: "Accept multimodal data"
+sidebarTitle: "Multimodal data"
+description: "Validate image, audio, video, file, text, and custom data across agents and tools."
 ---
 
-Define an agent's public data contract once. Harnest enforces it across ADK, LangGraph, JSON, SSE, WebSockets, and session messages.
+Define a Pydantic contract once. Harnest applies it to agents, tools, JSON, SSE, WebSockets, SubAgents, and session messages.
 
-| Contract | Define with | Enforced at |
+## Choose a content type
+
+| Content | Type | Configure with |
 |---|---|---|
-| Agent input | `input_schema` | Every managed invocation |
-| Agent output | `output_schema` | Completed agent or graph output |
-| Server tool result | Return annotation or `@tool(output_schema=...)` | After tool execution |
-| Client tool result | Return annotation or `@client_tool(output_schema=...)` | When the client submits its result |
+| Text | `Text` | Pydantic field rules |
+| Images | `Image` | `ImageConstraints` |
+| Audio | `Audio` | `AudioConstraints` |
+| Video | `Video` | `VideoConstraints` |
+| Files | `File` | `FileConstraints` |
+| Custom JSON | `Data[T]` | `DataConstraints` |
+| Generic stored media | `AssetRef` | Pydantic field rules |
 
-## Define the models
+Media constraints can limit MIME type, decoded byte size, dimensions, pixels, duration, pages, frame rate, sample rate, channels, animation, and archive expansion.
 
-Keep shared contracts in the root `models/` directory. Use `Annotated` to place media limits beside the field they protect.
+## Define the contract
 
-```python models/conversation.py
+Keep shared contracts in the root `models/` directory. Use `Annotated` to keep limits beside the field they protect.
+
+```python models/vision.py
 from typing import Annotated
 
 from pydantic import BaseModel
 
-from harnest.content import Image, ImageConstraints, Text
+from harnest.content import Image, ImageConstraints
 
 
-SupportImage = Annotated[
+Screenshot = Annotated[
     Image,
     ImageConstraints(
-        media_types=frozenset({"image/png", "image/jpeg"}),
-        max_bytes=5 * 1024 * 1024,
-        max_width=4096,
-        max_height=4096,
-        max_pixels=12_000_000,
+        media_types=frozenset({"image/jpeg", "image/png"}),
+        max_bytes=500 * 1024,
+        max_width=1920,
+        max_height=1080,
+        max_pixels=2_073_600,
         animated=False,
     ),
 ]
 
 
-class AgentInput(BaseModel):
-    content: list[Text | SupportImage]
+class VisionInput(BaseModel):
+    question: str
+    screenshot: Screenshot
 
 
-class AgentOutput(BaseModel):
+class VisionOutput(BaseModel):
     answer: str
 ```
 
-## Attach the contract
+Harnest inspects decoded bytes. Client-supplied metadata does not bypass the contract.
+
+## Apply the contract
 
 <Tabs>
-  <Tab title="Agent">
+  <Tab title="Agent input and output">
     ```python agent.py
     from harnest.agent import Agent
-    from harnest.models.conversation import AgentInput, AgentOutput
+    from harnest.model import LiteLLMModel
+    from harnest.models.vision import VisionInput, VisionOutput
 
 
     root_agent = Agent(
-        name="support_agent",
-        model="your-model",
-        instruction="Explain the supplied content.",
-        input_schema=AgentInput,
-        output_schema=AgentOutput,
+        name="vision",
+        model=LiteLLMModel("provider/vision-model"),
+        input_schema=VisionInput,
+        output_schema=VisionOutput,
     )
     ```
   </Tab>
-  <Tab title="Server tool">
-    ```python tools/summarize.py
-    from harnest.models.conversation import AgentOutput
+  <Tab title="Server tool output">
+    ```python tools/analyze.py
+    from harnest.models.vision import VisionOutput
     from harnest.tool import tool
 
 
-    @tool(output_schema=AgentOutput)
-    async def summarize() -> AgentOutput:
-        """Return a validated summary."""
-        return AgentOutput(answer="Ready")
+    @tool(output_schema=VisionOutput)
+    async def analyze() -> VisionOutput:
+        return VisionOutput(answer="Ready")
     ```
   </Tab>
-  <Tab title="Client tool">
+  <Tab title="Client tool output">
     ```python tools/browser.py
+    from pydantic import BaseModel
+
     from harnest.client_tool import client_tool
-    from harnest.models.conversation import AgentOutput
+    from harnest.models.vision import Screenshot
 
 
-    @client_tool(output_schema=AgentOutput)
-    async def read_canvas() -> AgentOutput:
-        """Read structured content from the browser."""
+    class CaptureResult(BaseModel):
+        screenshot: Screenshot
+
+
+    @client_tool(output_schema=CaptureResult)
+    async def capture_viewport() -> CaptureResult:
+        """Capture the visible browser viewport."""
         ...
     ```
   </Tab>
 </Tabs>
 
-## Choose content parts
+Client-tool stubs execute on the client. Harnest validates the submitted result before the waiting agent or SubAgent resumes.
 
-| Type | Carries | Constraint class |
-|---|---|---|
-| `Text` | Ordered UTF-8 text | Pydantic field rules |
-| `Image` | Stored image reference | `ImageConstraints` |
-| `Audio` | Stored audio reference | `AudioConstraints` |
-| `Video` | Stored video reference | `VideoConstraints` |
-| `File` | Stored file reference | `FileConstraints` |
-| `Data[T]` | Typed JSON application data | `DataConstraints` |
-| `AssetRef` | Generic stored asset reference | Pydantic field rules |
+## Send transient media
 
-Media constraints cover the values relevant to each type, including MIME type, byte size, dimensions, duration, pages, frame rate, channels, animation, and archive expansion.
+Without a storage annotation, media is available only to the current model turn.
 
-## Send media by reference
+```json
+{
+  "sessionId": "demo",
+  "input": {
+    "question": "What is visible?",
+    "screenshot": {
+      "type": "image",
+      "mediaType": "image/jpeg",
+      "data": "<base64>"
+    }
+  }
+}
+```
 
 <Steps>
-  <Step title="Upload into the session">
-    The session must already exist. Harnest returns an opaque `assetId`.
-
-    ```bash
-    curl -X POST http://127.0.0.1:8080/sessions/demo/assets \
-      -H 'Content-Type: image/png' \
-      --data-binary @diagram.png
-    ```
+  <Step title="Harnest validates the bytes">
+    The Pydantic field limits are applied to inspected content.
   </Step>
-  <Step title="Reference the asset">
-    ```json
-    {
-      "sessionId": "demo",
-      "input": {
-        "content": [
-          {"type": "text", "text": "Explain this diagram"},
-          {"type": "image", "assetId": "asset_..."}
-        ]
-      }
-    }
-    ```
+  <Step title="The adapter builds the model request">
+    ADK or LangGraph receives the media only for the immediate provider call. This includes mid-turn tool results inside SubAgents.
+  </Step>
+  <Step title="Harnest clears the private lease">
+    Success clears the bytes. A provider retry can reuse them before that point.
   </Step>
 </Steps>
 
-| Asset endpoint | Purpose |
+| Surface | Stored value |
 |---|---|
-| `POST /sessions/{sessionId}/assets` | Upload bytes |
-| `HEAD /sessions/{sessionId}/assets/{assetId}` | Inspect trusted metadata |
-| `GET /sessions/{sessionId}/assets/{assetId}` | Download an owned asset |
-| `DELETE /sessions/{sessionId}/assets/{assetId}` | Delete an owned asset |
+| Native checkpoint and history | `{ "type": "image", "mediaType": "image/jpeg", "content": "attached" }` |
+| Logs, traces, and audit records | No bytes or private correlation IDs |
+| Public events and `/messages` | Safe attachment placeholder |
+| Final inline agent output | Returned once on the authenticated response; not replayable |
 
-## Enforcement and privacy
-
-| Boundary | Harnest behavior |
-|---|---|
-| Upload | Inspects the stored file and records trusted metadata |
-| Invocation | Validates the reference, ownership, media type, size, and field constraints |
-| Session and checkpoint | Stores only the opaque reference |
-| Model call | Loads bytes immediately before the ADK or LangGraph provider call |
-| Provider media output | Stores the media before persisting its reference |
-| Traces and logs | Omits bytes, URLs, filenames, custom content, and asset identifiers |
-
-Client-supplied media metadata is never trusted. Asset access is bound to the authenticated user and session; deleting the session also deletes its assets.
-
-<Warning>
-  The default `MemoryAssetStore` is bounded and process-local. Use one root `@lifecycle.asset_store` factory for durable production storage.
-</Warning>
-
-See [Checkpoints and storage](/harnest/runtime/checkpoints-and-storage) and [Neutral API](/harnest/runtime/serving/neutral-api).
+<CardGroup cols={2}>
+  <Card title="Store and retrieve media" icon="database" href="/harnest/build/models-and-libraries/store-and-retrieve-media">
+    Return durable references or make media replayable.
+  </Card>
+  <Card title="Build client tools" icon="browser" href="/harnest/build/agent-tools/client-tools">
+    Resume an agent with browser or device data.
+  </Card>
+</CardGroup>
