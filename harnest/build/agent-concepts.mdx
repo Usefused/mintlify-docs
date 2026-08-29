@@ -1,0 +1,45 @@
+---
+title: "Agent concepts"
+sidebarTitle: "Agent concepts"
+description: "Understand the concepts Harnest composes and where each concept is authored."
+---
+
+A Harnest agent is an inspectable directory. Each concept has one conventional location:
+
+| Concept | Project source | Purpose |
+| --- | --- | --- |
+| [Project Configuration](/harnest/build/project-configuration) | Root YAML, TOML, and lock files | Runtime, discovery, server, and dependency configuration |
+| [Agents and Graphs](/harnest/build/agents-and-graphs) | `agent.py`, `instructions.md` | Root agent or graph and its instructions |
+| [Data Models and Shared Libraries](/harnest/build/data-models-and-shared-libraries) | `models/`, `lib/` | Shared contracts and ordinary reusable Python |
+| [Agent Tools](/harnest/build/agent-tools) | `tools/` | Server tools and client-hosted tool declarations |
+| [SubAgents](/harnest/build/subagents) | `subagents/` | Flat definitions and separately owned agent bundles |
+| [MCP Client](/harnest/build/mcp-client) | `mcp/` | Direct MCP server connections |
+| [Agent Plugins](/harnest/build/agent-plugins) | `plugins/` | Reusable MCP-and-skill capability bundles |
+| [Agent Skills](/harnest/build/agent-skills) | `skills/` | Progressively loaded task guidance |
+| [Lifecycle](/harnest/runtime/lifecycle) | `extensions/` | Hooks, resources, storage, and native integrations |
+| [Sandboxing](/harnest/build/sandboxing) | `sandbox/` | Optional ADK code-execution backend |
+| [Testing and Compilation](/harnest/build/testing-and-compilation) | `evals/`, `tests/` | Evals, unit tests, live smoke tests, and artifacts |
+
+[Authentication and Credentials](/harnest/runtime/authentication-and-credentials) and [Telemetry](/harnest/runtime/telemetry) have separate security and privacy contracts.
+
+## Discovery rules
+
+| Rule | What it means |
+|---|---|
+| Optional folders may be absent | Add only the capabilities you need |
+| Public filenames are identities | Match each required export to its filename |
+| Location drives discovery | Do not register sibling resources manually |
+| `.harnest/` is generated | Do not edit or commit it |
+| `uv.lock` is project source | Commit it for repeatable environments |
+
+`harnest init` creates the required root files. Use `--example` for active examples; the default scaffold keeps optional folders as guides.
+
+## Coding-agent guide
+
+Install Harnest's bundled project-editing guidance for a coding agent:
+
+```bash
+harnest skills install
+```
+
+Use `--target` or `--project` when auto-detection is wrong. This coding guide is separate from runtime Agent Skills.

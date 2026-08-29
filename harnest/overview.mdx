@@ -1,0 +1,161 @@
+---
+title: "Harnest by Fused"
+sidebarTitle: "Overview"
+description: "Fused's lightweight, capability-driven harness for going from zero to a complete, testable agent in minutes."
+---
+
+Harnest is a lightweight agent harness from [Fused](https://usefused.com) that takes agent building from zero to a complete, testable agent in minutes.
+
+It manages the work around your agent while keeping the agent itself yours.
+
+| Harnest manages | What you get |
+|---|---|
+| Project structure and dependencies | A repeatable environment |
+| Capability discovery and compilation | Only the capabilities you add |
+| Tests and framework adapters | One workflow from source to verified agent |
+| Serving, sessions, and approvals | A usable runtime without custom plumbing |
+| Authentication, storage, and telemetry | Production-shaped boundaries |
+| Development playground | A testable UI in seconds |
+
+Harnest is capability-driven. If you do not add a tool, SubAgent, MCP connection, Agent Skill, plugin, sandbox, or lifecycle extension, Harnest does not wire it into the compiled agent.
+
+## Managed and advanced modes
+
+| Mode | Harnest manages | You control |
+|---|---|---|
+| Managed | Discovery, wiring, framework adapters, tests, and runtime services | Portable agent behavior |
+| Advanced | Packaging, tests, serving, sessions, auth, and telemetry | The underlying framework directly |
+
+Harnest builds on the work of [Google ADK](https://google.github.io/adk-docs/) and [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview). Managed mode gives you the fastest path. Advanced mode lets you break out to native framework APIs without giving up the harness around them.
+
+<Note>
+  Existing agents can start in advanced mode and move compatible capabilities into the managed structure over time. See [Migrate a project](/harnest/get-started/migrate).
+</Note>
+
+## Install
+
+<Steps>
+  <Step title="Install the CLI">
+    ```bash
+    curl -fsSL \
+      https://raw.githubusercontent.com/Usefused/harnest/main/install.sh |
+      sh
+    ```
+  </Step>
+  <Step title="Verify the CLI and managed runtime">
+    ```bash
+    harnest --version
+    harnest doctor
+    ```
+  </Step>
+</Steps>
+
+[Installation and releases](/harnest/reference/installation-and-releases) covers version pinning, CI installation, upgrades, checksums, and private forks.
+
+## Initialize a project
+
+Choose a framework:
+
+<CodeGroup>
+
+```bash ADK
+harnest init support-agent --framework adk
+```
+
+```bash LangGraph
+harnest init support-agent --framework langgraph
+```
+
+</CodeGroup>
+
+Then sync and test the isolated environment:
+
+```bash
+harnest env sync support-agent
+harnest test support-agent
+```
+
+| Option | Result |
+|---|---|
+| Default | Small, runnable managed agent |
+| `--example` | Adds working tools, graphs, plugins, skills, extensions, evals, and tests |
+
+`compile`, `test`, and `serve` sync automatically. Add only your packages to `pyproject.toml`; Harnest owns the framework dependency.
+
+## Migrate a project
+
+### Bring an existing agent into Harnest
+
+| Existing agent | Best starting point |
+|---|---|
+| Uses portable agents, tools, and graphs | Managed mode |
+| Depends on native plugins, middleware, state, or framework APIs | Advanced mode |
+
+Start with the mode that preserves your current behavior. Harnest adds tests, serving, sessions, auth, storage, telemetry, and the playground around it. Move native pieces into managed capabilities only when that improves the project.
+
+### Upgrade an older Harnest project
+
+Preview first, then apply and test:
+
+```bash
+harnest upgrade existing-agent
+harnest upgrade existing-agent --apply
+harnest test existing-agent
+```
+
+The first command previews the change. Apply verifies the reviewed files and creates backups.
+
+### Switch between ADK and LangGraph
+
+For a managed agent, change `spec.framework.name` in `config.yaml`:
+
+```yaml
+spec:
+  framework:
+    name: langgraph # or adk
+    mode: managed
+```
+
+Test and serve the target framework:
+
+```bash
+harnest test existing-agent
+harnest serve existing-agent
+```
+
+<Warning>
+  Review native extensions, evals, sandboxes, custom nodes, and active checkpoints first. Advanced projects need a manual migration.
+</Warning>
+
+Follow the full [framework migration checklist](/harnest/runtime/adk-and-langgraph#switch-frameworks).
+
+## Serve a project
+
+```bash
+harnest serve support-agent
+```
+
+| URL | Use it for |
+|---|---|
+| `http://127.0.0.1:8080/` | Test the agent in the playground |
+| `http://127.0.0.1:8080/docs` | Inspect the generated API |
+| `http://127.0.0.1:8080/healthz` | Check process health |
+
+The playground and neutral API work in both modes. Configure runtime properties in `server.yaml`.
+
+## Explore Harnest
+
+<CardGroup cols={2}>
+  <Card title="Build agents" icon="robot" href="/harnest/build/agent-concepts">
+    Learn the project concepts and where each capability belongs.
+  </Card>
+  <Card title="Compare frameworks" icon="arrows-rotate" href="/harnest/runtime/adk-and-langgraph">
+    See what moves between ADK and LangGraph.
+  </Card>
+  <Card title="Configure lifecycle" icon="rotate" href="/harnest/runtime/lifecycle">
+    Add resources, storage, auth, hooks, and telemetry.
+  </Card>
+  <Card title="Serve agents" icon="server" href="/harnest/runtime/serving">
+    Use the neutral API, events, approvals, and playground.
+  </Card>
+</CardGroup>

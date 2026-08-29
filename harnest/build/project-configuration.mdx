@@ -1,0 +1,65 @@
+---
+title: "Project configuration"
+sidebarTitle: "Project configuration"
+description: "Configure the agent, framework, server, discovery metadata, and dependencies."
+---
+
+The root files separate agent behavior, local serving, public identity, and dependency ownership.
+
+| File | Owns | Commit it? |
+|---|---|---:|
+| `config.yaml` | Framework and deployment intent | Yes |
+| `server.yaml` | Standalone server settings | Yes |
+| `agent-card.yaml` | Public agent identity and capabilities | Yes |
+| `pyproject.toml` | Agent-owned Python dependencies | Yes |
+| `uv.lock` | Reproducible project environment | Yes |
+| `harnest.lock` | Project schema version | Yes |
+| `.harnest/` | Generated environments and artifacts | No |
+
+## `config.yaml`
+
+`config.yaml` selects the entrypoint, framework, authoring mode, Python runtime, deployment resources, scaling, environment, secret references, and permissions:
+
+```yaml
+apiVersion: harnest.dev/v1alpha1
+kind: Agent
+metadata:
+  name: support-agent
+spec:
+  entrypoint: agent:root_agent
+  framework:
+    name: adk
+    mode: managed
+```
+
+Use `adk` or `langgraph`. Managed mode is the portable default; advanced mode accepts a native framework target. See [ADK and LangGraph](/harnest/runtime/adk-and-langgraph). Unknown fields and invalid deployment values fail before authored Python loads.
+
+`config.yaml` describes deployment intent. The standalone development server does not provision its resources, inject secret declarations, scale replicas, or enforce network permissions.
+
+## `server.yaml`
+
+`server.yaml` controls the standalone bind, remote-bind consent, request timeout, concurrency, request-size limit, and playground. Exact `${NAME}` values are resolved and type-checked at startup. Authentication, persistence, TLS, secrets, and scaling do not belong in this file. See [Server configuration](/harnest/runtime/serving/server-configuration).
+
+## `agent-card.yaml`
+
+The Agent Card supplies public discovery metadata and declared capabilities. Compilation validates and copies it into the artifact. The server exposes the card at `/.well-known/agent-card.json` and includes its identity and route links in `GET /agent`.
+
+## `pyproject.toml` and `uv.lock`
+
+Declare only agent-owned provider, tool, and ordinary Python dependencies in `pyproject.toml`. Do not declare Harnest, ADK, LangGraph, LangChain adapters, or other Harnest-owned framework packages. Each Harnest release supplies and checks a compatible framework version.
+
+Synchronize the project environment and commit the resulting lock:
+
+```bash
+harnest env sync AGENT_DIR
+```
+
+The environment lives under `AGENT_DIR/.harnest/environments/` and should not be activated. `compile`, `test`, and `serve` synchronize it automatically. CI can require the committed lock without changing it:
+
+```bash
+harnest env sync AGENT_DIR --frozen
+```
+
+## `harnest.lock`
+
+`harnest.lock` records the agent repository schema, not the installed CLI or framework version. Do not edit it to migrate an old project. Run the read-only `harnest upgrade AGENT_DIR` plan, then explicitly apply the reviewed migration with `--apply`.

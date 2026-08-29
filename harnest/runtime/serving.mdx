@@ -1,0 +1,54 @@
+---
+title: "Serving agents"
+sidebarTitle: "Overview"
+description: "Run the neutral API, event streams, approvals, client tools, and playground."
+---
+
+Harnest gives managed and advanced agents the same development server, neutral API, events, and playground.
+
+<CodeGroup>
+
+```bash From source
+harnest serve AGENT_DIR
+```
+
+```bash From an artifact
+harnest compile AGENT_DIR --output .harnest/my-agent
+.harnest/my-agent/harnest-agent
+```
+
+</CodeGroup>
+
+| URL | Purpose |
+|---|---|
+| `http://127.0.0.1:8080/` | Playground |
+| `http://127.0.0.1:8080/docs` | OpenAPI explorer |
+| `http://127.0.0.1:8080/healthz` | Process health |
+
+<CardGroup cols={2}>
+  <Card title="Server configuration" icon="sliders" href="/harnest/runtime/serving/server-configuration">
+    Configure the bind, timeout, concurrency, limits, and playground.
+  </Card>
+  <Card title="Neutral API" icon="code" href="/harnest/runtime/serving/neutral-api">
+    Use sessions, JSON responses, SSE streams, and live WebSockets.
+  </Card>
+  <Card title="Custom HTTP endpoints" icon="route" href="/harnest/runtime/custom-http-endpoints">
+    Expose business-specific FastAPI routes through the managed agent runtime.
+  </Card>
+  <Card title="Approvals and client tools" icon="user-check" href="/harnest/runtime/serving/approvals-and-client-tools">
+    Handle required actions and resume suspended work.
+  </Card>
+  <Card title="Production deployment" icon="shield" href="/harnest/runtime/serving/production">
+    Add authentication, durable storage, TLS, supervision, and network policy.
+  </Card>
+</CardGroup>
+
+## Response modes
+
+| Mode | Start with | Receive |
+|---|---|---|
+| JSON | `POST /responses` | One completed response |
+| SSE | `POST /responses` with `"stream": true` | Named `response.*` events |
+| WebSocket | Connect to `/live`, then send `response.create` | The same events over a live channel |
+
+Input and output Pydantic schemas apply to every mode and OpenAPI.

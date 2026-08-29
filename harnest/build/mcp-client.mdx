@@ -1,0 +1,52 @@
+---
+title: "MCP Client"
+sidebarTitle: "MCP Client"
+description: "Connect agents to MCP servers with portable transports, identity, and policy."
+---
+
+`MCPClient` declares a connection to an external MCP server. Direct clients live under root `mcp/`; each public filename supplies the connection identity and exports a zero-argument `client()` factory returning `MCPClient`.
+
+| Property | Rule |
+|---|---|
+| Location | `mcp/<name>.py` |
+| Export | `client()` |
+| Factory arguments | None |
+| Preferred transport | Streamable HTTP |
+| Legacy transport | SSE |
+| Connection time | Runtime, not compile time |
+| Credentials | Deployment environment or invocation credential provider |
+
+```python
+import os
+
+from harnest.mcp import MCPClient
+
+def client():
+    """Connect to the catalog MCP server."""
+
+    return MCPClient.streamable_http(
+        os.environ["CATALOG_MCP_URL"],
+        headers={"Authorization": f"Bearer {os.environ['CATALOG_MCP_TOKEN']}"},
+    )
+```
+
+Use `MCPClient.sse(...)` only for a legacy SSE server. Connections and remote tool discovery are lazy, so offline compilation and unit tests do not need the server.
+
+## Framework adapters
+
+| Framework | Adapter behavior |
+|---|---|
+| ADK | Uses the native MCP toolset |
+| LangGraph | Uses its MCP adapter and discovers remote tools at runtime |
+
+Harnest keeps connection identity and approval policy consistent. Same-named tools on different servers remain distinct.
+
+## Authentication and gateways
+
+Read URLs and static credentials from the deployment environment. For user-scoped access, resolve a token through [Authentication and Credentials](/harnest/runtime/authentication-and-credentials).
+
+Customize the HTTP client only for a gateway, mTLS, or transport policy. Put shared clients in lifecycle resources because adapters may call the factory more than once.
+
+## Direct connections and plugins
+
+Use root `mcp/` for a connection that is part of one agent. Use a [`plugins/<name>/`](/harnest/build/agent-plugins) bundle when the connection and its progressive usage skills should travel together as one reusable capability.

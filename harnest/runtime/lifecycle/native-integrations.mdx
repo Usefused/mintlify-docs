@@ -1,0 +1,44 @@
+---
+title: "Native integrations"
+description: "Add ADK plugins or LangGraph middleware without hiding the portability boundary."
+---
+
+Use a native integration only when portable lifecycle hooks cannot express the required behavior.
+
+| Framework | Native integration | Best for |
+|---|---|---|
+| ADK | `@lifecycle.adk_plugin` | ADK plugins and runner callbacks |
+| LangGraph | `@lifecycle.langgraph_middleware` | Middleware and graph runtime behavior |
+
+## Ownership
+
+| Harnest keeps | Native integration owns |
+|---|---|
+| Neutral server and transports | Framework-specific callback behavior |
+| Sessions and request identity | Native request or state types |
+| Portable hooks around the invocation | Calls outside Harnest's boundaries |
+| Tests and telemetry at neutral boundaries | Native observability not routed through Harnest |
+
+Native factories are selected only for the active framework. Keep the portable portion in ordinary lifecycle hooks and isolate the native portion.
+
+## Migration effect
+
+| Project uses | Framework switch |
+|---|---|
+| Portable hooks only | Usually configuration plus tests |
+| ADK plugin | Replace or remove the plugin for LangGraph |
+| LangGraph middleware | Replace or remove the middleware for ADK |
+| Advanced native target | Migrate native behavior manually |
+
+<Note>
+  Advanced applications already own their native runtime. Harnest validates and packages the target but does not compose managed capability folders into it.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Invocation hooks" icon="arrows-rotate" href="/harnest/runtime/lifecycle/invocation-hooks">
+    Keep cross-framework policy portable.
+  </Card>
+  <Card title="ADK and LangGraph" icon="code-branch" href="/harnest/runtime/adk-and-langgraph">
+    Review the full portability boundary.
+  </Card>
+</CardGroup>

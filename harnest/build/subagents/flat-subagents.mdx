@@ -1,0 +1,31 @@
+---
+title: "Flat SubAgents"
+description: "Add a SubAgent definition that does not need private instructions or capabilities."
+---
+
+Use a flat file for a small SubAgent that needs only its definition.
+
+```text
+subagents/
+└── researcher.py
+```
+
+`subagents/researcher.py` exports an `AgentDefinition` named `researcher`.
+
+## Flat SubAgent properties
+
+| Property | Rule |
+|---|---|
+| File | `subagents/<name>.py` |
+| Export | Must match the filename |
+| Instructions | Defined by the agent declaration |
+| Private tools | Not supported |
+| Private MCP | Not supported |
+| Private Agent Skills | Not supported |
+| Use from parent | Reference by name or as a graph node |
+
+Move the SubAgent into a folder when it needs private instructions or capabilities.
+
+<Card title="Folder-owned SubAgents" icon="folder" href="/harnest/build/subagents/folder-subagents">
+  Create a separate capability boundary for the child agent.
+</Card>

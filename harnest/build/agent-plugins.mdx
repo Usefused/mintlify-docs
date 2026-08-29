@@ -1,0 +1,66 @@
+---
+title: "Agent plugins"
+sidebarTitle: "Agent plugins"
+description: "Bundle MCP clients with the Agent Skills that teach an agent to use them."
+---
+
+An Agent Plugin is a reusable capability bundle: MCP connections plus the Agent Skills that explain when and how to use them.
+
+| A plugin contains | A plugin does not contain |
+|---|---|
+| One or more MCP clients | Another agent |
+| One or more Agent Skills | Lifecycle callbacks |
+| Optional skill references, assets, and scripts | Embedded credentials |
+
+```text
+plugins/
+└── warehouse/
+    ├── mcp/
+    │   └── bigquery.py
+    └── skills/
+        └── query-warehouse/
+            ├── SKILL.md
+            └── references/       # optional
+```
+
+## Plugin properties
+
+| Property | Rule |
+|---|---|
+| Plugin name | Comes from the directory name |
+| MCP identity | Comes from the client filename |
+| MCP factory | Must be `client()` with no parameters |
+| Skill name | Must match the skill directory |
+| Completeness | A non-empty plugin needs at least one MCP client and one skill |
+| Discovery | Deterministic by plugin name |
+| Credentials | Resolve from deployment settings or a credential provider |
+
+The MCP client follows the same rules as a direct client:
+
+```python
+import os
+
+from harnest.mcp import MCPClient
+
+
+def client():
+    return MCPClient.streamable_http(
+        os.environ["BIGQUERY_MCP_URL"],
+        prefix="bigquery",
+    )
+```
+
+The skill should tell the agent which MCP tools to choose, what inputs they need, how to read the result, and what to do when the connection fails.
+
+Plugin clients join direct clients from `mcp/`. Plugin skills join direct skills from `skills/`. Duplicate skill names or identical connection configurations fail compilation instead of shadowing one another.
+
+For selective approval, name the server's original tool before any prefix. Harnest rejects unknown names after remote discovery.
+
+<CardGroup cols={2}>
+  <Card title="Connect directly to MCP" icon="plug" href="/harnest/build/mcp-client">
+    Use a direct connection when it belongs to one agent.
+  </Card>
+  <Card title="Add lifecycle behavior" icon="rotate" href="/harnest/runtime/lifecycle">
+    Use an extension for persistence, guardrails, auditing, or native middleware.
+  </Card>
+</CardGroup>

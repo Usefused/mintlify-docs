@@ -1,0 +1,122 @@
+---
+title: "Architecture"
+sidebarTitle: "Architecture"
+description: "Understand how Harnest turns agent source into a framework-specific, portable server."
+---
+
+Harnest validates your source, lowers it to ADK or LangGraph, and serves it through one neutral runtime.
+
+## The path from source to server
+
+```text
+agent source → validate → compile for ADK or LangGraph → artifact → neutral server
+```
+
+| Stage | Input | Output |
+|---|---|---|
+| Plan | `orchestrator.py` | Deployment plan JSON |
+| Discover | Agent directories | Validated resources and source digest |
+| Compile | Source plus framework selection | Self-contained artifact under `.harnest/` |
+| Serve | Compiled artifact plus `server.yaml` | HTTP, SSE, WebSocket, and playground surfaces |
+| Deploy | Deployment plan plus artifact | Engine-managed process |
+
+<Note>
+  `orchestrator.py` is trusted project code. Rendering a plan imports it. In CI, you can inspect or store the JSON plan before deployment.
+</Note>
+
+## Ownership
+
+| Owner | What it controls |
+|---|---|
+| Your source | Agent behavior and capabilities |
+| `config.yaml` | Framework, mode, entrypoint, and deployment intent |
+| `server.yaml` | Bind, limits, timeout, concurrency, and playground |
+| Compiler | Validation, adapters, manifest, digest, and launchers |
+| Runtime | Sessions, checkpoints, auth, telemetry, and transports |
+| Deployment engine | Process lifecycle and deployment environment |
+
+Treat `.harnest/` as generated output. Commit your source and `uv.lock`; regenerate artifacts when the source or selected framework changes.
+
+## Framework boundary
+
+The framework choice is explicit:
+
+```yaml
+spec:
+  entrypoint: agent:root_agent
+  framework:
+    name: adk          # adk | langgraph
+    mode: managed      # managed | advanced
+```
+
+| Mode | Harnest owns | You own |
+|---|---|---|
+| Managed | Discovery, wiring, framework adapters, and portable runtime behavior | Agent intent and portable source |
+| Advanced | Validation, packaging, and neutral serving | Native framework graph, middleware, state, and framework-specific behavior |
+
+The manifest records the framework, mode, versions, and source digest. The runtime rejects mismatches.
+
+<Card title="Compare ADK and LangGraph" icon="arrows-left-right" href="/harnest/runtime/adk-and-langgraph">
+  See what moves between frameworks unchanged and what remains framework-native.
+</Card>
+
+## Filesystem composition
+
+Harnest uses location to discover capabilities. Public filenames define resource identity.
+
+| Source | Discovered as |
+|---|---|
+| `agent.py` | Root agent or graph |
+| `tools/*.py` | Agent Tools |
+| `subagents/` | SubAgents |
+| `mcp/*.py` | MCP connections |
+| `plugins/` | MCP-and-skill bundles |
+| `skills/` | Agent Skills |
+| `extensions/**/*.py` | Lifecycle behavior |
+| `models/` | Pydantic contracts |
+| `lib/` | Shared Python |
+| `evals/`, `tests/` | Tests and evals |
+
+Optional directories may be absent. Invalid or duplicate resources fail compilation.
+
+## Runtime boundary
+
+The neutral runtime keeps common product behavior consistent across ADK and LangGraph.
+
+| Concern | Neutral behavior |
+|---|---|
+| Identity | One agent card and stable route set |
+| Sessions | User-scoped session state and transcript |
+| Execution | JSON response, SSE stream, and live WebSocket |
+| Tools | Server tools, client-hosted tools, MCP tools, and approvals |
+| Storage | One session store and one checkpointer |
+| Security | Request principal and invocation-scoped credentials |
+| Observability | Structured logs, traces, and privacy-safe audit events |
+
+Use neutral routes for portable behavior. Native routes remain framework-owned.
+
+## Deployment plan
+
+An orchestrator selects agent folders and deployment settings. The Go engine receives the JSON plan, compiles each agent, and starts its artifact.
+
+The digest covers agent-owned inputs. A pre-rendered plan lets CI inspect the deployment without executing authored Python later.
+
+## Safety defaults
+
+| Default | Why it exists |
+|---|---|
+| Local-only server bind | Avoid accidental network exposure |
+| Strict schemas and unknown-field rejection | Catch configuration drift early |
+| Redacted diagnostics | Keep secrets and payloads out of errors |
+| Bounded requests and pagination | Limit memory and transport abuse |
+| Explicit approval suspension | Resume the exact operation without replaying earlier side effects |
+| Content-free runtime telemetry | Keep prompts, responses, credentials, and raw identifiers out of default traces |
+
+<CardGroup cols={2}>
+  <Card title="Build an agent" icon="diagram-project" href="/harnest/build/agent-concepts">
+    Follow each source concept from authoring to discovery.
+  </Card>
+  <Card title="Serve an agent" icon="server" href="/harnest/runtime/serving">
+    See the neutral API and production boundary.
+  </Card>
+</CardGroup>

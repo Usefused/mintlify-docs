@@ -1,0 +1,32 @@
+---
+title: "Serve a project"
+sidebarTitle: "Serve a project"
+description: "Launch the neutral server and development playground."
+---
+
+Compile and start the standalone development server:
+
+```bash
+harnest serve support-agent
+```
+
+| URL | Use it for |
+|---|---|
+| `http://127.0.0.1:8080/` | Test the agent in the playground |
+| `http://127.0.0.1:8080/docs` | Inspect the generated API |
+| `http://127.0.0.1:8080/healthz` | Check process health |
+
+<CardGroup cols={2}>
+  <Card title="Open the playground" icon="display" href="http://127.0.0.1:8080/">
+    Test managed or advanced ADK and LangGraph agents in the same UI.
+  </Card>
+  <Card title="Inspect the API" icon="brackets-curly" href="http://127.0.0.1:8080/docs">
+    Explore HTTP, SSE, sessions, approvals, and client tools.
+  </Card>
+</CardGroup>
+
+<Note>
+  Set the bind, limits, timeout, concurrency, and playground in `server.yaml`.
+</Note>
+
+See [Serving agents](/harnest/runtime/serving) for the HTTP, SSE, WebSocket, approval, authentication, storage, and production boundaries.

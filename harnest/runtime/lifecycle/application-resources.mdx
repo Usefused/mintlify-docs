@@ -1,0 +1,68 @@
+---
+title: "Application resources"
+description: "Start dependencies once, publish them to agent code, and close them safely."
+---
+
+Use lifecycle resources for database pools, service clients, caches, and other application-owned dependencies.
+
+```python
+from harnest.context import context
+from harnest.lifecycle import lifecycle
+from harnest.lib.catalog import CatalogClient
+
+
+@lifecycle.resource
+@context("catalog")
+async def catalog():
+    client = CatalogClient()
+    try:
+        yield client
+    finally:
+        await client.close()
+```
+
+## Resource properties
+
+| Decorator | Lifetime | Visible to agent code? |
+|---|---|---:|
+| `@lifecycle.resource` | Application | No |
+| Both decorators | Application | Yes |
+| `@context("name")` | Invocation | Yes |
+
+Harnest starts application resources in order and closes them in reverse order.
+
+## Read a resource
+
+```python
+from harnest import context
+
+
+def search_catalog(query: str):
+    catalog = context.resource("catalog")
+    return catalog.search(query)
+```
+
+| Rule | Result |
+|---|---|
+| Unique name | Duplicate context resources fail compilation |
+| Active invocation | Access outside an invocation fails |
+| Root ownership | SubAgents use the root binding |
+| No credentials | Resolve secrets through `context.credentials` |
+
+## Resource or tool?
+
+| Need | Choose |
+|---|---|
+| Dependency used by trusted Python | Resource |
+| Capability the model can invoke | Agent Tool |
+| Downstream secret or user token | Credential provider |
+| Session or checkpoint persistence | Storage factory |
+
+<CardGroup cols={2}>
+  <Card title="Agent Tools" icon="wrench" href="/harnest/build/agent-tools">
+    Expose typed capabilities to the model.
+  </Card>
+  <Card title="Auth and credentials" icon="key" href="/harnest/runtime/authentication-and-credentials">
+    Resolve private credentials inside an invocation.
+  </Card>
+</CardGroup>

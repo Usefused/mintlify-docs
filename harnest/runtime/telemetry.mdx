@@ -1,0 +1,62 @@
+---
+title: "Telemetry"
+sidebarTitle: "Telemetry"
+description: "Emit structured logs, traces, OTLP signals, and privacy-safe audit events."
+---
+
+Harnest provides the same logging and tracing API for ADK and LangGraph.
+
+| Signal | Use it for | Default destination |
+|---|---|---|
+| Structured logs | Searchable runtime events | JSON on stderr |
+| Traces | Timing and causality | Disabled until configured |
+| Audit events | Durable mutation outcomes | Configured OTEL destination |
+| Playground traces | Local debugging | Process memory |
+
+## Add logs and spans
+
+```python
+from harnest.logging import get_logger
+from harnest.tracing import span, traced
+
+logger = get_logger("catalog").bind(component="search")
+
+
+@traced("catalog.lookup", attributes={"catalog.kind": "products"})
+def lookup(query: str):
+    with span("catalog.rank", candidate_count=12):
+        logger.info("catalog.lookup.completed", result_count=3)
+        return ["one", "two", "three"]
+```
+
+Logs inside a span carry its trace and span IDs.
+
+## Configure OTLP
+
+```bash
+export OTEL_SERVICE_NAME=support-agent
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export HARNEST_LOG_LEVEL=INFO
+harnest serve support-agent
+```
+
+| Property | Purpose |
+|---|---|
+| `OTEL_SERVICE_NAME` | Service identity |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector endpoint |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | Export protocol |
+| `HARNEST_LOG_LEVEL` | Minimum log level |
+| `HARNEST_LOG_CONSOLE=false` | Disable JSON stderr logs |
+
+Standard per-signal endpoints, headers, timeouts, compression, resources, and sampling variables also work. Keep exporter credentials in deployment secrets. Use a Collector for translation or fan-out.
+
+## Privacy boundary
+
+| Recorded by default | Not recorded by default |
+|---|---|
+| Operation names and outcomes | Prompts and responses |
+| Timing fields with a bounded set of values | Credentials and headers |
+| Correlated failures | Raw session IDs and payloads |
+
+The playground trace inspector is bounded, process-local debug state—not an audit store. Runtime mutations emit audit signals after commit. CLI and compiler file changes are outside this runtime audit boundary.

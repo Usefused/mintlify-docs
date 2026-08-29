@@ -1,0 +1,95 @@
+---
+title: "Testing and compilation"
+sidebarTitle: "Testing and compilation"
+description: "Run unit tests, smoke tests, evals, CI checks, and compile standalone artifacts."
+---
+
+Harnest owns the environment and compiled application used by every test lane. Authored tests exercise the selected ADK or LangGraph target without importing Harnest or manually loading build artifacts.
+
+| Lane | Command | Network | Best for |
+|---|---|---:|---|
+| Unit | `harnest test AGENT_DIR` | No | Agent logic and local tools |
+| Smoke | `harnest test AGENT_DIR --smoke` | Allowed | Live models, MCP, and API journeys |
+| Evals | `harnest test AGENT_DIR --evals` | Depends on eval | Quality and tool trajectories |
+| Compile | `harnest compile AGENT_DIR` | No | Reproducible standalone artifact |
+
+## Unit tests
+
+Run the default offline lane:
+
+```bash
+harnest test AGENT_DIR
+```
+
+Harnest compiles the project, then collects `tests/unit/test_*.py`.
+
+| Fixture | Value |
+|---|---|
+| `agent` | Selected framework target |
+| `tools` | Read-only map of local tools |
+
+Unit tests should not call models, MCP servers, or other networks. This is a convention, not an OS sandbox.
+
+## Smoke tests
+
+Live runtime checks belong in `tests/smoke/test_*.py` and run only when selected:
+
+```bash
+harnest test AGENT_DIR --smoke
+```
+
+The unit lane runs first. Smoke tests add a FastAPI `client` and a `smoke` fixture.
+
+| Method | Returns |
+|---|---|
+| `smoke.respond(...)` | One neutral JSON response |
+| `smoke.stream(...)` | Ordered SSE event objects |
+
+Smoke tests may spend time or money and use real credentials. Run them deliberately.
+
+## Evaluations
+
+Run eval assets after the Python tests:
+
+```bash
+harnest test AGENT_DIR --evals
+harnest test AGENT_DIR --smoke --evals
+```
+
+ADK projects can place official `EvalSet` JSON files in `evals/`. The default `business` trajectory requires business calls in order but allows helper calls. Require the exact sequence with:
+
+```bash
+harnest test AGENT_DIR --evals --eval-trajectory strict
+```
+
+ADK eval files do not run for LangGraph. Put portable evaluations in unit or smoke tests.
+
+## Compile an artifact
+
+Compile validated source into a standalone runtime directory:
+
+```bash
+harnest compile AGENT_DIR --output .harnest/my-agent
+```
+
+| Artifact file | Purpose |
+|---|---|
+| Preserved source | Your agent code |
+| Generated adapters | Selected framework integration |
+| `harnest-manifest.json` | Versions, mode, and source identity |
+| `server.yaml` | Mutable runtime settings |
+| `harnest-agent` | Launcher |
+
+Compiled directories are reproducible output. Do not edit or commit them.
+
+## CI
+
+A minimal offline CI sequence is:
+
+```bash
+harnest env sync AGENT_DIR --frozen
+harnest test AGENT_DIR
+harnest compile AGENT_DIR --output .harnest/my-agent
+```
+
+Add smoke or eval lanes only when CI has the required services and credentials. For Harnest source changes, follow [Development standards](/harnest/reference/development-standards).

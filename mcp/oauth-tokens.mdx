@@ -3,7 +3,7 @@ title: "Tokens for OAuth services"
 description: "Give an agent access to a provider that acts on behalf of individual users."
 ---
 
-An API key belongs to your company. An OAuth connection belongs to one person. When an agent calls a service like Jira, Google, or Slack, the provider needs to know *which* connected user it is acting for — and Fused calls that identifier the **end-user reference**.
+An API key belongs to your company. An OAuth connection is stored in a bucket and names one connected person through its grant. When an agent calls a service like Jira, Google, or Slack, the provider needs to know *which* connected user it is acting for — and Fused calls that identifier the **end-user reference**.
 
 This page covers getting one to the Engine.
 
@@ -13,10 +13,17 @@ An OAuth token resolves against a connection that must already be there. Two thi
 
 <Steps>
   <Step title="Register the OAuth app">
-    Your `client_id`, `client_secret`, and `redirect_uri` with the provider, stored against a bucket.
+    Store the provider app's `client_id` and `client_secret` as one atomic pair
+    in the bucket. The Engine derives the callback as
+    `<engine.public_url>/workspace/connect/callback`; `redirect_uri` is not
+    credential input.
     ```bash
-    fused-cli connect set jira --bucket default --type oauth --auth-name OAuth2 --interactive
-    fused-cli connect get jira --bucket default
+    printf '%s' 'client_id=...;client_secret=...' | \
+      fused-cli secret set jira \
+        --bucket default \
+        --type oauth \
+        --auth-name OAuth2 \
+        --value-stdin
     ```
   </Step>
   <Step title="Connect a user">
@@ -31,6 +38,20 @@ An OAuth token resolves against a connection that must already be there. Two thi
 </Steps>
 
 Keep `--user-ref` stable and meaningful — it is your identifier for that person, not the provider's.
+
+The app credentials and connected-user tokens have separate lifecycles. A
+compatible target service can reuse a source app through
+`ref: "${bucket.auth.<source-service>.<source-auth-name>}"` under the target
+service's `auth` block in the MCP configuration. The MCP's top-level `bucket`
+selects where the source pair is stored. The source service must be
+workspace-enabled, but it does not need to expose operations through the MCP.
+The resulting access, refresh, and ID tokens remain attached to the target
+service and user.
+
+For a standalone CLI connection that needs the same routing without loading an
+MCP, pass `--auth-ref '${bucket.auth.<source-service>.<source-auth-name>}'` with
+the target `--type` and `--auth-name`. This initialization/debug command has no
+SDK or MCP identity selector and does not infer the reference from app identity.
 
 ## Two ways to bind a token
 

@@ -1,0 +1,38 @@
+---
+title: "Install"
+sidebarTitle: "Install"
+description: "Install the Harnest CLI and verify its managed runtime."
+---
+
+Install the native CLI and its managed runtime on macOS or Linux.
+
+| Property | Value |
+|---|---|
+| Platforms | macOS and Linux |
+| Architectures | AMD64 and ARM64 |
+| Python required | No |
+| Installed command | `harnest` |
+
+<Steps>
+  <Step title="Run the installer">
+    ```bash
+    curl -fsSL \
+      https://raw.githubusercontent.com/Usefused/harnest/main/install.sh |
+      sh
+    ```
+
+    The installer shows the selected version and destination paths before asking for confirmation.
+  </Step>
+  <Step title="Verify both layers">
+    ```bash
+    harnest --version
+    harnest doctor
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  A Harnest release includes the native CLI, its matching Python runtime package, and the `uv` bootstrapper. You do not need a preinstalled Python.
+</Note>
+
+See [Installation and releases](/harnest/reference/installation-and-releases) for version pinning, non-interactive installation, upgrades, checksums, and private forks.

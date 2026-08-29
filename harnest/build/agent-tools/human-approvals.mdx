@@ -1,0 +1,108 @@
+---
+title: "Human approvals"
+description: "Require permission for every tool call or for one operation found risky at runtime."
+---
+
+Choose the approval boundary that matches the risk.
+
+| Approval API | Use it when |
+|---|---|
+| `@require_human_approval` | Every invocation is sensitive |
+| `request_human_approval(...)` | Evaluation finds one sensitive operation |
+
+<Tabs>
+  <Tab title="Approve every invocation">
+    ```python
+    from harnest.approval import require_human_approval
+    from harnest.tool import tool
+
+
+    @tool
+    @require_human_approval(message="Approve deleting {customer_id}?")
+    def delete_customer(customer_id: str):
+        return database.delete_customer(customer_id)
+    ```
+  </Tab>
+  <Tab title="Approve after evaluation">
+    ```python
+    from harnest.approval import request_human_approval
+    from harnest.tool import tool
+
+
+    @tool
+    async def execute_typescript(source: str) -> str:
+        """Evaluate policy before executing TypeScript."""
+
+        risk = evaluate_typescript(source)
+        if not risk.requires_approval:
+            return await execute(source)
+
+        async with request_human_approval(
+            action="typescript.execute",
+            message="Execute TypeScript with network access?",
+            arguments={
+                "sourceHash": risk.source_hash,
+                "capabilities": sorted(risk.capabilities),
+            },
+        ):
+            return await execute(source)
+    ```
+  </Tab>
+</Tabs>
+
+## Dynamic approval flow
+
+| Stage | Behavior |
+|---|---|
+| Evaluate | Inspect code, network access, database intent, or another risk signal |
+| Request | Enter the block; Harnest suspends the task and returns `requires_action` |
+| Decide | Approve or deny through `POST /approvals/{approvalId}` |
+| Resume | Continue at the block without replaying earlier work |
+
+Each later protected block creates a separate request.
+
+## Binding properties
+
+| Bound value | Purpose |
+|---|---|
+| Authenticated user | Prevent another user from consuming it |
+| Session | Keep the decision inside the conversation |
+| Invocation | Resume only the suspended run |
+| `action` | Identify the protected operation |
+| Canonical argument hash | Detect changed operation inputs |
+
+| Input | Rule | Example |
+|---|---|---|
+| `action` | Stable and non-sensitive | `typescript.execute` |
+| `arguments` | Serializable values identifying the operation | Source hash and capabilities |
+| `message` | Public text shown to the approver | `Execute TypeScript with network access?` |
+
+Harnest retains the argument hash, not the arguments, in approval audit logs.
+
+## Execution reporting
+
+Only code inside the context block is approved.
+
+| Outcome | Recorded status |
+|---|---|
+| Block exits normally | Executed |
+| Operation raises | Failed |
+| Task is cancelled | Failed |
+| Later block is reached | New approval request |
+
+## Shared approval engine
+
+| Behavior | Result |
+|---|---|
+| One-time consumption | A decision cannot authorize a second execution |
+| Identity and argument validation | Changed context cannot reuse approval |
+| Expiration and denial | Protected code does not run |
+| Transport support | JSON, SSE, and WebSocket |
+| Audit telemetry | Privacy-safe outcomes |
+| Framework support | Managed ADK and LangGraph |
+
+<Warning>
+  Dynamic approval requires an asynchronous callable and an active managed Harnest invocation. Calls outside the neutral execution boundary fail closed.
+</Warning>
+
+See [Approvals and client tools](/harnest/runtime/serving/approvals-and-client-tools) for transport events and decision requests.

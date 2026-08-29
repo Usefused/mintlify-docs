@@ -1,0 +1,85 @@
+---
+title: "Custom HTTP endpoints"
+sidebarTitle: "Custom HTTP endpoints"
+description: "Add application-specific FastAPI endpoints that invoke your Harnest agent."
+---
+
+Add custom endpoints when your application needs a business-specific HTTP contract in addition to Harnest's neutral API. The same extension works with managed or advanced ADK and LangGraph agents.
+
+## Add an endpoint
+
+Create a synchronous route factory in the root agent's `extensions/` directory. Harnest injects an `AgentInvoker` and mounts the returned FastAPI router.
+
+```python extensions/http.py
+from fastapi import APIRouter, Request
+from harnest import AgentInvoker, lifecycle
+
+
+@lifecycle.http_routes
+def http_routes(agent: AgentInvoker):
+    router = APIRouter(prefix="/threadify")
+
+    @router.post("/execute")
+    async def execute(payload: dict, request: Request):
+        response = await agent.invoke(
+            connection=request,
+            input=payload["message"],
+            session_id=payload.get("sessionId"),
+            metadata={"source": "threadify"},
+        )
+        return {
+            "sessionId": response.session_id,
+            "status": response.status,
+            "answer": response.output_text,
+            "result": response.result,
+            "requiredAction": response.required_action,
+        }
+
+    return router
+```
+
+The factory can return multiple routes or use FastAPI dependencies. Define route factories only at the root. SubAgents do not own server paths.
+
+## Invoke the agent safely
+
+`AgentInvoker` uses the same response coordinator as `POST /responses`. It does not call the raw ADK or LangGraph object.
+
+| Behavior | Custom endpoint result |
+|---|---|
+| Authentication | Harnest derives identity from `connection`; callers cannot supply `user_id` |
+| Session omitted | Harnest creates a user-scoped session |
+| Session supplied | Harnest verifies that the authenticated caller owns it |
+| Input schema | Harnest validates the configured Pydantic input model |
+| Lifecycle and credentials | The normal invocation bindings run |
+| Approval or client tool | `status` is `requires_action` and `required_action` describes the continuation |
+| Telemetry and limits | Standard tracing, logging, timeout, concurrency, and request-size policy applies |
+
+<Warning>
+  Pass the current FastAPI `Request` as `connection`. Do not accept or construct a `user_id` from the request body.
+</Warning>
+
+## Handle required actions
+
+An invocation can pause instead of returning a final answer:
+
+```python
+response = await agent.invoke(connection=request, input=payload["message"])
+
+if response.status == "requires_action":
+    return {
+        "status": response.status,
+        "requiredAction": response.required_action,
+    }
+```
+
+Resume human approvals through `POST /approvals/{approvalId}`. Submit browser-hosted tool results through `POST /client-tools/{requestId}`. These endpoints share the same suspended execution created by the custom route.
+
+Use `response.as_dict()` when your endpoint should return Harnest's complete neutral response shape unchanged.
+
+## Route ownership
+
+Compilation rejects duplicate routes and Harnest-owned namespaces. Reserved paths include `/responses`, `/sessions`, `/live`, `/approvals`, `/client-tools`, `/agent`, `/healthz`, playground assets, OpenAPI pages, and ADK-native run or application routes.
+
+When you configure authentication, custom routes are protected by default. They also appear in `/openapi.json`. Harnest does not currently provide streaming through `AgentInvoker`; use the neutral SSE or WebSocket APIs when you need streaming.
+
+See [Neutral API](/harnest/runtime/serving/neutral-api), [Approvals and client tools](/harnest/runtime/serving/approvals-and-client-tools), and [Authentication and credentials](/harnest/runtime/authentication-and-credentials).

@@ -1,0 +1,63 @@
+---
+title: "Development standards"
+sidebarTitle: "Development standards"
+description: "Follow Harnest source-quality, testing, complexity, and audit requirements."
+---
+
+These rules apply to the Go CLI and engine and the Python compiler and runtime.
+
+## Source properties
+
+| Rule | Requirement |
+|---|---|
+| Complexity | Maximum cyclomatic complexity of 10 per function or method |
+| Shared behavior | Keep one source of truth |
+| Boundaries | Separate decisions from filesystem, process, network, database, and serialization code |
+| Comments | Explain policy, ordering, safety, and compatibility—not syntax |
+| Database work | Filter, project, order, and paginate in the datastore |
+| Query count | Avoid one query per item; test batching and prefetching |
+
+Extract a cohesive helper when a function exceeds the complexity limit. Do not hide branches or suppress the check.
+
+Bounded filesystem discovery and decoding one validated document are not database queries. Keep them bounded and avoid repeated reads.
+
+## Audit boundary
+
+Runtime work that changes durable state must emit an OpenTelemetry audit signal after commit. Failed attempts need a correlated failure signal.
+
+| Record | Never record |
+|---|---|
+| Operation and trigger | Prompts and results |
+| Outcome | Credentials and headers |
+| Stable identifiers with a bounded set of values | Secret values and full payloads |
+
+Compiler and CLI file changes are outside this audit boundary. Do not add a separate compiler telemetry stack without an explicit design.
+
+## Test selection
+
+| Change | Required test |
+|---|---|
+| One behavior in one component | Focused unit test |
+| Compiler/backend, process, transport, datastore, or framework boundary | Integration test |
+| Released journey not proven at a smaller boundary | End-to-end test |
+| Query-backed behavior | Query-count test |
+
+Keep every `SKILL.md` at 400 words or fewer, including frontmatter. Put schemas, background, long examples, and conditional details in `references/`.
+
+## Quality gate
+
+```bash
+python -m pip install -e ".[all,quality]"
+make quality
+```
+
+| Gate | Checks |
+|---|---|
+| Schemas | JSON contracts are valid |
+| Python and Go tests | Behavior and integrations |
+| Complexity | Both languages stay at or below the limit |
+| Formatting and vetting | Go formatting and `go vet` |
+| Offline integration | Python plan through Go compile and deploy |
+| Skill quality | Entrypoint word limits and structure |
+
+Run the same gate before a pull request or release.

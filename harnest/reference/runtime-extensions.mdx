@@ -1,0 +1,43 @@
+---
+title: "Runtime extension reference"
+sidebarTitle: "Runtime extensions"
+description: "Find each lifecycle decorator, its allowed count, and its detailed guide."
+---
+
+Root files under `extensions/**/*.py` add behavior around the agent. Harnest discovers decorated functions and ignores ordinary helpers.
+
+## Decorator index
+
+| Decorator | Allowed | Purpose | Guide |
+|---|---:|---|---|
+| `@lifecycle.resource` | Many | Application dependency | [Application resources](/harnest/runtime/lifecycle/application-resources) |
+| `@context("name")` | Many | Publish a resource | [Application resources](/harnest/runtime/lifecycle/application-resources) |
+| `@lifecycle.before_agent` / `after_agent` | Many | Agent policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
+| `@lifecycle.before_model` / `after_model` | Many | Model policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
+| `@lifecycle.before_tool` / `after_tool` | Many | Tool policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
+| `@lifecycle.output_policy` | Zero or one | Public SubAgent messages | [Output policy](/harnest/runtime/lifecycle/output-policy) |
+| `@lifecycle.adk_plugin` | Many | ADK-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
+| `@lifecycle.langgraph_middleware` | Many | LangGraph-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
+| `@lifecycle.http_routes` | Many | Application HTTP routes | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
+| `@lifecycle.asset_store` | Zero or one | Multimodal asset storage | [Typed multimodal contracts](/harnest/build/models-and-libraries/typed-multimodal-contracts) |
+| `@lifecycle.session_store` | Exactly one | Sessions and transcripts | [Storage](/harnest/runtime/checkpoints-and-storage) |
+| `@lifecycle.checkpointer` | Exactly one | In-progress execution | [Storage](/harnest/runtime/checkpoints-and-storage) |
+| `@lifecycle.authenticate` | Zero or more | Request identity | [Authentication](/harnest/runtime/authentication-and-credentials) |
+| `@lifecycle.credential_provider` | Zero or one | Downstream credentials | [Authentication](/harnest/runtime/authentication-and-credentials) |
+| `@lifecycle.telemetry_exporter` | Many | Trace and log destination | [Telemetry](/harnest/runtime/telemetry) |
+
+## Factory rules
+
+| Rule | Behavior |
+|---|---|
+| Signature | Synchronous and zero-argument unless it is a callback; `http_routes` receives one `AgentInvoker` |
+| Return type | Must match the decorator's resource or policy type |
+| Duplicates | Single-owner factories reject duplicates |
+| Ordering | Explicit order, then source path |
+| Ownership | Root agent only |
+| Startup failure | Application does not serve |
+| Shutdown | Harnest closes resources it owns |
+
+<Card title="Lifecycle overview" icon="arrows-rotate" href="/harnest/runtime/lifecycle">
+  Choose the extension type before opening its focused guide.
+</Card>

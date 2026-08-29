@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="176" height="32" viewBox="0 0 176 32" role="img" aria-labelledby="title">
+  <title id="title">Harnest by Fused</title>
+  <text x="0" y="22" fill="#040404" font-family="Inter, ui-sans-serif, system-ui, sans-serif">
+    <tspan font-size="20" font-weight="700">Harnest</tspan>
+    <tspan dx="7" font-size="14" font-weight="400">by</tspan>
+    <tspan dx="4" font-size="14" font-weight="600">Fused</tspan>
+  </text>
+</svg>

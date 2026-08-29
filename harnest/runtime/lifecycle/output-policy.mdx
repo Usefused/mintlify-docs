@@ -1,0 +1,45 @@
+---
+title: "Output policy"
+description: "Control whether intermediate SubAgent narration becomes public."
+---
+
+Output policy changes which model messages Harnest publishes. It does not change prompts or model responses.
+
+| Value | Behavior |
+|---|---|
+| `suppress` | Hide provisional SubAgent narration; the default |
+| `include` | Publish that narration to neutral transports and the playground |
+
+```python
+from harnest.lifecycle import lifecycle
+from harnest.output import OutputPolicy
+
+
+@lifecycle.output_policy
+def output_policy():
+    return OutputPolicy(subagent_messages="include")
+```
+
+## What remains visible
+
+| Event | `suppress` | `include` |
+|---|---:|---:|
+| Root-agent messages | Yes | Yes |
+| Tool calls and results | Yes | Yes |
+| Final answer | Yes | Yes |
+| Intermediate SubAgent narration | No | Yes |
+| Hidden model reasoning | No | No |
+
+<Warning>
+  Intermediate narration may be provisional and later revised. Use `include` only when your product deliberately presents progress.
+</Warning>
+
+## Scope
+
+| Property | Rule |
+|---|---|
+| Factory | Synchronous and zero-argument |
+| Allowed | Zero or one per root agent |
+| Frameworks | Managed and advanced roots through neutral routes |
+| Native routes | Framework-owned |
+| Tests | Does not change authored fixtures |

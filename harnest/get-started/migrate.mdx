@@ -1,0 +1,98 @@
+---
+title: "Migrate a project"
+sidebarTitle: "Migrate a project"
+description: "Bring an existing agent into Harnest, upgrade a project, or switch frameworks."
+---
+
+| Migration | Change |
+|---|---|
+| Existing portable agent | Start in managed mode |
+| Existing native agent | Start in advanced mode |
+| Upgrade a Harnest project | Run `harnest upgrade` |
+| Switch a managed framework | Change `spec.framework.name` |
+
+## Bring an existing agent into Harnest
+
+Choose the mode that preserves the agent's current behavior:
+
+| Agent today | Start with | Why |
+|---|---|---|
+| Portable agent, tools, or graph | Managed mode | Harnest can discover and wire the capabilities |
+| Native plugins, middleware, state, or framework APIs | Advanced mode | Your code keeps direct framework control |
+
+<Steps>
+  <Step title="Create a Harnest project beside the existing agent">
+    <CodeGroup>
+
+    ```bash Managed
+    harnest init migrated-agent --framework adk
+    ```
+
+    ```bash Advanced
+    harnest init migrated-agent --framework adk --mode advanced
+    ```
+
+    </CodeGroup>
+
+    Use `--framework langgraph` for an existing LangGraph agent.
+  </Step>
+  <Step title="Move the agent and its dependencies">
+    Export a managed `Agent` or `Graph`, or wrap the existing native target with `Agent.advanced(...)`. Add only agent-owned packages to `pyproject.toml`.
+  </Step>
+  <Step title="Test through the harness">
+    ```bash
+    harnest test migrated-agent
+    harnest serve migrated-agent
+    ```
+  </Step>
+</Steps>
+
+Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle hooks, and other compatible pieces into managed folders when useful.
+
+## Upgrade an older Harnest project
+
+<Steps>
+  <Step title="Preview the migration">
+    ```bash
+    harnest upgrade existing-agent
+    ```
+
+    This command is read-only. Review its plan before continuing.
+  </Step>
+  <Step title="Apply the reviewed migration">
+    ```bash
+    harnest upgrade existing-agent --apply
+    ```
+  </Step>
+  <Step title="Test the upgraded project">
+    ```bash
+    harnest test existing-agent
+    ```
+  </Step>
+</Steps>
+
+Harnest checks that reviewed files have not changed and creates backups under `.harnest/upgrade-backups/`. It stops when a change needs your judgment.
+
+## Switch between ADK and LangGraph
+
+For a managed agent, change `spec.framework.name` in `config.yaml`:
+
+```yaml
+spec:
+  framework:
+    name: langgraph # or adk
+    mode: managed
+```
+
+Then validate the target framework:
+
+```bash
+harnest test existing-agent
+harnest serve existing-agent
+```
+
+<Warning>
+  Review native extensions, evals, sandboxes, custom nodes, and active checkpoints first. Advanced projects need a manual migration.
+</Warning>
+
+Follow the [framework migration checklist](/harnest/runtime/adk-and-langgraph#switch-frameworks).

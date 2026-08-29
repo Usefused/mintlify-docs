@@ -1,0 +1,82 @@
+---
+title: "Agents and graphs"
+sidebarTitle: "Agents and graphs"
+description: "Author managed agents, portable graphs, structured results, and native targets."
+---
+
+`agent.py` exports the configured `root_agent`. In managed mode this is an `Agent` or portable `Graph`; in advanced mode it wraps a native ADK or LangGraph target with `Agent.advanced(...)`.
+
+| Root type | Choose it for |
+|---|---|
+| `Agent` | One model-led agent |
+| `Graph` | Routing, branches, joins, or several agents |
+| `Agent.advanced(...)` | Native framework behavior outside the portable API |
+
+## Managed agent
+
+The concise form builds a native agent for the selected framework:
+
+```python
+from harnest.agent import Agent
+from harnest.model import LiteLLMModel
+
+root_agent = Agent(
+    name="support",
+    model=LiteLLMModel("ollama_chat/qwen3.5:cloud"),
+    description="Answers product questions and triages support requests.",
+)
+```
+
+`instructions.md` beside `agent.py` is required. It is the default managed prompt and remains bundle metadata for graphs and advanced targets.
+
+`history="session"` is the default and includes earlier user and assistant turns from the same Harnest session. Use `history="turn"` for an isolated model call. Do not duplicate the conversation transcript in graph state.
+
+## Portable graph
+
+Use a graph for deterministic routing, parallel branches, joins, agent nodes, or a topology that should lower to either framework:
+
+```python
+from harnest.graph import START, Edge, Event, Graph, Join
+
+def normalize(request):
+    return Event(output=request.strip(), route="ready")
+
+root_agent = Graph(
+    name="support_flow",
+    nodes={
+        "normalize": normalize,
+        "specialist": "order_specialist",
+        "complete": Join(),
+    },
+    edges=(
+        Edge(START, "normalize"),
+        Edge("normalize", "specialist", route="ready"),
+        Edge("specialist", "complete"),
+    ),
+)
+```
+
+| `Event` property | Purpose |
+|---|---|
+| `output` | Pass a value to the next node |
+| `route` | Select a conditional edge |
+| `message` | Emit assistant text |
+| `state_delta` | Update managed session state |
+
+Nodes can be callables, agents, nested graphs, joins, discovered resources, or supported native nodes. Harnest rejects unknown edges, duplicates, and unreachable nodes before execution.
+
+## Structured input and output
+
+Pass Pydantic classes from `harnest.models.*` as `input_schema` or `output_schema`. Harnest applies them to JSON, SSE, WebSocket, and OpenAPI. Add an explicit `FrameworkMetadata[...]` field only when you need native turn metadata.
+
+## Advanced target
+
+Use advanced mode only when the portable API cannot express required native behavior:
+
+```python
+from harnest.agent import Agent
+
+root_agent = Agent.advanced(target=compiled_graph, name="support")
+```
+
+Your code then owns native routing, state, checkpoints, middleware or plugins, and capability wiring. Harnest keeps the neutral server, sessions, auth, approvals, and telemetry.

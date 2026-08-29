@@ -1,0 +1,49 @@
+---
+title: "Agent Tools"
+sidebarTitle: "Overview"
+description: "Choose server tools, client-hosted tools, MCP tools, and approval boundaries."
+---
+
+Agent Tools let a model act through typed, testable capabilities. Choose where each capability should run.
+
+| Tool type | Runs in | Best for |
+|---|---|---|
+| `@tool` | Agent server | Business logic and provider calls |
+| `@client_tool` | Browser, desktop, or mobile host | UI and device capabilities |
+| MCP tool | Remote MCP server | External capability servers |
+
+## Discovery properties
+
+| Property | Rule |
+|---|---|
+| Location | `tools/<name>.py` |
+| Export | One callable matching the filename |
+| Description | Docstring or decorator description |
+| Arguments | Structured values |
+| Results | Structured values, optionally validated by Pydantic |
+| Credentials | Resolve through `context.credentials`, never tool arguments |
+
+<CardGroup cols={2}>
+  <Card title="Server tools" icon="server" href="/harnest/build/agent-tools/server-tools">
+    Run typed capabilities inside the agent server.
+  </Card>
+  <Card title="Client-hosted tools" icon="display" href="/harnest/build/agent-tools/client-tools">
+    Suspend the agent while a connected client performs local work.
+  </Card>
+  <Card title="Human approvals" icon="user-check" href="/harnest/build/agent-tools/human-approvals">
+    Protect every tool call or one risky operation found at runtime.
+  </Card>
+  <Card title="MCP Client" icon="plug" href="/harnest/build/mcp-client">
+    Connect the agent to tools hosted by an MCP server.
+  </Card>
+</CardGroup>
+
+## Choose an approval boundary
+
+| Need | Use |
+|---|---|
+| Every call requires permission | `@require_human_approval` |
+| Evaluation finds one risky operation | `request_human_approval(...)` |
+| Remote operation requires permission | Approval policy on the MCP client |
+
+Approval resumes the exact suspended task without replaying earlier work.

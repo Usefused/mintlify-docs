@@ -3,53 +3,126 @@ title: "Connect a user's account"
 description: "Run OAuth once, per end user, and let the Engine keep the tokens working."
 ---
 
-When your product acts on behalf of individual users, each one needs their own provider connection. The Engine owns that flow end to end: the app registration, the consent round trip, encrypted token storage, and refresh. Tokens are never returned to your application.
+When your product acts on behalf of individual users, each one needs their own provider connection. The Engine owns the consent round trip, encrypted token storage, and refresh. Tokens are never returned to your application.
 
 There are two separate things here, easy to conflate:
 
-- **The app registration** — your `client_id` and `client_secret` with the provider. One per bucket and service.
+- **The app credentials** — your `client_id` and `client_secret` from the provider. Stored per bucket, service, and auth scheme.
 - **A user connection** — one person's grant against that registration. Many per registration.
 
-## Register the OAuth app
+## Store the OAuth app credentials
 
-This is an immediate admin action. No `workspace.yaml` field, no plan or apply — it takes effect on save.
+Register the app with the provider, then store its complete client pair in the
+bucket. This is an immediate admin action. It does not wait for a workspace
+plan or apply.
 
 ```bash
-printf '%s' 'client_id=abc;client_secret=xyz;redirect_uri=https://engine.example.com/workspace/connect/callback' \
-  | fused-cli connect set jira --bucket prod-credentials --value-stdin
+printf '%s' 'client_id=abc;client_secret=xyz' \
+  | fused-cli secret set jira \
+      --bucket prod-credentials \
+      --type oauth \
+      --auth-name JiraOAuth \
+      --value-stdin
 ```
 
 Or answer per field:
 
 ```bash
-fused-cli connect set jira --bucket prod-credentials --interactive
+fused-cli secret set jira \
+  --bucket prod-credentials \
+  --type oauth \
+  --auth-name JiraOAuth \
+  --interactive
 ```
 
-There are no `--client-id`, `--client-secret`, or `--redirect-uri` flags. The whole registration is one `;`-delimited value, and the key names must be exactly `client_id`, `client_secret`, and `redirect_uri`.
+The stdin value must contain exactly `client_id` and `client_secret`. The CLI
+rejects blank, partial, or extra fields, including `redirect_uri`. Use `--type
+oidc` for an OIDC scheme.
 
 <Note>
-  Every field is required the first time. Afterwards, **omitting** a field leaves it unchanged — so rotating just the redirect URI does not mean resupplying the secret. A key present but blank (`client_secret=`) is rejected as an attempt to erase a credential. Omitted means "leave as-is"; blank means "make it empty," and only one of those is allowed.
+  Configure the provider with
+  `<engine.public_url>/workspace/connect/callback`. The Engine derives this
+  callback from its validated canonical public URL and pins it to the consent
+  session. You do not send it as credential input.
 </Note>
 
-### `connect set` flags
+### `secret set` flags
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--bucket` | Bucket to register against (required) | `fused-cli connect set jira --bucket prod-credentials --interactive` |
-| `--value-stdin` | Reads the registration from stdin | `printf '%s' 'client_id=…;client_secret=…;redirect_uri=…' \| fused-cli connect set jira --bucket prod --value-stdin` |
-| `--interactive` | Prompts per field | `fused-cli connect set jira --bucket prod --interactive` |
-| `--type` | `oauth` or `oidc` | `fused-cli connect set jira --bucket prod --type oauth --interactive` |
-| `--auth-name` | Exact Registry scheme when the type has several | `fused-cli connect set jira --bucket prod --type oauth --auth-name jira-cloud --interactive` |
+| `--bucket` | Bucket that owns the credentials; omit it to use the default bucket | `fused-cli secret set jira --bucket prod-credentials --type oauth --auth-name JiraOAuth --interactive` |
+| `--value-stdin` | Reads the complete client pair from stdin | `printf '%s' 'client_id=…;client_secret=…' \| fused-cli secret set jira --type oauth --auth-name JiraOAuth --value-stdin` |
+| `--interactive` | Prompts for both fields | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --interactive` |
+| `--type` | Selects `oauth` or `oidc` | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --interactive` |
+| `--auth-name` | Selects the exact Registry auth scheme | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --interactive` |
 
-## Check what is registered
+The pair is atomic. Supply both values when creating or rotating it. Secret
+values cannot be read back. Use `fused-cli secret list --bucket
+prod-credentials` to inspect secret metadata, or `fused-cli bucket services
+prod-credentials` to see application-credential counts by service.
 
-```bash
-fused-cli connect get jira --bucket prod-credentials
+## Reuse an OAuth app for another service
+
+Compatible services can share one client pair without copying it. Store the
+pair under the source service, then reference that complete credential family
+from the target service in the SDK or MCP app configuration. Provider
+credentials and references never belong in `.fused/workspace.yaml`:
+
+```yaml
+apiVersion: fused/v1
+kind: sdk
+name: sheets-reader
+version: 1.0.0
+language: typescript
+bucket: default
+services:
+  google-sheets:
+    version: v4
+    operations:
+      - spreadsheets.get
+    auth:
+      type: oauth
+      name: oauth2
+      ref: "${bucket.auth.gmail.oauth2}"
+    connect:
+      scopes:
+        - https://www.googleapis.com/auth/spreadsheets.readonly
 ```
 
-You get `auth_type`, `auth_name`, `enabled`, and `redirect_uri` in plaintext, plus `has_client_id` and `has_client_secret` as booleans — never the decrypted values.
+For a generated SDK runtime, pin the reference by planning and applying the app
+configuration:
 
-This is the only way to check registration state. `bucket services` shows a count, and `workspace.yaml` and `workspace sync` do not reflect it at all, because app registration was deliberately kept out of the declarative surface.
+```bash
+fused-cli sdk plan -f .fused/sdks/sheets-reader.yaml
+fused-cli sdk apply -f .fused/sdks/sheets-reader.yaml
+```
+
+For a standalone CLI connection, pass the same reference explicitly. The
+command does not load an SDK or MCP app and cannot infer the mapping from app
+identity:
+
+```bash
+fused-cli workspace service connect google-sheets \
+  --bucket default \
+  --user-ref user_123 \
+  --type oauth \
+  --auth-name oauth2 \
+  --auth-ref '${bucket.auth.gmail.oauth2}'
+```
+
+The reference always uses the app's selected bucket. `gmail.oauth2` selects
+the source service and its exact auth scheme. The destination declares its own
+exact scheme, and the Engine verifies that both credential families are
+compatible. The source service must be workspace-enabled and hold credentials
+directly, but it does not need to appear in the app's `services` selection.
+References cannot chain through another reference.
+
+Consent, callback exchange, managed refresh, SDK readiness, and MCP readiness
+all resolve the same reference. Rotating the source pair therefore reaches the
+target without copying credentials or applying the workspace again. Publish a
+new immutable app version when its reference changes. Each
+service still stores its connected users' access, refresh, and ID tokens
+separately from the shared app credentials.
 
 ## Connect a user
 
@@ -67,11 +140,17 @@ Omit `--scope` to request the service's declared scope catalogue. OIDC subsets m
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--bucket` | Bucket holding the registration (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
+| `--bucket` | Bucket holding or referencing the app credentials (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
 | `--user-ref` | Stable end-user reference (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
 | `--scope` | Requests one scope; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --scope read:jira-work` |
-| `--sdk` | Attributes the session to an SDK for audit | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --sdk support-sdk@1.1.0` |
+| `--auth-ref` | Reuses one complete source registration in the same bucket | `fused-cli workspace service connect google-sheets --bucket prod --user-ref user_123 --type oauth --auth-name oauth2 --auth-ref '${bucket.auth.gmail.oauth2}'` |
 | `--resource-input` | Tenant input as `key=value`; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --resource-input site=acme` |
+
+The command has no SDK or MCP identity selector. Generated runtimes use the
+`auth.ref` in their immutable app configuration; standalone initialization
+resolves reuse only from the explicit `--auth-ref` shown above and sends no app
+ID. Only a generated SDK attaches its embedded immutable app ID as provenance;
+the connected-user grant remains owned by the bucket.
 
 That `--user-ref` is the same value your application later sends as `endUserRef`, or an agent sends as `X-Fused-End-User-Ref`. Keep it stable.
 

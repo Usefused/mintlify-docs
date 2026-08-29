@@ -1,0 +1,51 @@
+---
+title: "Client-hosted tools"
+description: "Declare typed work that runs in a browser, desktop, or mobile client."
+---
+
+Use `@client_tool` when the connected client—not the agent server—owns execution.
+
+```python
+from harnest.tool import client_tool
+
+
+@client_tool
+def browser_open(url: str) -> dict[str, str]:
+    """Open a URL and return visible page data."""
+    ...
+```
+
+Harnest never executes the declaration body. It suspends the invocation and asks the client to run the tool.
+
+## Client-tool properties
+
+| Property | Rule |
+|---|---|
+| Declaration | Typed stub under `tools/` |
+| Execution | Connected browser, desktop, or mobile host |
+| Output | Validated before the agent resumes |
+| Policy | Client owns local execution and sandboxing |
+| Runtime requirement | Active managed Harnest invocation |
+
+## Transport flow
+
+| Transport | Request | Resume |
+|---|---|---|
+| JSON | `requires_action` | `POST /client-tools/{requestId}` |
+| SSE | `client_tool` required action | `POST /client-tools/{requestId}` |
+| WebSocket | `client_tool.requested` | `client_tool.result` |
+
+The submitted result is identity-bound, one-time, and validated against the declared return type.
+
+## Combine with approval
+
+`@client_tool` and `@require_human_approval` can appear in either decorator order. Approval runs first. After approval, the host receives the client-tool request.
+
+<CardGroup cols={2}>
+  <Card title="Human approvals" icon="user-check" href="/harnest/build/agent-tools/human-approvals">
+    Bind approval to the exact user, session, invocation, action, and arguments.
+  </Card>
+  <Card title="Serving agents" icon="server" href="/harnest/runtime/serving/approvals-and-client-tools">
+    Implement approval and client-tool responses over each transport.
+  </Card>
+</CardGroup>

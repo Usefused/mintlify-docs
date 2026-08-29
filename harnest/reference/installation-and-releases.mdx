@@ -1,0 +1,106 @@
+---
+title: "Installation and releases"
+sidebarTitle: "Installation and releases"
+description: "Install, pin, verify, upgrade, and publish Harnest releases."
+---
+
+A Harnest release bundles three matching parts: the native CLI, the Python runtime wheel, and `uv`. The installer verifies the release checksum before it changes your machine.
+
+## Install
+
+<CodeGroup>
+
+```bash Latest release
+curl -fsSL \
+  https://raw.githubusercontent.com/Usefused/harnest/main/install.sh |
+  sh
+```
+
+```bash Non-interactive
+curl -fsSL \
+  https://raw.githubusercontent.com/Usefused/harnest/main/install.sh |
+  HARNEST_YES=1 sh
+```
+
+```bash Pinned release
+curl -fsSL \
+  https://raw.githubusercontent.com/Usefused/harnest/main/install.sh |
+  HARNEST_VERSION=v0.1.18 sh
+```
+
+</CodeGroup>
+
+Verify the CLI and managed runtime:
+
+```bash
+harnest --version
+harnest doctor
+```
+
+## Installer properties
+
+| Property | Default | Use it for |
+|---|---|---|
+| `HARNEST_VERSION` | Latest GitHub release | Pinning a release |
+| `HARNEST_REPO` | `Usefused/harnest` | Installing from a fork |
+| `HARNEST_YES` | Unset | Explicit non-interactive approval |
+| `HARNEST_INSTALL_DIR` | `$HOME/.local/bin` | Choosing the CLI destination |
+| `HARNEST_RUNTIME_DIR` | `$HOME/.harnest/runtime` | Choosing the private managed runtime |
+| `HARNEST_BOOTSTRAP_PYTHON` | Auto-detected | Requiring one exact host Python |
+| `HARNEST_PYTHON` | Managed runtime | Overriding Python for later CLI commands |
+| `GITHUB_TOKEN` | Unset | Reading a private fork's releases |
+
+<Note>
+  You run `harnest`; you do not activate the private runtime or call `python -m harnest.cli`.
+</Note>
+
+If no Python 3.10 or newer is available, embedded `uv` installs a pinned CPython 3.12 under the Harnest data directory. It does not modify the system Python.
+
+## Upgrade
+
+Run the installer again to replace the CLI and its matching managed runtime. Then upgrade each project separately:
+
+```bash
+harnest doctor
+harnest upgrade path/to/agent
+harnest upgrade path/to/agent --apply
+harnest test path/to/agent
+```
+
+The first `upgrade` is a read-only plan. Apply verifies the planned source hashes and writes backups before changing project files.
+
+## Compatibility
+
+Each Harnest release declares the ADK and LangGraph versions it supports. Project environments use those tested ranges; authored dependencies live in the project's `pyproject.toml` and lock in `uv.lock`.
+
+| Check | Command |
+|---|---|
+| CLI and runtime match | `harnest doctor` |
+| Project environment is current | `harnest env sync <project>` |
+| Source works with the selected framework | `harnest test <project>` |
+| Artifact is reproducible | `harnest compile <project>` |
+
+## Publish a release
+
+Release publishing is a maintainer workflow:
+
+<Steps>
+  <Step title="Run the complete gate">
+    ```bash
+    make quality
+    ```
+  </Step>
+  <Step title="Prepare release notes and version metadata">
+    Keep the native CLI, embedded wheel, and compatibility metadata on the same version.
+  </Step>
+  <Step title="Tag the release">
+    The release workflow builds the supported macOS and Linux archives, creates `checksums.txt`, and publishes the artifacts.
+  </Step>
+  <Step title="Verify a clean install">
+    Test the public installer and run `harnest doctor` on at least one supported platform.
+  </Step>
+</Steps>
+
+<Warning>
+  Do not publish a CLI with a wheel from another version. The executable rejects mismatched embedded metadata.
+</Warning>

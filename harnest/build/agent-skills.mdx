@@ -1,0 +1,39 @@
+---
+title: "Agent Skills"
+sidebarTitle: "Agent Skills"
+description: "Add progressively loaded task guidance to root agents and SubAgents."
+---
+
+Agent Skills teach an agent how to perform a task without placing every instruction in the root prompt. Runtime skills live under `skills/`.
+
+| Property | Rule |
+|---|---|
+| Location | `skills/<name>/SKILL.md` |
+| Name | Kebab-case and equal to the directory name |
+| Loading | On demand |
+| Optional resources | `references/`, `assets/`, and `scripts/` |
+| Ownership | Root agent or one folder SubAgent |
+
+Each skill uses the Agent Skills directory format:
+
+```text
+skills/
+└── triage-incidents/
+    ├── SKILL.md
+    ├── references/
+    └── scripts/
+```
+
+Keep `SKILL.md` action-oriented. Move schemas, background, long examples, and conditional detail into referenced files.
+
+## Runtime behavior
+
+ADK uses its progressive skill tools. LangGraph receives Harnest's portable list, load, and resource tools. Both load skill content only when needed.
+
+A root skill belongs to the root agent. A folder SubAgent can own private skills; its parent does not inherit them. Skills do not add tools or MCP connections.
+
+Use a [plugin](/harnest/build/agent-plugins) when a reusable skill must travel with the MCP connection that supplies its operations. A non-empty plugin requires both the MCP and skill halves.
+
+## Authoring skill versus runtime skills
+
+`harnest skills install` installs a project-editing guide for your coding agent. It does not add a runtime skill to the compiled agent.

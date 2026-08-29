@@ -1,0 +1,89 @@
+---
+title: "ADK and LangGraph"
+sidebarTitle: "ADK and LangGraph"
+description: "Choose a framework, understand portability, and migrate between ADK and LangGraph."
+---
+
+Every project selects a framework and authoring mode in `config.yaml`:
+
+```yaml
+apiVersion: harnest.dev/v1alpha1
+kind: Agent
+spec:
+  entrypoint: agent:root_agent
+  framework:
+    name: adk          # adk or langgraph
+    mode: managed      # managed or advanced
+```
+
+## Managed mode
+
+Managed mode is the portable default. Harnest discovers your resources and builds the selected framework target.
+
+| Moves between frameworks | Remains native |
+|---|---|
+| Agents, graphs, instructions, and contracts | ADK plugins, evals, and sandboxes |
+| Tools, MCP clients, plugins, and Agent Skills | LangGraph middleware and native nodes |
+| Portable lifecycle hooks | Framework-owned checkpoints |
+| Sessions, auth, approvals, transports, and tests | Arbitrary native framework calls |
+
+<Note>
+  A nested LangGraph `Agent` cannot consume a discovered child `subagents/` folder. Express that topology in the portable root graph.
+</Note>
+
+## Advanced mode
+
+In advanced mode, you construct a native target and export it through `Agent.advanced(...)`.
+
+| Harnest still owns | Your native target owns |
+|---|---|
+| Neutral server and transports | Routing and state |
+| Sessions and request authentication | Native checkpoints |
+| Approvals and tracing | Middleware or plugins |
+| Portable invocation hooks | Capability wiring and native model calls |
+
+Before moving a project from managed to advanced mode, run the read-only audit:
+
+```bash
+harnest mode advanced AGENT_DIR --check
+```
+
+Preserve `agent.py`; do not run `init` over the project.
+
+## Switch frameworks
+
+Changing `spec.framework.name` is simple. Validating the behavior is the migration.
+
+<Steps>
+  <Step title="Establish the current baseline">
+    Preserve the source and run the existing unit tests.
+  </Step>
+  <Step title="Find native dependencies">
+    Inspect `agent.py`, native extensions, custom graph nodes, nested SubAgents, sandboxes, eval assets, and active checkpoints.
+  </Step>
+  <Step title="Change the framework">
+    Update only `spec.framework.name`. Do not add Harnest-owned framework packages to `pyproject.toml`.
+  </Step>
+  <Step title="Test the target">
+    Run `harnest test AGENT_DIR`, any authorized smoke tests, and `harnest serve AGENT_DIR`.
+  </Step>
+</Steps>
+
+<Warning>
+  Committed session state can survive a switch. Active framework checkpoints cannot be translated. Finish or deliberately abandon in-progress runs first.
+</Warning>
+
+## Choose a framework
+
+| Choose | When |
+|---|---|
+| Managed ADK | You want portability plus ADK's ecosystem |
+| Managed LangGraph | You want portability plus LangGraph's ecosystem |
+| Advanced ADK | ADK-native agents, plugins, evals, or code execution define the design |
+| Advanced LangGraph | Native graph state, middleware, or graph primitives define the design |
+
+All choices use the same Harnest agent card, sessions, API, events, WebSocket protocol, and playground.
+
+## Version compatibility
+
+Harnest installs a tested framework version and records it in the manifest. Upgrade Harnest to adopt a newer version; do not override it in `pyproject.toml`.

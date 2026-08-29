@@ -1,0 +1,49 @@
+---
+title: "Invocation hooks"
+description: "Observe or transform agent, model, and tool execution in a portable way."
+---
+
+Portable hooks apply the same policy around managed ADK and LangGraph execution.
+
+| Phase | Use it for |
+|---|---|
+| Before agent | Request policy, context setup, or early rejection |
+| After agent | Result checks or accounting |
+| Before model | Input policy or routing metadata |
+| After model | Result checks |
+| Before tool | Tool policy and guardrails |
+| After tool | Result checks and audit enrichment |
+
+```python
+from harnest.lifecycle import lifecycle
+
+
+@lifecycle.before_tool
+async def check_tool(event):
+    if event.tool_name == "delete_account":
+        raise PermissionError("Tool is disabled")
+```
+
+## Hook properties
+
+| Property | Behavior |
+|---|---|
+| Ordering | Explicit order, then source path |
+| Transformer | Can replace the current value |
+| Observer | Reads an event without replacing it |
+| Rejection | Stops work before the protected phase |
+| Error observer | Cannot hide the original failure |
+
+Keep business operations in Agent Tools. Hooks should apply policy, observation, or transformation around those operations.
+
+## Portable or native?
+
+| Requirement | Choose |
+|---|---|
+| Same policy on ADK and LangGraph | Portable hook |
+| ADK runner or plugin API | ADK native integration |
+| LangGraph middleware or graph runtime | LangGraph native integration |
+
+<Card title="Native integrations" icon="code" href="/harnest/runtime/lifecycle/native-integrations">
+  Isolate behavior that must use the selected framework directly.
+</Card>

@@ -1,0 +1,118 @@
+---
+title: "Checkpoints and storage"
+sidebarTitle: "Checkpoints and storage"
+description: "Choose session and checkpoint storage for development and production."
+---
+
+Every compiled agent needs one session store and one checkpointer. Multimodal agents also use an asset store for session-owned media.
+
+| Store | Holds | Portable across frameworks? |
+|---|---|---:|
+| `SessionStore` | Completed conversation and business state | Yes |
+| `CheckpointStore` | In-progress framework execution | No |
+| `AssetStore` | Uploaded media bytes and trusted metadata | Yes |
+
+Harnest allows one running or waiting invocation per session. Atomic status updates prevent two replicas from resuming the same run.
+
+## Choose a backend
+
+| Store | Best for | Important property |
+|---|---|---|
+| `MemoryStore` | Local development and tests | Restarting loses all state |
+| `PostgresStore` | Durable production storage | Transactions, session leases, and schema bootstrap |
+| `RedisStore` | Distributed sessions and expiring checkpoints | Durability depends on your Redis configuration |
+| Custom store | Existing infrastructure | You own schema and migrations |
+
+Harnest supplies compatible `asyncpg` and `redis` drivers in the compiled environment.
+
+The default `MemoryAssetStore` is for development. Configure one root `@lifecycle.asset_store` factory for durable media storage. See [Typed multimodal contracts](/harnest/build/models-and-libraries/typed-multimodal-contracts).
+
+## Configure a managed agent
+
+Create one store and return it from both lifecycle factories:
+
+```python
+# lib/storage.py
+import os
+
+from harnest.store import PostgresStore
+
+store = PostgresStore(os.environ["DATABASE_URL"])
+```
+
+```python
+# extensions/storage.py
+from harnest.lib.storage import store
+from harnest.lifecycle import lifecycle
+
+
+@lifecycle.session_store
+def session_store():
+    return store
+
+
+@lifecycle.checkpointer
+def checkpointer():
+    return store
+```
+
+Harnest starts the shared object once and closes it with the application.
+
+<Warning>
+  `MemoryStore` is for development. Replace it before running more than one process or keeping user state across restarts.
+</Warning>
+
+## Give agent code direct access
+
+Storage stays private unless you publish it as a context resource:
+
+```python
+from harnest.context import context
+
+
+@lifecycle.session_store
+@context("storage")
+def session_store():
+    return store
+```
+
+Agent code can then call `context.resource("storage")`.
+
+| When you expose raw storage | Requirement |
+|---|---|
+| Read or write session data | Scope every operation with `context.user_id` and `context.session_id` |
+| Work with checkpoints | Do not mutate state behind the framework |
+| Add a custom backend | Own its schema, migrations, and durability |
+
+## Advanced framework ownership
+
+Advanced LangGraph can use Harnest storage:
+
+```python
+graph = builder.compile(
+    checkpointer=store.as_langgraph_checkpointer(),
+)
+```
+
+Or wrap a native saver and return the same wrapper from the lifecycle:
+
+```python
+from harnest.checkpoint import LangGraphStore
+
+checkpoints = LangGraphStore(native_saver)
+graph = builder.compile(checkpointer=checkpoints)
+```
+
+For ADK-native ownership, create one `ADKStore(session_service)` and return that same object from both storage factories.
+
+## Framework switches and recovery
+
+| State | After an ADK ↔ LangGraph switch |
+|---|---|
+| Completed session state | Preserved |
+| Active framework checkpoint | Not portable |
+| Pending in-process approval or client tool | Does not survive a restart by default |
+
+Finish or cancel active runs before switching frameworks. Give side-effecting tools an idempotency key derived from the run and tool-call identities.
+
+Harnest traces storage outcomes, never checkpoint payloads, prompts, arguments, credentials, or results.

@@ -1,0 +1,64 @@
+---
+title: "Server tools"
+description: "Run typed, validated capabilities inside the agent server."
+---
+
+Use `@tool` when the capability should execute inside the agent server.
+
+```python
+from harnest.models.orders import OrderStatus
+from harnest.tool import tool
+
+
+@tool(output_schema=OrderStatus)
+def lookup_order(order_id: str):
+    """Load one order status."""
+
+    return {"order_id": order_id, "status": "processing"}
+```
+
+## Tool properties
+
+| Property | Rule |
+|---|---|
+| File | `tools/lookup_order.py` |
+| Export | `lookup_order` |
+| Description | Docstring or `@tool(description="...")` |
+| Output validation | Pydantic return annotation or `output_schema` |
+| Unit testing | Call the decorated function directly |
+
+Arguments and results must be structured. Convert unsupported custom objects to a Pydantic model or mapping at the tool boundary.
+
+## Runtime access
+
+| Need | Use |
+|---|---|
+| Application resource | `context.resource("name")` |
+| Current user | `context.user_id` |
+| Current session | `context.session_id` |
+| Downstream credential | `await context.credentials.resolve(...)` |
+
+Credentials are private invocation capabilities. Do not expose them as model-generated arguments or ordinary context resources.
+
+## Add approval
+
+<Tabs>
+  <Tab title="Every call">
+    ```python
+    from harnest.approval import require_human_approval
+
+
+    @tool
+    @require_human_approval(message="Approve deleting {customer_id}?")
+    def delete_customer(customer_id: str):
+        return database.delete_customer(customer_id)
+    ```
+  </Tab>
+  <Tab title="After evaluation">
+    Protect only the sensitive block with `request_human_approval(...)`.
+
+    <Card title="Dynamic human approval" icon="user-check" href="/harnest/build/agent-tools/human-approvals">
+      Evaluate risk before deciding whether the operation needs permission.
+    </Card>
+  </Tab>
+</Tabs>

@@ -22,7 +22,7 @@ npx skills add https://mintlify.com/docs
 
 This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
 
-See the [AI tools guides](/ai-tools) for tool-specific setup.
+See the [AI tools guides](https://www.mintlify.com/docs/guides) for tool-specific setup.
 
 ## Development
 

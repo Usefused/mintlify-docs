@@ -1,0 +1,47 @@
+---
+title: "Production deployment"
+description: "Add the security, durability, and operations missing from the standalone launcher."
+---
+
+The standalone server is a runtime process, not a complete production platform.
+
+## Production checklist
+
+| Before a remote deployment | Why |
+|---|---|
+| Add an authenticator or trusted authenticated proxy | Identify callers |
+| Replace `MemoryStore` | Keep sessions and checkpoints |
+| Inject model, MCP, and provider credentials | Keep secrets out of source |
+| Terminate TLS outside the launcher | Protect traffic |
+| Add process supervision and scaling | Run reliably |
+| Enforce network policy outside the launcher | Control reachability |
+
+## Ownership boundary
+
+| Harnest standalone server | Deployment platform |
+|---|---|
+| Agent API and event model | TLS termination |
+| Request limits and concurrency | Secret injection |
+| Application authentication hook | External identity proxy, if used |
+| Session and checkpoint interfaces | Durable database operations |
+| Health endpoint | Process supervision and autoscaling |
+| Structured telemetry | Collector, storage, alerts, and retention |
+
+<Warning>
+  A non-loopback bind is not a security boundary. `allowRemote: true` adds no authentication, TLS, or network policy.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/harnest/runtime/authentication-and-credentials">
+    Establish caller identity and resolve downstream credentials.
+  </Card>
+  <Card title="Storage" icon="database" href="/harnest/runtime/checkpoints-and-storage">
+    Replace process-local state with a durable backend.
+  </Card>
+  <Card title="Telemetry" icon="chart-line" href="/harnest/runtime/telemetry">
+    Export privacy-safe logs, traces, and audit signals.
+  </Card>
+  <Card title="Server properties" icon="sliders" href="/harnest/runtime/serving/server-configuration">
+    Keep local runtime settings separate from platform operations.
+  </Card>
+</CardGroup>

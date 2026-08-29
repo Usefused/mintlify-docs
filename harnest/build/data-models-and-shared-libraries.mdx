@@ -1,0 +1,49 @@
+---
+title: "Data models and shared libraries"
+sidebarTitle: "Overview"
+description: "Share Pydantic contracts and ordinary Python implementation across an agent bundle."
+---
+
+`models/` and `lib/` contain shared Python used by the agent bundle. Unlike tools, subagents, MCP clients, and extensions, neither folder is capability discovery.
+
+| Folder | Put here | Import from | Discovered as a capability? |
+|---|---|---|---:|
+| `models/` | Pydantic contracts | `harnest.models` | No |
+| `lib/` | Reusable Python | `harnest.lib` | No |
+
+## `models/`
+
+Put shared Pydantic contracts under root `models/` and import them through the compiler-owned `harnest.models` namespace. For example, `models/orders.py` becomes `harnest.models.orders`:
+
+```python
+from pydantic import BaseModel
+
+class OrderStatus(BaseModel):
+    order_id: str
+    status: str
+```
+
+Use these contracts for agent, graph, tool, and client-tool input or output. The folder is root-only and needs no `__init__.py`.
+
+<Card title="Typed multimodal contracts" icon="shapes" href="/harnest/build/models-and-libraries/typed-multimodal-contracts">
+  Enforce Pydantic input, output, tool-result, and media contracts across both frameworks and every managed transport.
+</Card>
+
+## `lib/`
+
+Put ordinary reusable implementation under root `lib/` and import it through `harnest.lib`. For example, `lib/storage/queries.py` becomes `harnest.lib.storage.queries`:
+
+```python
+from harnest.lib.storage.queries import load_order
+from harnest.tool import tool
+
+@tool
+def lookup_order(order_id: str) -> dict:
+    """Load one order."""
+
+    return load_order(order_id)
+```
+
+Library functions do not become tools or agents by themselves. The same namespace works in compilation, tests, evals, and serving. `lib/` is root-only.
+
+Add third-party packages used by either namespace to the agent's `pyproject.toml`. Add `__init__.py` only for intentional library initialization, not to make discovery work.

@@ -1,0 +1,43 @@
+---
+title: "SubAgent framework behavior"
+sidebarTitle: "Framework behavior"
+description: "Choose portable graph composition, recursive ADK discovery, or an advanced child target."
+---
+
+Use explicit graph nodes when the multi-agent flow must move between ADK and LangGraph.
+
+| Need | Use |
+|---|---|
+| Portable multi-agent flow | Explicit root graph nodes |
+| Recursive folder discovery | ADK folder SubAgents |
+| Nested LangGraph agents | Root graph topology |
+| Native child target | `Agent.advanced(...)` as a node or SubAgent |
+
+## Portable composition
+
+A portable graph names the SubAgent as a node. Harnest lowers the same topology to the selected framework.
+
+| Benefit | Result |
+|---|---|
+| Explicit routing | The graph shows when each child runs |
+| Framework portability | No recursive discovery dependency |
+| Testability | Unit tests can target the compiled graph |
+
+## Native children
+
+An `Agent.advanced(...)` wrapper can appear as a managed SubAgent or graph node.
+
+| Constraint | Rule |
+|---|---|
+| Root adapters | Embedded targets cannot use root input/output adapters |
+| ADK target | Must be `BaseAgent`, not `App` |
+| ADK name | Wrapper name must match the native agent name |
+| Native capabilities | Framework-owned and migrated manually |
+
+<Note>
+  A nested LangGraph `Agent` cannot consume a discovered sibling `subagents/` folder. Express that topology in the root graph.
+</Note>
+
+<Card title="ADK and LangGraph" icon="arrows-rotate" href="/harnest/runtime/adk-and-langgraph">
+  Review the complete managed and advanced portability boundary.
+</Card>

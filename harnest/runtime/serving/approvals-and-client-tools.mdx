@@ -1,0 +1,75 @@
+---
+title: "Approvals and client tools"
+description: "Handle required actions and resume suspended invocations over JSON, SSE, or WebSocket."
+---
+
+Approvals and client-hosted tools suspend the current invocation before external input is needed.
+
+| Required action | JSON | SSE or WebSocket | Resume with |
+|---|---|---|---|
+| Human approval | `requires_action` | `approval.requested` | `POST /approvals/{approvalId}` |
+| Client-hosted tool | `requires_action` | `client_tool.requested` | HTTP result or `client_tool.result` frame |
+
+## Decide an approval
+
+<Tabs>
+  <Tab title="Approve">
+    ```http
+    POST /approvals/{approvalId}
+    Content-Type: application/json
+
+    {"decision":"approve"}
+    ```
+  </Tab>
+  <Tab title="Deny">
+    ```http
+    POST /approvals/{approvalId}
+    Content-Type: application/json
+
+    {"decision":"deny"}
+    ```
+  </Tab>
+</Tabs>
+
+## Approval outcomes
+
+| Outcome | Runtime behavior |
+|---|---|
+| Approved | Resume the suspended task |
+| Denied or expired | Do not run protected code |
+| Reused decision | Reject the consumed approval |
+| Binding changed | Reject the mismatched approval |
+| Later protected block | Create another request |
+
+Harnest does not restart the tool or replay earlier work.
+
+## Submit a client-tool result
+
+<Tabs>
+  <Tab title="HTTP">
+    ```http
+    POST /client-tools/{requestId}
+    Content-Type: application/json
+
+    {"output":{"title":"Harnest documentation"}}
+    ```
+  </Tab>
+  <Tab title="WebSocket">
+    Reply to `client_tool.requested` with a `client_tool.result` frame using the same request ID.
+  </Tab>
+</Tabs>
+
+Submitted output is identity-bound, consumed once, and validated before execution resumes.
+
+<CardGroup cols={2}>
+  <Card title="Human approval authoring" icon="user-check" href="/harnest/build/agent-tools/human-approvals">
+    Choose always-on or dynamic approval and bind it to the exact operation.
+  </Card>
+  <Card title="Client-hosted tools" icon="display" href="/harnest/build/agent-tools/client-tools">
+    Declare typed work owned by the connected client.
+  </Card>
+</CardGroup>
+
+<Note>
+  Development stores are process-local. Restart recovery needs durable storage and a resumable framework boundary.
+</Note>

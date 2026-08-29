@@ -1,0 +1,48 @@
+---
+title: "Lifecycle"
+sidebarTitle: "Overview"
+description: "Add application resources, invocation hooks, output policy, and native integrations."
+---
+
+Lifecycle extensions manage behavior around the agent without turning that behavior into tools.
+
+| Need | Use |
+|---|---|
+| Start and close a dependency | Application resource |
+| Publish a value to agent code | Context resource |
+| Observe or transform execution | Invocation hook |
+| Control public SubAgent narration | Output policy |
+| Add framework-specific behavior | Native integration |
+| Add application HTTP routes | HTTP route factory |
+| Store sessions or checkpoints | Storage factory |
+| Store session-owned media | Asset store |
+| Authenticate or resolve credentials | Security factory |
+| Export traces or logs | Telemetry exporter |
+
+Lifecycle is root-owned. SubAgents cannot add private lifecycle extensions.
+
+<CardGroup cols={2}>
+  <Card title="Application resources" icon="boxes-stacked" href="/harnest/runtime/lifecycle/application-resources">
+    Start, publish, share, and close application dependencies.
+  </Card>
+  <Card title="Invocation hooks" icon="arrows-rotate" href="/harnest/runtime/lifecycle/invocation-hooks">
+    Observe or transform agent, model, and tool execution.
+  </Card>
+  <Card title="Output policy" icon="message" href="/harnest/runtime/lifecycle/output-policy">
+    Decide whether intermediate SubAgent narration becomes public.
+  </Card>
+  <Card title="Native integrations" icon="code" href="/harnest/runtime/lifecycle/native-integrations">
+    Add ADK plugins or LangGraph middleware when portable hooks are not enough.
+  </Card>
+</CardGroup>
+
+## Related runtime boundaries
+
+| Boundary | Page |
+|---|---|
+| Sessions and checkpoints | [Checkpoints and storage](/harnest/runtime/checkpoints-and-storage) |
+| Caller identity and downstream tokens | [Authentication and credentials](/harnest/runtime/authentication-and-credentials) |
+| Logs, traces, and audit events | [Telemetry](/harnest/runtime/telemetry) |
+| Application-specific HTTP contracts | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
+| Typed media and asset references | [Typed multimodal contracts](/harnest/build/models-and-libraries/typed-multimodal-contracts) |
+| Decorator signatures and cardinality | [Runtime extension reference](/harnest/reference/runtime-extensions) |

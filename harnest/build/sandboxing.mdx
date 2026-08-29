@@ -1,0 +1,52 @@
+---
+title: "Sandboxing"
+sidebarTitle: "Sandboxing"
+description: "Configure isolated ADK code execution and understand its security boundary."
+---
+
+Sandboxes provide the ADK code executor used for model-generated code. They are agent-wide and optional. Configure one file at `sandbox/sandbox.py`, exporting a value named `sandbox`:
+
+| Property | Container backend |
+|---|---|
+| Framework | ADK only |
+| Network | Off by default |
+| Runtime | Docker |
+| Required setting | `image` or `docker_path` |
+| Creation | Lazy, on first code execution |
+| Scope | Whole agent |
+
+```python
+from harnest.sandbox import Sandbox
+
+sandbox = Sandbox.container(
+    image="acme/harnest-python-sandbox:2026-08",
+    network=False,
+    timeout_seconds=120,
+)
+```
+
+The container backend requires Docker and never falls back to running generated code in the agent server. Harnest already supplies the compatible ADK package.
+
+Third-party providers integrate without changing Harnest:
+
+```python
+from harnest.sandbox import Sandbox
+from company_sandbox import CompanyExecutor
+
+sandbox = Sandbox.provider(
+    lambda: CompanyExecutor(pool="agents"),
+    name="company-sandbox",
+    timeout_seconds=120,
+)
+```
+
+The provider factory is lazy and must return an ADK `BaseCodeExecutor`.
+
+| Harnest checks | Your provider must enforce |
+|---|---|
+| One sandbox source | Filesystem isolation |
+| Valid export and return type | Network and process policy |
+| No symlinks or extra public files | Tenant separation and cleanup |
+| No duplicate `Agent(sandbox=...)` setting | Credential isolation |
+
+`config.yaml` permissions describe deployment intent. They do not replace an enforcing sandbox.

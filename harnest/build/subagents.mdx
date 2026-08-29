@@ -1,0 +1,33 @@
+---
+title: "SubAgents"
+sidebarTitle: "Overview"
+description: "Choose flat, folder-owned, portable, or native SubAgent composition."
+---
+
+SubAgents use the same managed `Agent` definition as the root. Their location defines ownership and capability access.
+
+| Shape | Use it when | Private capabilities |
+|---|---|---:|
+| Flat SubAgent | The agent needs only a definition | No |
+| Folder-owned SubAgent | The agent owns instructions, tools, MCP, skills, or sandboxing | Yes |
+| Portable graph node | The multi-agent flow must move between frameworks | Defined by the graph |
+| Advanced SubAgent | The child requires a native framework target | Framework-owned |
+
+<CardGroup cols={2}>
+  <Card title="Flat SubAgents" icon="file" href="/harnest/build/subagents/flat-subagents">
+    Add a small SubAgent definition with no private bundle.
+  </Card>
+  <Card title="Folder-owned SubAgents" icon="folder" href="/harnest/build/subagents/folder-subagents">
+    Give a SubAgent its own instructions and capabilities.
+  </Card>
+  <Card title="Framework behavior" icon="code-branch" href="/harnest/build/subagents/framework-behavior">
+    Choose portable graph composition or a framework-specific child.
+  </Card>
+  <Card title="Agents and graphs" icon="diagram-project" href="/harnest/build/agents-and-graphs">
+    Compose SubAgents into deterministic portable flows.
+  </Card>
+</CardGroup>
+
+## Ownership rule
+
+Parent capabilities do not flow into a child automatically. Child capabilities do not leak back to the parent. The filesystem location is the access boundary.

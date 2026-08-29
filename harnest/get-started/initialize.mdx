@@ -1,0 +1,51 @@
+---
+title: "Initialize a project"
+sidebarTitle: "Initialize a project"
+description: "Create and test a managed ADK or LangGraph agent project."
+---
+
+Create a managed agent, prepare its isolated environment, and run the generated tests.
+
+<Steps>
+  <Step title="Choose a framework">
+    <CodeGroup>
+
+    ```bash ADK
+    harnest init support-agent --framework adk
+    ```
+
+    ```bash LangGraph
+    harnest init support-agent --framework langgraph
+    ```
+
+    </CodeGroup>
+
+    The default scaffold is a small, runnable managed agent. Add `--example` to include working graphs, tools, plugins, skills, extensions, evals, and tests.
+  </Step>
+  <Step title="Synchronize the project environment">
+    ```bash
+    harnest env sync support-agent
+    ```
+  </Step>
+  <Step title="Run the offline tests">
+    ```bash
+    harnest test support-agent
+    ```
+  </Step>
+</Steps>
+
+| Output | Purpose |
+|---|---|
+| `agent.py` | Root agent or graph |
+| `instructions.md` | Agent instructions |
+| `config.yaml` | Framework and project settings |
+| `server.yaml` | Local server settings |
+| `tests/` | Offline and optional live checks |
+
+<Note>
+  `compile`, `test`, and `serve` sync the environment automatically. Add only your provider, tool, and library packages to `pyproject.toml`; Harnest owns the framework dependency.
+</Note>
+
+<Card title="Understand the generated project" icon="folder-tree" href="/harnest/build/agent-concepts">
+  See how Harnest organizes agents, tools, SubAgents, MCP clients, plugins, skills, lifecycle extensions, and tests.
+</Card>

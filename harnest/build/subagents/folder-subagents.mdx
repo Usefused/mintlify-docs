@@ -1,0 +1,45 @@
+---
+title: "Folder-owned SubAgents"
+description: "Give a SubAgent its own instructions, tools, MCP connections, skills, and sandbox."
+---
+
+A folder SubAgent is a separate composition boundary.
+
+```text
+subagents/researcher/
+├── agent.py
+├── instructions.md
+├── tools/
+├── mcp/
+├── skills/
+├── sandbox/
+└── subagents/       ADK-only recursive discovery
+```
+
+## Ownership properties
+
+| Resource | Child can own it? | Inherited from parent? |
+|---|---:|---:|
+| `instructions.md` | Yes | No |
+| `tools/` | Yes | No |
+| `mcp/` | Yes | No |
+| `skills/` | Yes | No |
+| `sandbox/` | Yes | No |
+| `plugins/` | No | No |
+| `extensions/` | No | Root-owned |
+| `models/` and `lib/` | No | Root namespace |
+
+The child's private capabilities are not exposed to the parent merely because the directory is nested.
+
+## Discovery rules
+
+| Rule | Result |
+|---|---|
+| `agent.py` export matches the folder name | Stable SubAgent identity |
+| Supported child folders are discovered by location | No manual capability list |
+| Unsupported root-only folder is populated | Compilation fails |
+| Parent references the child | Harnest wires the composition |
+
+<Card title="Framework behavior" icon="code-branch" href="/harnest/build/subagents/framework-behavior">
+  Check recursive discovery and portable graph behavior before choosing the layout.
+</Card>

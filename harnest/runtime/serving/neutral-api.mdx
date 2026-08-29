@@ -1,0 +1,63 @@
+---
+title: "Neutral API"
+description: "Use portable sessions, responses, SSE events, WebSockets, and the playground."
+---
+
+The neutral API keeps product-facing behavior stable across frameworks and authoring modes.
+
+## Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /agent` | Agent identity and routes |
+| `POST /sessions` | Create a session |
+| `GET /sessions` | List sessions |
+| `GET/PATCH/DELETE /sessions/{id}` | Read, update, or delete a session |
+| `GET /sessions/{id}/messages` | Read the transcript |
+| `POST /sessions/{id}/assets` | Upload a session-owned media asset |
+| `HEAD/GET/DELETE /sessions/{id}/assets/{assetId}` | Inspect, download, or delete an asset |
+| `POST /responses` | Run JSON or SSE responses |
+| `WS /live` | Run a live WebSocket session |
+| `GET /healthz` | Check process health |
+| `GET /.well-known/agent-card.json` | Discover the Agent Card |
+
+## Response modes
+
+<Tabs>
+  <Tab title="JSON">
+    Send one request to `POST /responses` and receive one completed response.
+  </Tab>
+  <Tab title="SSE">
+    Set `"stream": true`. The stream starts with `response.created` and ends with `response.completed` or `error`.
+  </Tab>
+  <Tab title="WebSocket">
+    Connect to `/live`, send a `connect` frame, wait for `session.connected`, then send `response.create` frames.
+  </Tab>
+</Tabs>
+
+All modes use the same portable event names. Native metadata stays under `adk` or `langgraph`.
+
+Typed input, output, and media references use the same contract in every mode. See [Typed multimodal contracts](/harnest/build/models-and-libraries/typed-multimodal-contracts).
+
+## Pagination properties
+
+| Property | Value |
+|---|---|
+| Default limit | 100 |
+| Accepted limit | `1..100` |
+| Next page | Return `nextCursor` unchanged |
+| Final page | `nextCursor` is `null` |
+| Cursor scope | User; transcript cursors also bind to the session |
+
+Malformed or cross-user cursors return `400`.
+
+## Playground
+
+The playground uses only the neutral API. It supports sessions, state, tool activity, JSON, SSE, and WebSocket conversations.
+
+| Auth path | Browser behavior |
+|---|---|
+| HTTP and SSE bearer token | Kept in page memory |
+| Authenticated WebSocket | Requires a same-origin cookie |
+
+Browsers cannot add arbitrary authorization headers to a WebSocket handshake.
