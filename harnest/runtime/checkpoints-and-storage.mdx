@@ -14,6 +14,11 @@ Every compiled agent needs one session store and one checkpointer. Multimodal ag
 
 Harnest allows one running or waiting invocation per session. Atomic status updates prevent two replicas from resuming the same run.
 
+Every checkpoint operation after run creation requires the complete ownership
+scope: application, authenticated user, session, and run. Built-in stores apply
+all four values before returning or changing data. Knowing a `run_id` alone
+does not grant access to its checkpoints.
+
 ## Choose a backend
 
 | Store | Best for | Important property |
@@ -83,6 +88,11 @@ Agent code can then call `context.resource("storage")`.
 | Read or write session data | Scope every operation with `context.user_id` and `context.session_id` |
 | Work with checkpoints | Do not mutate state behind the framework |
 | Add a custom backend | Own its schema, migrations, and durability |
+
+A custom `CheckpointStore` must accept `RunScope` for every operation after
+`begin_run` and include all four ownership values in its datastore predicate.
+Return the same not-found behavior for an unknown run and a run owned by
+another principal. Do not add an internal convenience lookup by bare `run_id`.
 
 ## Advanced framework ownership
 

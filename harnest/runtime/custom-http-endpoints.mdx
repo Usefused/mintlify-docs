@@ -76,6 +76,53 @@ Resume human approvals through `POST /approvals/{approvalId}`. Submit browser-ho
 
 Use `response.as_dict()` when your endpoint should return Harnest's complete neutral response shape unchanged.
 
+## Add an application-specific session view
+
+Keep business dimensions such as site origin, workspace, inbox, or project out
+of the neutral `/sessions` contract. Add an authenticated custom endpoint and
+query an application-owned index instead:
+
+```python extensions/http.py
+from fastapi import APIRouter, Request
+from harnest import AgentInvoker, lifecycle
+from harnest.runtime_auth import principal_for
+from harnest.lib.site_sessions import site_sessions
+
+
+@lifecycle.http_routes
+def site_session_routes(_agent: AgentInvoker):
+    router = APIRouter(prefix="/sites")
+
+    @router.get("/{origin}/sessions")
+    async def sessions(
+        origin: str,
+        request: Request,
+        cursor: str | None = None,
+        limit: int = 50,
+    ):
+        principal = principal_for(request)
+        return await site_sessions.list(
+            user_id=principal.user_id,
+            origin=origin,
+            cursor=cursor,
+            limit=min(max(limit, 1), 100),
+        )
+
+    return router
+```
+
+`site_sessions` represents your indexed projection or repository, not a
+Harnest type. Update it when a session is associated with an origin and scope
+its index by the authenticated `user_id`. This provides complete server-side
+filtering and global ordering without teaching Harnest about one application's
+domain model.
+
+<Warning>
+  Do not fetch one bounded `/sessions` page and filter it locally. Matching
+  sessions may exist on later pages, and sorting a page is not the same as
+  sorting the complete filtered result.
+</Warning>
+
 ## Route ownership
 
 Compilation rejects duplicate routes and Harnest-owned namespaces. Reserved paths include `/responses`, `/sessions`, `/live`, `/approvals`, `/client-tools`, `/agent`, `/healthz`, playground assets, OpenAPI pages, and ADK-native run or application routes.

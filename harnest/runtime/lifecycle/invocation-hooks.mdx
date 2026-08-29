@@ -33,6 +33,12 @@ async def check_tool(event):
 | Observer | Reads an event without replacing it |
 | Rejection | Stops work before the protected phase |
 | Error observer | Cannot hide the original failure |
+| Agent identity | Model hooks receive the managed agent or SubAgent performing that model call |
+
+The `agent_name` on a model lifecycle context is call-specific. When a managed
+SubAgent calls a model, it contains that SubAgent's name rather than the root
+agent's name. The authenticated user, session, and invocation IDs remain those
+of the root request, including when sibling SubAgents run concurrently.
 
 Keep business operations in Agent Tools. Hooks should apply policy, observation, or transformation around those operations.
 
