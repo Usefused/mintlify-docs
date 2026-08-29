@@ -23,7 +23,7 @@ Managed mode is the portable default. Harnest discovers your resources and build
 | Moves between frameworks | Remains native |
 |---|---|
 | Agents, graphs, instructions, and contracts | ADK plugins, evals, and sandboxes |
-| Tools, MCP clients, plugins, and Agent Skills | LangGraph middleware and native nodes |
+| Tools, MCP clients, Agent Plugins, Runtime Plugin content, and Agent Skills | LangGraph middleware and native nodes |
 | Portable lifecycle hooks | Framework-owned checkpoints |
 | Sessions, auth, approvals, transports, and tests | Arbitrary native framework calls |
 
@@ -83,6 +83,8 @@ Changing `spec.framework.name` is simple. Validating the behavior is the migrati
 | Advanced LangGraph | Native graph state, middleware, or graph primitives define the design |
 
 All choices use the same Harnest agent card, sessions, API, events, WebSocket protocol, and playground.
+
+Durable managed tools use each framework's native suspension boundary. Review the different replay semantics in [Durable execution](/harnest/runtime/durable-execution).
 
 ## Version compatibility
 

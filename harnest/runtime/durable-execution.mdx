@@ -1,0 +1,92 @@
+---
+title: "Durable execution"
+sidebarTitle: "Durable execution"
+description: "Suspend managed tools and resume the same agent session from any replica."
+---
+
+Use durable execution when a tool waits longer than one request or process lifetime.
+
+| Work | Boundary |
+|---|---|
+| Short in-process operation | Ordinary `@tool` |
+| Scheduled or retryable Python work | [`@task`](/harnest/build/queued-tasks) |
+| External workflow or job service | [Runtime Plugin](/harnest/build/runtime-plugins) |
+| Either wait must resume the agent | Async `@tool(durable=True)` |
+
+## Suspend a tool
+
+```python
+from harnest.plugins.hatchet import plugin as hatchet
+from harnest.tool import tool
+
+
+@tool(durable=True)
+async def generate_report(topic: str) -> dict:
+    """Run a report workflow and return its result."""
+
+    job = await hatchet.run("consumer-report", {"topic": topic})
+    return await hatchet.wait(job)
+```
+
+An unfinished plugin or task wait from a non-durable tool fails before Harnest persists the wait.
+
+## Resume sequence
+
+<Steps>
+  <Step title="Submit work">
+    The tool submits with framework and invocation identity. Harnest supplies a replay-stable submission key to durable adapters.
+  </Step>
+  <Step title="Persist and arm">
+    Harnest stores an opaque continuation, commits the framework checkpoint, then marks the wait resumable.
+  </Step>
+  <Step title="Complete externally">
+    A task worker or Runtime Plugin validates and persists the result. Provider and checkpoint completion may arrive in either order.
+  </Step>
+  <Step title="Claim and resume">
+    One replica atomically claims the wait, resumes the framework, and commits the transcript.
+  </Step>
+</Steps>
+
+## Framework behavior
+
+<Tabs>
+  <Tab title="ADK">
+    Harnest lowers the function to an ADK long-running tool. Resume injects the exact persisted `FunctionResponse`; the original Python frame does not continue after the wait. Keep the wait at the tool's return boundary.
+  </Tab>
+  <Tab title="LangGraph">
+    Harnest checkpoints an interrupt identity. LangGraph re-enters the tool node on resume, so code before the wait and external submission must be idempotent.
+  </Tab>
+</Tabs>
+
+<Warning>
+  `durable=True` persists logical execution, not local variables, threads, coroutines, or a Python process.
+</Warning>
+
+## Run multiple replicas
+
+All replicas must use the same application identity and shared stores:
+
+| Shared capability | Why |
+|---|---|
+| Session store | Transcript and application session data |
+| Harnest checkpointer | Framework resume identity and continuation state |
+| Task PostgreSQL database, when used | Queue jobs and task results |
+| External provider account, when used | Job reconciliation after restart |
+
+`PostgresStore` is the reference durable backend. `MemoryStore` cannot recover across processes. An opaque advanced-mode native checkpointer cannot provide Harnest's portable continuation ownership.
+
+## Poll a response
+
+A suspended JSON response returns `status: in_progress`. Poll with the same authenticated user and session:
+
+```http
+GET /responses/{responseId}?sessionId={sessionId}
+```
+
+| Status | Meaning |
+|---|---|
+| `in_progress` | The external or queued wait is pending |
+| `completed` | Agent execution and transcript commit finished |
+| `failed` | The durable run reached a sanitized terminal failure |
+
+Cross-user and cross-session lookups return the same not-found response as an unknown ID. Any healthy replica can serve the poll and reconstruct state from shared storage.

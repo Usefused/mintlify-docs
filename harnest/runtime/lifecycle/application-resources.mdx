@@ -30,7 +30,7 @@ async def catalog():
 | Both decorators | Application | Yes |
 | `@context("name")` | Invocation | Yes |
 
-Harnest starts application resources in order and closes them in reverse order.
+Harnest starts application resources by ascending `order`, then source location, and closes them in reverse order.
 
 ## Read a resource
 

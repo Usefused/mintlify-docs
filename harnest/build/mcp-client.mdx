@@ -41,6 +41,21 @@ Use `MCPClient.sse(...)` only for a legacy SSE server. Connections and remote to
 
 Harnest keeps connection identity and approval policy consistent. Same-named tools on different servers remain distinct.
 
+## Call MCP from trusted code
+
+Use the invocation-scoped facade when a tool or service chooses the remote operation:
+
+```python
+from harnest import context
+
+result = await context.mcp("catalog").call_tool(
+    "search_products",
+    {"query": "standing desk"},
+)
+```
+
+The facade exposes neither the raw transport nor credentials. Calls use the same approval, Tool Lifecycle, and MCP Client Lifecycle paths as model-selected MCP tools.
+
 ## Authentication and gateways
 
 Read URLs and static credentials from the deployment environment. For user-scoped access, resolve a token through [Authentication and Credentials](/harnest/runtime/authentication-and-credentials).
@@ -49,4 +64,8 @@ Customize the HTTP client only for a gateway, mTLS, or transport policy. Put sha
 
 ## Direct connections and plugins
 
-Use root `mcp/` for a connection that is part of one agent. Use a [`plugins/<name>/`](/harnest/build/agent-plugins) bundle when the connection and its progressive usage skills should travel together as one reusable capability.
+| Need | Use |
+|---|---|
+| Connection for one agent | Root `mcp/` |
+| MCP connection plus Agent Skills | [Agent Plugin](/harnest/build/agent-plugins) |
+| MCP plus SDK, context, or lifecycle behavior | [Runtime Plugin](/harnest/build/runtime-plugins) |

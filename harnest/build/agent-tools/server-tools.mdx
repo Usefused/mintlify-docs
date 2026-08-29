@@ -40,6 +40,23 @@ Arguments and results must be structured. Convert unsupported custom objects to 
 
 Credentials are private invocation capabilities. Do not expose them as model-generated arguments or ordinary context resources.
 
+## Wait durably
+
+Use an async durable tool when queued or external work must survive a request ending or a replica stopping:
+
+```python
+from harnest.lib.report_tasks import build_report
+from harnest.tool import tool
+
+
+@tool(durable=True)
+async def request_report(account_id: str):
+    handle = await build_report.defer(account_id=account_id)
+    return await handle.result()
+```
+
+`durable=True` resumes framework execution; it does not restore a Python frame. See [Durable execution](/harnest/runtime/durable-execution).
+
 ## Add approval
 
 <Tabs>

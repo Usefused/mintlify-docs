@@ -17,6 +17,7 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
 | `POST /sessions/{id}/assets` | Upload a session-owned media asset |
 | `HEAD/GET/DELETE /sessions/{id}/assets/{assetId}` | Inspect, download, or delete an asset |
 | `POST /responses` | Run JSON or SSE responses |
+| `GET /responses/{id}?sessionId=...` | Poll a durable response |
 | `WS /live` | Run a live WebSocket session |
 | `GET /healthz` | Check process health |
 | `GET /.well-known/agent-card.json` | Discover the Agent Card |
@@ -36,6 +37,8 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
 </Tabs>
 
 All modes use the same portable event names. Native metadata stays under `adk` or `langgraph`.
+
+An external or queued durable wait returns `status: in_progress`. Poll the response ID with the same authenticated user and session until it is `completed` or `failed`. See [Durable execution](/harnest/runtime/durable-execution).
 
 Typed input, output, and media use the same contract in every mode. See [Accept multimodal data](/harnest/build/models-and-libraries/typed-multimodal-contracts).
 

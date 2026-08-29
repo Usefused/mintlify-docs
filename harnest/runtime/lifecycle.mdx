@@ -18,6 +18,7 @@ Lifecycle extensions manage behavior around the agent without turning that behav
 | Store session-owned media | Asset store |
 | Authenticate or resolve credentials | Security factory |
 | Export traces or logs | Telemetry exporter |
+| Package reusable SDK and lifecycle behavior | Runtime Plugin |
 
 Lifecycle is root-owned. SubAgents cannot add private lifecycle extensions.
 
@@ -33,6 +34,9 @@ Lifecycle is root-owned. SubAgents cannot add private lifecycle extensions.
   </Card>
   <Card title="Native integrations" icon="code" href="/harnest/runtime/lifecycle/native-integrations">
     Add ADK plugins or LangGraph middleware when portable hooks are not enough.
+  </Card>
+  <Card title="Runtime plugins" icon="boxes-stacked" href="/harnest/build/runtime-plugins">
+    Package typed SDK access and declared runtime contributions.
   </Card>
 </CardGroup>
 

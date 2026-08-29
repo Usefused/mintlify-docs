@@ -1,0 +1,177 @@
+---
+title: "Runtime plugins"
+sidebarTitle: "Runtime plugins"
+description: "Package same-process SDK integrations, lifecycle behavior, and typed agent context."
+---
+
+A Runtime Plugin adapts an SDK or external service to Harnest. It runs in the agent process and can contribute declared lifecycle, context, storage, HTTP, and content capabilities.
+
+<Note>
+  Runtime Plugins have `plugin.yaml`. Manifest-less plugin folders are [Agent Plugins](/harnest/build/agent-plugins): MCP clients plus Agent Skills, with no Python plugin object or lifecycle.
+</Note>
+
+## Choose the boundary
+
+| Need | Use |
+|---|---|
+| Reuse MCP tools and guidance | Agent Plugin |
+| Wrap an SDK in typed agent context | Runtime Plugin |
+| Apply behavior to one application | Root lifecycle extension |
+| Run work outside the agent process | Runtime Plugin backed by an external service |
+
+## Create a plugin
+
+```text
+plugins/
+└── temporal/
+    ├── plugin.yaml
+    ├── plugin.py
+    ├── pyproject.toml       # optional SDK dependencies
+    ├── lib/                 # private helpers
+    └── extensions/          # declared lifecycle contributions
+```
+
+<Tabs>
+  <Tab title="plugin.yaml">
+    ```yaml
+    apiVersion: harnest.dev/v1alpha1
+    kind: RuntimePlugin
+    metadata:
+      name: temporal
+      version: 1.0.0
+    runtime:
+      entrypoint: plugin:plugin
+    ```
+  </Tab>
+  <Tab title="plugin.py">
+    ```python
+    import os
+
+    from harnest.plugins import Plugin, PluginContext
+    from temporalio.client import Client
+
+
+    class TemporalContext(PluginContext):
+        def __init__(self, name, owner):
+            super().__init__(name)
+            self._owner = owner
+
+        async def start_workflow(self, workflow, payload, *, workflow_id):
+            self._require_active()
+            return await self._owner._start_workflow(
+                workflow,
+                payload,
+                workflow_id=workflow_id,
+            )
+
+
+    class Temporal(Plugin[TemporalContext]):
+        def __init__(self):
+            self._client = None
+
+        async def start(self, _context):
+            self._client = await Client.connect(os.environ["TEMPORAL_ADDRESS"])
+
+        async def stop(self):
+            self._client = None
+
+        def create_context(self, base):
+            return TemporalContext(base.plugin_name, self)
+
+        async def start_workflow(self, workflow, payload, *, workflow_id):
+            return await self.context.start_workflow(
+                workflow,
+                payload,
+                workflow_id=workflow_id,
+            )
+
+        async def _start_workflow(self, workflow, payload, *, workflow_id):
+            if self._client is None:
+                raise RuntimeError("Temporal plugin is not started")
+            handle = await self._client.start_workflow(
+                workflow,
+                payload,
+                id=workflow_id,
+                task_queue=os.environ["TEMPORAL_TASK_QUEUE"],
+            )
+            return handle.id
+
+
+    plugin = Temporal()
+    ```
+  </Tab>
+  <Tab title="pyproject.toml">
+    ```toml
+    [project]
+    name = "temporal"
+    version = "1.0.0"
+    requires-python = ">=3.11,<3.14"
+    dependencies = ["temporalio>=1,<2"]
+    ```
+  </Tab>
+</Tabs>
+
+The plugin project name and version must match `plugin.yaml`. Dependencies are static PEP 621 entries.
+
+Use `requires.plugins` to name local Runtime Plugin dependencies. Harnest rejects missing dependencies and cycles at compile time.
+
+<Warning>
+  Plugins share the root interpreter, event loop, dependency solve, and lock. Conflicting SDK constraints fail environment synchronization; Harnest does not create plugin-private environments.
+</Warning>
+
+## Use the plugin
+
+Import the singleton from its compiler-owned namespace:
+
+```python
+from harnest.plugins.temporal import plugin as temporal
+
+workflow_id = await temporal.start_workflow(
+    "invoice",
+    {"invoice_id": "inv_123"},
+    workflow_id="invoice-inv_123",
+)
+```
+
+Inside an invocation, the same typed view is available through:
+
+```python
+from harnest import context
+from harnest.plugins.temporal import TemporalContext
+
+temporal = context.plugins("temporal", TemporalContext)
+```
+
+Plugin context is invocation-scoped and revoked after the call. Keep application clients on the plugin singleton; expose only bounded operations through its context.
+
+## Declare capabilities
+
+| Capability | Contribution |
+|---|---|
+| `lifecycle.agent`, `.model`, `.tool`, `.mcp`, `.http` | Portable interception |
+| `context.resources`, `.credentials`, `.continuations`, `.storage`, `.assets`, `.session`, `.mcp` | Scoped runtime access |
+| `content.tools`, `.mcp`, `.skills`, `.subagents` | Managed-mode content |
+| `storage.sessions`, `.checkpoints`, `.assets`, `.custom` | Storage factories |
+| `http.routes` | Application routes |
+| `native.adk`, `native.langgraph` | Framework-native integration |
+| `policy.output`, `telemetry.exporter` | Output or telemetry policy |
+
+Declare only what the plugin contributes. Advanced mode composes Harnest-owned boundaries but does not intercept opaque native framework paths.
+
+## Lifecycle and auditing
+
+- Dependencies start before dependants; shutdown reverses that order.
+- Within a lifecycle phase, lower `order` values run first.
+- Plugin and root extensions form one globally validated lifecycle.
+- Wrap committed user- or agent-triggered writes with `plugin_mutation(...)` to emit correlated, payload-free OTEL audit events.
+
+Inside a plugin method:
+
+```python
+from harnest.plugins import plugin_mutation
+
+async with plugin_mutation("temporal", "workflow.start", trigger="agent"):
+    workflow_id = await self._client.start_workflow(...)
+```
+
+For external work that must survive a replica stopping, declare `context.continuations` and follow [Durable execution](/harnest/runtime/durable-execution).

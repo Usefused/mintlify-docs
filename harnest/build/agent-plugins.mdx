@@ -6,6 +6,10 @@ description: "Bundle MCP clients with the Agent Skills that teach an agent to us
 
 An Agent Plugin is a reusable capability bundle: MCP connections plus the Agent Skills that explain when and how to use them.
 
+<Note>
+  Need a Python class, SDK dependencies, lifecycle behavior, or typed context? Build a [Runtime Plugin](/harnest/build/runtime-plugins) instead.
+</Note>
+
 | A plugin contains | A plugin does not contain |
 |---|---|
 | One or more MCP clients | Another agent |
@@ -60,7 +64,7 @@ For selective approval, name the server's original tool before any prefix. Harne
   <Card title="Connect directly to MCP" icon="plug" href="/harnest/build/mcp-client">
     Use a direct connection when it belongs to one agent.
   </Card>
-  <Card title="Add lifecycle behavior" icon="rotate" href="/harnest/runtime/lifecycle">
-    Use an extension for persistence, guardrails, auditing, or native middleware.
+  <Card title="Build a Runtime Plugin" icon="boxes-stacked" href="/harnest/build/runtime-plugins">
+    Package SDK access, lifecycle behavior, and typed context.
   </Card>
 </CardGroup>

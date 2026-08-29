@@ -3,32 +3,45 @@ title: "Invocation hooks"
 description: "Observe or transform agent, model, and tool execution in a portable way."
 ---
 
-Portable hooks apply the same policy around managed ADK and LangGraph execution.
+Portable hooks apply the same policy around Harnest-owned ADK and LangGraph boundaries.
 
-| Phase | Use it for |
-|---|---|
-| Before agent | Request policy, context setup, or early rejection |
-| After agent | Result checks or accounting |
-| Before model | Input policy or routing metadata |
-| After model | Result checks |
-| Before tool | Tool policy and guardrails |
-| After tool | Result checks and audit enrichment |
+| Boundary | Decorators | Typical use |
+|---|---|---|
+| Agent | `lifecycle.agent.before/after/on_error` | Request policy and accounting |
+| Model | `lifecycle.model.before/after/on_error` | Input and output policy |
+| Tool | `lifecycle.tool.before/after/on_error` | Tool guardrails and results |
+| MCP | `lifecycle.mcp.before/after/on_error` | Governed remote-tool policy |
+| HTTP | `lifecycle.http.before/after/on_error` | Routing and response-head policy |
 
 ```python
 from harnest.lifecycle import lifecycle
 
 
-@lifecycle.before_tool
-async def check_tool(event):
-    if event.tool_name == "delete_account":
-        raise PermissionError("Tool is disabled")
+@lifecycle.tool.before(order=-100)
+async def check_tool(context, request):
+    if context.tool_name == "delete_account":
+        return context.finish({"error": "tool_disabled"})
+    return context.next()
 ```
 
-## Hook properties
+## Control flow
+
+| Return | Effect |
+|---|---|
+| `context.next()` | Continue unchanged |
+| `context.next(replacement)` | Pass a replacement to the next stage |
+| `context.finish(result)` | Stop the chain with a final result |
+
+Tool, MCP, and HTTP `before` and `after` interceptors require explicit control flow. Agent and model hooks accept legacy return values, but explicit transitions keep policy readable and portable.
+
+Error hooks normally return `context.next()`. An MCP error hook can use `finish(...)` only for a recoverable provider failure; it cannot bypass approval or cancellation.
+
+## Ordering
 
 | Property | Behavior |
 |---|---|
-| Ordering | Explicit order, then source path |
+| Primary order | Lower integer `order` values run first |
+| Tie-break | Plugin dependency/source order, then source location |
 | Transformer | Can replace the current value |
 | Observer | Reads an event without replacing it |
 | Rejection | Stops work before the protected phase |

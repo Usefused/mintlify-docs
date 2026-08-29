@@ -12,6 +12,8 @@ The standalone server is a runtime process, not a complete production platform.
 |---|---|
 | Add an authenticator or trusted authenticated proxy | Identify callers |
 | Replace `MemoryStore` | Keep sessions and checkpoints |
+| Share stores across replicas | Resume durable tools and serve response polling from any replica |
+| Configure task PostgreSQL, when tasks exist | Share queue jobs and results |
 | Inject model, MCP, and provider credentials | Keep secrets out of source |
 | Terminate TLS outside the launcher | Protect traffic |
 | Add process supervision and scaling | Run reliably |
@@ -38,6 +40,9 @@ The standalone server is a runtime process, not a complete production platform.
   </Card>
   <Card title="Storage" icon="database" href="/harnest/runtime/checkpoints-and-storage">
     Replace process-local state with a durable backend.
+  </Card>
+  <Card title="Durable execution" icon="rotate" href="/harnest/runtime/durable-execution">
+    Resume queued and external waits across replicas.
   </Card>
   <Card title="Telemetry" icon="chart-line" href="/harnest/runtime/telemetry">
     Export privacy-safe logs, traces, and audit signals.

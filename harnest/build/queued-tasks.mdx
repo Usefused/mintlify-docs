@@ -1,0 +1,91 @@
+---
+title: "Queued tasks"
+sidebarTitle: "Queued tasks"
+description: "Run scheduled, retryable application work through PostgreSQL without exposing it as a model tool."
+---
+
+Use `@task` for application-owned queue work. A task is not model-visible; an Agent Tool decides when to defer it.
+
+| Call | Behavior |
+|---|---|
+| `build_report(...)` | Runs as an ordinary local Python call |
+| `await task.defer(...)` | Commits queue work and returns `TaskHandle` |
+| `await handle.result()` | Returns a terminal result or suspends a durable tool |
+
+## Define and call a task
+
+When a tool needs the task callable, define it once in `lib/` and re-export it from `tasks/`:
+
+<CodeGroup>
+
+```python lib/report_tasks.py
+from harnest.task import task
+
+
+@task(queue="reports", max_retries=3)
+async def build_report(account_id: str) -> dict:
+    """Build one account report."""
+
+    return {"account_id": account_id, "status": "ready"}
+```
+
+```python tasks/build_report.py
+from harnest.lib.report_tasks import build_report
+```
+
+```python tools/request_report.py
+from harnest.lib.report_tasks import build_report
+from harnest.tool import tool
+
+
+@tool(durable=True)
+async def request_report(account_id: str) -> dict:
+    """Queue a report and return it when ready."""
+
+    handle = await build_report.defer(account_id=account_id)
+    return await handle.result()
+```
+
+</CodeGroup>
+
+If nothing imports the task, you can define it directly in `tasks/<name>.py`. The file must export exactly one same-named `@task` callable.
+
+## Control a job
+
+```python
+handle = await build_report.defer(
+    account_id="acct_123",
+    schedule_in=30,
+    idempotency_key="report-acct_123",
+)
+
+status = await handle.status()
+cancelled = await handle.cancel()
+```
+
+| Option | Purpose |
+|---|---|
+| `queue=` | Select a worker queue |
+| `max_retries=` | Set queue retry policy |
+| `schedule_in=` | Delay submission by seconds |
+| `idempotency_key=` | Deduplicate a logical submission |
+
+Inside `@tool(durable=True)`, Harnest derives a replay-stable idempotency key when you omit one. Keep task effects idempotent because workers can retry.
+
+## Runtime requirements
+
+| Requirement | Behavior |
+|---|---|
+| Queue backend | Compiler-owned `procrastinate==3.9.0` |
+| Installation | Added only when a public task exists |
+| Database | `HARNEST_TASK_DATABASE_URL`, or one unambiguous `PostgresStore` |
+| Payloads and results | JSON-safe values only |
+| Credentials | Resolved at execution; never serialized into task state |
+
+If the application has multiple PostgreSQL stores, set `HARNEST_TASK_DATABASE_URL` explicitly. Every replica can run a worker against the shared queue.
+
+<Warning>
+  An unfinished `handle.result()` requires an async `@tool(durable=True)` and a Harnest-owned checkpointer. Harnest resumes framework execution; it does not restore a Python stack.
+</Warning>
+
+See [Durable execution](/harnest/runtime/durable-execution) for cross-replica resume behavior.

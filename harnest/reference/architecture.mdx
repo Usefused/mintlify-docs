@@ -68,9 +68,11 @@ Harnest uses location to discover capabilities. Public filenames define resource
 |---|---|
 | `agent.py` | Root agent or graph |
 | `tools/*.py` | Agent Tools |
+| `tasks/*.py` | Queued application tasks |
 | `subagents/` | SubAgents |
 | `mcp/*.py` | MCP connections |
-| `plugins/` | MCP-and-skill bundles |
+| Manifest-less `plugins/<name>/` | MCP-and-skill Agent Plugins |
+| `plugins/<name>/plugin.yaml` | Same-process Runtime Plugins |
 | `skills/` | Agent Skills |
 | `extensions/**/*.py` | Lifecycle behavior |
 | `models/` | Pydantic contracts |
@@ -87,9 +89,9 @@ The neutral runtime keeps common product behavior consistent across ADK and Lang
 |---|---|
 | Identity | One agent card and stable route set |
 | Sessions | User-scoped session state and transcript |
-| Execution | JSON response, SSE stream, and live WebSocket |
+| Execution | JSON response, durable polling, SSE stream, and live WebSocket |
 | Tools | Server tools, client-hosted tools, MCP tools, and approvals |
-| Storage | One session store and one checkpointer |
+| Storage | Sessions, checkpoints, named assets, and domain repositories |
 | Security | Request principal and invocation-scoped credentials |
 | Observability | Structured logs, traces, and privacy-safe audit events |
 

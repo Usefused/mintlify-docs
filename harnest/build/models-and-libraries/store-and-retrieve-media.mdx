@@ -53,7 +53,7 @@ from harnest import AssetStorage, lifecycle
 from harnest.lib.assets import S3AssetStorage
 
 
-@lifecycle.asset_store(name="media")
+@lifecycle.storage.assets("media")
 def media_assets() -> AssetStorage:
     return S3AssetStorage(bucket="agent-media")
 ```
