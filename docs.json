@@ -124,90 +124,96 @@
             ]
           },
           {
-            "group": "Build agents",
+            "group": "Guides",
             "pages": [
-              "harnest/build/agent-concepts",
-              "harnest/build/project-configuration",
-              "harnest/build/agents-and-graphs",
               {
-                "group": "Models and libraries",
-                "icon": "shapes",
+                "group": "Build agents",
+                "icon": "robot",
                 "expanded": false,
                 "pages": [
-                  "harnest/build/data-models-and-shared-libraries",
-                  "harnest/build/models-and-libraries/typed-multimodal-contracts"
+                  "harnest/build/agent-concepts",
+                  "harnest/build/project-configuration",
+                  "harnest/build/agents-and-graphs",
+                  {
+                    "group": "Models & libraries",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/build/data-models-and-shared-libraries",
+                      "harnest/build/models-and-libraries/typed-multimodal-contracts"
+                    ]
+                  },
+                  {
+                    "group": "Tools",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/build/agent-tools",
+                      "harnest/build/agent-tools/server-tools",
+                      "harnest/build/agent-tools/client-tools",
+                      "harnest/build/agent-tools/human-approvals"
+                    ]
+                  },
+                  {
+                    "group": "Subagents",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/build/subagents",
+                      "harnest/build/subagents/flat-subagents",
+                      "harnest/build/subagents/folder-subagents",
+                      "harnest/build/subagents/framework-behavior"
+                    ]
+                  },
+                  "harnest/build/mcp-client",
+                  "harnest/build/agent-plugins",
+                  "harnest/build/agent-skills",
+                  "harnest/build/sandboxing",
+                  "harnest/build/testing-and-compilation"
                 ]
               },
               {
-                "group": "Agent Tools",
-                "icon": "wrench",
-                "expanded": false,
-                "pages": [
-                  "harnest/build/agent-tools",
-                  "harnest/build/agent-tools/server-tools",
-                  "harnest/build/agent-tools/client-tools",
-                  "harnest/build/agent-tools/human-approvals"
-                ]
-              },
-              {
-                "group": "SubAgents",
-                "icon": "users",
-                "expanded": false,
-                "pages": [
-                  "harnest/build/subagents",
-                  "harnest/build/subagents/flat-subagents",
-                  "harnest/build/subagents/folder-subagents",
-                  "harnest/build/subagents/framework-behavior"
-                ]
-              },
-              "harnest/build/mcp-client",
-              "harnest/build/agent-plugins",
-              "harnest/build/agent-skills",
-              "harnest/build/sandboxing",
-              "harnest/build/testing-and-compilation"
-            ]
-          },
-          {
-            "group": "Runtime",
-            "pages": [
-              "harnest/runtime/adk-and-langgraph",
-              {
-                "group": "Lifecycle",
-                "icon": "arrows-rotate",
-                "expanded": false,
-                "pages": [
-                  "harnest/runtime/lifecycle",
-                  "harnest/runtime/lifecycle/application-resources",
-                  "harnest/runtime/lifecycle/invocation-hooks",
-                  "harnest/runtime/lifecycle/output-policy",
-                  "harnest/runtime/lifecycle/native-integrations"
-                ]
-              },
-              "harnest/runtime/authentication-and-credentials",
-              "harnest/runtime/checkpoints-and-storage",
-              "harnest/runtime/telemetry",
-              {
-                "group": "Serving",
+                "group": "Runtime",
                 "icon": "server",
                 "expanded": false,
                 "pages": [
-                  "harnest/runtime/serving",
-                  "harnest/runtime/serving/server-configuration",
-                  "harnest/runtime/serving/neutral-api",
-                  "harnest/runtime/custom-http-endpoints",
-                  "harnest/runtime/serving/approvals-and-client-tools",
-                  "harnest/runtime/serving/production"
+                  "harnest/runtime/adk-and-langgraph",
+                  {
+                    "group": "Lifecycle",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/runtime/lifecycle",
+                      "harnest/runtime/lifecycle/application-resources",
+                      "harnest/runtime/lifecycle/invocation-hooks",
+                      "harnest/runtime/lifecycle/output-policy",
+                      "harnest/runtime/lifecycle/native-integrations"
+                    ]
+                  },
+                  "harnest/runtime/authentication-and-credentials",
+                  "harnest/runtime/checkpoints-and-storage",
+                  "harnest/runtime/telemetry",
+                  {
+                    "group": "Serving",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/runtime/serving",
+                      "harnest/runtime/serving/server-configuration",
+                      "harnest/runtime/serving/neutral-api",
+                      "harnest/runtime/custom-http-endpoints",
+                      "harnest/runtime/serving/approvals-and-client-tools",
+                      "harnest/runtime/serving/production"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Reference",
+                "icon": "book",
+                "expanded": false,
+                "pages": [
+                  "harnest/reference/architecture",
+                  "harnest/reference/runtime-extensions",
+                  "harnest/reference/installation-and-releases",
+                  "harnest/reference/development-standards"
                 ]
               }
-            ]
-          },
-          {
-            "group": "Reference",
-            "pages": [
-              "harnest/reference/architecture",
-              "harnest/reference/runtime-extensions",
-              "harnest/reference/installation-and-releases",
-              "harnest/reference/development-standards"
             ]
           }
         ]
