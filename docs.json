@@ -12,11 +12,6 @@
     }
   ],
   "favicon": "https://media.brand.dev/1bebb410-f7fb-43b3-b789-6dd6c0d59d42.svg",
-  "logo": {
-    "light": "/assets/harnest-by-fused-light.svg",
-    "dark": "/assets/harnest-by-fused-dark.svg",
-    "href": "https://usefused.com"
-  },
   "navigation": {
     "tabs": [
       {
