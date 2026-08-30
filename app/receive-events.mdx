@@ -1,22 +1,22 @@
 ---
-title: "Receive provider events"
-description: "Register inbound webhooks and route their events to the SDK that asked for them."
+title: "Receive SDK events"
+description: "Handle provider webhooks and Fused auth lifecycle events through one durable SDK receiver."
 ---
 
-A payment clears, an issue moves, a subscription lapses. The Engine verifies the provider's signature, classifies the event, queues it durably, and delivers it to the application that subscribed — so your team writes the response rather than the retry loop.
+A payment clears, an issue moves, or a user finishes connecting an account. The generated SDK receives all of these through one durable event receiver.
 
-This takes two pieces that are deliberately separate:
+The event source determines how it is registered:
 
-1. A **`kind: webhook` config** registers the inbound ingress — it makes Fused *accept* the delivery.
-2. An **SDK attaches to it** and lists which events it wants — that is what makes the event arrive.
+1. A **provider webhook** uses a `kind: webhook` config for ingress. The SDK attaches to it and selects the provider events it wants.
+2. A **Fused auth lifecycle event** is included automatically when the SDK's selected auth path uses connected OAuth or OIDC. It needs no webhook config or attachment.
 
-Registering alone routes nothing.
+Both arrive through `FusedWebhooks`. Creating an SDK client does not start a listener; your application registers handlers when it is ready to consume events.
 
 <Note>
   Delivery is an SDK surface. A `kind: mcp` config cannot select webhooks at all — neither `webhooks` nor `webhooks_select_all` is valid on an MCP service.
 </Note>
 
-## Register the ingress
+## Register provider ingress
 
 A `kind: webhook` config is a named, team-owned bundle that can span several services, with its own plan and apply lifecycle.
 
@@ -63,7 +63,7 @@ Its `SIGNATURE` column reads `set` or `none` — never the secret itself.
 
 Removing a service from the map, or deleting the file, is an ordinary apply-time diff. There is no imperative delete command.
 
-## Attach an SDK and pick events
+## Attach an SDK and pick provider events
 
 ```yaml
 apiVersion: fused/v1
@@ -93,6 +93,21 @@ fused-cli sdk webhook remove jira issue.updated
 
 `sdk webhook add` accepts `--interactive` when you would rather pick from a list than remember event IDs.
 
+## Fused auth lifecycle events
+
+An SDK whose selected operation auth path uses connected OAuth or OIDC gets these generated event types automatically:
+
+| Generated member | Event suffix | When it arrives |
+|---|---|---|
+| `JiraWebhook.FUSED_AUTH_CONNECTION_COMPLETED` | `fused.auth.connection.completed` | A user connection initiated by this SDK family completes |
+| `JiraWebhook.FUSED_AUTH_TOKEN_REFRESHED` | `fused.auth.token.refreshed` | Fused refreshes the connected grant |
+| `JiraWebhook.FUSED_AUTH_TOKEN_REFRESH_FAILED` | `fused.auth.token.refresh_failed` | A refresh attempt fails |
+| `JiraWebhook.FUSED_AUTH_CONNECTION_RECONNECT_REQUIRED` | `fused.auth.connection.reconnect_required` | The user must authorize the service again |
+
+Use the enum generated for your service. Its wire value includes the service identity before the event suffix, which keeps events from different services distinct. You do not add these names under `services.<slug>.webhooks`. They need no `kind: webhook`, provider callback URL, signing secret, or `webhook_attachment`. A service merely offering an unused OAuth alternative does not enable them.
+
+The implicit subscription is scoped to the SDK family and service. A later SDK version in the same family can continue receiving its connection events, but another SDK sharing the bucket cannot. Connections started directly from the CLI are not routed into an SDK receiver.
+
 ## Handle them in your code
 
 The generated package ships the receiver. Your process **dials out** to the Engine and events stream back down that connection, so there is no public endpoint to host, no ingress to open, and no signature to verify yourself — this works unchanged on a laptop, in a private VPC, or on a serverless container.
@@ -100,11 +115,15 @@ The generated package ships the receiver. Your process **dials out** to the Engi
 <CodeGroup>
 
 ```typescript TypeScript
-import { FusedWebhooks } from 'support-sdk';
+import {
+  FusedWebhooks,
+  FusedAuthConnectionCompletedPayload,
+  JiraWebhook,
+} from 'support-sdk';
 
-const receiver = FusedWebhooks.registerReceiver('support', process.env.FUSED_API_KEY!);
+const receiver = FusedWebhooks.listen('support', process.env.FUSED_SDK_TOKEN!);
 
-receiver.on('issue.created', async (payload, ctx) => {
+receiver.on(JiraWebhook.ISSUE_CREATED, async (payload, ctx) => {
   try {
     await triage(payload);
     ctx.ack();
@@ -113,28 +132,43 @@ receiver.on('issue.created', async (payload, ctx) => {
   }
 });
 
-receiver.on(['issue.updated', 'issue.deleted'], handleChange);
+receiver.on(JiraWebhook.ISSUE_UPDATED, handleChange);
+
+receiver.on<FusedAuthConnectionCompletedPayload>(
+  JiraWebhook.FUSED_AUTH_CONNECTION_COMPLETED,
+  async (event) => {
+    await handleConnectionComplete(event.end_user_ref);
+  }
+);
+receiver.on(JiraWebhook.FUSED_AUTH_CONNECTION_RECONNECT_REQUIRED, handleReconnect);
 ```
 
 ```python Python
+import os
+
 from fused.support_sdk import FusedWebhooks
+from fused.support_sdk.webhooks import JiraWebhook
 
-receiver = FusedWebhooks.register_receiver("support", os.environ["FUSED_API_KEY"])
+receiver = FusedWebhooks.listen("support", os.environ["FUSED_SDK_TOKEN"])
 
-@receiver.on("issue.created")
 async def on_created(payload, ctx):
     try:
         await triage(payload)
-        await ctx.ack()
     except Exception:
-        await ctx.nack()
+        await ctx["nack"]()
+        return
+    await ctx["ack"]()
 
-receiver.on(["issue.updated", "issue.deleted"], handle_change)
+receiver.on(JiraWebhook.ISSUE_CREATED, on_created)
+receiver.on(JiraWebhook.ISSUE_UPDATED, handle_change)
+
+receiver.on(JiraWebhook.FUSED_AUTH_CONNECTION_COMPLETED, handle_connection_complete)
+receiver.on(JiraWebhook.FUSED_AUTH_CONNECTION_RECONNECT_REQUIRED, handle_reconnect)
 ```
 
 </CodeGroup>
 
-The receiver name is yours. `on` takes one event or a list, and only events you registered a handler for are dispatched.
+The receiver name is yours. `on` takes one event or a list, and only events you registered a handler for are dispatched. The token is the SDK family's execution token, not a CLI control key or provider credential.
 
 | Behaviour | What it means for you |
 |---|---|
@@ -142,14 +176,18 @@ The receiver name is yours. `on` takes one event or a list, and only events you 
 | Auto-reconnect | Backs off from 1s to a 30s cap on its own, so a dropped connection needs no supervision |
 | Stops retrying on auth failure | `UNAUTHENTICATED` and `PERMISSION_DENIED` disable reconnect rather than hammering the Engine with a bad key |
 
-Call `receiver.close()` on shutdown. Python also exposes `SyncFusedWebhooks` when your process has no event loop.
+Once an event reaches the durable receiver, delivery is at least once. Fused auth lifecycle payloads include an `id` for idempotency and omit app provenance, provider payloads, scopes, URLs, and token material. Call `nack()` when work fails and `receiver.close()` on shutdown. Python also exposes `SyncFusedWebhooks` when your process has no event loop.
+
+<Note>
+  Auth state commits do not wait for lifecycle publication. Until Fused uses a transactional outbox for this boundary, a broker outage immediately after the commit can prevent that lifecycle event from being emitted.
+</Note>
 
 ## The rules that bite
 
 | Rule | What happens if you miss it |
 |---|---|
-| An omitted or empty `webhooks` list means **no events** | Silence. Opt-in is always explicit; there is no implicit "all" |
-| `webhook_attachment` is required as soon as any service selects webhooks | Rejected at plan time, locally and by the Engine |
+| An omitted or empty `webhooks` list means **no provider events** | Fused auth lifecycle events may still be available for a selected connected OAuth/OIDC path |
+| `webhook_attachment` is required as soon as any service selects provider webhooks | Rejected at plan time, locally and by the Engine |
 | One attachment per SDK | A list is not supported yet |
 | The named config must exist **and** register every service selecting webhooks | Rejected with a named error at plan and again at apply |
 
