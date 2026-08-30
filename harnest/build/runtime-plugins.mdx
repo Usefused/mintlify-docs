@@ -10,6 +10,25 @@ A Runtime Plugin adapts an SDK or external service to Harnest. It runs in the ag
   Runtime Plugins have `plugin.yaml`. Manifest-less plugin folders are [Agent Plugins](/harnest/build/agent-plugins): MCP clients plus Agent Skills, with no Python plugin object or lifecycle.
 </Note>
 
+## MVP availability
+
+| Available now | Contract |
+|---|---|
+| Local plugin discovery | Add a `RuntimePlugin` under `plugins/<name>` |
+| Same-process SDK adapter | Export a `Plugin` singleton and typed `PluginContext` |
+| Compile-time dependencies | Declare static PEP 621 dependencies in the plugin `pyproject.toml` |
+| Lifecycle contributions | Attach ordered agent, model, tool, MCP, HTTP, storage, policy, and telemetry behavior |
+| Agent access | Import `harnest.plugins.<name>` or resolve invocation-scoped plugin context |
+| Durable external work | Suspend with a continuation and resume through shared session storage |
+
+Plugins use the agent interpreter and dependency solve. The MVP does not provide plugin-private environments or resume a suspended Python process.
+
+## Hatchet example
+
+<Card title="Hatchet Runtime Plugin" icon="github" href="https://github.com/Usefused/harnest/tree/main/examples/plugins/hatchet">
+  See an external task runtime integrated through plugin context, durable continuations, and session resume.
+</Card>
+
 ## Choose the boundary
 
 | Need | Use |
