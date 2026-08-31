@@ -162,7 +162,14 @@
                   "harnest/build/agent-plugins",
                   "harnest/build/runtime-plugins",
                   "harnest/build/queued-tasks",
-                  "harnest/build/agent-skills",
+                  {
+                    "group": "Agent Skills",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/build/agent-skills",
+                      "harnest/build/agent-skills/caching"
+                    ]
+                  },
                   "harnest/build/sandboxing",
                   "harnest/build/testing-and-compilation"
                 ]

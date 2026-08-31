@@ -65,6 +65,10 @@ The factory runs during compilation but must not query the remote catalog. `list
 
 Application code can use the same registry through `context.skills`. Harnest pins a loaded version for the active invocation so a retry cannot silently switch instructions.
 
+<Card title="Manage dynamic skill caching" icon="bolt" href="/harnest/build/agent-skills/caching">
+  Choose cache scope, keys, and invalidation without weakening Harnest's version guarantees.
+</Card>
+
 ## Authoring skill versus runtime skills
 
 `harnest skills install` installs a project-editing guide for your coding agent. It does not add a runtime skill to the compiled agent.

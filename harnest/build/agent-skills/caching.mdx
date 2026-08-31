@@ -1,0 +1,62 @@
+---
+title: "Manage skill caching"
+sidebarTitle: "Caching"
+description: "Cache dynamic skill catalogs and content while preserving authorization and version consistency."
+---
+
+Cache inside your `SkillSource` when the remote catalog needs it. Harnest does not impose a TTL, backend, or invalidation policy.
+
+## Ownership
+
+| Concern | Owner |
+|---|---|
+| Catalog and content cache | Your `SkillSource` |
+| Cache backend and TTL | Your application |
+| Authorization before access | Your `SkillSource` |
+| Version consistency during an invocation | Harnest |
+| Compile-time skill integrity | Harnest |
+
+If you do not add a cache, each `list`, `load`, and `load_resource` call reaches your source.
+
+## Choose a strategy
+
+| Strategy | Use when | Trade-off |
+|---|---|---|
+| No cache | The source is fast or changes frequently | Every call reaches the source |
+| In-process TTL | One replica can tolerate independent freshness | Simple, but replicas may observe updates at different times |
+| Shared cache | Replicas need the same catalog view | Requires an external cache such as Redis |
+| Provider cache | The upstream API already supports caching or validators | Keeps freshness logic closest to the source |
+
+## Key entries safely
+
+Authorize before reading from a cache. Never use credentials or raw claims as cache keys.
+
+| Data | Include in the cache key |
+|---|---|
+| Catalog page | Source, agent, stable tenant or policy scope, query, cursor, and limit |
+| Skill document | Source, skill ID, exact version, and authorization scope when content differs |
+| Skill resource | Source, skill ID, exact version, path, and authorization scope when content differs |
+
+<Warning>
+  Do not share catalog results across users or tenants unless their visibility rules are identical.
+</Warning>
+
+## Handle updates
+
+<Steps>
+  <Step title="Publish a new version">
+    Return a new version whenever instructions or supporting resources change. Do not overwrite cached content under an existing version.
+  </Step>
+  <Step title="Refresh catalog entries">
+    Expire or invalidate catalog pages so new invocations can discover the new version.
+  </Step>
+  <Step title="Retain in-flight versions">
+    Continue serving an older requested version while active invocations may still reference it. Return `SkillNotFoundError` if it is unavailable; never substitute newer instructions.
+  </Step>
+</Steps>
+
+Harnest pins the first loaded version for the current invocation and its SubAgents. A later invocation can discover and load the new version.
+
+<Tip>
+  Cache immutable skill bodies longer than catalog pages. The version identifies content; the catalog determines freshness and visibility.
+</Tip>
