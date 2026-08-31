@@ -11,6 +11,7 @@ Root files under `extensions/**/*.py` add behavior around the agent. Harnest dis
 | Decorator | Allowed | Purpose | Guide |
 |---|---:|---|---|
 | `@lifecycle.resource` | Many | Application dependency | [Application resources](/harnest/runtime/lifecycle/application-resources) |
+| `@lifecycle.skills.source("name")` | Many, with unique names | Dynamic skill catalog | [Agent Skills](/harnest/build/agent-skills) |
 | `@context("name")` | Many | Publish a resource | [Application resources](/harnest/runtime/lifecycle/application-resources) |
 | `@lifecycle.agent.before/after/on_error` | Many | Agent policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.model.before/after/on_error` | Many | Model policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
