@@ -201,6 +201,7 @@
                     "pages": [
                       "harnest/runtime/serving",
                       "harnest/runtime/serving/server-configuration",
+                      "harnest/runtime/serving/development-reload",
                       "harnest/runtime/serving/neutral-api",
                       "harnest/runtime/custom-http-endpoints",
                       "harnest/runtime/serving/approvals-and-client-tools",

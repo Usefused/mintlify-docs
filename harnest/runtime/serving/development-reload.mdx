@@ -1,0 +1,52 @@
+---
+title: "Development reload"
+sidebarTitle: "Development reload"
+description: "Recompile authored changes and replace the local agent process without mutating a running graph."
+---
+
+Use reload while editing a local agent:
+
+```bash
+harnest serve AGENT_DIR --reload
+```
+
+Harnest recompiles each stable source change into a fresh artifact. It never modifies a running ADK or LangGraph graph in place.
+
+## Reload sequence
+
+<Steps>
+  <Step title="Detect a stable change">
+    Harnest fingerprints authored files and debounces consecutive writes. Generated environments, compiled output, caches, bytecode, and `.env` files do not trigger reloads.
+  </Step>
+  <Step title="Prepare a generation">
+    Dependency changes synchronize a fingerprinted environment first. Harnest then validates and compiles a new immutable artifact while the current server remains available.
+  </Step>
+  <Step title="Replace the process">
+    After compilation succeeds, Harnest asks the current process to shut down gracefully and starts the new generation. Lifecycle resources, Runtime Plugins, MCP Clients, and storage connections close and reopen through their normal hooks.
+  </Step>
+</Steps>
+
+| Outcome | Running server |
+|---|---|
+| Dependency resolution or compilation succeeds | Replaced with the new generation |
+| Dependency resolution or compilation fails | Previous generation stays active |
+| New process exits during startup | Previous artifact is restored |
+| Reload command stops | Active process receives graceful shutdown |
+
+Ordinary requests drain during shutdown. A process that does not close within 10 seconds is stopped so reload cannot hang indefinitely.
+
+## State across reloads
+
+| State | Behavior |
+|---|---|
+| External session and checkpoint stores | Available to the replacement process |
+| `MemoryStore` | Process-local state is lost |
+| Dynamic `SkillSource` content | Already updates at runtime; no process reload required |
+| In-flight non-durable request | Drains during graceful shutdown or is stopped at the timeout |
+| Durable execution | Can recover from shared storage when the changed code remains compatible |
+
+<Warning>
+  Reload is a local development feature. It forces a loopback host, rejects `--allow-remote`, and cannot be combined with `--output`. Production changes must compile a new artifact and use the deployment platform's rollout strategy.
+</Warning>
+
+Changing graph structure may make existing framework-native checkpoints incompatible. Start a new development session after structural graph changes.

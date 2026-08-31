@@ -10,6 +10,12 @@ Compile and start the standalone development server:
 harnest serve support-agent
 ```
 
+Reload after authored file changes during local development:
+
+```bash
+harnest serve support-agent --reload
+```
+
 | URL | Use it for |
 |---|---|
 | `http://127.0.0.1:8080/` | Test the agent in the playground |
@@ -29,4 +35,4 @@ harnest serve support-agent
   Set the bind, limits, timeout, concurrency, and playground in `server.yaml`.
 </Note>
 
-See [Serving agents](/harnest/runtime/serving) for the HTTP, SSE, WebSocket, approval, authentication, storage, and production boundaries.
+See [development reload](/harnest/runtime/serving/development-reload) for restart behavior and [Serving agents](/harnest/runtime/serving) for the HTTP, SSE, WebSocket, approval, authentication, storage, and production boundaries.
