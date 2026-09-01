@@ -55,7 +55,7 @@ fused-cli webhook plan
 fused-cli webhook apply
 ```
 
-Only SDK planning offers credential remediation. Workspace, MCP, webhook, and import planning do not mutate credentials.
+Only terminal SDK planning offers optional credential setup. Workspace, MCP, webhook, and import planning do not mutate credentials; missing SDK or MCP values are readiness warnings rather than plan or apply failures.
 
 ## Make automation explicit
 
@@ -102,7 +102,7 @@ fused-cli sdk apply --no-input --json
 fused-cli sdk download support-sdk@1.0.0 --no-input --json
 ```
 
-`--value-stdin` is not an interaction flag. It selects the secure source of secret bytes, while `--no-input` guarantees that the command will not prompt. A missing credential remains a structured `bucket_credentials_missing` error in automation.
+`--value-stdin` is not an interaction flag. It selects the secure source of secret bytes, while `--no-input` guarantees that the command will not prompt. Planning reports missing entries in structured `credential_readiness` metadata and continues. If an affected operation is called before setup, execution stops before contacting the provider with `bucket_credentials_missing` and the exact safe `secret set` command.
 
 ## Migrate existing init commands
 

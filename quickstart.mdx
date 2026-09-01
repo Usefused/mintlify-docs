@@ -43,7 +43,7 @@ fused-cli init support-sdk --sdk --service linear
 
 `fused-cli init` searches your workspace and then the Registry, pins a concrete service version, and asks what the SDK should expose. **All operations** is highlighted by default, so press Enter to take the complete service. Open **Choose operations…** to search by operation ID, method, path, summary, or tag and build a narrower SDK. You do not need to know operation IDs before you start.
 
-If activation is needed, the CLI shows one combined confirmation. It keeps governance intact by writing separate workspace and SDK receipts. If the selected bucket is missing a provider credential, the CLI securely asks for it and retries planning once.
+If activation is needed, the CLI shows one combined confirmation. It keeps governance intact by writing separate workspace and SDK receipts. Missing provider credentials do not block creation: in a terminal the CLI offers to store them securely and retry planning once, while skipping that optional step still publishes the app.
 
 When the command succeeds, the SDK is applied and its package is downloaded with generated first-call guidance. It creates only the desired state you chose: the SDK config, plus a workspace config when service activation was needed.
 
@@ -54,7 +54,7 @@ If no suitable Registry service exists, [import the API yourself](/workspace/bri
 </Warning>
 
 <Note>
-  Automating this? Pre-provision credentials with `--no-input --value-stdin`, then run `fused-cli init support-sdk --sdk --service linear --select-all linear --no-input`. Use an explicit `--operation` instead when the app needs a narrower surface. The command fails rather than guessing its mode, an ambiguous service, or a capability boundary. For structured plan and apply output with independent retry boundaries, use the [advanced controlled workflow](/advanced/control-the-workflow).
+  Automating this? Run `fused-cli init support-sdk --sdk --service linear --select-all linear --no-input`; missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with `secret set --no-input --value-stdin`, or let the first affected call return the exact safe setup command. Use an explicit `--operation` instead when the app needs a narrower surface. The command fails rather than guessing its mode, an ambiguous service, or a capability boundary. For structured plan and apply output with independent retry boundaries, use the [advanced controlled workflow](/advanced/control-the-workflow).
 </Note>
 
 ## Call it

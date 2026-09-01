@@ -69,7 +69,7 @@ The receipt binds an apply to that exact file content and that exact Engine. If 
 
 For a new app, `fused-cli init <name>` drives those boundaries for you. Choose a typed SDK, direct API, or MCP server, then select services and operations. The command can enable a missing service and create the app after one combined confirmation while retaining separate workspace and app receipts. Use the [advanced controlled workflow](/advanced/control-the-workflow) when you want independent review, structured CI output, or a recovery boundary.
 
-In a terminal, omit interaction flags. Fused asks only when it needs a selection, confirmation, or missing credential. In automation, pass `--no-input` so the same command fails with a structured remediation instead of waiting for a person; add `--json` when the command supports machine-readable output.
+In a terminal, omit interaction flags. Fused asks only when it needs a selection or confirmation, and SDK planning may offer optional credential setup. In automation, pass `--no-input` so missing required choices fail instead of waiting for a person; missing credential values remain non-blocking readiness metadata. Add `--json` when the command supports machine-readable output.
 
 Immutable things behave accordingly: re-applying identical content to an existing app version changes nothing, and changing its scope returns `app_version_immutable`. You publish a new version instead of quietly rewriting the contract of software already in production.
 

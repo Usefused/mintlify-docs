@@ -18,7 +18,7 @@ fused-cli init support-agent --mcp \
 
 For each service, **All operations** is highlighted by default. Press Enter to expose the complete service, or open **Choose operations…** to search by operation ID, method, path, summary, or tag. The example below assumes you accepted all operations for both services.
 
-Init enables any missing service after one combined confirmation under a separate workspace receipt. It builds and validates the MCP candidate in memory, then plans it before creating `.fused/mcps/support-agent.yaml`. A successful plan creates the file atomically; init then applies the MCP server and prints its connection details. If the MCP plan fails, no app config or app receipt is created, though a completed workspace activation remains applied. MCP planning never changes credentials; if one is missing, configure the exact reported bucket entry and rerun init or the explicit plan/apply path.
+Init enables any missing service after one combined confirmation under a separate workspace receipt. It builds and validates the MCP candidate in memory, then plans it before creating `.fused/mcps/support-agent.yaml`. A successful plan creates the file atomically; init then applies the MCP server and prints its connection details. If the MCP plan fails, no app config or app receipt is created, though a completed workspace activation remains applied. MCP planning never changes credentials, and missing values do not block publication. The first affected tool call stops before contacting the provider and returns the exact safe `secret set` command.
 
 The resulting config is durable desired state:
 
@@ -85,7 +85,7 @@ fused-cli extend support-agent --service slack
 | `--owner-team` | Sets the owning team; defaults to you | `fused-cli mcp plan --owner-team support` |
 | `--receipt-out` | Writes the receipt to a chosen path | `fused-cli mcp plan --receipt-out ./ci/mcp.plan.json` |
 
-MCP planning never mutates credentials. By contrast, an SDK plan in a terminal can securely repair typed missing credentials and retry once. Use `mcp validate` only when you need an offline-only check.
+MCP planning never mutates credentials. It reports missing entries as readiness metadata and still creates a valid plan. By contrast, an SDK plan in a terminal can offer to store missing credentials securely and retry once; declining also keeps the valid plan. Use `mcp validate` only when you need an offline-only check.
 
 ### `mcp apply`
 

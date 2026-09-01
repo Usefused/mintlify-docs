@@ -24,7 +24,7 @@ Select operations for linear v1
 
 Press Enter to take the complete surface. **Choose operations…** opens a searchable multi-select matching operation IDs, methods, paths, summaries, and tags. Press `/` to filter, type your search, press Space to toggle an operation, and press Enter to confirm. You do not need to know an endpoint name before you start.
 
-If activation is needed, init shows one combined confirmation and applies the workspace change under its own receipt. It then builds and validates the SDK candidate in memory, securely offers to fill missing credentials in the selected bucket, and plans the SDK. Only a successful plan creates `.fused/sdks/support-sdk.yaml`; init then applies the SDK, downloads the package, and finishes with first-call guidance. Workspace and SDK changes retain separate receipts.
+If activation is needed, init shows one combined confirmation and applies the workspace change under its own receipt. It then builds and validates the SDK candidate in memory and plans the SDK. Missing credentials are readiness warnings, not publication failures: a terminal securely offers to fill them and retry once, while skipping the offer still keeps the valid plan. Only a successful plan creates `.fused/sdks/support-sdk.yaml`; init then applies the SDK, downloads the package, and finishes with first-call guidance. Workspace and SDK changes retain separate receipts.
 
 <Note>
   If an older selected snapshot lacks its retained generation contract, generated SDK init prints each exact `service@version` as it refreshes that snapshot and retries the unchanged plan once. It does this deterministically with `--no-input` too. It never invents a pin, selects another version, or bypasses Registry retention. A failed refresh or retry creates no app config or app receipt, while any completed exact refresh remains explicit. See [Recover without guessing](/advanced/control-the-workflow#recover-without-guessing) for the failure boundaries.
@@ -204,13 +204,13 @@ Leave it out and the Engine picks each operation's first provider-declared alter
 The operation's imported security requirements are authoritative, and they are an ordered **OR of ANDs**: alternatives are OR, schemes within one alternative are AND, and an empty alternative permits anonymous execution.
 
 <Warning>
-  Do not collapse an AND alternative down to the one convenient scheme. A single selector never replaces a secondary credential such as an mTLS certificate or an additional API token — planning validates bucket metadata for every scheme in the chosen AND set.
+  Do not collapse an AND alternative down to the one convenient scheme. A single selector never replaces a secondary credential such as an mTLS certificate or an additional API token — planning reports readiness for every scheme in the chosen AND set.
 </Warning>
 
 Where a service declares several named schemes of one type, carry both the type and the exact name. Never rely on declaration order.
 
-Credentials themselves never appear in this file. They resolve from the bucket at generation and dispatch time.
+Credentials themselves never appear in this file. They resolve from the bucket when a connection starts or an operation dispatches.
 
 <Card title="Store the credentials" icon="key" href="/bucket/store-credentials">
-  Terminal plans can securely repair `bucket_credentials_missing` and retry once. Automation receives the typed error and can pre-provision the exact bucket.
+  Terminal plans can securely fill readiness warnings and retry once, but setup is optional. Automation receives structured `credential_readiness` metadata and may pre-provision the exact bucket. If setup is deferred, the first affected call returns `bucket_credentials_missing` with the exact safe command.
 </Card>

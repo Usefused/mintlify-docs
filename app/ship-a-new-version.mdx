@@ -108,7 +108,13 @@ One quirk worth expecting: sync freezes the current selection into an explicit s
 
 ## Retiring a version
 
-The CLI has no SDK deprecate or deactivate command. Those lifecycle actions live in the Engine's App UI and API. If you find yourself reaching for `fused-cli sdk deactivate`, it does not exist — do not improvise one.
+Permanently deactivate one exact immutable version by name and version or by Version ID:
+
+```bash
+fused-cli sdk deactivate support-sdk@1.0.0
+```
+
+Deactivation immediately removes that version's runtime and package and leaves a tombstone, so the same SDK version cannot be recreated. Sibling versions and SDK-wide execution tokens remain intact. The Engine App UI exposes the same action for one version or a selected group. There is no SDK deprecate or restore command in the CLI; use the App UI/API for those advisory lifecycle transitions.
 
 <Card title="Issue execution tokens" icon="ticket" href="/app/issue-tokens">
   A new version does not need a new token. It may need you to review the old ones.

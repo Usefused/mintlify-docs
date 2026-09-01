@@ -32,6 +32,8 @@ curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
 
 This is the same execution the typed package makes, against the same immutable version. A version applied with [`generate: false`](/app/build-an-sdk#skip-the-package) publishes without building a package at all and is fully callable here.
 
+If the selected bucket is missing a required static credential, the Engine returns HTTP `409` with code `bucket_credentials_missing` before contacting the provider. Its structured details identify the service, bucket, authentication type, and scheme and include the exact value-free `fused-cli secret set` command to run before repeating the request.
+
 To generate your own client from the contract:
 
 ```bash
