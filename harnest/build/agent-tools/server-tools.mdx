@@ -23,11 +23,13 @@ def lookup_order(order_id: str):
 |---|---|
 | File | `tools/lookup_order.py` |
 | Export | `lookup_order` |
-| Description | Docstring or `@tool(description="...")` |
+| Description | Docstring or `@tool(description="...")`; distinguish similar parameters explicitly |
 | Output validation | Pydantic return annotation or `output_schema` |
 | Unit testing | Call the decorated function directly |
 
 Arguments and results must be structured. Convert unsupported custom objects to a Pydantic model or mapping at the tool boundary.
+
+Expose supported filters, pagination, and ordering as typed parameters or separate typed tools. Do not ask the model to invent undeclared options. Managed ADK and LangGraph reject unknown argument names before native framework coercion and return repair guidance without echoing argument values.
 
 ## Runtime access
 

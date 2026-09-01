@@ -30,6 +30,8 @@ Keep `SKILL.md` action-oriented. Move schemas, background, long examples, and co
 
 ADK and LangGraph receive the same `list_skills`, `load_skill`, and `load_skill_resource` tools. `list_skills` returns each skill's source, ID, name, description, and version. Skill bodies and resources load only after selection.
 
+Harnest ranks filesystem skills with deterministic fuzzy matching over names and descriptions. It also reranks bounded candidates across sources. If an initial model query returns no matches, Harnest lists one bounded fallback page and ranks those descriptors; it does not load every skill body.
+
 A root skill belongs to the root agent. A folder SubAgent can own private skills; its parent does not inherit them. Skills do not add tools or MCP connections.
 
 Use a [plugin](/harnest/build/agent-plugins) when a reusable skill must travel with the MCP connection that supplies its operations. A non-empty plugin requires both the MCP and skill halves.
@@ -62,6 +64,8 @@ The factory runs during compilation but must not query the remote catalog. `list
 <Note>
   Apply authorization, search, ordering, and pagination in the source. Return only descriptors visible to `context.agent_name`, `context.user_id`, and `context.claims`.
 </Note>
+
+`SkillSource.list(query=...)` may use database full-text search or an existing vector index and should return its strongest candidates first. Harnest does not generate embeddings, choose an embedding model, or own vector persistence. This keeps model cost, indexed fields, privacy, and invalidation under application control.
 
 Application code can use the same registry through `context.skills`. Harnest pins a loaded version for the active invocation so a retry cannot silently switch instructions.
 

@@ -29,11 +29,19 @@ playground:
 | `http.port` | Bind port | Local development |
 | `http.allowRemote` | Consent for a non-loopback bind | `false` |
 | `http.requestTimeoutSeconds` | Request timeout | Bounded work |
-| `http.maxConcurrentRequests` | In-process concurrency | Bounded load |
+| `http.maxConcurrentRequests` | Active in-process requests (`1`–`100000`) | `8`; protect runtime and downstream capacity |
 | `limits.maxRequestBytes` | HTTP body and WebSocket frame size | Bounded memory |
 | `playground.enabled` | Development UI | Enabled locally |
 
 Exact `${NAME}` values are type-checked environment references. Partial interpolation and missing or invalid values fail at startup.
+
+## Concurrency and throughput
+
+`http.maxConcurrentRequests` limits how many agent requests can execute concurrently in each server process. It is an admission limit, not a requests-per-second rate limit or a throughput promise.
+
+Actual throughput depends on model latency and quotas, Agent Tools, MCP services, storage, CPU, memory, and replica count. Increasing the value permits more active work but can reduce reliability when a downstream dependency is already saturated. Requests beyond available capacity may wait or be rejected by the serving layer.
+
+Choose the value from load tests that use representative agents and production dependencies. Scale replicas separately through your deployment platform.
 
 ## Configuration boundary
 
