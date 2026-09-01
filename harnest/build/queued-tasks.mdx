@@ -84,6 +84,35 @@ Inside `@tool(durable=True)`, Harnest derives a replay-stable idempotency key wh
 
 If the application has multiple PostgreSQL stores, set `HARNEST_TASK_DATABASE_URL` explicitly. Every replica can run a worker against the shared queue.
 
+## Start a fresh agent session
+
+A task can invoke the compiled root agent without an HTTP call:
+
+```python
+from harnest.context import context
+from harnest.task import task
+
+
+@task(max_retries=3)
+async def review_report(report_id: str) -> dict:
+    session = await context.agent.create_session(
+        state={"report_id": report_id},
+        key=report_id,
+    )
+    response = await session.invoke("Review the completed report")
+    return response.as_dict()
+```
+
+`key` is optional. When supplied, Harnest derives the same opaque child session
+and invocation identities on a task retry. User-deferred tasks inherit the
+calling user and public metadata; scheduled tasks use Harnest's automation
+identity. Calls still pass through storage, plugins, lifecycle, tools, and the
+selected framework runtime.
+
+Durable external waits return a typed `in_progress` response. Human approvals
+and client tools fail closed because their continuation is process-local after
+the task returns.
+
 <Warning>
   An unfinished `handle.result()` requires an async `@tool(durable=True)` and a Harnest-owned checkpointer. Harnest resumes framework execution; it does not restore a Python stack.
 </Warning>

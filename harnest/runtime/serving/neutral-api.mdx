@@ -30,9 +30,21 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
   </Tab>
   <Tab title="SSE">
     Set `"stream": true`. The stream starts with `response.created` and ends with `response.completed` or `error`.
+
+    Cancel by aborting or closing the HTTP request, such as with `AbortController`. SSE is server-to-client only, so it has no cancel frame or terminal acknowledgement after disconnection. Harnest cancels the managed response and awaits cleanup.
   </Tab>
   <Tab title="WebSocket">
     Connect to `/live`, send a `connect` frame, wait for `session.connected`, then send `response.create` frames.
+
+    Cancel the active response with its server-issued ID:
+
+    ```json
+    {"type":"response.cancel","responseId":"resp_..."}
+    ```
+
+    Harnest waits for managed model and tool cleanup, then sends `response.completed` with `status: "cancelled"`. Partial deltas are not reported as committed output, and the socket remains ready for another `response.create`.
+
+    <Note>Cancellation is cooperative. It does not undo tool or external side effects that already completed.</Note>
   </Tab>
 </Tabs>
 

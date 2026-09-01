@@ -143,6 +143,7 @@
               "harnest/get-started/install",
               "harnest/get-started/initialize",
               "harnest/get-started/migrate",
+              "harnest/get-started/run",
               "harnest/get-started/serve"
             ]
           },
@@ -190,6 +191,7 @@
                   "harnest/build/agent-plugins",
                   "harnest/build/runtime-plugins",
                   "harnest/build/queued-tasks",
+                  "harnest/build/scheduled-tasks",
                   {
                     "group": "Agent Skills",
                     "expanded": false,

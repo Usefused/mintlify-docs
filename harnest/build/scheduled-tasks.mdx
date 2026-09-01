@@ -1,0 +1,58 @@
+---
+title: "Scheduled tasks"
+sidebarTitle: "Scheduled tasks"
+description: "Schedule folder-discovered queued tasks with a strict UTC cron expression."
+---
+
+A cron declaration targets an existing root `@task`. It does not expose a new
+model tool.
+
+<CodeGroup>
+
+```python tasks/build_report.py
+from harnest.task import task
+
+
+@task(queue="reports", max_retries=3)
+async def build_report(account_id: str) -> dict:
+    return {"account_id": account_id, "status": "ready"}
+```
+
+```python cron/daily_report.py
+from harnest import Cron
+from tasks.build_report import build_report
+
+
+daily_report = Cron(
+    "0 9 * * 1-5",
+    task=build_report,
+    arguments={"account_id": "acct_123"},
+)
+```
+
+</CodeGroup>
+
+The export name must match `cron/<name>.py`. Arguments are JSON-safe,
+signature-checked at compile time, and kept in Harnest's private payload store.
+
+## Schedule contract
+
+| Rule | Supported value |
+|---|---|
+| Fields | Minute, hour, day of month, month, day of week |
+| Timezone | `UTC` only |
+| Syntax | `*`, ASCII numbers, comma lists, ascending ranges, `/step` |
+| Ownership | Long-lived `harnest serve` or `harnest-agent serve` processes |
+| Replicas | Shared PostgreSQL commits one periodic occurrence |
+
+Each occurrence uses the schedule identity and timestamp as its idempotency
+key, then enters the same private task queue as `task.defer(...)`. Every effect
+must still be idempotent because a worker can retry after failure.
+
+<Note>
+  `harnest run` never activates schedules. The application still needs
+  `HARNEST_TASK_DATABASE_URL` or one unambiguous PostgreSQL store.
+</Note>
+
+See [Queued tasks](/harnest/build/queued-tasks) for task results, retries, and
+starting a fresh agent session from scheduled work.

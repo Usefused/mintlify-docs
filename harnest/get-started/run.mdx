@@ -1,0 +1,53 @@
+---
+title: "Run an agent locally"
+sidebarTitle: "Run locally"
+description: "Invoke the compiled root agent without starting an HTTP server."
+---
+
+Enable the CLI interface in `config.yaml`:
+
+```yaml
+spec:
+  interfaces:
+    cli: true
+```
+
+Run one turn in the agent's compiled runtime:
+
+```bash
+harnest run support-agent "Summarize the open incidents"
+```
+
+For multiline or sensitive input, pipe the message. Harnest always sends it to
+the generated runtime through stdin, not process arguments.
+
+```bash
+printf '%s\n' 'Continue the incident review' \
+  | harnest run support-agent --session incident-review
+```
+
+| Option | Behavior |
+|---|---|
+| `--session ID` | Open an existing local-runtime session |
+| `--output text` | Stream assistant text; tool progress goes to stderr |
+| `--output json` | Write one terminal JSON object |
+| `--output ndjson` | Write ordered events and one terminal record |
+
+The command requires that explicit opt-in, compiles to an ephemeral artifact,
+invokes the final ADK or LangGraph runtime pipeline in-process, and exits. It
+can execute queued tasks but does not activate cron schedules.
+
+<Warning>
+  Human approvals and client tools need a connected serving transport. Local
+  invocation fails closed if the model requests either one.
+</Warning>
+
+Run a retained artifact directly with the same contract:
+
+```bash
+harnest compile support-agent --output .harnest/support-agent
+printf '%s\n' 'Hello' | .harnest/support-agent/harnest-agent run
+```
+
+Use [Serve a project](/harnest/get-started/serve) when the agent needs HTTP,
+SSE, WebSocket, approvals, client tools, or cron ownership.

@@ -30,9 +30,14 @@ spec:
   framework:
     name: adk
     mode: managed
+  interfaces:
+    cli: true
 ```
 
 Use `adk` or `langgraph`. Managed mode is the portable default; advanced mode accepts a native framework target. See [ADK and LangGraph](/harnest/runtime/adk-and-langgraph). Unknown fields and invalid deployment values fail before authored Python loads.
+
+`interfaces.cli: true` explicitly enables `harnest run` and the compiled
+launcher's `run` command. Omit it for a server-only artifact.
 
 `config.yaml` describes deployment intent. The standalone development server does not provision its resources, inject secret declarations, scale replicas, or enforce network permissions.
 
