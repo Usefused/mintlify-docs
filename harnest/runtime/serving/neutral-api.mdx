@@ -82,6 +82,8 @@ Malformed or cross-user cursors return `400`.
 
 The playground uses only the neutral API. It supports sessions, state, tool activity, JSON, SSE, and WebSocket conversations.
 
+Open `/?session=<id>` to select an owned session and restore its transcript. The session picker filters its bounded list by ID; enter a complete ID to load an owned session outside that page. Selecting or creating a session updates the URL.
+
 | Auth path | Browser behavior |
 |---|---|
 | HTTP and SSE bearer token | Kept in page memory |
