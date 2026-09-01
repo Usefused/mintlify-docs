@@ -17,22 +17,19 @@ bucket. This is an immediate admin action. It does not wait for a workspace
 plan or apply.
 
 ```bash
+fused-cli secret set jira --bucket prod-credentials
+```
+
+The CLI asks you to choose a supported authentication method, then securely prompts for its fields. To automate the same OAuth write, select the exact scheme and provide the complete pair through stdin:
+
+```bash
 printf '%s' 'client_id=abc;client_secret=xyz' \
   | fused-cli secret set jira \
       --bucket prod-credentials \
       --type oauth \
       --auth-name JiraOAuth \
+      --no-input \
       --value-stdin
-```
-
-Or answer per field:
-
-```bash
-fused-cli secret set jira \
-  --bucket prod-credentials \
-  --type oauth \
-  --auth-name JiraOAuth \
-  --interactive
 ```
 
 The stdin value must contain exactly `client_id` and `client_secret`. The CLI
@@ -50,11 +47,13 @@ oidc` for an OIDC scheme.
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--bucket` | Bucket that owns the credentials; omit it to use the default bucket | `fused-cli secret set jira --bucket prod-credentials --type oauth --auth-name JiraOAuth --interactive` |
-| `--value-stdin` | Reads the complete client pair from stdin | `printf '%s' 'client_id=…;client_secret=…' \| fused-cli secret set jira --type oauth --auth-name JiraOAuth --value-stdin` |
-| `--interactive` | Prompts for both fields | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --interactive` |
-| `--type` | Selects `oauth` or `oidc` | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --interactive` |
-| `--auth-name` | Selects the exact Registry auth scheme | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --interactive` |
+| `--bucket` | Bucket that owns the credentials; omit it to use the default bucket | `fused-cli secret set jira --bucket prod-credentials --type oauth --auth-name JiraOAuth` |
+| `--no-input` | Disables prompts for automation | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
+| `--value-stdin` | Selects stdin as the complete client-pair source | `printf '%s' 'client_id=…;client_secret=…' \| fused-cli secret set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
+| `--type` | Selects `oauth` or `oidc` | `fused-cli secret set jira --type oauth --auth-name JiraOAuth` |
+| `--auth-name` | Selects the exact Registry auth scheme | `fused-cli secret set jira --type oauth --auth-name JiraOAuth` |
+
+The retained `--interactive` flag explicitly requires the normal terminal prompts. Omit it for ordinary terminal use.
 
 The pair is atomic. Supply both values when creating or rotating it. Secret
 values cannot be read back. Use `fused-cli secret list --bucket

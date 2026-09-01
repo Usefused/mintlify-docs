@@ -1,7 +1,7 @@
 ---
 title: "Quickstart"
 sidebarTitle: "Quickstart"
-description: "Install the CLI, enable a service, and ship a working SDK."
+description: "Install the CLI and ship a working SDK through one guided setup."
 ---
 
 From nothing to a typed package your application can call. Roughly ten minutes, most of it waiting on a browser tab.
@@ -35,41 +35,27 @@ fused-cli whoami
   On a headless machine, `fused-cli login --no-browser` prints the URL instead of trying to open one.
 </Note>
 
-## Enable a service
+## Build and configure an SDK
 
 ```bash
-fused-cli workspace services list --q linear
-fused-cli workspace service add linear --version v1
-fused-cli workspace plan
-fused-cli workspace apply
+fused-cli init support-sdk --sdk --service linear
 ```
 
-If nothing suitable comes back, [import the API yourself](/workspace/bring-your-own-api) — a spec, a GraphQL endpoint, or the provider's documentation will do.
+`fused-cli init` searches your workspace and then the Registry, pins a concrete service version, and asks what the SDK should expose. **All operations** is highlighted by default, so press Enter to take the complete service. Open **Choose operations…** to search by operation ID, method, path, summary, or tag and build a narrower SDK. You do not need to know operation IDs before you start.
 
-## Store a credential
+If activation is needed, the CLI shows one combined confirmation. It keeps governance intact by writing separate workspace and SDK receipts. If the selected bucket is missing a provider credential, the CLI securely asks for it and retries planning once.
 
-```bash
-fused-cli bucket list
-printf '%s' "$LINEAR_TOKEN" | fused-cli secret set linear --value-stdin
-```
+When the command succeeds, the SDK is applied and its package is downloaded with generated first-call guidance. It creates only the desired state you chose: the SDK config, plus a workspace config when service activation was needed.
 
-Values are rejected in argv, so pipe them. Secrets take effect immediately — there is nothing to apply.
-
-## Build an SDK
-
-```bash
-fused-cli sdk init support-sdk \
-  --service 'linear=v1' \
-  --operation 'linear=issueUpdate'
-
-fused-cli sdk validate
-fused-cli sdk plan
-fused-cli sdk apply --download
-```
+If no suitable Registry service exists, [import the API yourself](/workspace/bring-your-own-api) from a spec, a GraphQL endpoint, or the provider's documentation.
 
 <Warning>
-  The first successful apply prints the SDK execution token **once**. Capture it now — a repeat apply will not show it again.
+  The first successful initialization prints the SDK execution token **once**. Capture it now — a repeat apply will not show it again.
 </Warning>
+
+<Note>
+  Automating this? Pre-provision credentials with `--no-input --value-stdin`, then run `fused-cli init support-sdk --sdk --service linear --select-all linear --no-input`. Use an explicit `--operation` instead when the app needs a narrower surface. The command fails rather than guessing its mode, an ambiguous service, or a capability boundary. For structured plan and apply output with independent retry boundaries, use the [advanced controlled workflow](/advanced/control-the-workflow).
+</Note>
 
 ## Call it
 
@@ -124,9 +110,9 @@ It shows what ran, how long the provider took, and what came back.
 ## What you just did
 
 ```text
-workspace  →  enabled a service your whole company can now use
-bucket     →  stored a credential your code will never see
-app        →  published an immutable, typed SDK version
+workspace  →  approved a concrete service version when it was missing
+bucket     →  supplied a credential your code will never see
+app        →  published an immutable, typed SDK version with its own receipt
 ```
 
 ## Where to go next

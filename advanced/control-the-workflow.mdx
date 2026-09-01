@@ -1,0 +1,178 @@
+---
+title: "Control the workflow"
+description: "Use explicit validation, plan, apply, receipts, and structured output when the guided path is not enough."
+---
+
+Fused keeps the common path short without removing any control boundary. Guided commands compose the same plan and apply functions used by the explicit workflow, and the Engine still owns validation, permissions, and immutable state.
+
+## Choose the right level of control
+
+| Situation | Use |
+|---|---|
+| Creating a new SDK, API app, or MCP server in a terminal | `fused-cli init <name>` with its services; choose the mode and operations when prompted |
+| Activating a service without creating an SDK | `workspace service add <service> --apply` |
+| Reviewing an existing config one boundary at a time | Explicit `<kind> plan`, then `<kind> apply` |
+| Running CI or another unattended process | `--no-input`, plus `--json` where supported |
+| Checking a local file without contacting an Engine | Standalone `<kind> validate` |
+
+Terminal commands prompt only when a decision is needed. Omit `--interactive`; that compatibility flag only makes the terminal default explicit.
+
+## Plan and apply separately
+
+Use the explicit SDK lifecycle when you are editing an existing config, need an independent approval boundary, or want to retry package transfer separately:
+
+<Steps>
+  <Step title="Preview">
+    ```bash
+    fused-cli sdk plan
+    ```
+    Plan validates the local config before contacting the Engine. If the exact selected bucket is missing a credential, a terminal plan can securely offer to write it and retry once.
+  </Step>
+  <Step title="Apply">
+    ```bash
+    fused-cli sdk apply
+    ```
+    Apply commits only the config content and Engine recorded by the receipt.
+  </Step>
+  <Step title="Download">
+    ```bash
+    fused-cli sdk download support-sdk@1.0.0
+    ```
+    Keeping transfer separate lets you retry a failed download without replaying apply.
+  </Step>
+</Steps>
+
+The same lifecycle applies to other config kinds:
+
+```bash
+fused-cli workspace plan
+fused-cli workspace apply
+
+fused-cli mcp plan
+fused-cli mcp apply
+
+fused-cli webhook plan
+fused-cli webhook apply
+```
+
+Only SDK planning offers credential remediation. Workspace, MCP, webhook, and import planning do not mutate credentials.
+
+## Make automation explicit
+
+Use `--no-input` for every unattended command. It turns a missing selection, confirmation, or credential into an error instead of waiting for terminal input. Add `--json` when the command exposes structured output.
+
+For app initialization, automation must declare the mode and operation boundary that the terminal selectors would normally collect:
+
+```bash
+fused-cli init support-sdk --sdk \
+  --service linear \
+  --operation 'linear=issueUpdate' \
+  --no-input
+```
+
+Use `--select-all linear` instead when the SDK intentionally needs the service's complete operation surface.
+
+Top-level `extend` infers the app mode from the existing YAML and updates that same file; no parallel config is created. A real change to a stable SemVer version advances to the next minor version deterministically, including under `--no-input`:
+
+```bash
+fused-cli extend support-sdk \
+  --service slack \
+  --select-all slack \
+  --no-input
+```
+
+For example, `1.0.0` becomes `1.1.0`. A terminal includes the inferred successor in its combined confirmation. An idempotent extension keeps its current version. Pass `--version` to override the inference; prerelease and non-SemVer identities always require an explicit successor.
+
+An unattended MCP init also requires an authored description:
+
+```bash
+fused-cli init support-agent --mcp \
+  --description 'Read and update support issues.' \
+  --service linear \
+  --select-all linear \
+  --no-input
+```
+
+```bash
+printf '%s' "$LINEAR_TOKEN" | \
+  fused-cli secret set linear --no-input --value-stdin
+
+fused-cli sdk plan --no-input --json
+fused-cli sdk apply --no-input --json
+fused-cli sdk download support-sdk@1.0.0 --no-input --json
+```
+
+`--value-stdin` is not an interaction flag. It selects the secure source of secret bytes, while `--no-input` guarantees that the command will not prompt. A missing credential remains a structured `bucket_credentials_missing` error in automation.
+
+## Migrate existing init commands
+
+The resource-scoped creation commands remain supported as compatibility aliases for existing scripts. New documentation uses the top-level command so SDK, API, and MCP onboarding share one path.
+
+| Existing command | Preferred command |
+|---|---|
+| `fused-cli sdk init <name> ...` | `fused-cli init <name> --sdk ...` |
+| `fused-cli mcp init <name> ...` | `fused-cli init <name> --mcp ...` |
+| `fused-cli init <name> <mode> --extend ...` | `fused-cli extend <name> ...` |
+
+The aliases call the same underlying creation functions. You can migrate without changing the resulting resource, receipt boundaries, or config location.
+
+For discovery, make both choices explicit as well:
+
+```bash
+fused-cli import discover \
+  --url https://developer.example.com \
+  --name "Docs API" \
+  --slug docs-api \
+  --all \
+  --reject-enrichment \
+  --no-input \
+  --json
+```
+
+## Use offline validation deliberately
+
+Plan already validates the local config before its first Engine request. Run standalone validation only when the check must stay offline:
+
+```bash
+fused-cli sdk validate
+fused-cli mcp validate
+fused-cli webhook validate
+```
+
+## Keep and move receipts deliberately
+
+A receipt binds a plan to the exact config hash and normalized Engine URL. Apply refuses a stale file, a receipt without Engine identity, or a receipt created for another Engine.
+
+| Need | Command |
+|---|---|
+| Store a plan outside `.fused/.state/` | `fused-cli sdk plan --receipt-out ./ci/sdk.plan.json` |
+| Apply that exact receipt | `fused-cli sdk apply --receipt ./ci/sdk.plan.json` |
+| Apply a captured remote plan directly | `fused-cli sdk apply --plan-id <plan-id>` |
+
+Use a direct plan ID only when it came from the exact current config and Engine. Re-plan after the config or target Engine changes.
+
+## Recover without guessing
+
+- If generated `init --sdk` receives `generation_contract_pin_unavailable`, it first resolves every selected active workspace version. It then prints `Refreshing immutable SDK generation snapshot for <service>@<version>...` as it refreshes each exact snapshot and retries the unchanged plan once. `--no-input` uses the same deterministic path without prompting. The CLI never derives a pin locally, substitutes the runtime contract hash, selects a newer version, or retries twice. API mode, MCP mode, ordinary `sdk plan`, and unrelated failures do not refresh snapshots.
+- If exact resolution or refresh fails, init does not retry the plan or create the app config. If the one retry fails, the error reports every refresh that already completed. A repeated missing-pin response directs you to the Engine and Registry logs or another enabled version. A workspace activation may already be applied under its separate receipt. Changing credentials or operation selection does not repair this failure.
+- If SDK credential remediation is declined or unavailable, store the credential in the selected bucket and rerun `sdk plan`.
+- If package transfer fails after a successful SDK apply, rerun `sdk download`, not apply.
+- If import apply times out or loses its response, run `fused-cli import status <operation-id>` with the receipt's plan ID. Do not replay the mutation while its commit state is unknown.
+- If a scoped workspace activation partially succeeds, use the exact ID-pinned recovery command printed by the CLI.
+
+For explicit workspace maintenance, run:
+
+```bash
+fused-cli workspace services refresh-missing-contracts --limit 100
+```
+
+This advanced command refreshes only a bounded batch of activated versions whose runtime contract snapshot is missing or unpinned. It reacquires each exact immutable contract from Registry. It does not manufacture a generation pin, float to another version, or run automatically as a workspace-wide fallback.
+
+<CardGroup cols={2}>
+  <Card title="Build an SDK" icon="cube" href="/app/build-an-sdk">
+    Return to the guided creation path.
+  </Card>
+  <Card title="Enable a service" icon="toggle-on" href="/workspace/enable-a-service">
+    Activate one service without mirroring the full workspace.
+  </Card>
+</CardGroup>

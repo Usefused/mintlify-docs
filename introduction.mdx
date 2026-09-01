@@ -38,16 +38,38 @@ Registry defines and distributes integration knowledge. Engine applies and runs 
   </Card>
 </CardGroup>
 
-## How a change reaches the Engine
+## Create your first app
 
-Everything configurable is a file under `.fused/`, and every change goes through the same two steps.
+Use one command whether the caller will import a package, call the centralized API, or connect as an MCP client:
 
 ```bash
-fused-cli sdk plan     # read-only; reports required permissions, writes a receipt
+fused-cli init support-app --service linear
+```
+
+Without a mode flag, the terminal asks what you want to build. Pass a mode when you already know:
+
+| Mode | Command shape | Successful result |
+|---|---|---|
+| Typed SDK | `fused-cli init <name> --sdk --service <service>` | Applied SDK config, downloaded package, and first-call guidance |
+| Direct API | `fused-cli init <name> --api --service <service>` | Applied `kind: sdk` config with `generate: false` and a REST request template |
+| MCP server | `fused-cli init <name> --mcp --service <service>` | Applied Engine-hosted server and its connection details |
+
+Init generates only the desired-state files needed for the mode you chose. It does not add sample SDK or MCP configs that could be mistaken for resources you intended to apply.
+
+## How a change reaches the Engine
+
+Everything configurable is a file under `.fused/`, and every change is still governed by a plan and an apply.
+
+```bash
+fused-cli sdk plan     # validates and previews; may offer missing credential setup
 fused-cli sdk apply    # commits exactly what the receipt describes
 ```
 
 The receipt binds an apply to that exact file content and that exact Engine. If the file changes, or you point at a different Engine, the apply is refused rather than doing something you did not review. An unchanged apply is a no-op.
+
+For a new app, `fused-cli init <name>` drives those boundaries for you. Choose a typed SDK, direct API, or MCP server, then select services and operations. The command can enable a missing service and create the app after one combined confirmation while retaining separate workspace and app receipts. Use the [advanced controlled workflow](/advanced/control-the-workflow) when you want independent review, structured CI output, or a recovery boundary.
+
+In a terminal, omit interaction flags. Fused asks only when it needs a selection, confirmation, or missing credential. In automation, pass `--no-input` so the same command fails with a structured remediation instead of waiting for a person; add `--json` when the command supports machine-readable output.
 
 Immutable things behave accordingly: re-applying identical content to an existing app version changes nothing, and changing its scope returns `app_version_immutable`. You publish a new version instead of quietly rewriting the contract of software already in production.
 

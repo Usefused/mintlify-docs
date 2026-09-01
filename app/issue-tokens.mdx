@@ -48,9 +48,9 @@ There is no `--allow` flag on an SDK token. That exists on MCP tokens, where nar
 | Flag | What it does | Example |
 |---|---|---|
 | `--expires-in` | Makes the token temporary | `fused-cli sdk token generate support-sdk ci --expires-in 4h` |
-| `--json` | Returns the one-time token, expiry, and metadata as an object | `fused-cli sdk token generate support-sdk ci --json` |
+| `--json` | Returns the one-time token, expiry, and metadata as an object | `fused-cli sdk token generate support-sdk ci --no-input --json` |
 
-Use `--json` in automation. Do not parse the token out of human-readable apply text.
+Use `--no-input --json` in automation. Do not parse the token out of human-readable apply text.
 
 ## The token the first apply gives you
 

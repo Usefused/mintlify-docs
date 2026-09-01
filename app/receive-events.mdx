@@ -32,10 +32,11 @@ services:
 ```
 
 ```bash
-fused-cli webhook validate
 fused-cli webhook plan
 fused-cli webhook apply
 ```
+
+Plan validates the local webhook config before contacting the Engine. Use `webhook validate` separately only for an offline-only check.
 
 Apply prints each registration's URL, which is what you give the provider:
 
@@ -209,7 +210,7 @@ Only when a `signature_header` list is absent does OpenAPI import infer one from
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--json` | Prints the plan result and notifications instead of writing a receipt | `fused-cli webhook plan --json` |
+| `--json` | Prints the plan result and notifications instead of writing a receipt | `fused-cli webhook plan --no-input --json` |
 | `--owner-team` | Sets the owning team; defaults to you | `fused-cli webhook plan --owner-team payments` |
 | `--receipt-out` | Writes the receipt to a chosen path | `fused-cli webhook plan --receipt-out ./ci/wh.plan.json` |
 

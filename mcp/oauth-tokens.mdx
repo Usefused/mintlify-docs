@@ -18,13 +18,10 @@ An OAuth token resolves against a connection that must already be there. Two thi
     `<engine.public_url>/workspace/connect/callback`; `redirect_uri` is not
     credential input.
     ```bash
-    printf '%s' 'client_id=...;client_secret=...' | \
-      fused-cli secret set jira \
-        --bucket default \
-        --type oauth \
-        --auth-name OAuth2 \
-        --value-stdin
+    fused-cli secret set jira --bucket default
     ```
+    Choose the OAuth method when prompted. For automation, use the explicit
+    [`--no-input --value-stdin` form](/bucket/connect-user-accounts#store-the-oauth-app-credentials).
   </Step>
   <Step title="Connect a user">
     One person's grant against that registration. The `--user-ref` you choose here is the value everything downstream uses.

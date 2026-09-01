@@ -18,7 +18,8 @@ Only the last two are yours — the service slug and the provider's version stri
 ```bash
 fused-cli workspace service version add stripe 2024-06-20
 fused-cli workspace service versions stripe
-fused-cli workspace plan && fused-cli workspace apply
+fused-cli workspace plan
+fused-cli workspace apply
 ```
 
 In `workspace.yaml`, `versions` is a list of objects, one per enabled version — not a list of version strings:

@@ -7,44 +7,36 @@ Nothing in Fused can call a service until your workspace has enabled it. This pa
 
 The workspace config is the allowlist: which services are enabled, at which versions. It lives at `.fused/workspace.yaml` and reaches the Engine through plan and apply.
 
-## Find it before you add it
+## Add and activate it
 
-Reuse an already-enabled service where one fits. Workspace search filters the services you can already see, so an empty result means "nothing suitable is visible to you" — not "this service is not enabled."
+`workspace service add` is the discovery command as well as the authoring command. It checks the services already enabled in your workspace first, then searches the Registry only when needed. In a terminal, it asks you to select an ambiguous match and confirms every Registry fallback.
+
+```bash
+fused-cli workspace service add stripe --apply
+```
+
+The version is optional. The Engine resolves the latest version during the scoped activation when you omit it. `--apply` activates only the services this command added; it cannot remove an unrelated active service through a full-workspace mirror.
+
+If no suitable Registry service exists, [bring the API in yourself](/workspace/bring-your-own-api).
+
+<Note>
+  Creating a new SDK, API app, or MCP server? Start with [`fused-cli init`](/app/build-an-sdk) instead. It folds this activation into app creation and keeps separate workspace and app receipts.
+</Note>
+
+## Inspect before you change anything
+
+Use read-only search when you want to compare what is already enabled before starting an addition:
 
 ```bash
 fused-cli workspace services list --q stripe
 fused-cli workspace has "Stripe"
 ```
 
-`workspace has` matches the service *name*, not the slug. Use it as an exact check, not as your primary search.
+`workspace has` matches the service *name*, not the slug. Use it as an exact check rather than primary discovery.
 
-If nothing suitable exists yet, [bring the API in yourself](/workspace/bring-your-own-api).
+## Need the full workspace diff?
 
-## Add, plan, apply
-
-<Steps>
-  <Step title="Add the service to your config">
-    ```bash
-    fused-cli workspace service add stripe --version 2024-06-20
-    ```
-    This edits your local file. It does not activate anything. The command prints a `View stripe:` link to the service in the Engine UI, which is the fastest way to check you picked the right one.
-  </Step>
-  <Step title="Preview what will change">
-    ```bash
-    fused-cli workspace plan
-    ```
-    The plan reports the Engine's required permissions and writes a receipt to `.fused/.state/`.
-  </Step>
-  <Step title="Activate it">
-    ```bash
-    fused-cli workspace apply
-    ```
-  </Step>
-</Steps>
-
-<Warning>
-  Applying a workspace config activates and deactivates services for the whole workspace. The CLI warns you when the target Engine reports `environment=production`. Read that warning before you continue.
-</Warning>
+Use the [advanced controlled workflow](/advanced/control-the-workflow) when you want to author without applying, inspect the complete workspace diff, store a receipt elsewhere, or make broader policy and removal changes. Full `workspace apply` can activate and deactivate services beyond one scoped addition.
 
 Starting from nothing, `fused-cli workspace init` creates the skeleton, and `--extend` adds to it without replacing what is already there.
 
@@ -54,8 +46,12 @@ Starting from nothing, `fused-cli workspace init` creates the skeleton, and `--e
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--version` | Default version to enable | `fused-cli workspace service add stripe --version 2024-06-20` |
+| `--apply` | Activates only the services added by this command | `fused-cli workspace service add stripe --apply` |
+| `--version` | Overrides the version that would otherwise resolve during plan or activation | `fused-cli workspace service add stripe --version 2024-06-20` |
 | `--service-id` | Stores a known service ID when you are editing a local config directly | `fused-cli workspace service add stripe --service-id 9f2c…` |
+| `--no-input` | Disables selection and confirmation; ambiguous references fail | `fused-cli workspace service add stripe --apply --no-input` |
+
+Terminal selection and confirmation are the default. The retained `--interactive` flag explicitly requires that default behavior and fails when combined with `--no-input` or `CI=true`.
 
 ### `workspace init`
 
@@ -65,15 +61,6 @@ Starting from nothing, `fused-cli workspace init` creates the skeleton, and `--e
 | `--extend` | Adds to an existing file instead of refusing to overwrite it | `fused-cli workspace init --extend --service 'slack=v1'` |
 
 Creation never replaces an existing file. Extension is additive and idempotent — re-running it reports `unchanged` rather than duplicating a service.
-
-### `workspace plan` / `workspace apply`
-
-| Flag | What it does | Example |
-|---|---|---|
-| `--json` | Prints the plan result, summary, and required permissions instead of writing a receipt | `fused-cli workspace plan --json` |
-| `--receipt-out` | Writes the plan receipt somewhere specific | `fused-cli workspace plan --receipt-out ./ci/ws.plan.json` |
-| `--plan-id` | Applies one exact remote plan | `fused-cli workspace apply --plan-id pln_8c1…` |
-| `--receipt` | Applies from a specific receipt rather than the most recent | `fused-cli workspace apply --receipt ./ci/ws.plan.json` |
 
 ## Mirror the Engine's actual state
 

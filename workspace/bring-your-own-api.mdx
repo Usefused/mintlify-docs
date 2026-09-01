@@ -56,7 +56,7 @@ fused-cli import apply
 Sessions outlive the command. Resume one with `--session <id>`; the identity and crawl limits it started with are fixed and cannot be changed on resume.
 
 <Note>
-  Nothing is interactive in CI. Pass `--all` or repeat `--select 'GET:/invoices'`, then either repeat `--accept-proposal <id>` or pass `--reject-enrichment`. Non-interactive runs never open or wait for browser review.
+  In automation, pass `--no-input`, then make both decisions explicit: use `--all` or repeat `--select 'GET:/invoices'`, and either repeat `--accept-proposal <id>` or pass `--reject-enrichment`. The command fails instead of opening or waiting for browser review.
 </Note>
 
 ## Flags
@@ -72,9 +72,9 @@ Sessions outlive the command. Resume one with `--session <id>`; the identity and
 | `--target` | What to import: `all`, `endpoints`, or `webhooks` | `fused-cli import plan ./api.yaml --name X --slug x --target all` |
 | `--overlay` | A local overlay that corrects or extends provider metadata | `fused-cli import plan ./api.json --name X --slug x --overlay ./billing.overlay.yaml` |
 | `--strict` | Rejects the import when any warning or error diagnostic is raised | `fused-cli import plan ./api.json --name X --slug x --strict` |
-| `--public` | Marks a new service public in the Registry | `fused-cli import plan ./api.json --name X --slug x --public` |
+| `--public` | Publishes a new service and its first version, or stages a new version of an existing service as public | `fused-cli import plan ./api.json --name X --slug x --public` |
 | `--category` | Category for a new service | `fused-cli import plan ./api.json --name X --slug x --category payments` |
-| `--json` | Returns the raw plan response for CI or an agent | `fused-cli import plan ./api.json --name X --slug x --json` |
+| `--json` | Returns the raw plan response for CI or an agent | `fused-cli import plan ./api.json --name X --slug x --no-input --json` |
 | `--receipt-out` | Writes the plan receipt to a chosen path | `fused-cli import plan ./api.json --name X --slug x --receipt-out ./ci/import.json` |
 
 ### `import apply`
@@ -102,7 +102,7 @@ Sessions outlive the command. Resume one with `--session <id>`; the identity and
 | `--version` | Provider version when discovery cannot find one | `fused-cli import discover --url … --name X --slug x --version 2026-08` |
 | `--no-browser` | Prints the review URL and waits, rather than opening it | `fused-cli import discover --url … --name X --slug x --no-browser` |
 | `--receipt-out` | Writes the receipt somewhere other than the default path | `fused-cli import discover --url … --name X --slug x --receipt-out ./ci/import.json` |
-| `--json` | Prints the plan-ready snapshot for CI or an agent | `fused-cli import discover --url … --name X --slug x --all --json` |
+| `--json` | Prints the plan-ready snapshot for CI or an agent | `fused-cli import discover --url … --name X --slug x --all --reject-enrichment --no-input --json` |
 | `--timeout` | Caps the whole session; defaults to 20m | `fused-cli import discover --url … --name X --slug x --timeout 45m` |
 
 `--workers`, `--max-pages`, and `--max-depth` request crawl limits. The Registry clamps whatever you ask for, so treat them as hints rather than guarantees.
@@ -122,13 +122,13 @@ Planning reports structured diagnostics wherever provider metadata cannot be rep
 - Info-level diagnostics never fail strict mode.
 
 <Warning>
-  Import plan and apply allow 20 minutes by default. If apply times out, its outcome is unknown — the Registry may have committed before the response was lost. Do not replay the receipt. Check `workspace services list -q <slug>` and `service show <slug>` first.
+  Import plan and apply allow 20 minutes by default. If apply times out, its outcome is unknown — the Registry may have committed before the response was lost. Do not replay the receipt. Run `fused-cli import status <operation-id>` with the plan ID from the receipt, then follow its returned recovery guidance.
 </Warning>
 
 ## Re-importing
 
 Importing the same provider version again creates a new internal revision rather than mutating the published one. A different provider version creates that version. Your slug resolves within your own Registry account: a matching slug updates that service, an unknown slug creates it.
 
-<Card title="Enable it in your workspace" icon="toggle-on" href="/workspace/enable-a-service">
-  Import registers the service. Enabling it is what makes it callable.
+<Card title="Build an SDK with it" icon="cube" href="/app/build-an-sdk">
+  A successful Engine-mediated import apply also activates the exact imported version in your workspace. Select it directly when you create the SDK.
 </Card>

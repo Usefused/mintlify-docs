@@ -9,7 +9,19 @@ An SDK version is immutable. That is the point: code that shipped last quarter k
 
 Re-applying identical content to the same version is a no-op — no regeneration, no token rotation. Change the services, operations, auth, injections, or language under an existing version and apply returns `app_version_immutable`.
 
-The fix is always the same: bump the version and publish that.
+The fix is always the same: bump the version and publish that. The guided path updates the existing YAML rather than creating a second file:
+
+```bash
+fused-cli extend support-sdk --service slack
+```
+
+`extend` reads the existing YAML to infer SDK mode, then opens the same operation selector as init. Existing services and operations remain in that file, and the app keeps its stable SDK ID.
+
+When the requested merge changes a stable SemVer version, Fused infers the next minor version: `1.0.0` becomes `1.1.0`. A terminal shows that successor in the combined confirmation before writing. The same deterministic inference works with `--no-input`. An idempotent extension keeps its current version.
+
+Pass `--version` when you want a different successor. A prerelease or non-SemVer version such as `2026-09-01` cannot be advanced safely and always requires an explicit successor.
+
+For the explicit lifecycle, edit the version in the existing file yourself:
 
 ```yaml
 name: support-sdk
@@ -17,10 +29,11 @@ version: "1.1.0"   # was 1.0.0
 ```
 
 ```bash
-fused-cli sdk validate
 fused-cli sdk plan
 fused-cli sdk apply --download
 ```
+
+Plan validates the local config before contacting the Engine. Use `sdk validate` separately only when you need an offline-only check.
 
 ## When the Registry moves under you
 
@@ -63,7 +76,7 @@ fused-cli sdk buckets support-sdk
 | Flag | What it does | Example |
 |---|---|---|
 | `--out` | Output directory | `fused-cli sdk download support-sdk@1.1.0 --out ./vendor` |
-| `--json` | Prints SDK, Version ID, status, and output path | `fused-cli sdk download support-sdk@1.1.0 --json` |
+| `--json` | Prints SDK, Version ID, status, and output path | `fused-cli sdk download support-sdk@1.1.0 --no-input --json` |
 
 ### `sdk list`
 
@@ -79,7 +92,7 @@ fused-cli sdk buckets support-sdk
 | `--operation` | Exports one exact physical or Unified operation | `fused-cli sdk openapi support-sdk@1.1.0 --operation issueUpdate` |
 | `--out` | Output file path | `fused-cli sdk openapi support-sdk@1.1.0 --out ./support.yaml` |
 | `--format` | `yaml` or `json` | `fused-cli sdk openapi support-sdk@1.1.0 --format json` |
-| `--json` | Prints export metadata only, including a `sha256:` of the file | `fused-cli sdk openapi support-sdk@1.1.0 --json` |
+| `--json` | Prints export metadata only, including a `sha256:` of the file | `fused-cli sdk openapi support-sdk@1.1.0 --no-input --json` |
 
 `sdk openapi` always writes a file and never prints the document to stdout. It needs your ordinary control credential and `app.read` — an execution token cannot authorize the export.
 

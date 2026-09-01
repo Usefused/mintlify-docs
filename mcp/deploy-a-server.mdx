@@ -10,14 +10,17 @@ One server can span several internal and external services, so an agent needs on
 ## Author and deploy
 
 ```bash
-fused-cli mcp init support-agent \
+fused-cli init support-agent --mcp \
   --description 'Update support issues and notify the owning team in Slack.' \
-  --service 'linear=v1' \
-  --operation 'linear=issueUpdate' \
-  --select-all 'slack'
+  --service linear \
+  --service slack
 ```
 
-That writes `.fused/mcps/support-agent.yaml`:
+For each service, **All operations** is highlighted by default. Press Enter to expose the complete service, or open **Choose operations…** to search by operation ID, method, path, summary, or tag. The example below assumes you accepted all operations for both services.
+
+Init enables any missing service after one combined confirmation under a separate workspace receipt. It builds and validates the MCP candidate in memory, then plans it before creating `.fused/mcps/support-agent.yaml`. A successful plan creates the file atomically; init then applies the MCP server and prints its connection details. If the MCP plan fails, no app config or app receipt is created, though a completed workspace activation remains applied. MCP planning never changes credentials; if one is missing, configure the exact reported bucket entry and rerun init or the explicit plan/apply path.
+
+The resulting config is durable desired state:
 
 ```yaml
 apiVersion: fused/v1
@@ -29,7 +32,7 @@ bucket: default
 services:
   linear:
     version: "v1"
-    operations: ["issueUpdate"]
+    select_all: true
     auth: { type: "oauth" }
     connect: { scopes: ["read:issues"] }
   slack:
@@ -37,26 +40,9 @@ services:
     select_all: true
 ```
 
-`description` is required. Summarize what the server helps an agent accomplish in one to three concise sentences. Keep operation IDs out of this overview; the agent discovers exact calls later through `search_docs`.
+`description` summarizes what the server helps an agent accomplish in one to three concise sentences. Keep operation IDs out of this overview; the agent discovers exact calls later through `search_docs`. In a terminal, init prompts when you omit it. With `--no-input`, pass it explicitly.
 
-<Steps>
-  <Step title="Validate">
-    ```bash
-    fused-cli mcp validate
-    ```
-  </Step>
-  <Step title="Preview">
-    ```bash
-    fused-cli mcp plan
-    ```
-  </Step>
-  <Step title="Stand it up">
-    ```bash
-    fused-cli mcp apply
-    fused-cli mcp list
-    ```
-  </Step>
-</Steps>
+Use `fused-cli mcp list` whenever you need to recover the stable and pinned endpoints after initialization.
 
 <Warning>
   The first successful apply may return an execution token once. An idempotent apply will not reveal it again. Store it immediately.
@@ -64,31 +50,42 @@ services:
 
 ## Flags
 
-### `mcp init`
+### `fused-cli init --mcp`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--description` | Describes the server's business capability for an MCP client; required | `fused-cli mcp init support --description 'Read and update support issues.'` |
-| `--service` | Adds a service at a version; repeatable | `fused-cli mcp init support --service 'linear=v1'` |
-| `--operation` | Selects one operation; repeatable | `fused-cli mcp init support --operation 'linear=issueUpdate'` |
-| `--select-all` | Takes every operation of a service | `fused-cli mcp init support --select-all 'slack'` |
-| `--extend` | Adds to an existing config rather than refusing to overwrite | `fused-cli mcp init support --extend --select-all 'slack'` |
-| `--bucket` | References an existing bucket; never creates one | `fused-cli mcp init support --bucket agent-credentials` |
-| `--version` | Sets the config version; defaults to `1.0.0` | `fused-cli mcp init support --version 2.0.0` |
+| `--description` | Describes the server's business capability; required with `--no-input` | `fused-cli init support --mcp --description 'Read and update support issues.'` |
+| `--service` | Adds a service; version is optional and defaults to an enabled or latest public version | `fused-cli init support --mcp --service linear` |
+| `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --mcp --service linear --operation 'linear=issueUpdate'` |
+| `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --mcp --service slack --select-all slack` |
+| `--bucket` | References an existing bucket; never creates one | `fused-cli init support --mcp --bucket agent-credentials` |
+| `--version` | Sets the initial server version | `fused-cli init support --mcp --version 2.0.0 --service linear` |
 
 `--language` is SDK-only. An MCP server is a runtime, not a generated package.
 
-`mcp init` also resolves server-template variables for the operations you selected and writes the matching `server_variable` injections, reporting a count of what it generated. The behaviour is identical to the SDK side — [how init fills in routing](/app/build-an-sdk#init-fills-in-the-routing-you-would-otherwise-miss).
+Init also resolves server-template variables for the operations you selected and writes the matching `server_variable` injections, reporting a count of what it generated. The behaviour is identical to the SDK side — [how init fills in routing](/app/build-an-sdk#init-fills-in-the-routing-for-you).
+
+Omit the mode flags in a terminal to choose between SDK, API, and MCP interactively. With `--no-input`, pass `--mcp`, `--description`, and an explicit `--operation` or `--select-all` for every service.
+
+### `fused-cli extend`
+
+Add another service or operation without repeating `--mcp`:
+
+```bash
+fused-cli extend support-agent --service slack
+```
+
+`extend` reads `.fused/mcps/support-agent.yaml`, infers MCP mode, and updates that same file. An idempotent repeat keeps its version. A real change to a stable SemVer version advances to the next minor version and is shown in terminal confirmation; the same inference works with `--no-input`. Use `--version` to override the inferred successor. Prerelease and non-SemVer versions require an explicit successor.
 
 ### `mcp plan`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--json` | Prints the plan result and required permissions | `fused-cli mcp plan --json` |
+| `--json` | Prints the plan result and required permissions | `fused-cli mcp plan --no-input --json` |
 | `--owner-team` | Sets the owning team; defaults to you | `fused-cli mcp plan --owner-team support` |
 | `--receipt-out` | Writes the receipt to a chosen path | `fused-cli mcp plan --receipt-out ./ci/mcp.plan.json` |
 
-MCP planning has no interactive credential remediation. That flag exists on SDK plans only.
+MCP planning never mutates credentials. By contrast, an SDK plan in a terminal can securely repair typed missing credentials and retry once. Use `mcp validate` only when you need an offline-only check.
 
 ### `mcp apply`
 
@@ -103,7 +100,7 @@ MCP planning has no interactive credential remediation. That flag exists on SDK 
 
 - **No webhooks.** `webhooks` and `webhooks_select_all` are rejected on an MCP config by both the CLI and the Engine. Treat event delivery as an SDK-only surface.
 - **Unified operations require explicit targets.** A top-level `unified_operations` map uses the same bindings, dependencies, rollback, mapping, and output contract as an SDK. Each operation authorized by the execution token appears in `search_docs` and runs through the existing `execute` tool with `await call(operationId, {input, targets, selectors?, pagination?, idempotencyKey?})`. `targets` is always required, must be dependency-closed, and never defaults to every declared binding. See [declare a unified operation](/app/unified/declare) and [call a unified operation](/app/unified/call).
-- **No implicit latest.** Every version reference is explicit.
+- **No implicit latest app.** Init may default a provider version while writing the config, but MCP app references and runtime promotions always resolve one exact immutable app version.
 
 ## Versions
 

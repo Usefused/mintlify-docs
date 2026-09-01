@@ -132,17 +132,19 @@ Binding outputs run first and become the response values the operation output re
 
 The `{schema, mapping}` form is invalid — use only the recursive output tree.
 
-## Validate before you apply
+## Plan before you apply
+
+Plan validates the local config before its first Engine request, so one command covers both the recursive output contract and the remote change preview:
 
 ```bash
 # SDK
-fused-cli sdk validate -f .fused/sdks/issues.yaml --json
-fused-cli sdk plan -f .fused/sdks/issues.yaml --json
+fused-cli sdk plan -f .fused/sdks/issues.yaml --no-input --json
 
 # MCP
-fused-cli mcp validate -f .fused/mcps/issues.yaml --json
-fused-cli mcp plan -f .fused/mcps/issues.yaml --json
+fused-cli mcp plan -f .fused/mcps/issues.yaml --no-input --json
 ```
+
+Use the standalone `validate` commands only for offline checks that must not contact an Engine.
 
 Unified operations live inside an immutable SDK or MCP app version like everything else. Changing one under an existing version returns `app_version_immutable` — publish a new version.
 

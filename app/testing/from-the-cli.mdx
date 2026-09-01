@@ -38,6 +38,7 @@ Keep the token out of the environment where you can, and gate on the structured 
 printf '%s' "$CI_SDK_TOKEN" | fused-cli sdk invoke support-sdk@1.1.0 healthPing \
   --token-stdin \
   --idempotency-key "release-${GIT_SHA}" \
+  --no-input \
   --json
 ```
 
@@ -55,7 +56,7 @@ printf '%s' "$CI_SDK_TOKEN" | fused-cli sdk invoke support-sdk@1.1.0 healthPing 
 | `--target` | Required for Unified operations; repeat 1–16 times | `fused-cli sdk invoke support-sdk@1.1.0 syncCustomer --target linear --target slack` |
 | `--selectors` | Unified service-selector map or `@file` | `fused-cli sdk invoke support-sdk@1.1.0 syncCustomer --selectors @./sel.json` |
 | `--idempotency-key` | A stable logical-request key; generated when omitted | `fused-cli sdk invoke support-sdk@1.1.0 op --idempotency-key run-2026-08-19-a` |
-| `--json` | Prints endpoint, kind, results, rollbacks, and timing | `fused-cli sdk invoke support-sdk@1.1.0 op --json` |
+| `--json` | Prints endpoint, kind, results, rollbacks, and timing | `fused-cli sdk invoke support-sdk@1.1.0 op --no-input --json` |
 
 The token comes from `FUSED_SDK_TOKEN` unless you redirect it. Management credentials and provider credentials are never substituted for it.
 

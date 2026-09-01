@@ -34,10 +34,7 @@
                 "expanded": false,
                 "pages": [
                   "workspace/enable-a-service",
-                  "workspace/bring-your-own-api",
-                  "workspace/manage-versions",
-                  "workspace/handle-provider-limits",
-                  "workspace/share-access"
+                  "workspace/bring-your-own-api"
                 ]
               },
               {
@@ -47,18 +44,53 @@
                 "pages": [
                   "app/build-an-sdk",
                   "app/use-in-your-app",
-                  {
-                    "group": "Run an operation",
-                    "expanded": false,
-                    "pages": [
-                      "app/run-an-operation",
-                      "app/testing/from-the-cli",
-                      "app/testing/over-rest"
-                    ]
-                  },
+                  "app/run-an-operation"
+                ]
+              },
+              {
+                "group": "MCP",
+                "icon": "robot",
+                "expanded": false,
+                "pages": [
+                  "mcp/deploy-a-server",
+                  "mcp/use-the-server"
+                ]
+              },
+              {
+                "group": "Bucket",
+                "icon": "key",
+                "expanded": false,
+                "pages": [
+                  "bucket/store-credentials",
+                  "bucket/connect-user-accounts"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/control-the-workflow",
+              {
+                "group": "Workspace governance",
+                "icon": "shield-halved",
+                "expanded": false,
+                "pages": [
+                  "workspace/manage-versions",
+                  "workspace/handle-provider-limits",
+                  "workspace/share-access"
+                ]
+              },
+              {
+                "group": "SDK delivery and execution",
+                "icon": "code-branch",
+                "expanded": false,
+                "pages": [
                   "app/ship-a-new-version",
                   "app/receive-events",
                   "app/issue-tokens",
+                  "app/testing/from-the-cli",
+                  "app/testing/over-rest",
                   {
                     "group": "Unified Operations",
                     "expanded": false,
@@ -70,23 +102,19 @@
                 ]
               },
               {
-                "group": "MCP",
-                "icon": "robot",
+                "group": "MCP security",
+                "icon": "user-shield",
                 "expanded": false,
                 "pages": [
-                  "mcp/deploy-a-server",
-                  "mcp/use-the-server",
                   "mcp/agent-tokens",
                   "mcp/oauth-tokens"
                 ]
               },
               {
-                "group": "Bucket",
+                "group": "Credential governance",
                 "icon": "key",
                 "expanded": false,
                 "pages": [
-                  "bucket/store-credentials",
-                  "bucket/connect-user-accounts",
                   "bucket/share-a-bucket"
                 ]
               }

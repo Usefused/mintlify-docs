@@ -5,17 +5,32 @@ description: "Turn a set of approved operations into a typed package your produc
 
 An SDK is a typed package containing only the services and operations one product needs. Authentication, retries, pagination, and provider quirks stay in the Engine. Your application code gets methods.
 
-## Author the config
+## Create the SDK
 
 ```bash
-fused-cli sdk init support-sdk \
-  --service 'linear=v1' \
-  --operation 'linear=issueUpdate' \
-  --service 'slack=v1' \
-  --operation 'slack=chatPostMessage'
+fused-cli init support-sdk --sdk \
+  --service linear \
+  --service slack
 ```
 
-That writes `.fused/sdks/support-sdk.yaml`:
+For each service, `fused-cli init` reuses an enabled workspace version or pins the latest public Registry version. It then opens this choice:
+
+```text
+Select operations for linear v1
+
+❯ All operations
+  Choose operations…
+```
+
+Press Enter to take the complete surface. **Choose operations…** opens a searchable multi-select matching operation IDs, methods, paths, summaries, and tags. Press `/` to filter, type your search, press Space to toggle an operation, and press Enter to confirm. You do not need to know an endpoint name before you start.
+
+If activation is needed, init shows one combined confirmation and applies the workspace change under its own receipt. It then builds and validates the SDK candidate in memory, securely offers to fill missing credentials in the selected bucket, and plans the SDK. Only a successful plan creates `.fused/sdks/support-sdk.yaml`; init then applies the SDK, downloads the package, and finishes with first-call guidance. Workspace and SDK changes retain separate receipts.
+
+<Note>
+  If an older selected snapshot lacks its retained generation contract, generated SDK init prints each exact `service@version` as it refreshes that snapshot and retries the unchanged plan once. It does this deterministically with `--no-input` too. It never invents a pin, selects another version, or bypasses Registry retention. A failed refresh or retry creates no app config or app receipt, while any completed exact refresh remains explicit. See [Recover without guessing](/advanced/control-the-workflow#recover-without-guessing) for the failure boundaries.
+</Note>
+
+If you press Enter for both services, the resulting config records that complete-surface intent without requiring you to type either service version or operation ID:
 
 ```yaml
 apiVersion: fused/v1
@@ -23,17 +38,18 @@ kind: sdk
 name: support-sdk
 version: "1.0.0"
 language: typescript
+generate: true
 bucket: default
 services:
   linear:
     version: "v1"
-    operations: ["issueUpdate"]
+    select_all: true
   slack:
     version: "v1"
-    operations: ["chatPostMessage"]
+    select_all: true
 ```
 
-Each service key is an activated service's Registry slug. Confirm one with `fused-cli workspace services list -q <slug>` — being visible in the Registry is not the same as being enabled here.
+Each service key is the canonical Registry slug selected by the CLI. Pass an explicit `<service>=<version>` only when you need a version other than the default.
 
 `operations` and `select_all: true` are alternatives. Exactly one is required per service, never both and never neither.
 
@@ -52,43 +68,40 @@ injections:
 It reports how many it added. Re-running it never overwrites an injection you wrote yourself.
 
 <Warning>
-  That value is a reference. Create the matching bucket entry with `fused-cli value set` before you plan, or there is nothing for dispatch to resolve.
+  That value is a reference. If init stops because the matching bucket value is missing, create it with `fused-cli value set`, then rerun init. The app config is not written until its plan succeeds.
 </Warning>
 
-## Plan, apply, download
+## Find the downloaded package
 
-<Steps>
-  <Step title="Validate the config">
-    ```bash
-    fused-cli sdk validate
-    ```
-  </Step>
-  <Step title="Preview">
-    ```bash
-    fused-cli sdk plan
-    ```
-    Plans are read-only. The receipt binds apply to this exact file content and this exact Engine.
-  </Step>
-  <Step title="Generate">
-    ```bash
-    fused-cli sdk apply --download
-    ```
-  </Step>
-</Steps>
+SDK mode plans, applies, and downloads the generated package to `fused-sdks/support-sdk`. If a later transfer needs to be retried without replaying apply, run:
+
+```bash
+fused-cli sdk download support-sdk@1.0.0
+```
 
 <Warning>
-  The first successful apply prints the SDK execution token **once**. Capture it immediately — an idempotent re-apply will not show it again, and it is never written to the config, the receipt, or CLI state.
+  The first successful initialization or apply prints the SDK execution token **once**. Capture it immediately — an idempotent apply will not show it again, and it is never written to the config, the receipt, or CLI state.
 </Warning>
+
+## Need more control?
+
+The initializer composes the ordinary plan and apply functions; it does not bypass them. Use the [advanced controlled workflow](/advanced/control-the-workflow) when you want independent review steps, structured CI output, offline validation, custom receipt paths, or separate retry boundaries.
 
 ## Skip the package
 
-Some SDKs are never imported. The product calls them over REST instead, and a generated package is dead weight. Set `generate: false` and apply publishes the version without building one:
+Some apps call the centralized API over REST and never import a generated package. Use API mode:
+
+```bash
+fused-cli init support-api --api --service linear
+```
+
+API mode is not another resource type. It writes the same `kind: sdk` config with package generation disabled:
 
 ```yaml
 generate: false
 ```
 
-Nothing else changes. Same version, same operations, same execution contract — still callable at `POST /v1/apps/{app_id}/executions`, still describable with `fused-cli sdk openapi`. Only the download is gone: `sdk apply --json` reports `generation.status: "skipped"`, and `--download` is refused before anything is applied.
+Nothing else changes. Init applies the version and prints a concrete REST request template for `POST /v1/apps/{app_id}/executions`. Replace the operation placeholder when all operations were selected and provide that operation's required input. The app remains describable with `fused-cli sdk openapi`. Only the package and download are absent: `sdk apply --json` reports `generation.status: "skipped"`, and `--download` is refused before anything is applied.
 
 Flipping the field edits the file, which moves the source hash, so switching between the two needs a version bump like any other scope change.
 
@@ -129,41 +142,32 @@ Both are derived from the generated source and validated against it, so the meth
 
 ## Flags
 
-### `sdk init`
+### `fused-cli init`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--service` | Adds a service at a version; repeatable | `fused-cli sdk init support --service 'linear=v1'` |
-| `--operation` | Selects one operation; repeatable | `fused-cli sdk init support --operation 'linear=issueUpdate'` |
-| `--select-all` | Takes every operation of a service | `fused-cli sdk init support --select-all 'linear'` |
-| `--extend` | Adds to an existing config instead of refusing to overwrite | `fused-cli sdk init support --extend --service 'slack=v1'` |
-| `--bucket` | References an existing bucket; never creates one | `fused-cli sdk init support --bucket prod-credentials` |
-| `--version` | Sets the config version; defaults to `1.0.0` | `fused-cli sdk init support --version 2.0.0` |
-| `--language` | `typescript` (default) or `python` | `fused-cli sdk init support --language python` |
+| `--sdk` | Creates, applies, and downloads a typed SDK | `fused-cli init support --sdk --service linear` |
+| `--api` | Creates and applies a `kind: sdk` app with `generate: false` | `fused-cli init support-api --api --service linear` |
+| `--service` | Adds a service; version is optional and defaults to an enabled or latest public version | `fused-cli init support --sdk --service linear` |
+| `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --sdk --service linear --operation 'linear=issueUpdate'` |
+| `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --sdk --service linear --select-all linear` |
+| `--bucket` | References an existing bucket; never creates one | `fused-cli init support --sdk --bucket prod-credentials` |
+| `--version` | Sets the initial app version | `fused-cli init support --sdk --version 2.0.0 --service linear` |
+| `--language` | `typescript` (default) or `python`; SDK mode only | `fused-cli init support --sdk --language python` |
 
-Creating never replaces an existing file. `--extend` is additive and idempotent — re-running it reports `unchanged` rather than duplicating a service.
+Omit `--sdk`, `--api`, and `--mcp` in a terminal to choose the app mode interactively. Creating never replaces an existing file. Init writes only the chosen app config and any workspace config needed for activation; it does not create sample files for the other modes.
 
-### `sdk plan`
+In a terminal, omit `--operation` and `--select-all` to use the guided selector. With `--no-input`, declare the mode and one operation boundary for every service. Use the explicit plan/apply path when automation needs structured results.
 
-| Flag | What it does | Example |
-|---|---|---|
-| `--json` | Prints the plan result and required permissions | `fused-cli sdk plan --json` |
-| `--interactive` | Securely fills credentials the Engine reports missing, then retries once | `fused-cli sdk plan --interactive` |
-| `--owner-team` | Sets the owning team; defaults to you | `fused-cli sdk plan --owner-team payments` |
-| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli sdk plan --receipt-out ./ci/sdk.plan.json` |
+### `fused-cli extend`
 
-`--interactive` is incompatible with `--json`, `--no-input`, and `CI=true`. It never creates or substitutes a bucket.
+Use `extend` after creation. It finds the existing YAML and infers generated SDK or direct API mode from that document, so you do not repeat `--sdk` or `--api`:
 
-### `sdk apply`
+```bash
+fused-cli extend support --service slack
+```
 
-| Flag | What it does | Example |
-|---|---|---|
-| `--download` | Downloads the package after generating it | `fused-cli sdk apply --download` |
-| `--json` | Returns apply, generation, and download outcomes | `fused-cli sdk apply --json` |
-| `--plan-id` | Applies one exact remote plan | `fused-cli sdk apply --plan-id pln_a91…` |
-| `--receipt` | Applies from a specific receipt | `fused-cli sdk apply --receipt ./ci/sdk.plan.json` |
-
-For pipelines, prefer separate apply and download steps so a failed transfer can be retried without replaying the apply.
+The same file is updated additively. An idempotent repeat keeps its version. A real change to a stable SemVer version advances to the next minor version and is shown in terminal confirmation; `--no-input` uses the same deterministic inference. Pass `--version <successor>` to override it. Prerelease and non-SemVer versions always require that explicit flag.
 
 ## Adjust the selection
 
@@ -208,5 +212,5 @@ Where a service declares several named schemes of one type, carry both the type 
 Credentials themselves never appear in this file. They resolve from the bucket at generation and dispatch time.
 
 <Card title="Store the credentials" icon="key" href="/bucket/store-credentials">
-  A plan that reports `bucket_credentials_missing` is telling you the bucket is not ready yet.
+  Terminal plans can securely repair `bucket_credentials_missing` and retry once. Automation receives the typed error and can pre-provision the exact bucket.
 </Card>
