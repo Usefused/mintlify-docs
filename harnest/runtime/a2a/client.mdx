@@ -1,0 +1,101 @@
+---
+title: "Call a remote A2A agent"
+sidebarTitle: "Call an agent"
+description: "Use the lazy A2A client directly or compose a remote agent as a graph node or Agent Tool."
+---
+
+`A2AClient` discovers and validates one Agent Card lazily. Construction performs no network call. Use the client from trusted code when your application decides exactly which operation to perform.
+
+```python lib/remote_support.py
+from harnest import A2AClient
+
+
+async def ask_support(question: str) -> dict:
+    """Send one blocking request to the approved support agent."""
+
+    async with A2AClient(
+        "https://support.example/.well-known/agent-card.json",
+        allowed_hosts=("support.example",),
+    ) as client:
+        result = await client.send(question)
+    return result.as_dict()
+```
+
+`send(..., wait=True)` is the default. It returns a direct `Message` immediately when possible. If the server returns a non-terminal Task, it polls that exact Task until it is terminal, interrupted, or the configured timeout expires. Use `await client.send(..., return_immediately=True, wait=False)` when your application wants to retain the Task ID and decide what happens next.
+
+## Choose an explicit client operation
+
+| Method | Network behavior |
+|---|---|
+| `connect()` | Fetch and validate the Agent Card once |
+| `send(...)` | Send one message; optionally poll only the returned Task |
+| `stream(...)` | Stream one new interaction; requires `streaming=True` on the client |
+| `get_task(task_id)` | Fetch one explicitly named Task |
+| `list_tasks(...)` | Fetch one bounded, filtered page on request |
+| `cancel_task(task_id)` | Request cancellation of one explicitly named Task |
+| `subscribe(task_id)` | Subscribe to one existing Task |
+
+The client never performs background Task listing. Cancelling a local `send` or letting it time out triggers a bounded best-effort cancellation only when the remote side already returned an active Task ID.
+
+Outbound discovery selects JSON-RPC or HTTP+JSON interfaces. Harnest does not connect to gRPC or custom A2A bindings.
+
+```python lib/remote_support.py
+from harnest import A2AClient
+
+
+async def stream_support(question: str):
+    """Yield normalized updates from one explicitly streamed request."""
+
+    async with A2AClient(
+        "https://support.example/.well-known/agent-card.json",
+        streaming=True,
+        allowed_hosts=("support.example",),
+    ) as client:
+        async for update in client.stream(question):
+            yield update
+```
+
+## Add a remote agent to a graph
+
+`RemoteAgent` retains only opaque A2A context and Task references in graph state. It can run as a portable graph node:
+
+```python agent.py
+from harnest import START, Edge, Graph, RemoteAgent
+
+inventory = RemoteAgent(
+    name="inventory",
+    description="Checks availability with the inventory agent.",
+    card_url="https://inventory.example/.well-known/agent-card.json",
+    allowed_hosts=("inventory.example",),
+)
+
+root_agent = Graph(
+    name="inventory_flow",
+    nodes={"inventory": inventory},
+    edges=(Edge(START, "inventory"),),
+)
+```
+
+When model-led delegation is a better fit, expose the same boundary as a discovered Agent Tool:
+
+```python tools/inventory_agent.py
+from harnest import RemoteAgent
+from harnest.tool import tool
+
+inventory_agent = tool(
+    RemoteAgent(
+        name="inventory_agent",
+        description="Ask the inventory agent about product availability.",
+        card_url="https://inventory.example/.well-known/agent-card.json",
+        allowed_hosts=("inventory.example",),
+    ).as_tool()
+)
+```
+
+## Keep network and credentials explicit
+
+HTTPS is the default. Plain HTTP is accepted automatically for loopback development; another HTTP host requires `allow_insecure=True`. A discovered interface may stay on the Agent Card host or one of `allowed_hosts`, which prevents an Agent Card from silently redirecting authority elsewhere.
+
+For an authenticated remote agent, set `audience` and `scopes` on `RemoteAgent`, or resolve a `Credential` and pass it to an explicit `A2AClient` operation. Credentials enter only the final request headers. See [Authentication and credentials](/harnest/runtime/authentication-and-credentials).
+
+`A2AResult` normalizes text and structured DataPart content into `text` and `data`. Raw protocol messages, Tasks, file parts, and URL parts remain available through `result.message` or `result.task` when trusted code needs the official A2A representation.

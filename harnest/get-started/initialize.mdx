@@ -21,11 +21,62 @@ Create a managed agent, prepare its isolated environment, and run the generated 
     </CodeGroup>
 
     The default scaffold is a small, runnable managed agent. Add `--example` to include working graphs, tools, plugins, skills, extensions, evals, and tests.
+
+    The command creates this project structure before it changes or installs anything else:
+
+    ```text support-agent/
+    support-agent/
+    ├── agent.py
+    ├── instructions.md
+    ├── config.yaml
+    ├── server.yaml
+    ├── agent-card.yaml
+    ├── pyproject.toml
+    ├── harnest.lock
+    ├── lib/
+    │   └── _README.md
+    ├── models/
+    │   └── _README.md
+    ├── tools/
+    │   └── _README.md
+    ├── tasks/
+    │   └── _README.md
+    ├── cron/
+    │   └── _README.md
+    ├── subagents/
+    │   └── _README.md
+    ├── mcp/
+    │   └── _README.md
+    ├── extensions/
+    │   ├── _README.md
+    │   └── storage.py
+    ├── plugins/
+    │   └── _README.md
+    ├── sandbox/
+    │   └── _README.md
+    ├── skills/
+    │   └── _README.md
+    ├── evals/
+    │   └── _README.md
+    └── tests/
+        ├── unit/
+        │   └── _README.md
+        └── smoke/
+            └── _README.md
+    ```
+
+    Files beginning with `_` are ignored guides, not enabled capabilities. Replace them with the convention shown inside each guide when you need that feature. `extensions/storage.py` is active and supplies the default in-memory session and checkpoint storage.
+
+    <Note>
+      `harnest init` accepts a new directory or an existing empty directory. It refuses a non-empty directory so it cannot overwrite an existing project.
+    </Note>
   </Step>
   <Step title="Synchronize the project environment">
     ```bash
     harnest env sync support-agent
     ```
+
+    Synchronization creates `uv.lock` and the generated `.harnest/` environment. Commit `uv.lock`; do not edit or commit `.harnest/`.
   </Step>
   <Step title="Run the offline tests">
     ```bash
@@ -34,13 +85,21 @@ Create a managed agent, prepare its isolated environment, and run the generated 
   </Step>
 </Steps>
 
+## What each generated path owns
+
 | Output | Purpose |
 |---|---|
 | `agent.py` | Root agent or graph |
 | `instructions.md` | Agent instructions |
 | `config.yaml` | Framework and project settings |
 | `server.yaml` | Local server settings |
+| `agent-card.yaml` | Public identity, interfaces, and advertised capabilities |
+| `pyproject.toml` | Authored dependencies; `harnest env sync` then creates `uv.lock` |
+| `lib/` and `models/` | Reusable Python and Pydantic contracts |
+| `tools/`, `tasks/`, and `extensions/` | Folder-discovered capabilities and runtime behavior |
 | `tests/` | Offline and optional live checks |
+
+With `--example` in managed mode, Harnest replaces the ignored guides in the relevant folders with runnable examples such as `tools/echo.py`, `skills/getting-started/SKILL.md`, `extensions/starter.py`, `evals/starter.evalset.json`, and authored tests. Advanced mode keeps native framework wiring in `agent.py` and adds only the examples Harnest still owns. The surrounding folder contract stays the same.
 
 <Note>
   `compile`, `test`, and `serve` sync the environment automatically. Add only your provider, tool, and library packages to `pyproject.toml`; Harnest owns the framework dependency.

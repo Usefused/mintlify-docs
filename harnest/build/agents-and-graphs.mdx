@@ -16,7 +16,7 @@ description: "Author managed agents, portable graphs, structured results, and na
 
 The concise form builds a native agent for the selected framework:
 
-```python
+```python agent.py
 from harnest.agent import Agent
 from harnest.model import LiteLLMModel
 
@@ -35,7 +35,7 @@ root_agent = Agent(
 
 Use a graph for deterministic routing, parallel branches, joins, agent nodes, or a topology that should lower to either framework:
 
-```python
+```python agent.py
 from harnest.graph import START, Edge, Event, Graph, Join
 
 def normalize(request):
@@ -73,7 +73,7 @@ Pass Pydantic classes from `harnest.models.*` as `input_schema` or `output_schem
 
 Use advanced mode only when the portable API cannot express required native behavior:
 
-```python
+```python agent.py
 from harnest.agent import Agent
 
 root_agent = Agent.advanced(target=compiled_graph, name="support")

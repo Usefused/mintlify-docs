@@ -1,0 +1,31 @@
+---
+title: "Agent2Agent (A2A)"
+sidebarTitle: "Overview"
+description: "Expose a Harnest agent through A2A and call remote A2A agents through a bounded client."
+---
+
+Harnest supports both sides of the A2A 1.0 protocol. An authored Agent Card can expose the compiled agent, while `A2AClient` and `RemoteAgent` let trusted application code call another agent.
+
+| Goal | Harnest boundary |
+|---|---|
+| Make this agent discoverable and callable | Declare an HTTP+JSON or JSON-RPC interface in `agent-card.yaml` |
+| Make a direct outbound request | Use `A2AClient` from trusted Python |
+| Add a remote agent to a portable graph | Use `RemoteAgent` as a graph node |
+| Expose a remote agent as a model-selected capability | Convert `RemoteAgent` to an Agent Tool |
+
+Harnest keeps the default path small. A completed blocking interaction returns an A2A `Message`; it does not create a Task merely because the protocol supports Tasks. Streaming, asynchronous execution, approvals, client tools, and durable external waits use an A2A `Task` when task identity is required.
+
+Task lookup, listing, cancellation, and subscription happen only when the client asks for them. The outbound client does not list or monitor unrelated Tasks in the background.
+
+<CardGroup cols={2}>
+  <Card title="Serve an agent through A2A" icon="tower-broadcast" href="/harnest/runtime/a2a/serve">
+    Publish an Agent Card, mount a binding, and choose durable Task storage.
+  </Card>
+  <Card title="Call a remote agent" icon="arrow-right-arrow-left" href="/harnest/runtime/a2a/client">
+    Send, stream, poll, cancel, subscribe, or compose a remote agent.
+  </Card>
+</CardGroup>
+
+<Note>
+  Harnest A2A uses the same agent, tools, durable Tasks, sessions, authentication, lifecycle, and telemetry as the neutral API. It is a transport adapter, not a second agent runtime.
+</Note>

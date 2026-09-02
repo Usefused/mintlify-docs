@@ -1,0 +1,115 @@
+---
+title: "Sessions and application storage"
+sidebarTitle: "Sessions"
+description: "Persist committed conversation history and session-scoped application data without mixing them with checkpoints."
+---
+
+The session store owns committed multi-turn conversation history and JSON-safe application state. It does not own an active framework run; [checkpoints](/harnest/runtime/checkpoints) handle that separately.
+
+Every application resolves exactly one session factory across its root and Runtime Plugin extensions. This example assumes the shared `PostgresStore` from `lib/state.py` in the [storage overview](/harnest/runtime/checkpoints-and-storage):
+
+```python extensions/sessions.py
+from harnest.lib.state import state
+from harnest.lifecycle import lifecycle
+
+
+@lifecycle.storage.sessions
+def sessions():
+    """Provide the application's committed session authority."""
+
+    return state
+```
+
+Committed session state survives an ADK ↔ LangGraph switch when both compiled applications use compatible session storage. Active framework checkpoints do not move with it.
+
+## Store session-scoped data
+
+Use `context.session` for values that should persist with a session without entering prompts or model-visible history:
+
+```python lib/exports.py
+from harnest import context
+
+
+async def remember_export(export_id: str):
+    """Save the latest export for the active user session."""
+
+    exports = context.session.namespace("exports")
+    await exports.set("latest", {"id": export_id, "status": "queued"})
+
+
+async def latest_export():
+    """Read the latest export from the active user session."""
+
+    return await context.session.namespace("exports").get("latest")
+```
+
+| Operation | Behavior |
+|---|---|
+| `get(key, default=None)` | Returns a detached value |
+| `set(key, value)` | Replaces one value |
+| `update(values)` | Writes several keys under one session lease |
+| `delete(key)` | Deletes one key and returns whether it existed |
+| `namespace(name)` | Isolates domain or plugin keys |
+
+Session writes are scoped to the authenticated user and session. They emit payload-free OTEL audit events.
+
+## Register a domain repository
+
+Custom storage is for business data that needs a typed repository. It is not a session store or framework checkpointer.
+
+```python extensions/users.py
+import os
+
+from harnest.lifecycle import lifecycle
+from harnest.lib.users import UsersRepository
+
+
+@lifecycle.storage.custom("users")
+def users():
+    """Provide the application-owned users repository."""
+
+    return UsersRepository(os.environ["DATABASE_URL"])
+```
+
+```python lib/user_profiles.py
+from harnest import context
+from harnest.lib.users import UsersRepository
+
+
+async def current_profile():
+    """Load the current caller through the typed users repository."""
+
+    users = context.storage.resource("users", UsersRepository)
+    return await users.get(user_id=context.user_id)
+```
+
+A custom store must provide async `start()` and `close()` methods. Prefer domain methods over exposing a raw connection to agent code. Sessions and checkpoints never appear in `context.storage`.
+
+## Register asset stores
+
+Declare one or more named stores for session-owned media:
+
+```python extensions/assets.py
+from harnest.lifecycle import lifecycle
+from harnest.lib.assets import S3AssetStorage
+
+
+@lifecycle.storage.assets("default")
+def default_assets():
+    """Store user-provided media in the default bucket."""
+
+    return S3AssetStorage(...)
+
+
+@lifecycle.storage.assets("generated")
+def generated_assets():
+    """Store generated media in its own bucket."""
+
+    return S3AssetStorage(...)
+```
+
+`context.assets` selects `default`; `context.assets("generated")` selects a named store. An `AssetRef` retains its store and optional domain label, so later reads cannot silently switch backends. See [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media).
+
+<Card title="Configure checkpoints separately" icon="clock-rotate-left" href="/harnest/runtime/checkpoints">
+  Add active-run persistence and recovery without exposing checkpoint state to agent code.
+</Card>

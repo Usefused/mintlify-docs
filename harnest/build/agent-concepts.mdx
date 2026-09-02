@@ -12,7 +12,7 @@ A Harnest agent is an inspectable directory. Each concept has one conventional l
 | [Agents and Graphs](/harnest/build/agents-and-graphs) | `agent.py`, `instructions.md` | Root agent or graph and its instructions |
 | [Data Models and Shared Libraries](/harnest/build/data-models-and-shared-libraries) | `models/`, `lib/` | Shared contracts and ordinary reusable Python |
 | [Agent Tools](/harnest/build/agent-tools) | `tools/` | Server tools and client-hosted tool declarations |
-| [Queued Tasks](/harnest/build/queued-tasks) | `tasks/` | Scheduled, retryable application work |
+| [Tasks](/harnest/build/tasks) | `tasks/`, `cron/` | Retryable and scheduled application work |
 | [SubAgents](/harnest/build/subagents) | `subagents/` | Flat definitions and separately owned agent bundles |
 | [MCP Client](/harnest/build/mcp-client) | `mcp/` | Direct MCP server connections |
 | [Agent Plugins](/harnest/build/agent-plugins) | `plugins/` | Reusable MCP-and-skill capability bundles |
@@ -23,6 +23,70 @@ A Harnest agent is an inspectable directory. Each concept has one conventional l
 | [Testing and Compilation](/harnest/build/testing-and-compilation) | `evals/`, `tests/` | Evals, unit tests, live smoke tests, and artifacts |
 
 [Authentication and Credentials](/harnest/runtime/authentication-and-credentials) and [Telemetry](/harnest/runtime/telemetry) have separate security and privacy contracts.
+
+## Start with this project layout
+
+Use the generated project directory as the root for every path in the Harnest docs. This example uses `support-agent/` as the project directory and gives common capabilities concrete, descriptive filenames:
+
+```text support-agent/
+support-agent/
+├── config.yaml
+├── server.yaml
+├── agent-card.yaml
+├── agent.py
+├── instructions.md
+├── pyproject.toml
+├── uv.lock                 created by harnest env sync
+├── harnest.lock
+├── lib/
+│   └── storage.py
+├── models/
+│   └── orders.py
+├── tools/
+│   └── lookup_order.py
+├── tasks/
+│   └── build_report.py
+├── cron/
+│   └── daily_report.py
+├── extensions/
+│   ├── sessions.py
+│   ├── checkpoints.py
+│   └── telemetry.py
+├── subagents/
+│   └── billing/
+│       ├── agent.py
+│       └── instructions.md
+├── mcp/
+│   └── catalog.py
+├── skills/
+│   └── refund-policy/
+│       └── SKILL.md
+├── evals/
+│   └── support.evalset.json
+└── tests/
+    ├── unit/
+    │   └── test_tools.py
+    └── smoke/
+        └── test_agent.py
+```
+
+You only need the root files and the capabilities your agent uses. Empty optional directories may be absent. `harnest init --example` creates working examples if you want to inspect a fuller project.
+
+When a page titles a code block `tools/lookup_order.py`, create that path inside your project root. For discovered resources, the filename is also part of the contract:
+
+| Example path | Required public export |
+|---|---|
+| `agent.py` | `root_agent` when using the default `agent:root_agent` entrypoint |
+| `tools/lookup_order.py` | One `@tool` callable named `lookup_order` |
+| `tasks/build_report.py` | One `@task` callable named `build_report` |
+| `cron/daily_report.py` | One `Cron` named `daily_report` |
+| `subagents/billing/agent.py` | One `Agent` exported as `billing` and named `billing` |
+| `mcp/catalog.py` | A zero-argument `client()` factory |
+| `skills/refund-policy/SKILL.md` | Frontmatter with `name: refund-policy` |
+| `evals/support.evalset.json` | An ADK EvalSet with `eval_set_id: support` |
+| `extensions/telemetry.py` | One or more decorated telemetry factory functions; the module can have any descriptive name |
+
+Put reusable code in `lib/` and Pydantic contracts in `models/`. Those folders are import namespaces, not discovered capabilities: `lib/storage.py` imports as `harnest.lib.storage`, and `models/orders.py` imports as `harnest.models.orders`.
 
 ## Discovery rules
 

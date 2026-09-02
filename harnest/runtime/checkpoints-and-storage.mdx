@@ -1,23 +1,21 @@
 ---
-title: "Checkpoints and storage"
-sidebarTitle: "Storage & checkpoints"
-description: "Configure distributed storage roles and use scoped session, asset, and repository context."
+title: "Runtime storage"
+sidebarTitle: "Storage overview"
+description: "Choose storage authorities for committed sessions, in-progress checkpoints, media, and application data."
 ---
 
-Harnest discovers storage factories across root and Runtime Plugin extension files, then assembles one typed registry. You do not author a central registry.
+Harnest keeps committed session state separate from private in-progress execution state. It discovers storage factories across root and Runtime Plugin extension files, then assembles one typed registry. Every application resolves exactly one session store and one checkpointer, even when both roles share the same backend object.
 
-| Role | Holds | Agent access |
-|---|---|---|
-| Sessions | Transcript and application session data | `context.session` |
-| Checkpoints | In-progress framework and continuation state | Framework-owned |
-| Named assets | Session-owned media bytes | `context.assets("name")` |
-| Named custom storage | Domain repositories | `context.storage("name")` |
+| Role | Holds | Agent access | Guide |
+|---|---|---|---|
+| Sessions | Committed conversation history and application session data | `context.session` | [Sessions and application storage](/harnest/runtime/session-storage) |
+| Checkpoints | Active run state, framework snapshots, pending writes, and resumable waits | Framework-owned | [Checkpoints](/harnest/runtime/checkpoints) |
+| Named assets | Session-owned media bytes | `context.assets("name")` | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
+| Named custom storage | Domain repositories | `context.storage("name")` | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
 
-Every application needs exactly one session store and one checkpointer. Asset and custom stores are optional and named.
+## Reuse a backend without merging roles
 
-## Split storage by responsibility
-
-Keep each declaration in the extension file where it belongs. Reuse a connection from `lib/` only when several roles share it:
+Put a shared connection in `lib/`, then declare each responsibility in its own extension file:
 
 <Tabs>
   <Tab title="lib/state.py">
@@ -37,6 +35,8 @@ Keep each declaration in the extension file where it belongs. Reuse a connection
 
     @lifecycle.storage.sessions
     def sessions():
+        """Provide committed session and conversation storage."""
+
         return state
     ```
   </Tab>
@@ -48,92 +48,14 @@ Keep each declaration in the extension file where it belongs. Reuse a connection
 
     @lifecycle.storage.checkpoints
     def checkpoints():
+        """Provide private in-progress execution storage."""
+
         return state
     ```
   </Tab>
 </Tabs>
 
-Harnest starts the shared object once and closes it once. If one factory owns both roles, stack the decorators:
-
-```python
-@lifecycle.storage.sessions
-@lifecycle.storage.checkpoints
-def state_storage():
-    return state
-```
-
-## Store application session data
-
-Use `context.session` for JSON-safe data that should persist with a session without entering prompts or model-visible history:
-
-```python
-from harnest import context
-
-
-async def remember_export(export_id: str):
-    exports = context.session.namespace("exports")
-    await exports.set("latest", {"id": export_id, "status": "queued"})
-
-
-async def latest_export():
-    return await context.session.namespace("exports").get("latest")
-```
-
-| Operation | Behavior |
-|---|---|
-| `get(key, default=None)` | Returns a detached value |
-| `set(key, value)` | Replaces one value |
-| `update(values)` | Writes several keys under one session lease |
-| `delete(key)` | Deletes one key and returns whether it existed |
-| `namespace(name)` | Isolates domain or plugin keys |
-
-Session writes are scoped to the authenticated user and session and emit payload-free OTEL audit events.
-
-## Register a domain repository
-
-Custom storage is for business data, not framework checkpoints:
-
-```python
-# extensions/users.py
-import os
-
-from harnest.lifecycle import lifecycle
-from harnest.lib.users import UsersRepository
-
-
-@lifecycle.storage.custom("users")
-def users():
-    return UsersRepository(os.environ["DATABASE_URL"])
-```
-
-```python
-from harnest import context
-from harnest.lib.users import UsersRepository
-
-users = context.storage.resource("users", UsersRepository)
-profile = await users.get(user_id=context.user_id)
-```
-
-A custom store must provide async `start()` and `close()` methods. Prefer domain methods over exposing a raw connection to agent code. Sessions and checkpoints never appear in `context.storage`.
-
-## Register asset stores
-
-```python
-from harnest.lifecycle import lifecycle
-from harnest.lib.assets import S3AssetStorage
-
-
-@lifecycle.storage.assets("default")
-def default_assets():
-    return S3AssetStorage(...)
-
-
-@lifecycle.storage.assets("generated")
-def generated_assets():
-    return S3AssetStorage(...)
-```
-
-`context.assets` selects `default`; `context.assets("generated")` selects a named store. An `AssetRef` retains its store and optional domain label, so later reads cannot silently switch backends. See [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media).
+Harnest starts the shared object once and closes it once. Separate factories make ownership visible even when the physical backend is the same. If one small factory intentionally owns both roles, you can stack the two decorators.
 
 ## Choose a backend
 
@@ -144,28 +66,11 @@ def generated_assets():
 | `RedisStore` | Distributed sessions and expiring checkpoints | Durability depends on Redis configuration |
 | Custom store | Existing infrastructure | You own schema, migration, and durability |
 
-## Run multiple replicas
-
-Point every replica at the same session store and Harnest checkpointer. Atomic run and continuation transitions allow one replica to claim a resume while another safely observes it.
-
-Every checkpoint operation is scoped by application, authenticated user, session, and run. Knowing a run ID alone does not grant access.
-
-<Warning>
-  `MemoryStore` cannot recover a durable tool across processes. Queued or external waits need a Harnest-owned checkpointer; an opaque native advanced-mode saver is insufficient.
-</Warning>
-
-See [Durable execution](/harnest/runtime/durable-execution) for replica recovery and response polling.
-
-## Framework ownership
-
-Advanced LangGraph can compile with a Harnest adapter:
-
-```python
-graph = builder.compile(
-    checkpointer=store.as_langgraph_checkpointer(),
-)
-```
-
-For ADK-native ownership, return the same `ADKStore(session_service)` from the session and checkpoint factories.
-
-Completed sessions survive an ADK ↔ LangGraph switch. Active framework checkpoints and durable waits are not portable between frameworks; finish or cancel them before switching.
+<CardGroup cols={2}>
+  <Card title="Sessions and application storage" icon="messages" href="/harnest/runtime/session-storage">
+    Configure conversation state, `context.session`, assets, and domain repositories.
+  </Card>
+  <Card title="Checkpoints" icon="clock-rotate-left" href="/harnest/runtime/checkpoints">
+    Configure active-run recovery, framework adapters, and replica safety.
+  </Card>
+</CardGroup>

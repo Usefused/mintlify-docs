@@ -22,10 +22,10 @@ Root files under `extensions/**/*.py` add behavior around the agent. Harnest dis
 | `@lifecycle.adk_plugin` | Many | ADK-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
 | `@lifecycle.langgraph_middleware` | Many | LangGraph-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
 | `@lifecycle.http_routes` | Many | Application HTTP routes | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
-| `@lifecycle.storage.sessions` | Exactly one | Sessions and transcripts | [Storage](/harnest/runtime/checkpoints-and-storage) |
-| `@lifecycle.storage.checkpoints` | Exactly one | In-progress execution | [Storage](/harnest/runtime/checkpoints-and-storage) |
+| `@lifecycle.storage.sessions` | Exactly one | Sessions and transcripts | [Sessions](/harnest/runtime/session-storage) |
+| `@lifecycle.storage.checkpoints` | Exactly one | In-progress execution | [Checkpoints](/harnest/runtime/checkpoints) |
 | `@lifecycle.storage.assets("name")` | Many, with unique names | Multimodal asset storage | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
-| `@lifecycle.storage.custom("name")` | Many, with unique names | Domain repositories | [Storage](/harnest/runtime/checkpoints-and-storage) |
+| `@lifecycle.storage.custom("name")` | Many, with unique names | Domain repositories | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
 | `@lifecycle.authenticate` | Zero or more | Request identity | [Authentication](/harnest/runtime/authentication-and-credentials) |
 | `@lifecycle.credential_provider` | Zero or one | Downstream credentials | [Authentication](/harnest/runtime/authentication-and-credentials) |
 | `@lifecycle.telemetry_exporter` | Many | Trace and log destination | [Telemetry](/harnest/runtime/telemetry) |

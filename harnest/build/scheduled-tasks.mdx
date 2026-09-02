@@ -15,6 +15,8 @@ from harnest.task import task
 
 @task(queue="reports", max_retries=3)
 async def build_report(account_id: str) -> dict:
+    """Build one account report on the reports queue."""
+
     return {"account_id": account_id, "status": "ready"}
 ```
 
@@ -54,5 +56,5 @@ must still be idempotent because a worker can retry after failure.
   `HARNEST_TASK_DATABASE_URL` or one unambiguous PostgreSQL store.
 </Note>
 
-See [Queued tasks](/harnest/build/queued-tasks) for task results, retries, and
+See [Create and run Tasks](/harnest/build/queued-tasks) for task results, retries, and
 starting a fresh agent session from scheduled work.

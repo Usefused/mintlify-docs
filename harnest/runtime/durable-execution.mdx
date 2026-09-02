@@ -9,7 +9,7 @@ Use durable execution when a tool waits longer than one request or process lifet
 | Work | Boundary |
 |---|---|
 | Short in-process operation | Ordinary `@tool` |
-| Scheduled or retryable Python work | [`@task`](/harnest/build/queued-tasks) |
+| Scheduled or retryable Python work | [Create a Task](/harnest/build/queued-tasks) |
 | External workflow or job service | [Runtime Plugin](/harnest/build/runtime-plugins) |
 | Either wait must resume the agent | Async `@tool(durable=True)` |
 

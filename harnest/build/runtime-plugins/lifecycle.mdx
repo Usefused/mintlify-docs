@@ -1,0 +1,86 @@
+---
+title: "Use lifecycle in a Runtime Plugin"
+sidebarTitle: "Use lifecycle"
+description: "Connect plugin startup, invocation context, hooks, storage, telemetry, and auditing to Harnest lifecycle."
+---
+
+A Runtime Plugin participates in three lifecycle layers:
+
+| Layer | Authoring location | Lifetime |
+|---|---|---|
+| SDK startup and shutdown | `Plugin.start()` and `Plugin.stop()` in `plugin.py` | Application process |
+| Typed access | `Plugin.create_context()` | One managed invocation |
+| Harnest hooks and factories | `plugins/<name>/extensions/**/*.py` | The lifecycle phase declared by each decorator |
+
+The plugin manifest must declare every Harnest capability its extension files contribute. Declaration makes ownership inspectable; it does not grant access to undeclared runtime internals.
+
+Storage authorities start first. Harnest then calls `Plugin.start()` in dependency order, followed by contributed `@lifecycle.resource` factories. Shutdown closes extension resources before calling `Plugin.stop()` in reverse dependency order, then closes storage. `PluginStartContext` therefore exposes only already-live named custom storage and declared continuations, not arbitrary lifecycle resources or invocation credentials.
+
+## Declare and implement a hook
+
+<CodeGroup>
+
+```yaml plugins/warehouse/plugin.yaml
+apiVersion: harnest.dev/v1alpha1
+kind: RuntimePlugin
+metadata:
+  name: warehouse
+  version: 1.0.0
+runtime:
+  entrypoint: plugin:plugin
+capabilities:
+  - lifecycle.tool
+```
+
+```python plugins/warehouse/extensions/tool_policy.py
+from harnest.lifecycle import lifecycle
+
+
+@lifecycle.tool.before(order=-50)
+async def restrict_warehouse_writes(context, request):
+    """Require approved naming for model-selected warehouse writes."""
+
+    # This plugin owns policy only for the write tools it contributes.
+    if context.tool_name.startswith("warehouse_write_"):
+        return context.finish({"error": "use_an_approved_write_tool"})
+    return context.next()
+```
+
+</CodeGroup>
+
+Plugin and root extensions form one globally validated lifecycle. Lower `order` values run first. Plugin dependency order and source location break ties. Duplicate singleton authorities or named resources fail compilation rather than shadowing one another.
+
+## Choose a declared capability
+
+| Manifest capability | Contribution from plugin extensions |
+|---|---|
+| `lifecycle.agent`, `.model`, `.tool`, `.mcp`, `.http`, `.skills` | Portable interception and dynamic skill sources |
+| `context.resources`, `.credentials`, `.continuations`, `.storage`, `.assets`, `.session`, `.skills`, `.mcp` | Scoped runtime access used by the plugin |
+| `content.tools`, `.mcp`, `.skills`, `.subagents` | Managed-mode content |
+| `storage.sessions`, `.checkpoints`, `.assets`, `.custom` | Storage factories |
+| `http.routes` | Application HTTP routes |
+| `native.adk`, `native.langgraph` | Framework-native integration |
+| `policy.output`, `telemetry.exporter` | Output policy or telemetry destinations |
+
+Declare only the rows the plugin actually uses. Advanced mode still composes Harnest-owned boundaries, but it cannot intercept an opaque native path that bypasses Harnest.
+
+## Audit committed mutations
+
+Wrap committed user- or agent-triggered writes with `plugin_mutation(...)`. It emits correlated, payload-free OTEL audit events without recording arguments, credentials, or results:
+
+```python plugins/warehouse/plugin.py
+from harnest.plugins import plugin_mutation
+
+
+async def _create_export(self, query_id: str):
+    """Audit the committed SDK mutation without exposing its payload."""
+
+    async with plugin_mutation("warehouse", "export.create", trigger="agent"):
+        return await self._client.create_export(query_id)
+```
+
+For external work that must survive a replica stopping, declare `context.continuations` and follow [Durable execution](/harnest/runtime/durable-execution). The plugin persists bounded continuation metadata; it does not resume a suspended Python process.
+
+<Card title="Use the plugin" icon="plug" href="/harnest/build/runtime-plugins/use">
+  Call the bounded public API from an Agent Tool or other trusted invocation code.
+</Card>

@@ -47,7 +47,7 @@ launcher's `run` command. Omit it for a server-only artifact.
 
 ## `agent-card.yaml`
 
-The Agent Card supplies public discovery metadata and declared capabilities. Compilation validates and copies it into the artifact. The server exposes the card at `/.well-known/agent-card.json` and includes its identity and route links in `GET /agent`.
+The Agent Card supplies public discovery metadata and declared capabilities. Compilation validates and copies it into the artifact. The server exposes the card at `/.well-known/agent-card.json` and includes its identity and route links in `GET /agent`. Declare an A2A interface here when you want to [serve the agent through A2A](/harnest/runtime/a2a/serve).
 
 ## `pyproject.toml` and `uv.lock`
 

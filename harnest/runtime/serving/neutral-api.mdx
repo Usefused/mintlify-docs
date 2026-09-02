@@ -26,13 +26,7 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
 
 Declare an A2A HTTP+JSON or JSON-RPC interface in `agent-card.yaml` to mount its URL alongside the neutral API. A blocking send returns a direct A2A `Message` when execution completes without needing task semantics. Streaming, `returnImmediately`, approval, client-tool, and external durable waits use an A2A `Task`.
 
-The mounted binding supports task lookup, filtered listing, cancellation, and explicit subscriptions. Task IDs remain scoped to the authenticated user and compiled application; another user receives `404` rather than task-existence information.
-
-When `@lifecycle.checkpointer` returns a Harnest Memory, PostgreSQL, or Redis store, A2A task snapshots use that same resource. Memory storage is process-local. PostgreSQL and Redis preserve task lookup, artifacts, and subscription state across restarts and replicas, so a fresh replica can return the last committed task result.
-
-An unfinished `@task` awaited inside `@tool(durable=True)` uses the same Harnest run and external-continuation record as its A2A task. `GetTask` and subscriptions reconcile the durable result on request. `CancelTask` reports success only after the queued Procrastinate job, private payload, continuation, and owned Harnest run are terminal. Harnest persists the A2A `CANCELED` snapshot before returning it, including when the original task event queue has already drained.
-
-<Note>A human approval or client-tool request is process-local. If a durable task resumes into one of those interactions on a replica that does not own it, Harnest fails the A2A task instead of advertising input that the replica cannot accept.</Note>
+The binding also supports explicit task lookup, filtered listing, cancellation, and subscriptions. See [Agent2Agent (A2A)](/harnest/runtime/a2a) for serving, outbound clients, security, durable `@task` integration, and replica behavior.
 
 ## Response modes
 

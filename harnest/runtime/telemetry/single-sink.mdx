@@ -1,0 +1,50 @@
+---
+title: "Configure one telemetry sink"
+sidebarTitle: "One sink"
+description: "Send Harnest traces and logs to one OTLP collector."
+---
+
+Set one shared OTLP endpoint to export both traces and logs:
+
+```bash
+export OTEL_SERVICE_NAME=support-agent
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+harnest serve support-agent
+```
+
+Setting an OTLP endpoint enables export automatically. Harnest includes the OTLP/HTTP exporter; no additional package is required. `OTEL_SERVICE_NAME` is optional and defaults to the compiled application name.
+
+## Send only one signal
+
+Use a signal-specific endpoint when the collector routes traces and logs separately, or when you want only one signal:
+
+```bash Traces only
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://otel.example.com/v1/traces
+export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Authorization=Bearer%20${OTLP_TOKEN}"
+export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/protobuf
+```
+
+```bash Logs only
+export OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=https://otel.example.com/v1/logs
+export OTEL_EXPORTER_OTLP_LOGS_HEADERS="Authorization=Bearer%20${OTLP_TOKEN}"
+export OTEL_EXPORTER_OTLP_LOGS_PROTOCOL=http/protobuf
+```
+
+If only one signal-specific endpoint is set, Harnest disables export of the other signal.
+
+## Runtime controls
+
+| Variable | Effect |
+|---|---|
+| `OTEL_SERVICE_NAME` | Sets the service identity |
+| `HARNEST_LOG_LEVEL` | Sets the minimum log level; defaults to `INFO` |
+| `HARNEST_LOG_CONSOLE=false` | Disables JSON logs on stderr |
+| `HARNEST_OTEL_ENABLED=false` | Disables the environment-configured OTLP sink |
+| `OTEL_SDK_DISABLED=true` | Disables the environment-configured OTLP sink |
+
+Standard OTLP headers, compression, timeout, resource, and sampling environment variables are passed to OpenTelemetry. Store tokens in deployment secrets.
+
+<Card title="Need fan-out?" icon="arrows-split-up-and-left" href="/harnest/runtime/telemetry/multiple-sinks">
+  Configure multiple in-process destinations.
+</Card>

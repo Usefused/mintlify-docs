@@ -1,0 +1,81 @@
+---
+title: "Configure multiple telemetry sinks"
+sidebarTitle: "Multiple sinks"
+description: "Fan out Harnest traces and logs to multiple OTLP destinations."
+---
+
+Create one `@lifecycle.telemetry_exporter` factory for each destination:
+
+```python extensions/telemetry.py
+import os
+
+from harnest import TelemetryExporter, lifecycle
+from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+
+@lifecycle.telemetry_exporter(order=10)
+def primary_observability():
+    """Send traces and logs to the primary backend."""
+
+    headers = {"Authorization": f"Bearer {os.environ['PRIMARY_OTLP_TOKEN']}"}
+    return TelemetryExporter(
+        name="primary-observability",
+        traces=OTLPSpanExporter(
+            endpoint=os.environ["PRIMARY_OTLP_TRACES_ENDPOINT"],
+            headers=headers,
+        ),
+        logs=OTLPLogExporter(
+            endpoint=os.environ["PRIMARY_OTLP_LOGS_ENDPOINT"],
+            headers=headers,
+        ),
+    )
+
+
+@lifecycle.telemetry_exporter(order=20)
+def compliance_logs():
+    """Send logs to the compliance backend."""
+
+    return TelemetryExporter(
+        name="compliance-logs",
+        logs=OTLPLogExporter(
+            endpoint=os.environ["COMPLIANCE_OTLP_LOGS_ENDPOINT"],
+            headers={
+                "Authorization": f"Bearer {os.environ['COMPLIANCE_OTLP_TOKEN']}"
+            },
+        ),
+    )
+```
+
+Configure complete OTLP/HTTP signal URLs:
+
+```bash
+export PRIMARY_OTLP_TRACES_ENDPOINT=https://primary.example.com/v1/traces
+export PRIMARY_OTLP_LOGS_ENDPOINT=https://primary.example.com/v1/logs
+export PRIMARY_OTLP_TOKEN=primary-secret
+export COMPLIANCE_OTLP_LOGS_ENDPOINT=https://compliance.example.com/v1/logs
+export COMPLIANCE_OTLP_TOKEN=compliance-secret
+harnest serve support-agent
+```
+
+## Factory contract
+
+| Requirement | Behavior |
+|---|---|
+| Unique `TelemetryExporter.name` | Duplicate names stop runtime startup |
+| Synchronous, zero-argument factory | Runs once during runtime bootstrap |
+| `traces`, `logs`, or both | Metrics exporters are not supported |
+| `order=` | Resolves factories in ascending lifecycle order |
+| Startup failure | Already-created exporters are shut down |
+
+Harnest batches each configured signal, flushes one-shot runs, and shuts exporters down with the server.
+
+OTLP/HTTP exporters are included. Add the exporter package to `pyproject.toml` when using another backend-specific exporter type.
+
+## Combine environment and authored sinks
+
+The standard environment sink is additive. If `OTEL_EXPORTER_OTLP_ENDPOINT` is set alongside these factories, it receives signals too.
+
+`HARNEST_OTEL_ENABLED=false` disables only the environment sink. Authored factories remain active.
+
+Use an OpenTelemetry Collector instead when routing and fan-out should be managed outside the agent process.

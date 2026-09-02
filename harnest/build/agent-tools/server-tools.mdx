@@ -5,7 +5,7 @@ description: "Run typed, validated capabilities inside the agent server."
 
 Use `@tool` when the capability should execute inside the agent server.
 
-```python
+```python tools/lookup_order.py
 from harnest.models.orders import OrderStatus
 from harnest.tool import tool
 
@@ -46,7 +46,7 @@ Credentials are private invocation capabilities. Do not expose them as model-gen
 
 Use an async durable tool when queued or external work must survive a request ending or a replica stopping:
 
-```python
+```python tools/request_report.py
 from harnest.lib.report_tasks import build_report
 from harnest.tool import tool
 

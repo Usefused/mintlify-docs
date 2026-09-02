@@ -16,7 +16,7 @@ description: "Connect agents to MCP servers with portable transports, identity, 
 | Connection time | Runtime, not compile time |
 | Credentials | Deployment environment or invocation credential provider |
 
-```python
+```python mcp/catalog.py
 import os
 
 from harnest.mcp import MCPClient
@@ -45,13 +45,19 @@ Harnest keeps connection identity and approval policy consistent. Same-named too
 
 Use the invocation-scoped facade when a tool or service chooses the remote operation:
 
-```python
+```python tools/search_catalog.py
 from harnest import context
+from harnest.tool import tool
 
-result = await context.mcp("catalog").call_tool(
-    "search_products",
-    {"query": "standing desk"},
-)
+
+@tool
+async def search_catalog(query: str):
+    """Search the catalog through the configured MCP client."""
+
+    return await context.mcp("catalog").call_tool(
+        "search_products",
+        {"query": query},
+    )
 ```
 
 The facade exposes neither the raw transport nor credentials. Calls use the same approval, Tool Lifecycle, and MCP Client Lifecycle paths as model-selected MCP tools.

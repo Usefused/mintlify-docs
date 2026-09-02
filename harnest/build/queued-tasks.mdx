@@ -1,15 +1,15 @@
 ---
-title: "Queued tasks"
-sidebarTitle: "Queued tasks"
-description: "Run scheduled, retryable application work through PostgreSQL without exposing it as a model tool."
+title: "Create and run Tasks"
+sidebarTitle: "Create a Task"
+description: "Define, defer, inspect, cancel, and await retryable application work."
 ---
 
 Use `@task` for application-owned queue work. A task is not model-visible; an Agent Tool decides when to defer it.
 
 | Call | Behavior |
 |---|---|
-| `build_report(...)` | Runs as an ordinary local Python call |
-| `await task.defer(...)` | Commits queue work and returns `TaskHandle` |
+| `await build_report(...)` | Runs an async task body as an ordinary local Python call |
+| `await build_report.defer(...)` | Commits queue work and returns `TaskHandle` |
 | `await handle.result()` | Returns a terminal result or suspends a durable tool |
 
 ## Define and call a task
@@ -50,18 +50,18 @@ async def request_report(account_id: str) -> dict:
 
 If nothing imports the task, you can define it directly in `tasks/<name>.py`. The file must export exactly one same-named `@task` callable.
 
+| Authoring rule | Contract |
+|---|---|
+| Location | Flat root `tasks/<name>.py` |
+| Export | Exactly one same-named `@task` callable |
+| Documentation | A docstring is required |
+| Body | Synchronous or asynchronous |
+| Arguments and result | Strict JSON values only |
+| Deferred signature | No positional-only parameters or `*args` |
+
 ## Control a job
 
-```python
-handle = await build_report.defer(
-    account_id="acct_123",
-    schedule_in=30,
-    idempotency_key="report-acct_123",
-)
-
-status = await handle.status()
-cancelled = await handle.cancel()
-```
+The returned `TaskHandle` supports `await handle.status()`, `await handle.cancel()`, and `await handle.result()`. A handle belongs to the active compiled runtime; there is no public API to reconstruct or list handles by ID.
 
 | Option | Purpose |
 |---|---|
@@ -72,6 +72,8 @@ cancelled = await handle.cancel()
 
 Inside `@tool(durable=True)`, Harnest derives a replay-stable idempotency key when you omit one. Keep task effects idempotent because workers can retry.
 
+Use `await task.defer(...)` without `handle.result()` for fire-and-forget work. Await a result only from an async `@tool(durable=True)` when the agent must resume after the Task finishes. An unfinished result requires a Harnest-owned checkpointer.
+
 ## Runtime requirements
 
 | Requirement | Behavior |
@@ -81,20 +83,32 @@ Inside `@tool(durable=True)`, Harnest derives a replay-stable idempotency key wh
 | Database | `HARNEST_TASK_DATABASE_URL`, or one unambiguous `PostgresStore` |
 | Payloads and results | JSON-safe values only |
 | Credentials | Resolved at execution; never serialized into task state |
+| Defer boundary | Available only while the compiled Harnest runtime is active |
 
 If the application has multiple PostgreSQL stores, set `HARNEST_TASK_DATABASE_URL` explicitly. Every replica can run a worker against the shared queue.
+
+```bash
+export HARNEST_TASK_DATABASE_URL=postgresql://localhost/harnest
+harnest env sync support-agent
+harnest test support-agent
+harnest serve support-agent
+```
+
+Harnest creates and updates its private Task and payload schema during runtime startup. Calling `.defer()` from an ordinary imported module without an active compiled runtime raises `TaskUnavailableError`; call the task body directly for isolated unit tests.
 
 ## Start a fresh agent session
 
 A task can invoke the compiled root agent without an HTTP call:
 
-```python
+```python tasks/review_report.py
 from harnest.context import context
 from harnest.task import task
 
 
 @task(max_retries=3)
 async def review_report(report_id: str) -> dict:
+    """Start a fresh agent session to review one completed report."""
+
     session = await context.agent.create_session(
         state={"report_id": report_id},
         key=report_id,
@@ -118,3 +132,7 @@ the task returns.
 </Warning>
 
 See [Durable execution](/harnest/runtime/durable-execution) for cross-replica resume behavior.
+
+## Test Task behavior
+
+Call the decorated function directly to unit-test its business logic without PostgreSQL. Exercise `.defer()`, retries, cancellation, and durable resume through a compiled smoke test with PostgreSQL so the real queue and checkpoint boundaries run together.

@@ -1,0 +1,27 @@
+---
+title: "Tasks"
+sidebarTitle: "Overview"
+description: "Create retryable application work, defer it from tools, and run it on a schedule."
+---
+
+Harnest Tasks run application-owned work outside the model tool call that requested it. Put each public `@task` callable under root `tasks/`; Harnest discovers it by filename and adds the queue runtime only when a task exists.
+
+| Need | Use |
+|---|---|
+| Retryable work that a tool or trusted service starts | `await task.defer(...)` |
+| Wait for queued work from an agent invocation | Async `@tool(durable=True)` |
+| Start work at a fixed UTC schedule | A matching declaration under `cron/` |
+| Ordinary in-process reuse | Call the decorated task directly |
+
+<CardGroup cols={2}>
+  <Card title="Create a Task" icon="list-check" href="/harnest/build/queued-tasks">
+    Define, defer, inspect, cancel, and await a folder-discovered Task.
+  </Card>
+  <Card title="Schedule a Task" icon="calendar-clock" href="/harnest/build/scheduled-tasks">
+    Target a discovered Task with a strict five-field UTC schedule.
+  </Card>
+</CardGroup>
+
+<Card title="Durable execution" icon="rotate" href="/harnest/runtime/durable-execution">
+  Understand suspension, replica recovery, and the boundary between a Task and the framework run waiting for it.
+</Card>

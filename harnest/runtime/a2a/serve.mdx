@@ -1,0 +1,116 @@
+---
+title: "Serve an agent through A2A"
+sidebarTitle: "Serve an agent"
+description: "Declare an A2A interface and use Harnest-owned execution, identity, and durable Task storage."
+---
+
+Add an A2A interface to the root `agent-card.yaml`. Harnest mounts only the bindings declared by the compiled card; you do not implement A2A route handlers.
+
+```yaml agent-card.yaml
+name: Support agent
+description: Answers product questions and triages support requests.
+version: 1.0.0
+supportedInterfaces:
+  - url: https://agents.example.com/support/a2a
+    protocolBinding: HTTP+JSON
+    protocolVersion: "1.0"
+capabilities:
+  streaming: true
+  pushNotifications: false
+defaultInputModes:
+  - text/plain
+defaultOutputModes:
+  - text/plain
+  - application/json
+skills:
+  - id: answer-product-question
+    name: Answer product questions
+    description: Finds and explains product information.
+    tags: [support, product]
+```
+
+The URL path, `/support/a2a` in this example, becomes the mounted route. Use the public deployment URL in the Agent Card, then serve the project normally:
+
+```bash
+harnest serve support-agent
+```
+
+Clients discover the same compiled card at `GET /.well-known/agent-card.json`. Use `JSONRPC` instead of `HTTP+JSON` when that binding fits the client ecosystem better. Author A2A 1.0 for new integrations; Harnest also accepts protocol version 0.3 for compatibility on these two HTTP bindings.
+
+Test the HTTP+JSON binding at the exact path declared by the card:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8080/support/a2a/message:send \
+  -H 'A2A-Version: 1.0' \
+  -H 'Content-Type: application/a2a+json' \
+  --data '{"message":{"messageId":"demo-1","role":"ROLE_USER","parts":[{"text":"Hello"}]},"configuration":{"historyLength":0}}'
+```
+
+## Understand when a Task exists
+
+| Interaction | A2A result |
+|---|---|
+| Blocking request that finishes directly | `Message` |
+| Streaming request | Tracked `Task` and updates |
+| `returnImmediately` request | Tracked `Task` |
+| Human approval or client-tool wait | `Task` with input required |
+| Durable external or queued wait | Persisted `Task` when the checkpointer supports it |
+
+Harnest supplies `GetTask`, filtered `ListTasks`, `CancelTask`, and explicit Task subscriptions. These operations are part of the mounted adapter, but callers use them only when their workflow needs Task state.
+
+## Persist A2A Tasks
+
+| Checkpoint authority | A2A Task behavior |
+|---|---|
+| `MemoryStore` | Task snapshots survive within one process only |
+| `PostgresStore` or `RedisStore` | Lookup, artifacts, subscriptions, and terminal state survive restarts and replicas |
+| Native `LangGraphStore` or `ADKStore` | A2A snapshots remain process-local because the native wrapper does not implement Harnest A2A persistence |
+
+Register a built-in Harnest store for both session and checkpoint responsibilities when A2A Tasks must survive a restart:
+
+<CodeGroup>
+
+```python lib/state.py
+import os
+
+from harnest import PostgresStore
+
+state = PostgresStore(os.environ["DATABASE_URL"])
+```
+
+```python extensions/storage.py
+from harnest import lifecycle
+from harnest.lib.state import state
+
+
+@lifecycle.storage.sessions
+@lifecycle.storage.checkpoints
+def state_storage():
+    """Share one durable backend across its two explicit responsibilities."""
+
+    return state
+```
+
+</CodeGroup>
+
+When a compiled project also contains `@task` work, one unambiguous `PostgresStore` can supply its Procrastinate database. Otherwise set `HARNEST_TASK_DATABASE_URL`. Redis can persist A2A Task snapshots, but the compiled Task queue still requires PostgreSQL.
+
+An unfinished `@task` awaited inside `@tool(durable=True)` shares the Harnest run and continuation represented by its A2A Task. On `GetTask` or subscription, Harnest reconciles a durable result without replaying the original tool call.
+
+The A2A `contextId` maps to the Harnest session ID. A text-input root accepts A2A text parts; a typed-input root requires exactly one structured data part. Harnest projects customer-visible text and structured results back to A2A parts while keeping tool traces private.
+
+`CancelTask` reports success only after Harnest has made the owned run and continuation terminal. For a queued `@task`, cancellation also stops the Procrastinate job and removes its private payload before committing the A2A `CANCELED` snapshot.
+
+<Warning>
+  Human approvals and client-tool requests are process-local. If a durable run resumes into one of those interactions on a replica that does not own it, Harnest fails the A2A Task rather than advertising input that replica cannot accept.
+</Warning>
+
+## Apply security and protocol limits
+
+A2A routes use the root [authentication pipeline](/harnest/runtime/authentication-and-credentials). Security requirements in `agent-card.yaml` advertise the contract; an `@lifecycle.authenticate` extension enforces it. Agent Card discovery remains public. Task IDs are scoped to the compiled application and authenticated user; another user receives `404` rather than task-existence information.
+
+Harnest does not currently serve gRPC bindings, push notifications, extended Agent Cards, or A2A extensions. Server startup rejects a card that asks the runtime to claim unsupported behavior.
+
+<Card title="Call this agent from Harnest" icon="arrow-right-arrow-left" href="/harnest/runtime/a2a/client">
+  Use the lazy client directly or compose the endpoint as a portable remote agent.
+</Card>
