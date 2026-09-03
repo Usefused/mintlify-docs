@@ -357,5 +357,10 @@
         ]
       }
     ]
+  },
+  "seo": {
+    "metatags": {
+      "fused": "usefused.com"
+    }
   }
 }
