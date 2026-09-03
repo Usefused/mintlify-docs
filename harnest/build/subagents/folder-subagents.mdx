@@ -25,19 +25,21 @@ subagents/researcher/
 | `tools/` | Yes | No |
 | `mcp/` | Yes | No |
 | `skills/` | Yes | No |
-| `sandbox/` | Yes | No |
+| [`sandbox/`](/harnest/build/sandboxing) | Yes, additional local names | Ancestor names are available; permissions are not inherited |
 | Agent or Runtime `plugins/` | No | No |
 | `extensions/` | No | Root-owned |
 | `models/` and `lib/` | No | Root namespace |
 
 The child's private capabilities are not exposed to the parent merely because the directory is nested.
 
+Every SubAgent must explicitly assign its allowed sandbox names with `Agent(sandboxes=[...])`, even when a parent already uses those names. Its authored tools then call `context.sandboxes["<name>"].execute(code)` or async `aexecute(code)`. Assignments do not create model tools. Child-local sandbox names cannot duplicate an ancestor's names. Adding files alone does not enable sandbox execution.
+
 ## Discovery rules
 
 | Rule | Result |
 |---|---|
 | `agent.py` export matches the folder name | Stable SubAgent identity |
-| Supported child folders are discovered by location | No manual capability list |
+| Supported child folders are discovered by location | Sandbox names additionally require explicit per-agent assignment |
 | Unsupported root-only folder is populated | Compilation fails |
 | Parent references the child | Harnest wires the composition |
 

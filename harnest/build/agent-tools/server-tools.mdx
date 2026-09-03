@@ -5,6 +5,8 @@ description: "Run typed, validated capabilities inside the agent server."
 
 Use `@tool` when the capability should execute inside the agent server.
 
+When only part of a tool needs isolated Python execution, call an assigned [Sandbox](/harnest/build/sandboxing) through `context.sandboxes["<name>"].execute(code)` or async `aexecute(code)`. The model calls your business tool, not the sandbox directly; your tool validates inputs and chooses which result to return. The surrounding tool code still runs in the agent server.
+
 ```python tools/lookup_order.py
 from harnest.models.orders import OrderStatus
 from harnest.tool import tool

@@ -1,0 +1,127 @@
+---
+title: "Custom metric API"
+sidebarTitle: "Custom metric API"
+description: "Reference the ADK scoring function contract, result aggregation, registration, and custom metric execution behavior."
+---
+
+A custom metric lets you enforce a product rule that the built-in registry does not express. For a complete implementation, eval set, unit test, and run command, follow [Create custom evals](/harnest/build/evaluations/create-custom-evals). Use this page to look up the scorer contract and registration options.
+
+Custom metrics run for both ADK and LangGraph agents because both framework lanes produce the same ADK invocation contract before scoring.
+
+## Function contract
+
+```python
+from google.adk.evaluation.conversation_scenarios import ConversationScenario
+from google.adk.evaluation.eval_case import Invocation
+from google.adk.evaluation.eval_metrics import EvalMetric
+from google.adk.evaluation.evaluator import EvaluationResult
+
+
+def required_location_terms(
+    metric: EvalMetric,
+    actual: list[Invocation],
+    expected: list[Invocation] | None,
+    scenario: ConversationScenario | None,
+) -> EvaluationResult:
+    """Signature only; see Create custom evals for the complete implementation."""
+    ...
+```
+
+The evaluator calls the function with four positional values:
+
+| Argument | Value |
+|---|---|
+| `metric` | Metric name, criterion, and registered function path; read the threshold from `metric.criterion.threshold`, not the deprecated `metric.threshold` field |
+| `actual` | Ordered invocations captured from one case, not the whole eval set |
+| `expected` | Golden invocations for a static case, otherwise `None` |
+| `scenario` | ADK `ConversationScenario` for a simulated case, otherwise `None` |
+
+ADK supports both synchronous `def` and asynchronous `async def` scorers. A synchronous scorer runs on the evaluation loop; do not block it with slow network I/O. The callback does not receive a Harnest runtime driver, a native LangGraph state object, or a session-store client.
+
+Actual and golden invocation counts can differ. Check the index before accessing `expected[index]`, and handle `expected=None` for simulations.
+
+## Return scores and evidence
+
+Return an ADK `EvaluationResult`. For a scored metric, ADK requires exactly one `PerInvocationResult` for each actual invocation, in the same order. This is a result contract, not an optional reporting enhancement. The exception is a metric whose entire result has `overall_eval_status=NOT_EVALUATED`.
+
+| Result field | Contract |
+|---|---|
+| `overall_score` | The aggregate score, or `None` when not evaluated |
+| `overall_eval_status` | An explicit ADK `EvalStatus` consistent with the score and threshold |
+| `per_invocation_results` | One row per actual turn for a scored metric |
+| Each row's `actual_invocation` | The corresponding captured invocation |
+| Each row's `expected_invocation` | The matching golden invocation when available, otherwise `None` |
+| Each row's `score` and `eval_status` | The turn's numeric score and explicit status, or `None` and `NOT_EVALUATED` when unscored |
+
+Keep aggregate and turn-level scoring consistent. ADK's command gate averages non-`None` turn scores and compares that mean with the configured threshold; the recorded result also carries your returned overall score and status. Returning an unrelated overall score can make diagnostics and the command gate disagree.
+
+For a final-turn-only conversation metric, return unscored `NOT_EVALUATED` rows for earlier turns and put the conversation score on the last turn. Use that same score for the overall result. An entirely unscored metric does not pass the command gate. The [walkthrough](/harnest/build/evaluations/create-custom-evals) uses a simpler mean-of-turns policy and a threshold of `1.0` to require every answer to pass.
+
+## Register the function
+
+Use the same name under `criteria` and `customMetrics`. Authored root `lib/` modules compile below `harnest.lib`, so `lib/eval_metrics.py` becomes `harnest.lib.eval_metrics` during evaluation.
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "required_location_terms": 1.0
+  },
+  "customMetrics": {
+    "required_location_terms": {
+      "description": "Every answer contains Paris and France.",
+      "codeConfig": {
+        "name": "harnest.lib.eval_metrics.required_location_terms"
+      }
+    }
+  }
+}
+```
+
+If you omit `metricInfo`, ADK describes the custom score on a closed `0` to `1` interval. To declare the interval explicitly, add metric information as shown below. Change the bounds if your scorer uses a different range; this metadata does not rescale your returned scores.
+
+```json
+{
+  "customMetrics": {
+    "required_location_terms": {
+      "codeConfig": {
+        "name": "harnest.lib.eval_metrics.required_location_terms"
+      },
+      "metricInfo": {
+        "metricName": "required_location_terms",
+        "description": "Product-specific verification score.",
+        "metricValueInfo": {
+          "interval": {
+            "minValue": 0.0,
+            "maxValue": 1.0
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+ADK replaces `metricInfo.metricName` with the owning `customMetrics` map key when registering the metric. Keep the two names identical in authored JSON for clarity.
+
+## Design a reliable metric
+
+- Make the function deterministic unless model judgment is essential.
+- Read the threshold from `metric.criterion` so configuration remains the source of truth.
+- Return `NOT_EVALUATED` with no score when evidence is genuinely unavailable; do not silently pass. A known violation, such as a missing required answer, can instead receive an explicit failing score.
+- Preserve actual and expected invocations in per-turn results so failures remain diagnosable.
+- Keep network calls explicit and separately authenticated. Harnest's transport sharing applies to declared judge and simulator models, not arbitrary SDK calls inside a custom function. Your function must configure and clean up any clients it creates. It can read the same process environment as the agent; it should never return credentials in diagnostic evidence.
+
+<Warning>
+  A custom metric is trusted application code. Harnest imports and executes the configured function. Do not run an eval configuration or agent repository from an untrusted source.
+</Warning>
+
+## Troubleshoot registration
+
+| Symptom | Check |
+|---|---|
+| Metric is not found | The name exists in both `criteria` and `customMetrics` |
+| Function cannot import | The path starts with `harnest.lib` and matches the file and function names |
+| Metric is `not_evaluated` | The function returned no score or its required evidence was absent |
+| Result row count is rejected | A scored metric returned fewer or more per-turn rows than there are actual invocations |
+| Report and command disagree | Overall score/status and the mean of scored turn results use different policies |
+| LangGraph evidence differs | The adapter exposes public final text and neutral tool events, not native private framework state |

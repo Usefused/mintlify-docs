@@ -1,0 +1,219 @@
+---
+title: "Create custom evals"
+sidebarTitle: "Create custom evals"
+description: "Create, unit-test, register, and run a custom Python scorer for an ADK or LangGraph agent."
+---
+
+Turn a business rule into a repeatable evaluation by pairing an ADK eval set with a custom Python scoring function. This walkthrough checks that every answer includes two required location terms, then saves the scored result.
+
+<Note>
+  These are ADK-based evaluations even when your team builds agents with LangGraph. Keep your agent in its current framework. Use the same eval JSON, Python scorer, and Harnest command in either project; Harnest adapts LangGraph responses into the ADK objects the scorer receives.
+</Note>
+
+## Decide what needs to be custom
+
+| Requirement | Use |
+|---|---|
+| Your own questions and golden answers | A custom eval set with built-in metrics; no Python scorer required |
+| Qualitative criteria such as tone or groundedness | A built-in rubric or judge metric |
+| A precise product rule not covered by a built-in metric | A custom Python scorer, as shown below |
+| Private LangGraph state or framework-specific control flow | An authored unit or smoke test; portable evals inspect the public invocation contract |
+
+Start from a working Harnest agent with its dependencies installed. Live evaluation uses the agent's normal model and service configuration. The scorer below is deterministic and makes no additional model or service calls.
+
+## 1. Add the scorer
+
+Use the root agent's `lib/` directory for scoring code. Keep only eval set JSON and the shared configuration under `evals/`.
+
+```text
+AGENT_DIR/
+├── agent.py
+├── lib/
+│   └── eval_metrics.py
+├── evals/
+│   ├── location-answers.evalset.json
+│   └── test_config.json
+└── tests/
+    └── unit/
+        └── test_eval_metrics.py
+```
+
+```python lib/eval_metrics.py
+from statistics import mean
+
+from google.adk.evaluation.conversation_scenarios import ConversationScenario
+from google.adk.evaluation.eval_case import Invocation
+from google.adk.evaluation.eval_metrics import EvalMetric, EvalStatus
+from google.adk.evaluation.evaluator import EvaluationResult, PerInvocationResult
+
+
+def _final_text(invocation: Invocation) -> str:
+    """Collect public answer text without assuming a response is present."""
+
+    content = invocation.final_response
+    if content is None or not content.parts:
+        return ""
+    return " ".join(part.text for part in content.parts if part.text).casefold()
+
+
+def required_location_terms(
+    metric: EvalMetric,
+    actual: list[Invocation],
+    expected: list[Invocation] | None,
+    scenario: ConversationScenario | None,
+) -> EvaluationResult:
+    """Require both location terms on every evaluated answer."""
+
+    del scenario
+    threshold = metric.criterion.threshold if metric.criterion else 1.0
+    per_turn = []
+    scores = []
+    for index, invocation in enumerate(actual):
+        text = _final_text(invocation)
+        score = float("paris" in text and "france" in text)
+        scores.append(score)
+        # Simulation has no golden turns, and actual/reference lengths can differ.
+        reference = expected[index] if expected and index < len(expected) else None
+        per_turn.append(PerInvocationResult(
+            actual_invocation=invocation,
+            expected_invocation=reference,
+            score=score,
+            eval_status=EvalStatus.PASSED if score >= threshold else EvalStatus.FAILED,
+        ))
+
+    # Missing evidence receives zero, which fails this guide's threshold of 1.0.
+    overall = mean(scores) if scores else 0.0
+    return EvaluationResult(
+        overall_score=overall,
+        overall_eval_status=(
+            EvalStatus.PASSED if overall >= threshold else EvalStatus.FAILED
+        ),
+        per_invocation_results=per_turn,
+    )
+```
+
+Each answer scores `1.0` when both terms are present and `0.0` otherwise. The conversation score is the mean of its turn scores. With a threshold of `1.0`, every turn must satisfy the rule. A lower threshold permits some turns to fail.
+
+This is a text-presence check, not a factuality check: an incorrect answer that mentions both terms still passes. Replace the scoring rule with your actual product contract, or combine it with a reference or judge metric. See the [custom metric API](/harnest/build/evaluations/custom-metrics) for the full input and result contract.
+
+## 2. Describe the test cases
+
+```json evals/location-answers.evalset.json
+{
+  "eval_set_id": "location-answers",
+  "name": "Required location terms",
+  "eval_cases": [
+    {
+      "evalId": "capital_and_country",
+      "conversation": [
+        {
+          "userContent": {
+            "role": "user",
+            "parts": [{"text": "Name the capital of France and include the country name."}]
+          },
+          "finalResponse": {
+            "role": "model",
+            "parts": [{"text": "Paris is the capital of France."}]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Harnest sends `userContent` to your real agent. The authored `finalResponse` is a golden reference, not the actual output and not an answer injected into the agent. This scorer checks the actual output; reference-based metrics can also use the golden answer.
+
+The filename stem must match `eval_set_id`. Add further cases to cover the behavior you care about. Put sequential turns inside one case for [multi-turn evaluation](/harnest/build/evaluations/eval-sets-and-configuration#author-a-static-case); separate cases do not stand in for a shared conversation.
+
+## 3. Register the metric and threshold
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "required_location_terms": 1.0
+  },
+  "customMetrics": {
+    "required_location_terms": {
+      "description": "Every answer contains Paris and France.",
+      "codeConfig": {
+        "name": "harnest.lib.eval_metrics.required_location_terms"
+      }
+    }
+  }
+}
+```
+
+Use the same metric key in `criteria` and `customMetrics`. Harnest compiles root `lib/` modules under `harnest.lib`, so the registered path differs from the local unit-test import below.
+
+If `test_config.json` already exists, merge this criterion and registration into it. Do not create a second config or replace existing quality checks. You can use built-in and custom metrics in the same `criteria` object.
+
+## 4. Unit-test the scorer
+
+Test passing, failing, missing-response, and multi-turn inputs before running the live agent. These tests evaluate only your scorer and require no model credentials.
+
+```python tests/unit/test_eval_metrics.py
+from google.adk.evaluation.eval_case import Invocation
+from google.adk.evaluation.eval_metrics import BaseCriterion, EvalMetric, EvalStatus
+from google.genai import types
+
+from lib.eval_metrics import required_location_terms
+
+
+def _invocation(text):
+    """Build the same ADK evidence shape received in either framework lane."""
+
+    response = None if text is None else types.Content(
+        role="model", parts=[types.Part(text=text)]
+    )
+    return Invocation(
+        user_content=types.Content(role="user", parts=[types.Part(text="Where?")]),
+        final_response=response,
+    )
+
+
+def test_required_location_terms():
+    """Check positive, negative, empty, and aggregate scoring without a model."""
+
+    metric = EvalMetric(
+        metric_name="required_location_terms", criterion=BaseCriterion(threshold=1.0)
+    )
+    passing = _invocation("Paris is the capital of France.")
+    failing = _invocation("Paris.")
+    assert required_location_terms(metric, [passing], None, None).overall_eval_status == EvalStatus.PASSED
+    assert required_location_terms(metric, [failing], None, None).overall_eval_status == EvalStatus.FAILED
+    assert required_location_terms(metric, [_invocation(None)], None, None).overall_score == 0.0
+    assert required_location_terms(metric, [], None, None).overall_eval_status == EvalStatus.FAILED
+    mixed = required_location_terms(metric, [passing, failing], [passing], None)
+    assert mixed.overall_score == 0.5
+    assert mixed.overall_eval_status == EvalStatus.FAILED
+    assert len(mixed.per_invocation_results) == 2
+```
+
+```bash
+harnest test AGENT_DIR
+```
+
+See [Testing and compilation](/harnest/build/testing-and-compilation) for the authored unit-test lane and imports.
+
+## 5. Run the eval and inspect evidence
+
+```bash
+harnest test AGENT_DIR --evals \
+  --eval-output artifacts/location-eval.json
+```
+
+Use this command for either an ADK or a LangGraph project; Harnest uses the configured agent framework. Unit tests run first. The live eval then runs the agent, calls your registered scorer, and writes the result. Add `--no-output` for quiet terminal output while retaining the file.
+
+Find `required_location_terms` in each case's `overallEvalMetricResults`. Inspect `evalMetricResultPerInvocation` for the turn scores, actual answers, and available reference answers supplied by the scorer. The command fails when the quality gate fails. See [Run and inspect results](/harnest/build/evaluations/run-and-inspect-results) for result fields and CI handling.
+
+## Extend the rule safely
+
+- Inspect `intermediate_data` when your rule needs captured tool calls or results; do not infer tool execution from answer text alone.
+- Use the full `actual` list to inspect a conversation-level rule. Keep overall and per-turn scores consistent; ADK's command gate averages the scored turn results. See [score aggregation](/harnest/build/evaluations/custom-metrics#return-scores-and-evidence) before implementing a final-turn-only metric.
+- Handle `expected=None` for simulated conversations. Add a [conversation scenario](/harnest/build/evaluations/simulations-and-live-evaluation) when you need generated user turns.
+- For LLM judgment, prefer a built-in rubric metric where it fits. Arbitrary network or model calls inside your Python scorer do not automatically inherit Harnest's judge transport adapter; configure and clean up those clients explicitly.
+
+<Warning>
+  A custom scorer is trusted Python code executed during evaluation. It can access the process environment and call external systems. Review implementations before running them, and do not put credentials into eval files or return them as diagnostic evidence.
+</Warning>

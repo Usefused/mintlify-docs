@@ -1,0 +1,103 @@
+---
+title: "Evaluations"
+sidebarTitle: "Overview"
+description: "Choose reference, judge, safety, tool, multi-turn, simulation, or custom evaluations for ADK and LangGraph agents."
+---
+
+Harnest evaluations run your agent against versioned examples and produce a CI-ready quality gate. Google ADK is the evaluation engine for both ADK and LangGraph projects: eval sets, metric configuration, custom scorer interfaces, and captured invocation data use ADK's evaluation contract.
+
+<Note>
+  Your agent framework and your evaluation engine are separate choices. A LangGraph team keeps its LangGraph agent and runs evaluations through Harnest. You do not need to rewrite the agent in ADK or create a separate ADK application.
+</Note>
+
+## Start here
+
+- To check known answers or tool calls, [author an eval set](/harnest/build/evaluations/eval-sets-and-configuration) and select a [built-in metric](/harnest/build/evaluations/metrics).
+- To score your own business rule, follow [Create custom evals](/harnest/build/evaluations/create-custom-evals).
+- To test follow-up behavior, put multiple turns in one case or use a [user simulation](/harnest/build/evaluations/simulations-and-live-evaluation).
+- To make evaluation a CI gate, [run and save results](/harnest/build/evaluations/run-and-inspect-results).
+
+## Choose an evaluation
+
+| What you need to verify | Start with |
+|---|---|
+| Required tool calls and arguments | `tool_trajectory_avg_score` |
+| Lexical similarity to a golden answer | `response_match_score` |
+| Meaning-level agreement with a golden answer | `final_response_match_v2` |
+| Product-specific answer or tool behavior | A rubric-based metric |
+| Unsupported claims | `hallucinations_v1` |
+| Harmlessness | `safety_v1` |
+| Success across a conversation | A multi-turn metric |
+| Behavior against generated user turns | A conversation scenario and `per_turn_user_simulator_quality_v1` |
+| A rule that built-in metrics do not express | A custom Python metric |
+
+<Note>
+  Start with deterministic reference metrics where they fit. Add model-judged metrics for meaning and qualitative behavior. Judge and simulation metrics add cost and can vary between runs.
+</Note>
+
+## How evaluation works
+
+<Steps>
+  <Step title="Author an eval set">
+    Put one or more `*.evalset.json` files directly under the root agent's `evals/` directory. Each case contains either a static golden conversation or a conversation scenario.
+  </Step>
+  <Step title="Select metrics">
+    Add `evals/test_config.json`. Set a threshold for every metric that should contribute to the case result.
+  </Step>
+  <Step title="Run the quality gate">
+    Run `harnest test AGENT_DIR --evals`. Unit tests run first, followed by every validated eval set in filename order.
+  </Step>
+  <Step title="Inspect or retain the result">
+    Read the structured `EvalRunResult` printed to the terminal, or select a JSON file with `--eval-output FILE`.
+  </Step>
+</Steps>
+
+## Framework support
+
+| Responsibility | What runs it |
+|---|---|
+| Agent instructions, tools, and conversation execution | Your selected ADK or LangGraph runtime |
+| Eval set schema, metric registry, judges, and user simulation | Google ADK evaluation components |
+| Framework adaptation, transport sharing, CLI execution, and result export | Harnest |
+
+For a LangGraph run, Harnest starts the compiled LangGraph runtime, sends the evaluation's user turns to it, and converts public responses and tool events into ADK invocations for scoring. Custom scorers therefore receive ADK `Invocation` objects, not LangChain messages or raw graph state. The result's `framework: "langgraph"` identifies the agent runtime; it does not select a different metric engine.
+
+| Capability | ADK | LangGraph |
+|---|---:|---:|
+| Static text conversations | Yes | Yes |
+| Text conversation scenarios | Yes | Yes |
+| Built-in and custom ADK metrics | Yes | Yes |
+| Multi-turn session continuity | Yes | Yes |
+| Multimodal eval input or audio simulation | Yes | No |
+| `liveModelConfig` bidirectional inference | Yes | No |
+
+Keep the same text eval sets, criteria, and custom scoring functions when you switch frameworks. Actual tool trajectories can differ between runtimes, so review expectations after a switch. LangGraph non-text user content fails instead of being silently discarded. Use a [smoke test](/harnest/build/testing-and-compilation#smoke-tests) for LangGraph media or bidirectional behavior.
+
+ADK evaluation does not require a Google model for every metric. Deterministic metrics need no judge model; compatible LLM judges and text simulators can use your configured model and agent transport. Some service-backed metrics have their own credentials. See [model configuration](/harnest/build/project-configuration#reuse-an-agents-model-client) and the [metric prerequisites](/harnest/build/evaluations/metrics).
+
+## Learn each part
+
+<CardGroup cols={2}>
+  <Card title="Eval sets and configuration" icon="folder-tree" href="/harnest/build/evaluations/eval-sets-and-configuration">
+    Define static conversations, expected responses, tools, sessions, and shared criteria.
+  </Card>
+  <Card title="Metrics reference" icon="gauge-high" href="/harnest/build/evaluations/metrics">
+    Compare every built-in metric, score range, input requirement, and evaluation backend.
+  </Card>
+  <Card title="Simulations and live evaluation" icon="messages" href="/harnest/build/evaluations/simulations-and-live-evaluation">
+    Generate user turns, configure text or audio simulation, and select ADK live inference.
+  </Card>
+  <Card title="Create custom evals" icon="code" href="/harnest/build/evaluations/create-custom-evals">
+    Build and test a business-specific scorer, register it, and run it on either framework.
+  </Card>
+  <Card title="Custom metric API" icon="function" href="/harnest/build/evaluations/custom-metrics">
+    Look up scorer arguments, result types, score intervals, and registration rules.
+  </Card>
+  <Card title="Run and inspect results" icon="file-chart-column" href="/harnest/build/evaluations/run-and-inspect-results">
+    Run locally or in CI and capture the complete versioned JSON result.
+  </Card>
+</CardGroup>
+
+<Tip>
+  The playground's **Evals** workspace shows the metric catalog exposed by the installed ADK 2.x release. Harnest reads that registry dynamically instead of maintaining a separate metric allowlist.
+</Tip>

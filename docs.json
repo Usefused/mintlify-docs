@@ -212,6 +212,19 @@
                 ]
               },
               {
+                "group": "Evaluations",
+                "expanded": false,
+                "pages": [
+                  "harnest/build/evaluations",
+                  "harnest/build/evaluations/eval-sets-and-configuration",
+                  "harnest/build/evaluations/metrics",
+                  "harnest/build/evaluations/simulations-and-live-evaluation",
+                  "harnest/build/evaluations/create-custom-evals",
+                  "harnest/build/evaluations/custom-metrics",
+                  "harnest/build/evaluations/run-and-inspect-results"
+                ]
+              },
+              {
                 "group": "Runtime",
                 "expanded": false,
                 "pages": [

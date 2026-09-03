@@ -20,7 +20,7 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     </CodeGroup>
 
-    The default scaffold is a small, runnable managed agent. Add `--example` to include working graphs, tools, plugins, skills, extensions, evals, and tests.
+    The default scaffold is a small, runnable managed agent. Add `--example` for ignored code samples in folders that otherwise contain only guides. The existing agent and storage code stay unchanged.
 
     The command creates this project structure before it changes or installs anything else:
 
@@ -99,7 +99,13 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 | `tools/`, `tasks/`, and `extensions/` | Folder-discovered capabilities and runtime behavior |
 | `tests/` | Offline and optional live checks |
 
-With `--example` in managed mode, Harnest replaces the ignored guides in the relevant folders with runnable examples such as `tools/echo.py`, `skills/getting-started/SKILL.md`, `extensions/starter.py`, `evals/starter.evalset.json`, and authored tests. Advanced mode keeps native framework wiring in `agent.py` and adds only the examples Harnest still owns. The surrounding folder contract stays the same.
+With `--example` in managed mode, Harnest adds `_example.py` templates to guide-only Python folders: `lib/`, `models/`, `tools/`, `tasks/`, `cron/`, `subagents/`, `mcp/`, `sandbox/`, `tests/unit/`, and `tests/smoke/`. It does not add another example to `extensions/`, which already contains working storage code, or replace `agent.py`.
+
+Skills, plugins, and evals retain their required formats under ignored paths: `skills/_example/SKILL.md`, `plugins/_example/` for a RuntimePlugin, `plugins/_example_agent/` for an MCP-plus-skills Agent Plugin, and `evals/_example.evalset.json`. Both managed frameworks receive the templates; framework-specific samples identify their restrictions.
+
+Copy or rename only the samples you want to activate. Each Python template names its required destination and dependencies. For example, copy `tools/_example.py` to `tools/echo.py`; activate `tasks/prepare_report.py` before copying the cron sample to `cron/daily_report.py`. The native-format samples have activation instructions in their folder guides. Until then, the samples are not discovered or executed.
+
+Advanced mode keeps native framework wiring in `agent.py` and adds only the examples Harnest still owns. The surrounding folder contract stays the same.
 
 <Note>
   `compile`, `test`, and `serve` sync the environment automatically. Add only your provider, tool, and library packages to `pyproject.toml`; Harnest owns the framework dependency.

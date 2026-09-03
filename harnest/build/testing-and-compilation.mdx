@@ -56,13 +56,11 @@ harnest test AGENT_DIR --evals
 harnest test AGENT_DIR --smoke --evals
 ```
 
-ADK projects can place official `EvalSet` JSON files in `evals/`. The default `business` trajectory requires business calls in order but allows helper calls. Require the exact sequence with:
+ADK and LangGraph projects share official ADK `EvalSet` assets and metrics. Harnest prints a complete structured JSON `EvalRunResult` by default, and `--eval-output FILE` writes the same payload for retention. An explicit result file is still written with `--no-output`.
 
-```bash
-harnest test AGENT_DIR --evals --eval-trajectory strict
-```
-
-ADK eval files do not run for LangGraph. Put portable evaluations in unit or smoke tests.
+<Card title="Build evaluations" icon="flask" href="/harnest/build/evaluations">
+  Choose metrics, author eval sets and simulations, configure services, and inspect complete results.
+</Card>
 
 ## Compile an artifact
 

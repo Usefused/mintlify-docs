@@ -1,0 +1,209 @@
+---
+title: "Run and inspect evaluation results"
+sidebarTitle: "Run & inspect results"
+description: "Run every eval suite, save the versioned EvalRunResult JSON, and keep sensitive diagnostics safe in CI."
+---
+
+`harnest test --evals` compiles the agent, runs the selected Python test lanes, evaluates every valid root eval set, and returns a nonzero status when the quality gate fails.
+
+## Run evaluations
+
+```bash
+harnest test AGENT_DIR --evals
+```
+
+The unit lane runs first. Add `--smoke` to run smoke tests before evaluation:
+
+```bash
+harnest test AGENT_DIR --smoke --evals
+```
+
+If a Python test lane fails, later lanes do not start. During evaluation, a scored failure in one eval set does not prevent independent later sets from running. The final result therefore covers every suite reached by the eval lane.
+
+Harnest runs each suite once and processes suite files in deterministic filename order. Judge metrics can still make multiple calls according to their `numSamples` setting.
+
+## Select the trajectory policy
+
+```bash
+# Required business calls in order; extra helper calls are allowed.
+harnest test AGENT_DIR --evals --eval-trajectory business
+
+# Tool names, order, arguments, and call count must match exactly.
+harnest test AGENT_DIR --evals --eval-trajectory strict
+```
+
+`business` is the default. The flag affects only `tool_trajectory_avg_score`.
+
+## Save the complete result
+
+Without `--no-output`, Harnest prints detailed evaluator output and a complete structured JSON `EvalRunResult` after evaluation. Select a machine-readable file instead of parsing mixed terminal output:
+
+```bash
+harnest test AGENT_DIR --evals \
+  --eval-output artifacts/eval-result.json
+```
+
+Harnest creates missing parent directories and atomically replaces the selected file. It does not append to an existing file or create an implicit result history.
+
+For quiet CI output, combine the explicit file with `--no-output`:
+
+```bash
+harnest test AGENT_DIR --evals --no-output \
+  --eval-output artifacts/eval-result.json
+```
+
+`--no-output` suppresses unit, smoke, evaluator, and final result output in the terminal. It does not suppress an explicitly selected result file. `--eval-output` requires `--evals`.
+
+## Understand `EvalRunResult`
+
+The current contract is identified by:
+
+```json
+{
+  "apiVersion": "harnest.dev/v1alpha1",
+  "kind": "EvalRunResult"
+}
+```
+
+Branch consumers on `apiVersion`. The result schema is versioned independently from the installed ADK's nested case models.
+
+```json
+{
+  "apiVersion": "harnest.dev/v1alpha1",
+  "kind": "EvalRunResult",
+  "createdAt": "2026-09-03T10:30:00+00:00",
+  "framework": "adk",
+  "trajectory": "business",
+  "status": "failed",
+  "summary": {
+    "suiteCount": 1,
+    "caseCount": 1,
+    "passedCases": 0,
+    "failedCases": 1,
+    "notEvaluatedCases": 0
+  },
+  "evalSetResults": [
+    {
+      "appName": "harnest_eval",
+      "evalSetId": "city-facts",
+      "status": "failed",
+      "evalCaseResults": [
+        {
+          "evalSetId": "city-facts",
+          "evalId": "verify_paris",
+          "finalEvalStatus": "failed",
+          "overallEvalMetricResults": [
+            {
+              "metricName": "response_match_score",
+              "threshold": 0.8,
+              "score": 0.6,
+              "evalStatus": "failed",
+              "details": {"rubricScores": null}
+            }
+          ],
+          "evalMetricResultPerInvocation": [
+            {
+              "actualInvocation": {},
+              "expectedInvocation": {},
+              "evalMetricResults": []
+            }
+          ],
+          "sessionId": "___eval___session___...",
+          "sessionDetails": {},
+          "userId": "eval-user"
+        }
+      ]
+    }
+  ]
+}
+```
+
+The abbreviated empty invocation and session objects above stand in for complete ADK-shaped data in a real result.
+
+### Top-level fields
+
+| Field | Meaning |
+|---|---|
+| `createdAt` | UTC creation time |
+| `framework` | Agent runtime: `adk` or `langgraph`. Both use ADK's evaluation contract. |
+| `trajectory` | Effective `business` or `strict` policy |
+| `status` | `passed`, `failed`, `not_evaluated`, or `error` |
+| `summary` | Suite and case counts by status |
+| `evalSetResults` | Ordered suite results and their complete case results |
+| `error` | Infrastructure exception type and a fixed privacy-safe message; present when `status` is `error` |
+
+### Case diagnostics
+
+Each `evalCaseResults` item preserves:
+
+- Overall result, score, criterion, and details for every metric.
+- Per-invocation metric results.
+- Complete actual invocations and optional expected invocations.
+- User content, final responses, intermediate events, tool evidence, and applicable rubrics carried by those invocations.
+- Evaluator session ID, user ID, and session details, including state and recorded events.
+- Rubric scores and rationales in each metric's `details.rubricScores` when the evaluator supplies them.
+
+Statuses are lowercase names rather than ADK enum ordinals. `not_evaluated` means the row has no score. Earlier turns of a final-turn-only metric can have this status without failing the CLI gate: ADK averages the available scored turns. A metric with no scored turns does not pass. Inspect the overall result together with the scored turn evidence.
+
+### Infrastructure errors
+
+If evaluation has started and a provider, adapter, or evaluator raises an infrastructure error, Harnest emits or writes the partial result before reporting the original command failure. Its top-level error excerpt looks like this:
+
+```json
+{
+  "status": "error",
+  "error": {
+    "type": "RuntimeError",
+    "message": "evaluation infrastructure failed"
+  },
+  "evalSetResults": []
+}
+```
+
+Harnest omits the original exception message, traceback, and internals from this field because provider errors can contain credentials or request content. Failures before the eval lane starts, such as compilation, unit tests, or invalid configuration, may produce no result file.
+
+## Inspect in the playground
+
+Run `harnest serve AGENT_DIR`, open `/`, and select **Evals**. The workspace lists root suites, configured and supported metrics, and the `business` and `strict` policies. You can run one suite and inspect case, metric, response, and tool-call evidence.
+
+The playground response is optimized for interactive inspection. Use the CLI's `EvalRunResult` file when you need the complete retention contract.
+
+<Note>
+  For final-turn-only multi-turn metrics, the playground can currently mark a run as failed when earlier rows are `not_evaluated`, even if the CLI's scored-turn gate passes. Use the CLI quality gate for CI and inspect the final scored turn when diagnosing this difference.
+</Note>
+
+## Use results in CI
+
+```bash
+mkdir -p artifacts
+harnest test AGENT_DIR --evals --no-output \
+  --eval-output artifacts/eval-result.json
+```
+
+The command exit status is the primary quality gate. You can also inspect a retained result after the command completes:
+
+```bash
+jq -e '.apiVersion == "harnest.dev/v1alpha1" and .status == "passed"' \
+  artifacts/eval-result.json
+```
+
+Configure your CI artifact-upload step to run even when `harnest test` fails. Otherwise the most useful failure diagnostics may be discarded.
+
+<Warning>
+  Complete results can contain prompts, responses, tool arguments and results, rubric rationales, user IDs, and session state. Treat the file as sensitive. Apply short retention, restricted access, and your normal secret and personal-data controls. Do not publish it as an unrestricted build artifact.
+</Warning>
+
+## Troubleshoot a run
+
+| Symptom | Cause or next check |
+|---|---|
+| `--eval-output requires --evals` | Add `--evals`; no other test lane produces this result contract |
+| No eval sets found | Add at least one root `evals/*.evalset.json`; `test_config.json` alone is invalid |
+| Eval set ID mismatch | Match `eval_set_id` to the filename before `.evalset.json` |
+| Result file is absent | Check whether compilation or Python tests failed before evaluation started |
+| Result status is `error` | Read `error.type` and `error.message`, then verify model, service, and tool credentials |
+| Ambiguous agent model transport | Select an eval model ID with one exact transport match, or remove conflicting same-provider transport choices; see [transport selection](/harnest/build/project-configuration#reuse-an-agents-model-client) |
+| Metric is `not_evaluated` | Inspect its per-invocation details and required evidence; this status does not pass |
+| Judge results vary | Increase `numSamples`, tighten the rubric, or use a deterministic reference metric |
+| Unexpected model cost | Count the agent calls, simulated turns, judge metrics, and each metric's `numSamples` |
+| LangGraph rejects input | Use non-empty text-only `userContent`; move media and live behavior to smoke tests |

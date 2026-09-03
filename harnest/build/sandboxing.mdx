@@ -1,52 +1,290 @@
 ---
 title: "Sandboxing"
 sidebarTitle: "Sandboxing"
-description: "Configure isolated ADK code execution and understand its security boundary."
+description: "Assign named Python execution providers to agents, then call them from your authored tools on ADK or LangGraph."
 ---
 
-Sandboxes provide the ADK code executor used for model-generated code. They are agent-wide and optional. Configure one file at `sandbox/sandbox.py`, exporting a value named `sandbox`:
+Use a sandbox when your authored Agent Tool needs to run Python outside the agent server. Define the provider, assign it to the agents that need it, and call it from the tool through `context.sandboxes`. The same API works with managed ADK and LangGraph.
+
+```text
+Model → your business tool → assigned sandbox → result your tool returns
+```
+
+An assignment does not create a model-callable execution tool. You choose the business tool's inputs, the code it submits, and the result it returns. Only that submitted code runs in the sandbox; the surrounding tool function and the agent server do not.
+
+## Enable container execution
+
+Create one file per sandbox, then choose which sandboxes each agent can use. For example, `sandbox/calculations.py` must define a variable named `calculations`. If initialization generated `sandbox/_example.py`, rename it to `calculations.py`; the example already uses that variable name. Underscore-prefixed examples remain ignored.
+
+```python sandbox/calculations.py
+from harnest.sandbox import Sandbox
+
+calculations = Sandbox.container(
+    image="python:3.12-slim",
+    network=False,
+    timeout_seconds=120,
+    max_output_bytes=1_048_576,
+)
+```
+
+Docker must be available when code executes. Harnest supplies the compatible ADK executor dependency for both frameworks; you do not need to declare ADK in your agent's dependencies. Compilation and agent startup do not start a container. There is no fallback to executing generated code in the agent server.
+
+### Assign it to your agent
+
+Add `sandboxes=["calculations"]` to the existing `Agent(...)` declaration in `agent.py`. Keep its other settings, such as the model, unchanged. A minimal complete example is:
+
+```python agent.py
+from harnest.agent import Agent
+from harnest.model import LiteLLMModel
+
+root_agent = Agent(
+    name="support",
+    model=LiteLLMModel.from_openai_environment(),
+    sandboxes=["calculations"],
+)
+```
+
+Discovering a sandbox file does not give any agent permission to use it. An agent with no `sandboxes` assignment has no named sandbox access. The same declarations and assignments work on ADK and LangGraph.
+
+### Call it from a business tool
+
+Create `tools/total_values.py`. Harnest exposes this tool to the model; the sandbox itself stays behind the tool:
+
+```python tools/total_values.py
+import json
+
+from harnest import context
+from harnest.tool import tool
+
+
+@tool
+async def total_values(values: list[int]) -> dict:
+    """Add up to 1,000 whole numbers and return their total."""
+    if len(values) > 1_000 or any(type(value) is not int for value in values):
+        return {"error": "Provide at most 1,000 whole numbers."}
+
+    # Serialize data as a Python string literal, never as executable code.
+    payload = json.dumps(values)
+    code = f"import json\nvalues = json.loads({payload!r})\nprint(sum(values))"
+    result = await context.sandboxes["calculations"].aexecute(code)
+    if result.stderr:
+        return {"error": "The calculation failed. Try a smaller input."}
+    return {"total": int(result.stdout.strip())}
+```
+
+Use `execute(code)` in a synchronous tool or `await aexecute(code)` in an asynchronous tool. Both return `SandboxResult` with `stdout`, `stderr`, `output_files`, and `metadata`. Your tool chooses what to return to the model; the example returns only the total, not the provider response.
+
+The API also accepts keyword-only `input_files=()` for providers that support file transfer. The built-in container backend rejects input files and does not mount host files. The example passes serialized values in the code instead.
+
+### Try it with your agent
+
+1. Start Docker and check that `docker version` can reach its daemon.
+2. [Configure your agent's model credentials](/harnest/build/project-configuration#configure-model-credentials) in the serving process environment.
+3. Add guidance to the agent's `instructions.md`, for example:
+
+   ```text instructions.md
+   Use total_values when asked to add whole numbers. Base your answer on
+   the total returned by the tool rather than inventing an execution result.
+   ```
+
+4. Run `harnest test support-agent`, then `harnest serve support-agent`, replacing `support-agent` with your project path.
+5. Open the playground at `http://127.0.0.1:8080/` and ask: “Use total_values to add 17, 23, and 41.” Check the tool event as well as the final answer; the expected tool result is `{"total": 81}`.
+
+Offline tests validate your project but do not prove Docker execution works. The playground check uses your configured model and Docker provider. See [Serving agents](/harnest/runtime/serving) for server settings and authentication.
+
+### Assign more than one sandbox
+
+Add another declaration such as `sandbox/research.py`, defining `research = Sandbox.provider(...)` or `research = Sandbox.container(...)`. Then add its name only to the agents that should use it:
+
+| Agent assignment | Available to that agent's authored tools |
+|---|---|
+| `sandboxes=["calculations"]` | `context.sandboxes["calculations"]` |
+| `sandboxes=["calculations", "research"]` | `context.sandboxes["calculations"]` and `context.sandboxes["research"]` |
+| No assignment, or `sandboxes=[]` | None |
+
+The model chooses among your business tools, not among automatic sandbox tools. Your tool chooses an assigned sandbox in its implementation. Do not add a model-controlled provider name or arbitrary code parameter unless that broad execution capability is intentional. Provider configuration and invocation identity remain outside the model's control.
+
+Names must be Python-style ASCII identifiers, at most 47 characters: start with a letter, then use letters, digits, or underscores. Names beginning with `_` are ignored examples, not active sandboxes. The filename and variable name must match. Put helpers in `lib/`, not in extra public files inside `sandbox/`.
+
+The root `sandbox/` catalog is available to all agents in the same project, including folder-owned, flat-file, graph, and code-defined SubAgents. Each agent must still declare its own `sandboxes` list: a parent's assignment never grants access to a child. A folder-owned SubAgent can add names in its own `sandbox/`; those names are local to that scope and its descendants and cannot duplicate an ancestor's names.
+
+<Note>
+  Explicit legacy `Agent(sandbox=...)` remains supported for one directly supplied sandbox, but cannot be combined with `sandboxes`. An existing `sandbox/sandbox.py` now declares a sandbox named `sandbox`; add `sandboxes=["sandbox"]` to each allowed agent. The file is no longer attached automatically.
+</Note>
+
+### Container properties
 
 | Property | Container backend |
 |---|---|
-| Framework | ADK only |
+| Frameworks | Managed ADK and LangGraph |
 | Network | Off by default |
 | Runtime | Docker |
-| Required setting | `image` or `docker_path` |
-| Creation | Lazy, on first code execution |
-| Scope | Whole agent |
+| Required setting | Exactly one of `image` or `docker_path` |
+| `timeout_seconds` | Positive integer; defaults to `300`; deadline includes queue waiting |
+| `max_output_bytes` | Positive combined stdout/stderr byte budget; defaults to `1_048_576` (1 MiB) |
+| `base_url` | Optional Docker daemon URL |
+| `metadata` | Optional JSON provider properties, forwarded to execution requests |
+| Creation | Lazy native executor, reused between executions |
+| Cleanup | Stop processes after success, retaining files; remove containers after aborts, failed startup, or application shutdown |
+| Session and resource policy | No Harnest-added per-session filesystem isolation or CPU/memory limits |
 
-```python
+Harnest uses ADK's actual `ContainerCodeExecutor` for native Python execution and container configuration. A host-side transport guard enforces deadlines, cancellation, and output limits. Executed code cannot disable this watchdog by signaling its in-container supervisor, and output is bounded while streaming rather than after the SDK buffers it.
+
+After each successful call, Harnest stops all container processes, including detached children. The next call restarts the same container and preserves its writable filesystem. A deadline violation, output overflow, or active cancellation discards the container and its files. The next call creates a replacement only after removal is confirmed. Failed startup also cleans up its container. If Docker cannot confirm cleanup, execution fails closed instead of starting more containers.
+
+At application shutdown, Harnest closes providers that were actually created; it does not start unused providers just to close them. The built-in backend removes its owned container. Custom providers should implement `close()` or async `aclose()` to release their resources, and wrappers must forward cleanup to backends they own.
+
+The output budget applies to program stdout and stderr. Harnest or the native executor may add a short failure diagnostic after terminating execution.
+
+Initial image preparation and Docker control-plane startup use SDK transport timeouts. Harnest rechecks the execution deadline and invocation validity when those operations return; it does not forcibly interrupt image builds or Docker startup requests.
+
+If a create request fails ambiguously before Docker returns a container ID, Harnest blocks automatic retries. An operator must reconcile the daemon's resources before recreating the backend.
+
+<Warning>
+  Harnest does not add per-session filesystem isolation or CPU/memory limits here. The container is reused, so files and other container state may persist and be shared between executions, users, and sessions. Configure a provider with explicit tenant isolation and resource policy if your application requires those guarantees.
+</Warning>
+
+The built-in container backend does not support input-file transfer or return files as artifacts; use stdout for results or implement a provider with file support. Docker execution also depends on the host kernel and is not a guarantee against every hostile-code escape.
+
+### Native execution options
+
+Use `options` for supported native executor properties: `error_retry_attempts`, `code_block_delimiters`, and `execution_result_delimiters`. `stateful` and `optimize_data_file` may only be `False`. Harnest rejects other options so they cannot override explicitly declared container settings.
+
+Code-block delimiters and code-executor retry settings affect only the legacy ADK `Agent(sandbox=...)` code-execution loop. With named capabilities, your authored tool checks results and decides whether to retry.
+
+## Framework behavior
+
+| Framework | Native integration | Named sandbox result |
+|---|---|---|
+| ADK | Your authored Agent Tool uses ADK's native tool loop | `SandboxResult` returned to your tool |
+| LangGraph | Your authored Agent Tool uses LangGraph's native tool loop | `SandboxResult` returned to your tool |
+
+The built-in backend uses ADK's Docker Python executor with the same host-side guard underneath either integration. Queued calls are checked again before execution, so cancelled, expired, or revoked requests cannot start later merely because the queue advances. You keep one authoring API; Harnest adapts it to the selected framework's execution loop.
+
+Named assignments do not populate ADK's `code_executor` field or create a separate LangGraph execution tool. Explicit legacy `Agent(sandbox=...)` retains ADK's code-execution loop and LangGraph's `harnest_execute_python` tool.
+
+`context.sandboxes` is available only during a managed invocation. Looking up an unassigned name raises `ContextResourceError`. Using a handle from a different or ended invocation raises `ContextUnavailableError`; do not cache handles or pass them between agents.
+
+## Bring your own provider
+
+A portable provider implements `SandboxBackend`: its `execute(request: SandboxRequest)` method returns `SandboxResult`. Pass a lazy factory to `Sandbox.provider(...)`:
+
+```python sandbox/research.py
 from harnest.sandbox import Sandbox
+from company_sandbox import CompanyBackend
 
-sandbox = Sandbox.container(
-    image="acme/harnest-python-sandbox:2026-08",
-    network=False,
-    timeout_seconds=120,
-)
-```
-
-The container backend requires Docker and never falls back to running generated code in the agent server. Harnest already supplies the compatible ADK package.
-
-Third-party providers integrate without changing Harnest:
-
-```python
-from harnest.sandbox import Sandbox
-from company_sandbox import CompanyExecutor
-
-sandbox = Sandbox.provider(
-    lambda: CompanyExecutor(pool="agents"),
+research = Sandbox.provider(
+    lambda: CompanyBackend(pool="agents"),
     name="company-sandbox",
     timeout_seconds=120,
+    metadata={"region": "eu-west", "labels": {"workload": "research"}},
 )
 ```
 
-The provider factory is lazy and must return an ADK `BaseCodeExecutor`.
+Assign this provider with `sandboxes=["research"]`. `CompanyBackend` represents your adapter around a provider SDK, not a Harnest built-in. Put SDK-specific connection settings and credentials in that factory. Harnest calls it when execution first needs the backend, not during compilation.
+
+| Contract | Properties |
+|---|---|
+| `SandboxRequest` | `code`, `timeout_seconds`, `context`, `input_files`, `execution_id`, `metadata` |
+| `SandboxContext` | Optional `agent_name`, `invocation_id`, `user_id`, and `session_id` |
+| `SandboxResult` | `stdout`, `stderr`, `output_files`, `metadata` |
+| `SandboxFile` | `name`, `content` as bytes or base64 text, and `mime_type` |
+
+Import these types from `harnest.sandbox`. Your provider must enforce the requested timeout and its own isolation policy. Invocation identity can be absent when an adapter is called outside the runtime; reject such requests if your provider requires a user or session identity. A revoked managed context fails closed rather than becoming anonymous. File names are transport values, not permission to access host paths.
+
+The built-in Docker guard cannot terminate arbitrary third-party SDK calls. Custom providers remain responsible for stopping active work, bounded output collection, and resource cleanup. Harnest checks invocation validity before admitting their calls.
+
+<Note>
+  Existing factories returning an ADK `BaseCodeExecutor` still work through the explicit legacy `Agent(sandbox=...)` path on ADK. Named sandbox capabilities require the neutral `SandboxBackend` contract on both frameworks. Wrap a native-only provider in that contract before assigning it by name.
+</Note>
+
+### Provider metadata
+
+`metadata` accepts arbitrary JSON properties separately from native SDK configuration. Harnest copies and deeply freezes these properties, preserves JSON value types, and omits them from declaration, request, and result representations. Unsupported objects, non-string object keys, nonfinite numbers, and cycles are rejected rather than converted to strings.
+
+Declaration metadata reaches `request.metadata`; the named capability API does not let the model override it. Your provider can return separate `SandboxResult(metadata=...)` properties, such as execution status or usage figures. These reach your authored tool unchanged; return only the fields the model needs.
+
+The built-in Docker backend does not automatically echo declaration metadata into results. Use a provider wrapper when you want to return measured or provider-supplied details.
+
+### Implement a portable adapter
+
+This complete example wraps the built-in Docker backend and adds safe execution metadata. It needs no third-party SDK and works with both managed frameworks. Replace `sandbox/calculations.py` with this version and keep `sandboxes=["calculations"]` on each allowed agent. You can keep other named sandbox files alongside it.
+
+```python sandbox/calculations.py
+from time import monotonic
+
+from harnest.sandbox import Sandbox, SandboxRequest, SandboxResult
+
+
+class ReportingBackend:
+    def __init__(self):
+        """Prepare a lazy backend without connecting to Docker."""
+        self.backend = Sandbox.container(
+            image="python:3.12-slim",
+            network=False,
+            timeout_seconds=120,
+            max_output_bytes=1_048_576,
+        ).build()
+
+    def execute(self, request: SandboxRequest) -> SandboxResult:
+        """Preserve the request and attach measured, model-safe details."""
+        started = monotonic()
+        result = self.backend.execute(request)
+        return SandboxResult(
+            stdout=result.stdout,
+            stderr=result.stderr,
+            output_files=result.output_files,
+            metadata={
+                "provider": "docker",
+                "elapsed_ms": round((monotonic() - started) * 1000),
+                "profile": request.metadata["profile"],
+            },
+        )
+
+    def close(self) -> None:
+        """Release the container owned by this provider wrapper."""
+        self.backend.close()
+
+
+calculations = Sandbox.provider(
+    ReportingBackend,
+    name="reporting-docker",
+    timeout_seconds=120,
+    metadata={"profile": "calculation"},
+)
+```
+
+The wrapped backend still owns its Docker execution, cancellation, output bounds, and cleanup. Forwarding the original request preserves its timeout, invocation identity, files, execution ID, and declaration metadata. This wrapper does not add tenant isolation.
+
+For a remote provider, replace the wrapped backend with your SDK's isolated execution API and translate its response into `SandboxResult`. Keep secrets in provider configuration, not returned metadata. Add that provider's package to your project's `pyproject.toml`. Do not implement `execute()` with host-side `exec()`, `eval()`, or an unisolated subprocess.
+
+<Warning>
+  Your authored tool controls whether provider metadata becomes model-visible. Do not return credentials, secrets, or private identifiers. Legacy model execution adapters expose result metadata automatically. In the legacy ADK code-execution loop, nonempty metadata wraps stdout as JSON with `stdout` and `metadata` keys because that native result has no metadata field. Empty metadata leaves stdout unchanged; stderr keeps ADK's native error behavior.
+</Warning>
+
+## Handle failed execution
+
+| Failure | Expected behavior and next step |
+|---|---|
+| Python exception | Inspect `result.stderr` in your authored tool and return a useful, safe failure message. A failed execution need not raise a host exception. |
+| Name not assigned | `ContextResourceError`: add the intended name to this agent's `sandboxes` list, or correct the lookup. Parent assignments do not grant child access. |
+| Handle used outside its invocation | `ContextUnavailableError`: look up the sandbox inside the current tool call instead of caching a handle. |
+| Deadline or output budget exceeded | Execution stops and its container is discarded. A later call starts with a fresh filesystem after cleanup is confirmed. Increase limits only when the workload requires it. |
+| Cancelled, expired, or revoked invocation | Queued code must not start. Active built-in Docker execution is terminated; custom SDK termination remains provider-owned. |
+| Docker unavailable or startup fails | Execution fails without falling back to the host. Check daemon access, the configured image or Dockerfile, and Python availability in the image. |
+| Cleanup cannot be confirmed | The backend refuses replacement until cleanup is confirmed. For ambiguous creation without an ID, reconcile Docker resources before recreating the backend. |
+
+Provider exceptions are exposed as sanitized `SandboxExecutionError`. Diagnose infrastructure failures with trusted provider diagnostics; do not log generated code, credentials, or complete result payloads as routine audit data.
+
+## Security ownership
 
 | Harnest checks | Your provider must enforce |
 |---|---|
-| One sandbox source | Filesystem isolation |
+| Explicit per-agent assignments of known sandbox names | Filesystem isolation |
 | Valid export and return type | Network and process policy |
-| No symlinks or extra public files | Tenant separation and cleanup |
-| No duplicate `Agent(sandbox=...)` setting | Credential isolation |
+| No symlinks or duplicate ancestor names | Tenant separation and cleanup |
+| No mixed legacy `sandbox` and named `sandboxes` settings | Credential isolation and concurrency safety |
+| Valid request and metadata shapes; cancellation-aware admission | CPU/memory limits and custom-provider execution termination |
+| Built-in Docker host deadline and streaming output budget | Custom-provider output bounds and deadline enforcement |
 
-`config.yaml` permissions describe deployment intent. They do not replace an enforcing sandbox.
+Filesystem separation, tenant isolation, and CPU/memory policy belong to your provider and deployment configuration. Harnest does not add per-session filesystem isolation or CPU/memory limits to the built-in, custom, or legacy backends. Docker daemon availability is required to confirm termination and cleanup; a timed-out API request alone does not prove work has stopped. `config.yaml` permissions describe deployment intent; they do not replace an enforcing sandbox.

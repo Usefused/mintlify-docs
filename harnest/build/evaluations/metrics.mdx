@@ -1,0 +1,177 @@
+---
+title: "Metrics reference"
+sidebarTitle: "Metrics reference"
+description: "Compare every built-in evaluation metric, its score range, required evidence, criterion shape, and service dependency."
+---
+
+Harnest delegates metric computation to the Google ADK 2.x evaluator for both ADK and LangGraph agents. It reflects the installed ADK registry rather than freezing a second allowlist.
+
+The registry shipped at Harnest's Google ADK 2.8 dependency floor contains the 13 metrics below. A compatible later ADK 2.x release can add registry entries without a Harnest code change. Use the playground's **Evals** catalog to inspect the exact installed list.
+
+## Built-in metrics
+
+### Reference and single-turn metrics
+
+| Metric | What it measures | Score | Needs golden result | Backend |
+|---|---|---:|---:|---|
+| `tool_trajectory_avg_score` | Tool names and arguments across each invocation | 0–1 | Tool calls | Local deterministic comparison |
+| `response_match_score` | ROUGE-1 similarity between actual and golden final text | 0–1 | Final response | Local deterministic comparison |
+| `response_evaluation_score` | Coherence of the actual response | 1–5 | No | Vertex Gen AI evaluation service |
+| `safety_v1` | Harmlessness of the actual response | 0–1 | No | Vertex Gen AI evaluation service |
+| `final_response_match_v2` | Meaning-level validity against the golden final response | 0–1 | Final response | Configured ADK judge model |
+| `rubric_based_final_response_quality_v1` | Final answer behavior against authored rubrics | 0–1 | Rubrics | Configured ADK judge model |
+| `hallucinations_v1` | Fraction of claims supported by available context and evidence | 0–1 | No | Configured ADK judge model |
+| `rubric_based_tool_use_quality_v1` | Actual tool use against authored rubrics | 0–1 | Rubrics | Configured ADK judge model |
+
+`tool_trajectory_avg_score` gives each invocation either `0` or `1`, then averages the invocation scores. [Choose `business` or `strict`](/harnest/build/evaluations/eval-sets-and-configuration#choose-tool-trajectory-behavior) to control matching.
+
+`final_response_match_v2` produces a binary verdict for each invocation. It uses majority vote across judge samples, then reports the fraction of valid invocations.
+
+### Multi-turn and simulation metrics
+
+| Metric | What it measures | Score | Backend |
+|---|---|---:|---|
+| `per_turn_user_simulator_quality_v1` | Fraction of simulated user messages that follow the conversation plan | 0–1 | Configured ADK judge model |
+| `multi_turn_task_success_v1` | Whether the agent achieves the conversation's goals | 0–1 | Vertex Gen AI evaluation service |
+| `multi_turn_trajectory_quality_v1` | Quality of the full path used to achieve the goals | 0–1 | Vertex Gen AI evaluation service |
+| `multi_turn_tool_use_quality_v1` | Function-call quality across the conversation | 0–1 | Vertex Gen AI evaluation service |
+| `rubric_based_multi_turn_trajectory_quality_v1` | Cumulative responses and tool behavior against authored rubrics | 0–1 | Configured ADK judge model |
+
+The three Vertex multi-turn metrics are reference-free and evaluate the complete actual conversation. Their per-invocation result is `not_evaluated` on earlier turns; the last turn carries the conversation-level score. The rubric-based multi-turn metric uses the same final-turn convention.
+
+## Configure thresholds
+
+Use a number for a metric that needs only a threshold:
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "response_match_score": 0.8,
+    "response_evaluation_score": 3.0,
+    "safety_v1": 0.9,
+    "multi_turn_task_success_v1": 0.8,
+    "multi_turn_trajectory_quality_v1": 0.8,
+    "multi_turn_tool_use_quality_v1": 0.8
+  }
+}
+```
+
+Scores equal to the threshold pass. Choose a threshold inside the metric's documented score interval.
+
+## Configure model-judged metrics
+
+Judge-backed criteria use the properties below. The final-output option applies only where the evaluator consumes final answer text.
+
+| Property | Default | Applies to | Purpose |
+|---|---:|---|---|
+| `threshold` | Required | Every metric | Pass boundary |
+| `judgeModelOptions.judgeModel` | `OPENAI_MODEL`, or `gpt-4.1-mini` | Model-judged metrics | Omit to use the shared OpenAI-compatible model; explicit IDs select an ADK model provider |
+| `judgeModelOptions.judgeModelConfig` | None | Model-judged metrics | Google GenAI generation options for judge calls |
+| `judgeModelOptions.numSamples` | `5` | Final-response match, rubric metrics, and simulator-quality metrics | Judge calls per invocation before aggregation |
+| `judgeModelOptions.parallelismLimit` | `1` | Final-response match and rubric metrics | Maximum concurrent judge calls |
+| `includeIntermediateResponsesInFinal` | `false` | `final_response_match_v2` and rubric-based final response quality | Include visible text emitted before tool calls with the final output |
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "final_response_match_v2": {
+      "threshold": 0.8,
+      "judgeModelOptions": {
+        "numSamples": 3,
+        "parallelismLimit": 1
+      }
+    },
+    "hallucinations_v1": {
+      "threshold": 0.9,
+      "evaluateIntermediateNlResponses": false
+    }
+  }
+}
+```
+
+`hallucinations_v1` uses `evaluateIntermediateNlResponses`, not `includeIntermediateResponsesInFinal`, to opt visible intermediate natural-language responses into its analysis.
+
+### Use a custom judge model
+
+Model precedence is an explicit `judgeModel`, then `OPENAI_MODEL`, then `gpt-4.1-mini`. Use an explicit OpenAI-compatible model ID when the judge should differ from the agent:
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "final_response_match_v2": {
+      "threshold": 0.8,
+      "judgeModelOptions": {
+        "judgeModel": "openai/my-judge-model",
+        "numSamples": 3
+      }
+    }
+  }
+}
+```
+
+Replace `my-judge-model` with a model served by your configured endpoint. This explicit ID overrides `OPENAI_MODEL`. The judge [reuses a compatible agent model transport](/harnest/build/project-configuration#reuse-an-agents-model-client) when one is available, including a lifecycle-owned client, custom gateway, and headers. Otherwise it uses the normal `OPENAI_BASE_URL` and `OPENAI_API_KEY` configuration. To select a native non-OpenAI provider instead, use its ADK model ID and supply that provider's credentials through the same [process environment](/harnest/build/project-configuration#configure-model-credentials).
+
+<Warning>
+  Harnest runs each eval set once. That `num_runs=1` safeguard does not replace `judgeModelOptions.numSamples`: a judge-backed metric can still call its judge several times for one invocation. Lower the sample count deliberately when cost matters, and raise it when judge stability matters more.
+</Warning>
+
+## Configure rubric metrics
+
+Each rubric criterion requires a non-empty `rubrics` list. Every rubric has a stable ID and one testable text property.
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "rubric_based_final_response_quality_v1": {
+      "threshold": 1.0,
+      "judgeModelOptions": {
+        "numSamples": 3
+      },
+      "rubrics": [
+        {
+          "rubricId": "grounded_answer",
+          "rubricContent": {
+            "textProperty": "The answer states only claims supported by tool evidence."
+          }
+        }
+      ]
+    },
+    "rubric_based_tool_use_quality_v1": {
+      "threshold": 1.0,
+      "judgeModelOptions": {
+        "numSamples": 3
+      },
+      "rubrics": [
+        {
+          "rubricId": "verify_first",
+          "rubricContent": {
+            "textProperty": "The agent calls get_city_fact before making a factual claim."
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+Use `rubric_based_multi_turn_trajectory_quality_v1` with the same criterion shape when a property spans the complete conversation. Rubric verdicts, scores, and rationales are preserved in the complete CLI result.
+
+## Configure evaluation backends
+
+The agent under test and every metric backend inherit the same process environment. Follow [Configure model credentials](/harnest/build/project-configuration#configure-model-credentials) for local, CI, and deployment setup. Metrics may add a second provider to the agent's normal model and tool stack:
+
+<Tabs>
+  <Tab title="Local deterministic">
+    `tool_trajectory_avg_score` and `response_match_score` need no metric service. The agent itself can still make live model or tool calls.
+  </Tab>
+  <Tab title="ADK judge model">
+    Omit `judgeModel` to use `OPENAI_MODEL` and the shared `OPENAI_API_KEY` and `OPENAI_BASE_URL` configuration. An explicit `judgeModel`, such as `gemini-2.5-flash`, opts into that ADK model provider and requires its own credentials. Harnest does not replace explicit model IDs.
+  </Tab>
+  <Tab title="Vertex evaluation service">
+    `response_evaluation_score`, `safety_v1`, and the three `multi_turn_*_v1` metrics call the Vertex Gen AI evaluation client. If `GOOGLE_API_KEY` is set, ADK constructs that client with the key. Otherwise set both `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` and make Application Default Credentials available. When all are set, the API key path takes precedence.
+  </Tab>
+</Tabs>
+
+<Note>
+  `test_config.json` selects metric backends and judge model IDs. Never put credentials in that file.
+</Note>

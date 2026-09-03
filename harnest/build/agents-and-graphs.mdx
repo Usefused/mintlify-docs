@@ -22,12 +22,14 @@ from harnest.model import LiteLLMModel
 
 root_agent = Agent(
     name="support",
-    model=LiteLLMModel("ollama_chat/qwen3.5:cloud"),
+    model=LiteLLMModel.from_openai_environment(),
     description="Answers product questions and triages support requests.",
 )
 ```
 
 `instructions.md` beside `agent.py` is required. It is the default managed prompt and remains bundle metadata for graphs and advanced targets.
+
+The model uses the shared `OPENAI_MODEL`, `OPENAI_BASE_URL`, and `OPENAI_API_KEY` process environment. Follow [Configure model credentials](/harnest/build/project-configuration#configure-model-credentials) for local, CI, deployment, and OpenAI-compatible backend setup.
 
 `history="session"` is the default and includes earlier user and assistant turns from the same Harnest session. Use `history="turn"` for an isolated model call. Do not duplicate the conversation transcript in graph state.
 

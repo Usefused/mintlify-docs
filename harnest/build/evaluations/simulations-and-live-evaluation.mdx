@@ -1,0 +1,151 @@
+---
+title: "Simulations and live evaluation"
+sidebarTitle: "Simulations & live"
+description: "Evaluate generated text or audio user turns and run ADK agents through bidirectional live inference."
+---
+
+A conversation scenario describes a goal instead of scripting every user turn. An ADK user simulator sends the fixed first prompt, generates follow-up messages from the plan, and stops when the task is complete or the turn limit is reached.
+
+Text scenarios work with ADK and LangGraph. Audio simulation and `liveModelConfig` are ADK-only.
+
+## Author a conversation scenario
+
+```json evals/city-facts-simulation.evalset.json
+{
+  "eval_set_id": "city-facts-simulation",
+  "name": "Simulated city fact conversation",
+  "eval_cases": [
+    {
+      "evalId": "simulated_paris_fact_finding",
+      "conversationScenario": {
+        "startingPrompt": "I would like one verified fact about Paris.",
+        "conversationPlan": "Ask the agent to verify a fact about Paris. Make sure it identifies France as the country whose capital is Paris. Once it has done so, end the conversation. Do not ask about another city."
+      },
+      "sessionInput": {
+        "appName": "city_facts",
+        "userId": "simulated-eval-user",
+        "state": {}
+      }
+    }
+  ]
+}
+```
+
+Write the plan as observable user intent. Include completion conditions, allowed follow-ups, and actions the simulator must avoid. The simulator receives conversation history on each turn.
+
+## Configure text simulation
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "per_turn_user_simulator_quality_v1": {
+      "threshold": 0.8,
+      "stopSignal": "</finished>",
+      "judgeModelOptions": {
+        "numSamples": 1
+      }
+    }
+  },
+  "userSimulatorConfig": {
+    "type": "llm_backed",
+    "maxAllowedInvocations": 4,
+    "includeFunctionCalls": true
+  }
+}
+```
+
+| Property | Default | Purpose |
+|---|---:|---|
+| `type` | Legacy fallback is `llm_backed` | Selects the simulator; write it explicitly |
+| `model` | `OPENAI_MODEL`, or `gpt-4.1-mini` | Generates subsequent user turns; an explicit ADK model ID overrides the shared model |
+| `modelConfiguration` | ADK default generation config | Google GenAI generation options for the simulator |
+| `maxAllowedInvocations` | `20` | Stops a runaway conversation; includes the fixed starting prompt |
+| `includeFunctionCalls` | `false` | Includes tool calls and responses in history shown to the simulator |
+| `customInstructions` | ADK's built-in prompt | Replaces the simulator prompt template |
+
+A custom instruction template must contain `{{ stop_signal }}`, `{{ conversation_plan }}`, and `{{ conversation_history }}`. Include `{{ persona }}` if the scenario uses a user persona. Harnest validates this through ADK before running the eval.
+
+Model precedence is an explicit `userSimulatorConfig.model`, then `OPENAI_MODEL`, then `gpt-4.1-mini`. For example, add `"model": "openai/my-simulator-model"` to request another model without changing the agent's model. Text simulators [reuse a compatible agent model transport](/harnest/build/project-configuration#reuse-an-agents-model-client) when available; otherwise they use the provider's normal configuration, including `OPENAI_BASE_URL` and `OPENAI_API_KEY` for OpenAI-compatible models. A native provider model ID requires that provider's credentials. Harnest also supplies the shared default for scenario suites that omit the entire `userSimulatorConfig` block.
+
+`per_turn_user_simulator_quality_v1` is optional, but it is the metric designed to verify that generated user messages followed the scenario. Its `stopSignal` should match the simulator stop signal; `</finished>` is the shared default.
+
+<Warning>
+  Set a finite `maxAllowedInvocations`. ADK accepts `-1` for no limit, but an agent and simulator can otherwise continue indefinitely and spend unbounded model capacity.
+</Warning>
+
+## Configure audio simulation
+
+ADK 2.8 also exposes the `llm_audio` simulator. It first generates a text turn, then synthesizes audio through `audioModel`.
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "per_turn_user_simulator_quality_v1": {
+      "threshold": 0.8,
+      "stopSignal": "</finished>",
+      "judgeModelOptions": {
+        "numSamples": 1
+      }
+    }
+  },
+  "userSimulatorConfig": {
+    "type": "llm_audio",
+    "maxAllowedInvocations": 4,
+    "audioModel": "cloud_tts",
+    "audioModelConfiguration": {
+      "speechConfig": {
+        "voiceConfig": {
+          "prebuiltVoiceConfig": {"voiceName": "en-US-Studio-O"}
+        },
+        "languageCode": "en-US"
+      }
+    },
+    "includeTextWithAudio": true
+  }
+}
+```
+
+| Property | Default | Purpose |
+|---|---:|---|
+| `audioModel` | `cloud_tts` | Google Cloud TTS adapter or another audio model ID resolved by ADK |
+| `audioModelConfiguration` | US English Studio voice | Voice and response modality configuration |
+| `includeTextWithAudio` | `true` | Emits text next to the synthesized audio part |
+
+`cloud_tts` uses Application Default Credentials. `GOOGLE_CLOUD_PROJECT` is used as its quota project when present. If you select a native model such as a Gemini TTS model, provide that model provider's credentials and set its response modalities to audio.
+
+<Note>
+  Harnest passes audio simulation through to native ADK evaluation. LangGraph evaluation rejects the resulting non-text user content even when `includeTextWithAudio` is true, so it cannot silently score a text-only projection of an audio test.
+</Note>
+
+## Select ADK live inference
+
+`liveModelConfig` changes the inference path used for the agent under test. Use it for an ADK agent configured with a bidirectional live model.
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "safety_v1": 0.9
+  },
+  "liveModelConfig": {
+    "timeoutSeconds": 300
+  }
+}
+```
+
+`timeoutSeconds` is the wait limit for live model turn completion and defaults to `300`.
+
+<Warning>
+  LangGraph `--evals` rejects any non-null `liveModelConfig`. Use text evals for portable behavior and an opted-in [smoke test](/harnest/build/testing-and-compilation#smoke-tests) for LangGraph bidirectional media.
+</Warning>
+
+## Configure models and services
+
+Simulation can involve three independently authenticated components. They all inherit the environment of the Harnest command:
+
+| Component | Configuration | Verified setup |
+|---|---|---|
+| Agent under test | `LiteLLMModel.from_openai_environment()` | Shared `OPENAI_MODEL`, `OPENAI_BASE_URL`, and `OPENAI_API_KEY` |
+| Text simulator and per-turn judge | Omitted `model` and `judgeModel` | Same OpenAI-compatible environment; explicit native provider IDs require their own credentials |
+| Cloud audio synthesis | `audioModel: "cloud_tts"` | Enable Google Cloud Text-to-Speech and provide Application Default Credentials |
+
+These calls are live and may consume paid capacity. Follow the shared [model credential process](/harnest/build/project-configuration#configure-model-credentials): export credentials before local or CI commands, and use `spec.secrets` only as a deployment mapping. Harnest does not load `.env` files. Never place credentials in eval JSON. The OpenAI-compatible key does not authenticate Cloud TTS or native Google evaluation services.

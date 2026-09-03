@@ -19,7 +19,7 @@ A Harnest agent is an inspectable directory. Each concept has one conventional l
 | [Runtime Plugins](/harnest/build/runtime-plugins) | `plugins/<name>/plugin.yaml` | Same-process SDK, context, and lifecycle integrations |
 | [Agent Skills](/harnest/build/agent-skills) | `skills/` | Progressively loaded task guidance |
 | [Lifecycle](/harnest/runtime/lifecycle) | `extensions/` | Hooks, resources, storage, and native integrations |
-| [Sandboxing](/harnest/build/sandboxing) | `sandbox/` | Optional ADK code-execution backend |
+| [Sandboxing](/harnest/build/sandboxing) | `sandbox/` | Named Python execution providers assigned per agent and called from authored tools |
 | [Testing and Compilation](/harnest/build/testing-and-compilation) | `evals/`, `tests/` | Evals, unit tests, live smoke tests, and artifacts |
 
 [Authentication and Credentials](/harnest/runtime/authentication-and-credentials) and [Telemetry](/harnest/runtime/telemetry) have separate security and privacy contracts.
@@ -70,7 +70,7 @@ support-agent/
         └── test_agent.py
 ```
 
-You only need the root files and the capabilities your agent uses. Empty optional directories may be absent. `harnest init --example` creates working examples if you want to inspect a fuller project.
+You only need the root files and the capabilities your agent uses. Empty optional directories may be absent. `harnest init --example` adds ignored code samples to managed folders that otherwise contain only guides, without replacing the default agent or storage code.
 
 When a page titles a code block `tools/lookup_order.py`, create that path inside your project root. For discovered resources, the filename is also part of the contract:
 
@@ -98,7 +98,7 @@ Put reusable code in `lib/` and Pydantic contracts in `models/`. Those folders a
 | `.harnest/` is generated | Do not edit or commit it |
 | `uv.lock` is project source | Commit it for repeatable environments |
 
-`harnest init` creates the required root files. Use `--example` for active examples; the default scaffold keeps optional folders as guides.
+`harnest init` creates the required root files. Use `--example` for opt-in templates in guide-only managed folders. Python templates stay named `_example.py`; skill, plugin, and eval templates use ignored native-format paths. Follow each sample's activation instructions before renaming it to a public path.
 
 ## Coding-agent guide
 

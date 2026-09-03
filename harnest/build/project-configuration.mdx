@@ -16,6 +16,23 @@ The root files separate agent behavior, local serving, public identity, and depe
 | `harnest.lock` | Project schema version | Yes |
 | `.harnest/` | Generated environments and artifacts | No |
 
+## Fix folder validation errors
+
+Managed feature folders are configuration, not general storage. Harnest checks the files it finds there so that a misplaced file or unfinished declaration does not silently disappear from your agent.
+
+Messages for misplaced files and missing declarations name the problem file, then explain **What Harnest expects** and **How to fix** it. Keep an active feature in its required format. For a note, backup, or unused example in a discovery folder, add `_` to the filename or move it outside that folder.
+
+| Problem | Repair |
+|---|---|
+| `sandbox/notes.txt` is treated as a sandbox resource | Rename the note to `_notes.txt` or move it elsewhere. Put each active sandbox in `sandbox/<name>.py`, define a matching variable, and assign the name with `Agent(sandboxes=["<name>"])`. |
+| `tools/search.py` “must export 'search'” | Define the intended tool as a top-level function or variable named `search`. “Export” means the named Python declaration Harnest looks for, not another file. |
+| A skill folder has no `SKILL.md` | Create the skill's instruction file with that exact uppercase filename. |
+| A Python file is named `search-customer.py` | Use a Python-compatible name such as `search_customer.py`, then update its matching declaration and imports. |
+
+An underscore prefix leaves an unused entry out of automatic feature discovery; it does not repair or activate its code. Follow each generated example's destination and declaration instructions when enabling it. Put reusable Python helpers in `lib/`. The importable `lib/` and `models/` namespaces are different from feature discovery: underscore-prefixed Python modules can still be imported. Links to files or folders are still subject to Harnest's symlink restrictions.
+
+See [generated examples](/harnest/get-started/initialize) and [Sandboxing](/harnest/build/sandboxing) for feature setup.
+
 ## `config.yaml`
 
 `config.yaml` selects the entrypoint, framework, authoring mode, Python runtime, deployment resources, scaling, environment, secret references, and permissions:
@@ -40,6 +57,90 @@ Use `adk` or `langgraph`. Managed mode is the portable default; advanced mode ac
 launcher's `run` command. Omit it for a server-only artifact.
 
 `config.yaml` describes deployment intent. The standalone development server does not provision its resources, inject secret declarations, scale replicas, or enforce network permissions.
+
+## Configure model credentials
+
+Use one OpenAI-compatible model configuration for agents, eval judges, and text user simulators. They inherit the environment of the same Harnest command; there is no separate eval credential channel.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `OPENAI_MODEL` | Model name, with an optional `openai/` prefix | `gpt-4.1-mini` |
+| `OPENAI_BASE_URL` | OpenAI-compatible API endpoint | OpenAI's API endpoint |
+| `OPENAI_API_KEY` | Credential for that endpoint | None |
+
+Use the shared helper in managed ADK or LangGraph agents:
+
+```python agent.py
+from harnest.agent import Agent
+from harnest.model import LiteLLMModel
+
+root_agent = Agent(
+    name="support",
+    model=LiteLLMModel.from_openai_environment(),
+)
+```
+
+The helper normalizes `gpt-4.1-mini` to `openai/gpt-4.1-mini`. It rejects native provider prefixes such as `ollama_chat/` on this path so that the model keeps the shared OpenAI-compatible credential contract. You can still author a separate `LiteLLMModel("provider/model", ...)` for an explicit native provider integration.
+
+<Note>
+  Existing agents are not automatically rewritten. If your source reads `LITELLM_MODEL` or `LITELLM_API_BASE`, or selects `ollama_chat/`, switch it to `LiteLLMModel.from_openai_environment()` and rename the non-secret settings to `OPENAI_MODEL` and `OPENAI_BASE_URL`. Use the OpenAI-compatible endpoint, including `/v1` for Ollama, and supply `OPENAI_API_KEY`. An explicitly authored native-provider connector remains a valid opt-in and keeps that provider's credential variables.
+</Note>
+
+Export credentials before `harnest test`, `harnest run`, or `harnest serve`:
+
+```bash Local agent and evals
+export OPENAI_API_KEY="..."
+harnest test AGENT_DIR --evals
+```
+
+Put non-secret model and endpoint settings in `spec.environment`, or export them when they are not configured there. `spec.environment` overrides matching values from the parent process. Use the same credential pattern in CI through its secret store. Harnest does not load `.env` files. It also excludes `.env` and `.env.*` files from the authored source tree.
+
+For an OpenAI-compatible backend such as Ollama, keep these same variable names. For example, set `OPENAI_MODEL: openai/qwen3.5:9b` and `OPENAI_BASE_URL: http://127.0.0.1:11434/v1` when that model is available on your local endpoint. Use `OPENAI_API_KEY` for any required endpoint credential, not `OLLAMA_API_KEY`.
+
+<Warning>
+  Never put a credential value in `spec.environment`, agent source, or `evals/test_config.json`. Those files are authored configuration and can be copied into artifacts or source control.
+</Warning>
+
+For deployment, map the same credential variable to an opaque secret reference:
+
+```yaml config.yaml
+spec:
+  environment:
+    OPENAI_MODEL: gpt-4.1-mini
+    OPENAI_BASE_URL: https://api.openai.com/v1
+  secrets:
+    - environmentVariable: OPENAI_API_KEY
+      secretRef: projects/example/secrets/openai-api-key/latest
+```
+
+The deployment engine resolves `secretRef` and injects its value as `OPENAI_API_KEY`. Local `test`, `run`, and `serve` commands do not resolve `spec.secrets`; export the variable in their process environment even when the deployment mapping exists.
+
+### Reuse an agent's model client
+
+When your `LiteLLMModel` uses a lifecycle-owned client or explicit transport settings, compatible eval judges and text simulators reuse that transport automatically. Supported settings include custom clients (including ADK `llm_client`), API base URLs, provider authentication and TLS options, and request headers. This is not a blanket copy of arbitrary model arguments. Eval calls borrow the existing lifecycle controller, including its initialization and hooks, rather than creating a second owner. No additional CLI flag is required.
+
+Judges and simulators keep their own generation settings. Reusing a transport does not copy the agent's temperature, sampling, or output options over the authored eval settings.
+
+Choosing a transport does not change the eval model ID. For example, an explicitly configured `openai/my-judge-model` can use an agent's custom OpenAI-compatible gateway while still requesting `my-judge-model`.
+
+| Available agent transports | Eval behavior |
+|---|---|
+| Exactly one binding for the eval's complete model ID | Reuse that exact binding, even when other same-provider bindings exist |
+| No exact match, but exactly one binding with the same provider prefix | Reuse that provider's transport with the selected eval model ID |
+| Multiple exact matches, or multiple same-provider matches without an exact match | Fail with an ambiguous-transport error instead of choosing a client |
+| No compatible binding | Use the eval model provider's normal configuration and credentials |
+
+Managed ADK and LangGraph agents propagate these bindings through their runtime targets. Advanced ADK targets are traversed through their app, agents, subagents, and model objects to find Harnest-created bindings. An opaque advanced LangGraph graph cannot automatically expose a connector hidden inside a closure or node implementation. Do not assume that an arbitrary native client is discoverable.
+
+The runtime retains ownership of borrowed clients. A playground eval does not close the serving agent's clients when it finishes; the CLI closes its own model resources after evaluation. Unrelated native-provider models, Vertex evaluation services, and Cloud TTS keep their existing authentication paths.
+
+### Eval model overrides and native services
+
+When you omit `judgeModelOptions.judgeModel` or the text simulator's `model` from `evals/test_config.json`, Harnest uses `OPENAI_MODEL` with the same `gpt-4.1-mini` default. Scenario suites use this default even when the entire `userSimulatorConfig` block is absent. An explicitly authored model ID wins. For example, `judgeModel: "gemini-2.5-flash"` opts into ADK's native Gemini provider and requires its credentials, such as `GOOGLE_API_KEY`, in addition to the agent's OpenAI-compatible credentials.
+
+Vertex Gen AI evaluation metrics are a separate Google service, not calls to the configured judge model. The ADK evaluation facade uses `GOOGLE_API_KEY` when set. Otherwise, set `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` and make Application Default Credentials available. The `cloud_tts` audio simulator also uses Application Default Credentials and treats `GOOGLE_CLOUD_PROJECT` as its quota project when present.
+
+`OPENAI_API_KEY` does not authenticate these native Google services. Keep model and metric selection in source or `test_config.json`; keep every credential in the process environment or deployment secret mapping.
 
 ## `server.yaml`
 

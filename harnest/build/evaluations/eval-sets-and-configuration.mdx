@@ -1,0 +1,189 @@
+---
+title: "Eval sets and configuration"
+sidebarTitle: "Eval sets & config"
+description: "Author validated static conversations, expected behavior, session input, rubrics, and shared evaluation criteria."
+---
+
+An eval set groups related cases. Both ADK and LangGraph projects author these files using ADK's `EvalSet` schema. Harnest validates them during compilation and keeps them out of the deployed agent's prompts, tools, and capabilities.
+
+Custom questions do not require a custom Python metric. Use this page to author cases with built-in scoring, or follow [Create custom evals](/harnest/build/evaluations/create-custom-evals) when you need to implement your own scoring rule.
+
+## Directory contract
+
+```text AGENT_DIR/evals/
+evals/
+├── answer-quality.evalset.json
+├── tool-routing.evalset.json
+└── test_config.json
+```
+
+| Rule | Contract |
+|---|---|
+| Location | Root `evals/` directory only |
+| Eval set name | `<eval-set-id>.evalset.json` |
+| ID match | `eval_set_id` must equal `<eval-set-id>` |
+| Case IDs | Every `evalId` must be unique within its set |
+| Layout | Flat; nested directories and unexpected public files are rejected |
+| Order | Eval set filenames are sorted before execution |
+| Configuration | Zero or one shared `test_config.json` |
+
+Nested SubAgent eval assets may be reached while validating composition, but `harnest test --evals` runs only the root agent's eval sets.
+
+## Author a static case
+
+A static case replays each authored `userContent` and records the actual agent response. The authored `finalResponse` and `intermediateData` are the golden values used by reference metrics.
+
+```json evals/city-facts.evalset.json
+{
+  "eval_set_id": "city-facts",
+  "name": "City fact answers",
+  "description": "Checks a verified answer and a context-dependent follow-up.",
+  "eval_cases": [
+    {
+      "evalId": "verify_paris",
+      "conversation": [
+        {
+          "userContent": {
+            "role": "user",
+            "parts": [{"text": "Use get_city_fact to verify Paris's country and one landmark."}]
+          },
+          "finalResponse": {
+            "role": "model",
+            "parts": [{"text": "Paris is the capital of France, and its verified landmark is the Eiffel Tower."}]
+          },
+          "intermediateData": {
+            "toolUses": [
+              {"name": "get_city_fact", "args": {"city": "Paris"}}
+            ],
+            "toolResponses": []
+          }
+        },
+        {
+          "userContent": {
+            "role": "user",
+            "parts": [{"text": "Which country is it the capital of? Do not call the tool again."}]
+          },
+          "finalResponse": {
+            "role": "model",
+            "parts": [{"text": "It is the capital of France."}]
+          },
+          "intermediateData": {
+            "toolUses": [],
+            "toolResponses": []
+          }
+        }
+      ],
+      "sessionInput": {
+        "appName": "city_facts",
+        "userId": "eval-user",
+        "state": {}
+      }
+    }
+  ]
+}
+```
+
+This is a genuine multi-turn test: the second prompt says only “it” and cannot identify Paris without the first turn. Both invocation objects belong to one case, so the evaluator sends them through the same evaluator-owned session in order. Managed agents use `history="session"` by default, which includes earlier user and assistant turns from that session. See [Agents and graphs](/harnest/build/agents-and-graphs) before selecting `history="turn"` for a context-dependent eval.
+
+The expected behavior is explicit per turn:
+
+| Turn | Expected response | Expected tool behavior |
+|---:|---|---|
+| 1 | Names Paris, France, and the verified landmark | Calls `get_city_fact(city="Paris")` once |
+| 2 | Resolves “it” from history and answers France | Makes no tool call |
+
+Run the case with response and trajectory metrics, then inspect `evalMetricResultPerInvocation` to compare actual and expected content and tool events on each turn. `sessionDetails` contains the evaluator session, state, and recorded events. See [Run and inspect evaluation results](/harnest/build/evaluations/run-and-inspect-results#case-diagnostics).
+
+### Case fields
+
+| Field | Required | Purpose |
+|---|---:|---|
+| `evalId` | Yes | Stable case identity |
+| `conversation` | One of two | Static invocation list |
+| `conversationScenario` | One of two | Plan for a user simulator |
+| `sessionInput` | No | App name, user ID, optional session ID, and initial state |
+| `rubrics` | No | Rubrics inherited by the case's invocations |
+| `finalSessionState` | No | Authored expected final state retained by the ADK case model |
+
+Exactly one of `conversation` and `conversationScenario` is required.
+
+### Invocation fields
+
+| Field | Purpose |
+|---|---|
+| `userContent` | User input represented as Google GenAI content parts |
+| `finalResponse` | Golden model response for reference-based metrics |
+| `intermediateData.toolUses` | Golden ordered function calls, including arguments |
+| `intermediateData.toolResponses` | Golden function responses when needed by a metric |
+| `rubrics` | Rubrics scoped to this invocation |
+
+For ADK agents, Harnest removes response parts marked as model thoughts before metrics inspect the actual result. This keeps hidden reasoning out of response matching while preserving visible text and tool events. LangGraph evaluation already consumes the neutral runtime's public result.
+
+## Configure criteria
+
+Every key under `criteria` names a built-in or custom metric. A numeric value is a threshold. Metrics with judge, rubric, hallucination, simulation, or trajectory options use an object containing `threshold` and their additional fields.
+
+```json evals/test_config.json
+{
+  "criteria": {
+    "tool_trajectory_avg_score": {
+      "threshold": 1.0,
+      "matchType": "IN_ORDER"
+    },
+    "response_match_score": 0.8,
+    "final_response_match_v2": {
+      "threshold": 0.8,
+      "judgeModelOptions": {
+        "numSamples": 3,
+        "parallelismLimit": 1
+      }
+    }
+  }
+}
+```
+
+If `test_config.json` is absent, ADK's default criteria are:
+
+```json
+{
+  "criteria": {
+    "tool_trajectory_avg_score": 1.0,
+    "response_match_score": 0.8
+  }
+}
+```
+
+<Warning>
+  A threshold is a pass boundary, not a target shown only in reports. A metric passes when its score is greater than or equal to its threshold. A failed metric makes its case and the command fail.
+</Warning>
+
+## Choose tool trajectory behavior
+
+Harnest names two policies and applies the selected policy to `tool_trajectory_avg_score` without changing its threshold or any other metric.
+
+| Policy | Effective ADK match type | Behavior |
+|---|---|---|
+| `business` | `IN_ORDER` | Every expected call and argument must occur in order. Extra discovery or helper calls are allowed. |
+| `strict` | `EXACT` | Actual and expected calls, order, and arguments must match exactly. |
+
+```bash
+harnest test AGENT_DIR --evals
+harnest test AGENT_DIR --evals --eval-trajectory strict
+```
+
+The CLI selection replaces an authored `matchType` for this metric. Use separate business and strict CI lanes when you need both behavioral confidence and exact orchestration.
+
+## Add rubrics
+
+Rubric metrics require at least one testable property. The simplest reusable location is the metric criterion in `test_config.json`:
+
+```json
+{
+  "rubricId": "grounded_city_answer",
+  "rubricContent": {
+    "textProperty": "The response names Paris and accurately states that it is the capital of France."
+  }
+}
+```
+
+Rubrics can also live on an eval case or static invocation. Set their `type` to `FINAL_RESPONSE_QUALITY`, `TOOL_USE_QUALITY`, or `TRAJECTORY_QUALITY` so ADK routes them to the intended built-in rubric evaluator. Keep `rubricId` values unique within the effective set. Criterion-level rubrics do not need a `type`. See [Metrics reference](/harnest/build/evaluations/metrics#configure-rubric-metrics) for judge configuration and score behavior.
