@@ -60,6 +60,7 @@ Use `fused-cli mcp list` whenever you need to recover the stable and pinned endp
 | `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --mcp --service slack --select-all slack` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --mcp --bucket agent-credentials` |
 | `--version` | Sets the initial server version | `fused-cli init support --mcp --version 2.0.0 --service linear` |
+| `--no-apply` | Writes validated desired state, saves available plan receipts, and prints the commands to apply later | `fused-cli init support --mcp --service linear --no-apply` |
 
 `--language` is SDK-only. An MCP server is a runtime, not a generated package.
 

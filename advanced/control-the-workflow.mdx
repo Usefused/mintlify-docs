@@ -10,6 +10,7 @@ Fused keeps the common path short without removing any control boundary. Guided 
 | Situation | Use |
 |---|---|
 | Creating a new SDK, API app, or MCP server in a terminal | `fused-cli init <name>` with its services; choose the mode and operations when prompted |
+| Initializing and reviewing now, but applying later | `fused-cli init <name> ... --no-apply` |
 | Activating a service without creating an SDK | `workspace service add <service> --apply` |
 | Reviewing an existing config one boundary at a time | Explicit `<kind> plan`, then `<kind> apply` |
 | Running CI or another unattended process | `--no-input`, plus `--json` where supported |
@@ -54,6 +55,40 @@ fused-cli mcp apply
 fused-cli webhook plan
 fused-cli webhook apply
 ```
+
+### Stop after planning
+
+Add `--no-apply` to the guided init command when you want it to resolve the
+service version and operations, write validated desired state, and retain the
+available plan receipts without applying anything:
+
+```bash
+fused-cli init support-sdk --sdk \
+  --service linear \
+  --select-all linear \
+  --no-apply
+```
+
+The command ends by printing the exact commands needed to finish. If Linear
+was already active, the SDK plan receipt is ready and the remaining command is:
+
+```bash
+fused-cli sdk apply -f '.fused/sdks/support-sdk.yaml' --download
+```
+
+If Linear still needs workspace activation, Engine cannot bind an SDK plan to
+that runtime snapshot yet. Init saves the workspace plan receipt and prints the
+dependency order instead:
+
+```bash
+fused-cli workspace apply -f '.fused/workspace.yaml'
+fused-cli sdk plan -f '.fused/sdks/support-sdk.yaml'
+fused-cli sdk apply -f '.fused/sdks/support-sdk.yaml' --download
+```
+
+The same output uses `sdk apply` without `--download` for a direct API and
+`mcp apply` for an MCP server. If a saved receipt is stale when you return,
+rerun its plan command before apply.
 
 Only terminal SDK planning offers optional credential setup. Workspace, MCP, webhook, and import planning do not mutate credentials; missing SDK or MCP values are readiness warnings rather than plan or apply failures.
 

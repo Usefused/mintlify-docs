@@ -154,6 +154,7 @@ Both are derived from the generated source and validated against it, so the meth
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --sdk --bucket prod-credentials` |
 | `--version` | Sets the initial app version | `fused-cli init support --sdk --version 2.0.0 --service linear` |
 | `--language` | `typescript` (default) or `python`; SDK mode only | `fused-cli init support --sdk --language python` |
+| `--no-apply` | Writes validated desired state, saves available plan receipts, and prints the commands to apply later | `fused-cli init support --sdk --service linear --no-apply` |
 
 Omit `--sdk`, `--api`, and `--mcp` in a terminal to choose the app mode interactively. Creating never replaces an existing file. Init writes only the chosen app config and any workspace config needed for activation; it does not create sample files for the other modes.
 
