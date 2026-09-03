@@ -360,7 +360,9 @@
   },
   "seo": {
     "metatags": {
-      "fused": "usefused.com"
+      "fused": "usefused.com",
+      "harnest": "https://github.com/usefused/harnest"
     }
-  }
+  },
+  "description": "Fused isan integration gateway for apps and agents. Fused offers you a central integration gateway for your internal and external services you depend on"
 }
