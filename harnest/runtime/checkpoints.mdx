@@ -17,9 +17,9 @@ When Harnest owns portable checkpoint storage, it keeps:
 
 Native `LangGraphStore` and `ADKStore` authorities expose their framework's narrower checkpoint contract. They do not provide every Harnest-owned capability in this table.
 
-Every application resolves exactly one checkpoint factory across its root and Runtime Plugin extensions. This example assumes the shared `PostgresStore` from `lib/state.py` in the [storage overview](/harnest/runtime/checkpoints-and-storage):
+Every application resolves exactly one checkpoint factory across its root and Harnest Extension extensions. This example assumes the shared `PostgresStore` from `lib/state.py` in the [storage overview](/harnest/runtime/checkpoints-and-storage):
 
-```python extensions/checkpoints.py
+```python lifecycle/checkpoints.py
 from harnest.lib.state import state
 from harnest.lifecycle import lifecycle
 

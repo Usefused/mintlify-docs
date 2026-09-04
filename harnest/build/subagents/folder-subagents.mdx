@@ -26,8 +26,8 @@ subagents/researcher/
 | `mcp/` | Yes | No |
 | `skills/` | Yes | No |
 | [`sandbox/`](/harnest/build/sandboxing) | Yes, additional local names | Ancestor names are available; permissions are not inherited |
-| Agent or Runtime `plugins/` | No | No |
-| `extensions/` | No | Root-owned |
+| Agent `plugins/` or Harnest `extensions/` | No | No |
+| `lifecycle/` | No | Root-owned |
 | `models/` and `lib/` | No | Root namespace |
 
 The child's private capabilities are not exposed to the parent merely because the directory is nested.

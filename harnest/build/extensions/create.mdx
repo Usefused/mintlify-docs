@@ -1,0 +1,151 @@
+---
+title: "Create a Harnest Extension"
+sidebarTitle: "Create an extension"
+description: "Author the Harnest Extension manifest, singleton, typed invocation context, and dependency contract."
+---
+
+Create a root-owned folder under `extensions/`. The folder name is the extension identity and must be a valid Python identifier.
+
+```text extensions/warehouse/
+extensions/warehouse/
+├── extension.yaml
+├── extension.py
+├── pyproject.toml       optional SDK dependencies
+├── lib/                 private extension helpers
+└── lifecycle/          declared Harnest lifecycle contributions
+```
+
+## Declare the extension
+
+<CodeGroup>
+
+```yaml extensions/warehouse/extension.yaml
+apiVersion: harnest.dev/v1alpha1
+kind: Extension
+metadata:
+  name: warehouse
+  version: 1.0.0
+runtime:
+  entrypoint: extension:extension
+```
+
+```toml extensions/warehouse/pyproject.toml
+[project]
+name = "warehouse"
+version = "1.0.0"
+requires-python = ">=3.11,<3.14"
+dependencies = ["warehouse-sdk>=2,<3"]
+```
+
+</CodeGroup>
+
+`metadata.name` must match the folder. The optional PEP 621 project name and version must match `extension.yaml`. Its static dependencies join the root environment solve.
+
+## Export the application-owned singleton
+
+`extension.py` exports one public `Extension` subclass and the singleton named `extension`. Keep SDK clients on that singleton, and expose a bounded invocation view through `ExtensionContext`:
+
+```python extensions/warehouse/extension.py
+import os
+
+from harnest.extensions import Extension, ExtensionContext
+from warehouse_sdk import WarehouseClient
+
+
+class WarehouseContext(ExtensionContext):
+    """Expose bounded warehouse operations during one invocation."""
+
+    __slots__ = ("_owner",)
+
+    def __init__(self, extension_name: str, owner: "Warehouse") -> None:
+        """Bind the revocable context to its application-owned extension."""
+
+        super().__init__(extension_name)
+        self._owner = owner
+
+    async def query(self, statement: str) -> list[dict]:
+        """Run one query while the Harnest invocation remains active."""
+
+        self._require_active()
+        return await self._owner._query(statement)
+
+
+class Warehouse(Extension[WarehouseContext]):
+    """Own one warehouse SDK client for the application lifetime."""
+
+    def __init__(self) -> None:
+        """Defer all external connection work until runtime startup."""
+
+        self._client = None
+
+    async def start(self, _context) -> None:
+        """Connect after dependency-ordered application startup begins."""
+
+        self._client = await WarehouseClient.connect(
+            endpoint=os.environ["WAREHOUSE_ENDPOINT"],
+        )
+
+    async def stop(self) -> None:
+        """Release the application-owned SDK client."""
+
+        # Shutdown must also be safe after a partial startup failure.
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
+
+    def create_context(self, base: ExtensionContext) -> WarehouseContext:
+        """Create one typed, revocable view for the active invocation."""
+
+        return WarehouseContext(base.extension_name, self)
+
+    async def query(self, statement: str) -> list[dict]:
+        """Route public calls through the current invocation context."""
+
+        return await self.context.query(statement)
+
+    async def _query(self, statement: str) -> list[dict]:
+        """Cross the private SDK boundary after startup validation."""
+
+        # Calls fail closed if they escape the managed application lifetime.
+        if self._client is None:
+            raise RuntimeError("Warehouse extension is not started")
+        return await self._client.query(statement)
+
+
+extension = Warehouse()
+```
+
+Harnest imports extension modules during compilation but does not call `start()` or connect to services. Runtime startup activates extensions in dependency order and calls `stop()` in reverse order.
+
+## Add optional extension content
+
+| Path | Purpose | Required manifest capability |
+|---|---|---|
+| `lib/**/*.py` | Private extension implementation | None |
+| `lifecycle/**/*.py` | Lifecycle hooks and factories | The capability matching each decorator |
+| `tools/*.py` | Managed Agent Tools | `content.tools` |
+| `mcp/*.py` | Managed MCP clients | `content.mcp` |
+| `skills/*/SKILL.md` | Managed Agent Skills | `content.skills` |
+| `subagents/` | Managed SubAgents | `content.subagents` |
+
+Managed mode composes declared content into the owning agent. Advanced mode accepts declared lifecycle hooks and factories but rejects populated managed-content directories because the native target owns its own composition.
+
+## Add extension dependencies
+
+Use `requires.extensions` when this extension depends on another local Harnest Extension:
+
+```yaml extensions/warehouse/extension.yaml
+requires:
+  extensions: [credentials]
+```
+
+Harnest rejects missing dependencies and cycles. Extension Python dependencies share one solve with the root project; incompatible constraints fail `harnest env sync` instead of creating isolated environments.
+
+```bash
+harnest env sync support-agent
+harnest test support-agent
+```
+
+<Card title="Add lifecycle behavior" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
+  Declare exactly which Harnest surfaces the extension contributes.
+</Card>

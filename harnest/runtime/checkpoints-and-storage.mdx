@@ -4,7 +4,7 @@ sidebarTitle: "Storage overview"
 description: "Choose storage authorities for committed sessions, in-progress checkpoints, media, and application data."
 ---
 
-Harnest keeps committed session state separate from private in-progress execution state. It discovers storage factories across root and Runtime Plugin extension files, then assembles one typed registry. Every application resolves exactly one session store and one checkpointer, even when both roles share the same backend object.
+Harnest keeps committed session state separate from private in-progress execution state. It discovers storage factories across root and Harnest Extension extension files, then assembles one typed registry. Every application resolves exactly one session store and one checkpointer, even when both roles share the same backend object.
 
 | Role | Holds | Agent access | Guide |
 |---|---|---|---|
@@ -27,7 +27,7 @@ Put a shared connection in `lib/`, then declare each responsibility in its own e
     state = PostgresStore(os.environ["DATABASE_URL"])
     ```
   </Tab>
-  <Tab title="extensions/sessions.py">
+  <Tab title="lifecycle/sessions.py">
     ```python
     from harnest.lib.state import state
     from harnest.lifecycle import lifecycle
@@ -40,7 +40,7 @@ Put a shared connection in `lib/`, then declare each responsibility in its own e
         return state
     ```
   </Tab>
-  <Tab title="extensions/checkpoints.py">
+  <Tab title="lifecycle/checkpoints.py">
     ```python
     from harnest.lib.state import state
     from harnest.lifecycle import lifecycle

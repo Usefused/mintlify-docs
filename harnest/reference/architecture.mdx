@@ -62,7 +62,7 @@ The manifest records the framework, mode, versions, and source digest. The runti
 
 ## Filesystem composition
 
-Harnest uses location to discover capabilities. Public filenames define resource identity.
+Harnest uses location to discover capabilities. Public filenames define Python resource identity; Agent Plugins use the `name` in `plugin.json`.
 
 | Source | Discovered as |
 |---|---|
@@ -71,15 +71,15 @@ Harnest uses location to discover capabilities. Public filenames define resource
 | `tasks/*.py` | Queued application tasks |
 | `subagents/` | SubAgents |
 | `mcp/*.py` | MCP connections |
-| Manifest-less `plugins/<name>/` | MCP-and-skill Agent Plugins |
-| `plugins/<name>/plugin.yaml` | Same-process Runtime Plugins |
+| `plugins/<folder>/plugin.json` | Agent Plugins 1.0 packages with optional skills and MCP servers |
+| `extensions/<name>/extension.yaml` | Same-process Harnest Extensions |
 | `skills/` | Agent Skills |
-| `extensions/**/*.py` | Lifecycle behavior |
+| `lifecycle/**/*.py` | Lifecycle behavior |
 | `models/` | Pydantic contracts |
 | `lib/` | Shared Python |
 | `evals/`, `tests/` | Tests and evals |
 
-Optional directories may be absent. Invalid or duplicate resources fail compilation.
+Optional directories may be absent. Invalid or duplicate authored resources fail compilation. Portable Agent Plugins use component-level diagnostics so a bad skill or MCP entry does not disable valid siblings.
 
 ## Runtime boundary
 

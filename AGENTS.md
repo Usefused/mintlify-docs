@@ -22,7 +22,7 @@
   explicit in the linked site-header wordmark and on the Harnest overview
   without repeating a byline on every technical page.
 - Use "Agent Skills", "MCP Client", "SubAgents", "Agent Tools", and
-  "Agent Plugins" as Harnest concept names. Mention their source directories
+  "Agent Plugins", "Harnest Extensions", and "Lifecycle" as Harnest concept names. Mention their source directories
   only when the location is relevant to the task.
 
 ## Style preferences

@@ -4,7 +4,7 @@ sidebarTitle: "Overview"
 description: "Add application resources, invocation hooks, output policy, and native integrations."
 ---
 
-Lifecycle extensions manage behavior around the agent without turning that behavior into tools.
+Lifecycle hooks and resource factories manage behavior around the agent without turning that behavior into tools. Author them in root `lifecycle/`, or package reusable functionality as a [Harnest Extension](/harnest/build/extensions) with its own `lifecycle/` folder.
 
 | Need | Use |
 |---|---|
@@ -18,9 +18,9 @@ Lifecycle extensions manage behavior around the agent without turning that behav
 | Store session-owned media | Asset store |
 | Authenticate or resolve credentials | Security factory |
 | Export traces or logs | Telemetry exporter |
-| Package reusable SDK and lifecycle behavior | Runtime Plugin |
+| Package reusable SDK and lifecycle behavior | Harnest Extension |
 
-Lifecycle is root-owned. SubAgents cannot add private lifecycle extensions.
+Lifecycle is root-owned. SubAgents cannot add private lifecycle hooks and factories.
 
 <CardGroup cols={2}>
   <Card title="Application resources" icon="boxes-stacked" href="/harnest/runtime/lifecycle/application-resources">
@@ -35,7 +35,7 @@ Lifecycle is root-owned. SubAgents cannot add private lifecycle extensions.
   <Card title="Native integrations" icon="code" href="/harnest/runtime/lifecycle/native-integrations">
     Add ADK plugins or LangGraph middleware when portable hooks are not enough.
   </Card>
-  <Card title="Runtime plugins" icon="boxes-stacked" href="/harnest/build/runtime-plugins">
+  <Card title="Harnest Extensions" icon="boxes-stacked" href="/harnest/build/extensions">
     Package typed SDK access and declared runtime contributions.
   </Card>
 </CardGroup>
@@ -50,4 +50,4 @@ Lifecycle is root-owned. SubAgents cannot add private lifecycle extensions.
 | Logs, traces, and audit events | [Telemetry](/harnest/runtime/telemetry) |
 | Application-specific HTTP contracts | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
 | Typed media input and output | [Accept multimodal data](/harnest/build/models-and-libraries/typed-multimodal-contracts) |
-| Decorator signatures and cardinality | [Runtime extension reference](/harnest/reference/runtime-extensions) |
+| Decorator signatures and cardinality | [Lifecycle reference](/harnest/reference/lifecycle) |

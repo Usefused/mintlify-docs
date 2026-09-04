@@ -85,10 +85,10 @@ Compiled directories are reproducible output. Do not edit or commit them.
 | Source | Compile behavior |
 |---|---|
 | Root `pyproject.toml` | Resolves application dependencies |
-| Runtime Plugin `pyproject.toml` | Joins the same dependency solve and lock |
+| Harnest Extension `pyproject.toml` | Joins the same dependency solve and lock |
 | Public `@task` | Adds pinned Procrastinate support |
 
-Harnest resolves the complete environment before importing the agent or its Runtime Plugins. Use `harnest env sync AGENT_DIR --frozen` in CI to reject lock drift.
+Harnest resolves the complete environment before importing the agent or its Harnest Extensions. Use `harnest env sync AGENT_DIR --frozen` in CI to reject lock drift.
 
 ## CI
 

@@ -31,7 +31,7 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     Server defaults work without extra configuration. Add only the settings you want to change under `server:` in `config.yaml`. Set `server.live: true` to enable WebSocket connections on the same HTTP host and port; see [Server configuration](/harnest/runtime/serving/server-configuration).
 
-    Files beginning with `_` are ignored guides, not enabled capabilities. Replace them with the convention shown inside each guide when you need that feature. `extensions/storage.py` is active and supplies the default in-memory session and checkpoint storage.
+    Files beginning with `_` are ignored guides, not enabled capabilities. Replace them with the convention shown inside each guide when you need that feature. `lifecycle/storage.py` is active and supplies the default in-memory session and checkpoint storage.
 
     <Note>
       `harnest init` accepts a new directory or an existing empty directory. It refuses a non-empty directory so it cannot overwrite an existing project.
@@ -42,7 +42,7 @@ Create a managed agent, prepare its isolated environment, and run the generated 
     harnest env sync support-agent
     ```
 
-    Synchronization creates `uv.lock` and the generated `.harnest/` environment. Commit `uv.lock`; do not edit or commit `.harnest/`.
+    Synchronization creates `uv.lock`, records the exact resolved framework version in `harnest.lock`, and creates the generated `.harnest/` environment. Commit both lockfiles; do not edit or commit `.harnest/`.
   </Step>
   <Step title="Run the offline tests">
     ```bash
@@ -61,12 +61,12 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 | `agent-card.yaml` | Public identity, interfaces, and advertised capabilities |
 | `pyproject.toml` | Authored dependencies; `harnest env sync` then creates `uv.lock` |
 | `lib/` and `models/` | Reusable Python and Pydantic contracts |
-| `tools/`, `tasks/`, and `extensions/` | Folder-discovered capabilities and runtime behavior |
+| `tools/`, `tasks/`, and `lifecycle/` | Folder-discovered capabilities and runtime behavior |
 | `tests/` | Offline and optional live checks |
 
-With `--example` in managed mode, Harnest adds `_example.py` templates to guide-only Python folders: `lib/`, `models/`, `tools/`, `tasks/`, `cron/`, `subagents/`, `mcp/`, `sandbox/`, `tests/unit/`, and `tests/smoke/`. It does not add another example to `extensions/`, which already contains working storage code, or replace `agent.py`.
+With `--example` in managed mode, Harnest adds `_example.py` templates to guide-only Python folders: `lib/`, `models/`, `tools/`, `tasks/`, `cron/`, `subagents/`, `mcp/`, `sandbox/`, `tests/unit/`, and `tests/smoke/`. It does not add another example to `lifecycle/`, which already contains working storage code, or replace `agent.py`.
 
-Skills, plugins, and evals retain their required formats under ignored paths: `skills/_example/SKILL.md`, `plugins/_example/` for a RuntimePlugin, `plugins/_example_agent/` for an MCP-plus-skills Agent Plugin, and `evals/_example.evalset.json`. Both managed frameworks receive the templates; framework-specific samples identify their restrictions.
+Skills, extensions, plugins, and evals retain their required formats under ignored paths: `skills/_example/SKILL.md`, `extensions/_example/` for a Harnest Extension, `plugins/_example_agent/` for an Agent Plugins 1.0 package with `plugin.json`, and `evals/_example.evalset.json`. Both managed frameworks receive the templates; framework-specific samples identify their restrictions. The default `lifecycle/storage.py` already contains working code and needs no extra sample.
 
 Copy or rename only the samples you want to activate. Each Python template names its required destination and dependencies. For example, copy `tools/_example.py` to `tools/echo.py`; activate `tasks/prepare_report.py` before copying the cron sample to `cron/daily_report.py`. The native-format samples have activation instructions in their folder guides. Until then, the samples are not discovered or executed.
 
@@ -77,5 +77,5 @@ Advanced mode keeps native framework wiring in `agent.py` and adds only the exam
 </Note>
 
 <Card title="Understand the generated project" icon="folder-tree" href="/harnest/build/agent-concepts">
-  See how Harnest organizes agents, tools, SubAgents, MCP clients, plugins, skills, lifecycle extensions, and tests.
+  See how Harnest organizes agents, tools, SubAgents, MCP clients, plugins, skills, lifecycle hooks and factories, and tests.
 </Card>

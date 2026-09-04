@@ -109,48 +109,55 @@ Names must be Python-style ASCII identifiers, at most 47 characters: start with 
 The root `sandbox/` catalog is available to all agents in the same project, including folder-owned, flat-file, graph, and code-defined SubAgents. Each agent must still declare its own `sandboxes` list: a parent's assignment never grants access to a child. A folder-owned SubAgent can add names in its own `sandbox/`; those names are local to that scope and its descendants and cannot duplicate an ancestor's names.
 
 <Note>
-  Explicit legacy `Agent(sandbox=...)` remains supported for one directly supplied sandbox, but cannot be combined with `sandboxes`. An existing `sandbox/sandbox.py` now declares a sandbox named `sandbox`; add `sandboxes=["sandbox"]` to each allowed agent. The file is no longer attached automatically.
+  `Agent(sandbox=...)` has been removed. Put each provider in `sandbox/<name>.py`, assign `sandboxes=["<name>"]` to every allowed agent, and call `context.sandboxes["<name>"]` from an authored tool. A single sandbox uses the same one-element array.
 </Note>
 
-### Container properties
+### Container scopes and budgets
 
-| Property | Container backend |
+The built-in Docker provider works with both frameworks and does not use ADK's sandbox executor. Defaults provide a fresh container per execution, disabled networking, a non-root user, a read-only root filesystem, and bounded writable `/tmp` scratch space.
+
+```python sandbox/calculations.py
+from harnest.sandbox import Sandbox, SandboxBudget
+
+calculations = Sandbox.container(
+    image="python:3.12-slim",
+    scope="execution",
+    budget=SandboxBudget(
+        cpu=1.0,
+        memory_bytes=512 * 1024 * 1024,
+        pids=64,
+        scratch_bytes=64 * 1024 * 1024,
+    ),
+    timeout_seconds=300,
+    max_output_bytes=1_048_576,
+)
+```
+
+| Setting | Default and behavior |
 |---|---|
-| Frameworks | Managed ADK and LangGraph |
-| Network | Off by default |
-| Runtime | Docker |
-| Required setting | Exactly one of `image` or `docker_path` |
-| `timeout_seconds` | Positive integer; defaults to `300`; deadline includes queue waiting |
-| `max_output_bytes` | Positive combined stdout/stderr byte budget; defaults to `1_048_576` (1 MiB) |
+| `scope` | `"execution"`: remove the container after every call |
+| `scope="invocation"` | Reuse only for the same agent, user, session, and invocation |
+| `scope="session"` | Reuse only for the same agent, user, and session |
+| `max_scopes` | `8`: evict the least recently used retained container before exceeding this cap |
+| `budget.cpu` | `1.0` CPU, enforced by Docker |
+| `budget.memory_bytes` | `512 MiB`, with no additional swap allowance |
+| `budget.pids` | `64` processes |
+| `budget.scratch_bytes` | `64 MiB` for writable `/tmp`; the root filesystem is read-only |
+| `timeout_seconds` | `300`; includes queue waiting and active execution |
+| `max_output_bytes` | `1 MiB` combined stdout/stderr, bounded while streaming |
+| `network` | `False`; uses Docker's `none` network |
+| `image` / `docker_path` | Supply exactly one; custom images must provide `python3` and must not declare volumes |
 | `base_url` | Optional Docker daemon URL |
-| `metadata` | Optional JSON provider properties, forwarded to execution requests |
-| Creation | Lazy native executor, reused between executions |
-| Cleanup | Stop processes after success, retaining files; remove containers after aborts, failed startup, or application shutdown |
-| Session and resource policy | No Harnest-added per-session filesystem isolation or CPU/memory limits |
 
-Harnest uses ADK's actual `ContainerCodeExecutor` for native Python execution and container configuration. A host-side transport guard enforces deadlines, cancellation, and output limits. Executed code cannot disable this watchdog by signaling its in-container supervisor, and output is bounded while streaming rather than after the SDK buffers it.
+Retained scopes reuse container identity, not durable files or live Python processes. Every call stops all processes, including detached children, and clears scratch files. Containers are scoped caches and may be evicted; use application storage for persistence. Invocation/session scopes reject requests without the full required identity. A session ID alone never permits reuse across users or agents.
 
-After each successful call, Harnest stops all container processes, including detached children. The next call restarts the same container and preserves its writable filesystem. A deadline violation, output overflow, or active cancellation discards the container and its files. The next call creates a replacement only after removal is confirmed. Failed startup also cleans up its container. If Docker cannot confirm cleanup, execution fails closed instead of starting more containers.
+Harnest starts Docker only on execution. Timeouts, cancellation, and output overflow remove the owned container. Replacement waits for confirmed cleanup; ambiguous creation or failed cleanup blocks further admission until ownership is reconciled. Application shutdown closes created providers and removes all retained containers.
 
-At application shutdown, Harnest closes providers that were actually created; it does not start unused providers just to close them. The built-in backend removes its owned container. Custom providers should implement `close()` or async `aclose()` to release their resources, and wrappers must forward cleanup to backends they own.
+Initial image preparation and Docker control-plane calls use SDK transport timeouts. Harnest checks admission and the execution deadline again when those calls return. An unavailable Docker daemon cannot prove that a container stopped.
 
-The output budget applies to program stdout and stderr. Harnest or the native executor may add a short failure diagnostic after terminating execution.
+The built-in provider does not support input-file transfer or output artifacts. Use stdout or a custom provider with an explicit file contract. Docker shares its host kernel; use a stronger isolation provider if that boundary is insufficient for your workload.
 
-Initial image preparation and Docker control-plane startup use SDK transport timeouts. Harnest rechecks the execution deadline and invocation validity when those operations return; it does not forcibly interrupt image builds or Docker startup requests.
-
-If a create request fails ambiguously before Docker returns a container ID, Harnest blocks automatic retries. An operator must reconcile the daemon's resources before recreating the backend.
-
-<Warning>
-  Harnest does not add per-session filesystem isolation or CPU/memory limits here. The container is reused, so files and other container state may persist and be shared between executions, users, and sessions. Configure a provider with explicit tenant isolation and resource policy if your application requires those guarantees.
-</Warning>
-
-The built-in container backend does not support input-file transfer or return files as artifacts; use stdout for results or implement a provider with file support. Docker execution also depends on the host kernel and is not a guarantee against every hostile-code escape.
-
-### Native execution options
-
-Use `options` for supported native executor properties: `error_retry_attempts`, `code_block_delimiters`, and `execution_result_delimiters`. `stateful` and `optimize_data_file` may only be `False`. Harnest rejects other options so they cannot override explicitly declared container settings.
-
-Code-block delimiters and code-executor retry settings affect only the legacy ADK `Agent(sandbox=...)` code-execution loop. With named capabilities, your authored tool checks results and decides whether to retry.
+`options` retains the allowlisted parsing/retry fields only for callers explicitly constructing a native ADK adapter with `to_adk_executor()`. Those fields do not change Docker limits or add model tools to named sandbox assignments. Your authored tool decides whether to retry.
 
 ## Framework behavior
 
@@ -159,9 +166,9 @@ Code-block delimiters and code-executor retry settings affect only the legacy AD
 | ADK | Your authored Agent Tool uses ADK's native tool loop | `SandboxResult` returned to your tool |
 | LangGraph | Your authored Agent Tool uses LangGraph's native tool loop | `SandboxResult` returned to your tool |
 
-The built-in backend uses ADK's Docker Python executor with the same host-side guard underneath either integration. Queued calls are checked again before execution, so cancelled, expired, or revoked requests cannot start later merely because the queue advances. You keep one authoring API; Harnest adapts it to the selected framework's execution loop.
+The built-in backend uses Harnest's shared Docker provider underneath either integration. Queued calls are checked again before execution, so cancelled, expired, or revoked requests cannot start later merely because the queue advances. You keep one authoring API; Harnest adapts it to the selected framework's execution loop.
 
-Named assignments do not populate ADK's `code_executor` field or create a separate LangGraph execution tool. Explicit legacy `Agent(sandbox=...)` retains ADK's code-execution loop and LangGraph's `harnest_execute_python` tool.
+Named assignments do not populate ADK's `code_executor` field or create an automatic LangGraph execution tool. Both frameworks access the same sandbox contract through authored tools.
 
 `context.sandboxes` is available only during a managed invocation. Looking up an unassigned name raises `ContextResourceError`. Using a handle from a different or ended invocation raises `ContextUnavailableError`; do not cache handles or pass them between agents.
 
@@ -187,7 +194,7 @@ Assign this provider with `sandboxes=["research"]`. `CompanyBackend` represents 
 |---|---|
 | `SandboxRequest` | `code`, `timeout_seconds`, `context`, `input_files`, `execution_id`, `metadata` |
 | `SandboxContext` | Optional `agent_name`, `invocation_id`, `user_id`, and `session_id` |
-| `SandboxResult` | `stdout`, `stderr`, `output_files`, `metadata` |
+| `SandboxResult` | `status`, `exit_code`, `stdout`, `stderr`, `output_files`, `metadata` |
 | `SandboxFile` | `name`, `content` as bytes or base64 text, and `mime_type` |
 
 Import these types from `harnest.sandbox`. Your provider must enforce the requested timeout and its own isolation policy. Invocation identity can be absent when an adapter is called outside the runtime; reject such requests if your provider requires a user or session identity. A revoked managed context fails closed rather than becoming anonymous. File names are transport values, not permission to access host paths.
@@ -195,7 +202,7 @@ Import these types from `harnest.sandbox`. Your provider must enforce the reques
 The built-in Docker guard cannot terminate arbitrary third-party SDK calls. Custom providers remain responsible for stopping active work, bounded output collection, and resource cleanup. Harnest checks invocation validity before admitting their calls.
 
 <Note>
-  Existing factories returning an ADK `BaseCodeExecutor` still work through the explicit legacy `Agent(sandbox=...)` path on ADK. Named sandbox capabilities require the neutral `SandboxBackend` contract on both frameworks. Wrap a native-only provider in that contract before assigning it by name.
+  Named sandbox capabilities require the neutral `SandboxBackend` contract on both frameworks. Wrap a native-only provider in that contract before assigning it by name. The removed `Agent(sandbox=...)` argument is not a migration path.
 </Note>
 
 ### Provider metadata
@@ -264,9 +271,22 @@ For a remote provider, replace the wrapped backend with your SDK's isolated exec
 
 ## Handle failed execution
 
+Check `result.status`, not whether stderr is empty. A program can write warnings to stderr and still succeed, or exit nonzero without an error message.
+
+| Status | Meaning |
+|---|---|
+| `succeeded` | Execution completed successfully |
+| `failed` | Nonzero exit or provider-reported failure |
+| `timed_out` | Execution deadline expired |
+| `output_limit_exceeded` | Combined output exceeded its budget |
+| `cancelled` | Provider-reported cancellation; managed caller cancellation also propagates as an exception |
+
+`exit_code` is the process exit code when available. Custom providers must set failure status explicitly: `SandboxResult(status="failed", exit_code=1, stderr="...")`. The default status is `succeeded`; a nonzero exit code cannot claim success. Sanitized `SandboxExecutionError` also exposes a `status` field.
+
+
 | Failure | Expected behavior and next step |
 |---|---|
-| Python exception | Inspect `result.stderr` in your authored tool and return a useful, safe failure message. A failed execution need not raise a host exception. |
+| Python exception | Inspect `result.status`, `result.exit_code`, and `result.stderr` in your authored tool and return a useful, safe failure message. A failed execution need not raise a host exception. |
 | Name not assigned | `ContextResourceError`: add the intended name to this agent's `sandboxes` list, or correct the lookup. Parent assignments do not grant child access. |
 | Handle used outside its invocation | `ContextUnavailableError`: look up the sandbox inside the current tool call instead of caching a handle. |
 | Deadline or output budget exceeded | Execution stops and its container is discarded. A later call starts with a fresh filesystem after cleanup is confirmed. Increase limits only when the workload requires it. |
@@ -278,13 +298,6 @@ Provider exceptions are exposed as sanitized `SandboxExecutionError`. Diagnose i
 
 ## Security ownership
 
-| Harnest checks | Your provider must enforce |
-|---|---|
-| Explicit per-agent assignments of known sandbox names | Filesystem isolation |
-| Valid export and return type | Network and process policy |
-| No symlinks or duplicate ancestor names | Tenant separation and cleanup |
-| No mixed legacy `sandbox` and named `sandboxes` settings | Credential isolation and concurrency safety |
-| Valid request and metadata shapes; cancellation-aware admission | CPU/memory limits and custom-provider execution termination |
-| Built-in Docker host deadline and streaming output budget | Custom-provider output bounds and deadline enforcement |
+Harnest enforces named agent grants, revocable invocation handles, identity-scoped built-in containers, kernel CPU/memory/process/scratch budgets, host deadlines, bounded output, and failure-safe cleanup. Built-in containers do not mount host paths and reject image-declared volumes.
 
-Filesystem separation, tenant isolation, and CPU/memory policy belong to your provider and deployment configuration. Harnest does not add per-session filesystem isolation or CPU/memory limits to the built-in, custom, or legacy backends. Docker daemon availability is required to confirm termination and cleanup; a timed-out API request alone does not prove work has stopped. `config.yaml` permissions describe deployment intent; they do not replace an enforcing sandbox.
+Custom providers remain responsible for their own tenant separation, filesystem/network policy, resource limits, output bounds, cancellation, and cleanup. Harnest validates their requests and results and checks admission; it cannot enforce Docker limits on an arbitrary remote SDK. Deployment permissions do not replace an enforcing provider.

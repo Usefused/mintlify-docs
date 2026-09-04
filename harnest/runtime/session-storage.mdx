@@ -6,9 +6,9 @@ description: "Persist committed conversation history and session-scoped applicat
 
 The session store owns committed multi-turn conversation history and JSON-safe application state. It does not own an active framework run; [checkpoints](/harnest/runtime/checkpoints) handle that separately.
 
-Every application resolves exactly one session factory across its root and Runtime Plugin extensions. This example assumes the shared `PostgresStore` from `lib/state.py` in the [storage overview](/harnest/runtime/checkpoints-and-storage):
+Every application resolves exactly one session factory across its root and Harnest Extension extensions. This example assumes the shared `PostgresStore` from `lib/state.py` in the [storage overview](/harnest/runtime/checkpoints-and-storage):
 
-```python extensions/sessions.py
+```python lifecycle/sessions.py
 from harnest.lib.state import state
 from harnest.lifecycle import lifecycle
 
@@ -57,7 +57,7 @@ Session writes are scoped to the authenticated user and session. They emit paylo
 
 Custom storage is for business data that needs a typed repository. It is not a session store or framework checkpointer.
 
-```python extensions/users.py
+```python lifecycle/users.py
 import os
 
 from harnest.lifecycle import lifecycle
@@ -89,7 +89,7 @@ A custom store must provide async `start()` and `close()` methods. Prefer domain
 
 Declare one or more named stores for session-owned media:
 
-```python extensions/assets.py
+```python lifecycle/assets.py
 from harnest.lifecycle import lifecycle
 from harnest.lib.assets import S3AssetStorage
 

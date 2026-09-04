@@ -22,7 +22,7 @@ Harnest recompiles each stable source change into a fresh artifact. It never mod
     Dependency changes synchronize a fingerprinted environment first. Harnest then validates and compiles a new immutable artifact while the current server remains available.
   </Step>
   <Step title="Replace the process">
-    After compilation succeeds, Harnest asks the current process to shut down gracefully and starts the new generation. Lifecycle resources, Runtime Plugins, MCP Clients, and storage connections close and reopen through their normal hooks.
+    After compilation succeeds, Harnest asks the current process to shut down gracefully and starts the new generation. Lifecycle resources, Harnest Extensions, MCP Clients, and storage connections close and reopen through their normal hooks.
   </Step>
 </Steps>
 

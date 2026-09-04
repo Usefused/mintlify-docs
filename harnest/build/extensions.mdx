@@ -1,0 +1,46 @@
+---
+title: "Harnest Extensions"
+sidebarTitle: "Overview"
+description: "Follow the Harnest Extension process from boundary selection through authoring, lifecycle integration, and application use."
+---
+
+A Harnest Extension packages reusable application functionality. It runs in the agent process and can contribute declared lifecycle, context, storage, HTTP, content, and telemetry capabilities. It does not need to connect to an external service.
+
+Building one is a three-part process: define the extension's application-owned object, declare how it joins Harnest lifecycle, then consume its bounded API from agent code.
+
+<Steps>
+  <Step title="Create the extension">
+    Add `extensions/<name>/extension.yaml`, export the singleton from `extension.py`, and declare any SDK dependencies.
+
+    <Card title="Create a Harnest Extension" icon="puzzle-piece" href="/harnest/build/extensions/create">
+      Build the folder, manifest, typed context, and shared dependency contract.
+    </Card>
+  </Step>
+  <Step title="Integrate lifecycle behavior">
+    Own application startup and shutdown in the extension class. Put declared Harnest hooks and factories under the extension's `lifecycle/` directory.
+
+    <Card title="Use lifecycle in an extension" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
+      Declare capabilities, ordering, hooks, storage, telemetry, and auditing.
+    </Card>
+  </Step>
+  <Step title="Use the extension from the agent">
+    Import its compiler-owned namespace or resolve its typed invocation context. No central registry is required.
+
+    <Card title="Use a Harnest Extension" icon="plug" href="/harnest/build/extensions/use">
+      Discover local extensions, call their public API, and understand PyPI search behavior.
+    </Card>
+  </Step>
+</Steps>
+
+## Choose the right extension boundary
+
+| Need | Use |
+|---|---|
+| Reuse portable skills, MCP servers, or both | [Agent Plugin](/harnest/build/agent-plugins) |
+| Wrap an SDK in typed, invocation-scoped Python | Harnest Extension |
+| Apply behavior to one application without a reusable extension API | Root `lifecycle/` hooks and factories |
+| Run work outside the agent process | Harnest Extension backed by an external service |
+
+<Warning>
+  Harnest Extensions share the root interpreter, event loop, dependency solve, and lock. They do not receive extension-private environments, and they do not turn an external job into a resumable Python process.
+</Warning>

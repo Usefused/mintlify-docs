@@ -6,6 +6,11 @@
     "primary": "#040404"
   },
   "redirects": [
+{"source":"/harnest/build/runtime-plugins","destination":"/harnest/build/extensions"},
+{"source":"/harnest/build/runtime-plugins/create","destination":"/harnest/build/extensions/create"},
+{"source":"/harnest/build/runtime-plugins/lifecycle","destination":"/harnest/build/extensions/lifecycle"},
+{"source":"/harnest/build/runtime-plugins/use","destination":"/harnest/build/extensions/use"},
+{"source":"/harnest/reference/runtime-extensions","destination":"/harnest/reference/lifecycle"},
     {
       "source": "/harnest",
       "destination": "/harnest/overview"
@@ -181,13 +186,13 @@
                   "harnest/build/mcp-client",
                   "harnest/build/agent-plugins",
                   {
-                    "group": "Runtime Plugins",
+                    "group": "Harnest Extensions",
                     "expanded": false,
                     "pages": [
-                      "harnest/build/runtime-plugins",
-                      "harnest/build/runtime-plugins/create",
-                      "harnest/build/runtime-plugins/lifecycle",
-                      "harnest/build/runtime-plugins/use"
+                      "harnest/build/extensions",
+                      "harnest/build/extensions/create",
+                      "harnest/build/extensions/lifecycle",
+                      "harnest/build/extensions/use"
                     ]
                   },
                   {
@@ -289,7 +294,7 @@
                 "expanded": false,
                 "pages": [
                   "harnest/reference/architecture",
-                  "harnest/reference/runtime-extensions",
+                  "harnest/reference/lifecycle",
                   "harnest/reference/installation-and-releases",
                   "harnest/reference/development-standards"
                 ]

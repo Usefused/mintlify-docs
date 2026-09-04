@@ -10,13 +10,13 @@ Use durable execution when a tool waits longer than one request or process lifet
 |---|---|
 | Short in-process operation | Ordinary `@tool` |
 | Scheduled or retryable Python work | [Create a Task](/harnest/build/queued-tasks) |
-| External workflow or job service | [Runtime Plugin](/harnest/build/runtime-plugins) |
+| External workflow or job service | [Harnest Extension](/harnest/build/extensions) |
 | Either wait must resume the agent | Async `@tool(durable=True)` |
 
 ## Suspend a tool
 
 ```python
-from harnest.plugins.hatchet import plugin as hatchet
+from harnest.extensions.hatchet import extension as hatchet
 from harnest.tool import tool
 
 
@@ -40,7 +40,7 @@ An unfinished plugin or task wait from a non-durable tool fails before Harnest p
     Harnest stores an opaque continuation, commits the framework checkpoint, then marks the wait resumable.
   </Step>
   <Step title="Complete externally">
-    A task worker or Runtime Plugin validates and persists the result. Provider and checkpoint completion may arrive in either order.
+    A task worker or Harnest Extension validates and persists the result. Provider and checkpoint completion may arrive in either order.
   </Step>
   <Step title="Claim and resume">
     One replica atomically claims the wait, resumes the framework, and commits the transcript.

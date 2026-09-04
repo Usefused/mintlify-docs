@@ -8,9 +8,9 @@ Add custom endpoints when your application needs a business-specific HTTP contra
 
 ## Add an endpoint
 
-Create a synchronous route factory in the root agent's `extensions/` directory. Harnest injects an `AgentInvoker` and mounts the returned FastAPI router.
+Create a synchronous route factory in the root agent's `lifecycle/` directory. Harnest injects an `AgentInvoker` and mounts the returned FastAPI router.
 
-```python extensions/http.py
+```python lifecycle/http.py
 from fastapi import APIRouter, Request
 from harnest import AgentInvoker, lifecycle
 
@@ -82,7 +82,7 @@ Keep business dimensions such as site origin, workspace, inbox, or project out
 of the neutral `/sessions` contract. Add an authenticated custom endpoint and
 query an application-owned index instead:
 
-```python extensions/http.py
+```python lifecycle/http.py
 from fastapi import APIRouter, Request
 from harnest import AgentInvoker, lifecycle
 from harnest.runtime_auth import principal_for

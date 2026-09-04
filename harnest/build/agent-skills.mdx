@@ -34,7 +34,7 @@ Harnest ranks filesystem skills with deterministic fuzzy matching over names and
 
 A root skill belongs to the root agent. A folder SubAgent can own private skills; its parent does not inherit them. Skills do not add tools or MCP connections.
 
-Use a [plugin](/harnest/build/agent-plugins) when a reusable skill must travel with the MCP connection that supplies its operations. A non-empty plugin requires both the MCP and skill halves.
+Use an [Agent Plugin](/harnest/build/agent-plugins) to distribute reusable skills, optionally with the MCP servers that supply their operations. Skills-only plugins are supported.
 
 ## Dynamic sources
 
@@ -48,9 +48,9 @@ class WexSkillSource(SkillSource):
     async def load(self, skill_id, context, *, version=None): ...
 ```
 
-Register it once in `extensions/`:
+Register it once in `lifecycle/`:
 
-```python extensions/skills.py
+```python lifecycle/skills.py
 from harnest.lib.wex import WexSkillSource
 from harnest.lifecycle import lifecycle
 

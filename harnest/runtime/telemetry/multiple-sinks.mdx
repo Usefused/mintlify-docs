@@ -6,7 +6,7 @@ description: "Fan out Harnest traces and logs to multiple OTLP destinations."
 
 Create one `@lifecycle.telemetry_exporter` factory for each destination:
 
-```python extensions/telemetry.py
+```python lifecycle/telemetry.py
 import os
 
 from harnest import TelemetryExporter, lifecycle

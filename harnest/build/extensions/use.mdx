@@ -1,0 +1,64 @@
+---
+title: "Use a Harnest Extension"
+sidebarTitle: "Use an extension"
+description: "Discover a Harnest Extension, consume its compiler-owned namespace, and keep access invocation-scoped."
+---
+
+A project-local Harnest Extension is discovered from `extensions/<name>/extension.yaml`. You do not add it to a central registry or manually attach it to the root agent.
+
+After compilation, Harnest exposes the extension module as `harnest.extensions.<name>`. Import the singleton from a discovered Agent Tool and call its bounded API:
+
+```python tools/query_warehouse.py
+from harnest.extensions.warehouse import extension as warehouse
+from harnest.tool import tool
+
+
+@tool
+async def query_warehouse(statement: str) -> list[dict]:
+    """Query the configured warehouse through its Harnest Extension."""
+
+    return await warehouse.query(statement)
+```
+
+The call runs inside a managed invocation, so `warehouse.context` resolves the typed `WarehouseContext` created for that request. Retaining it after the invocation ends fails closed.
+
+## Resolve the typed context explicitly
+
+Trusted application code can ask Harnest for the same invocation-scoped view:
+
+```python lib/warehouse_service.py
+from harnest import context
+from harnest.extensions.warehouse import WarehouseContext
+
+
+async def run_query(statement: str) -> list[dict]:
+    """Resolve the warehouse capability without exposing its SDK client."""
+
+    warehouse = context.extensions("warehouse", WarehouseContext)
+    return await warehouse.query(statement)
+```
+
+Keep application clients and connection pools private on the singleton. Expose domain operations through the typed context instead of returning the raw SDK object.
+
+## Find published extensions
+
+Search public PyPI for compatible `harnest-extension-*` packages:
+
+```bash
+harnest extensions search warehouse
+```
+
+Search verifies package naming, one `harnest.extensions` entry point, the bundled `extension.yaml` and `extension.py`, release identity, and the published wheel digest without importing package code. `official` means Fused controls and explicitly recognizes that package name; `community` means only that the wheel satisfies the structural contract. Neither label is a security review.
+
+<Warning>
+  Search does not install an extension. The current compiler discovers Harnest Extensions from the project-local `extensions/<name>/` folder. Merely adding or installing a PyPI package does not register its entry point as a project extension. Obtain and review the publisher's source bundle, place it under the local `extensions/` directory, then run `harnest env sync` before compiling.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Create your own extension" icon="puzzle-piece" href="/harnest/build/extensions/create">
+    Define the local manifest, singleton, typed context, and dependencies.
+  </Card>
+  <Card title="Use extension lifecycle" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
+    Add only the hooks and factories declared by the manifest.
+  </Card>
+</CardGroup>

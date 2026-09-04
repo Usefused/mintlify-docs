@@ -54,7 +54,7 @@ export const HarnestProjectExplorer = () => {
   {
     "label": "harnest.lock",
     "path": "harnest.lock",
-    "description": "The project schema version. Commit this file; use harnest upgrade for schema migrations.",
+    "description": "The project schema and resolved framework version. Environment sync adds the exact framework pin. Commit this file; schema upgrades preserve that pin.",
     "code": "apiVersion: harnest.dev/v1alpha1\nkind: ProjectLock\nprojectSchema: 3",
     "language": "yaml",
     "optional": false,
@@ -132,9 +132,9 @@ export const HarnestProjectExplorer = () => {
     "example": true
   },
   {
-    "label": "extensions/",
-    "path": "extensions/storage.py",
-    "description": "Included and active: the generated agent uses this provider for session and checkpoint storage. Keep it unless you replace those storage bindings. Additional lifecycle extensions are optional.",
+    "label": "lifecycle/",
+    "path": "lifecycle/storage.py",
+    "description": "Included and active: the generated agent uses this provider for session and checkpoint storage. Keep it unless you replace those bindings. Additional lifecycle hooks and factories are optional.",
     "code": "from harnest.lifecycle import lifecycle\nfrom harnest.store import MemoryStore\n\n\n@lifecycle.storage.sessions\n@lifecycle.storage.checkpoints\ndef state_store():\n    \"\"\"Share one lifecycle-owned store without placing it in lib.\"\"\"\n    return MemoryStore()",
     "language": "python",
     "optional": false,
@@ -142,13 +142,23 @@ export const HarnestProjectExplorer = () => {
     "example": false
   },
   {
-    "label": "plugins/",
-    "path": "plugins/starter_runtime/plugin.yaml",
-    "description": "Optional reusable plugins. This RuntimePlugin manifest needs a sibling plugin.py exporting its plugin singleton. Agent Plugins that combine MCP clients and skills do not use this manifest.",
-    "code": "apiVersion: harnest.dev/v1alpha1\nkind: RuntimePlugin\nmetadata:\n  name: starter_runtime\n  version: 0.1.0\nruntime:\n  entrypoint: plugin:plugin\ncapabilities: []",
+    "label": "extensions/",
+    "path": "extensions/starter_runtime/extension.yaml",
+    "description": "Optional Harnest Extensions package reusable application functionality. Declare extension.yaml, export the singleton from extension.py, and put package-owned hooks in lifecycle/. Agent Plugins live separately in plugins/.",
+    "code": "apiVersion: harnest.dev/v1alpha1\nkind: Extension\nmetadata:\n  name: starter_runtime\n  version: 0.1.0\nruntime:\n  entrypoint: extension:extension\ncapabilities: []",
     "language": "yaml",
     "optional": true,
-    "href": "/harnest/build/runtime-plugins/create",
+    "href": "/harnest/build/extensions/create",
+    "example": true
+  },
+  {
+    "label": "plugins/",
+    "path": "plugins/warehouse/plugin.json",
+    "description": "Agent Plugins 1.0 packages contain plugin.json and optional skills/ and mcp.json components. Harnest discovers them without Python registration. Application lifecycle behavior belongs in lifecycle/ or a Harnest Extension.",
+    "code": "{\n  \"$schema\": \"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json\",\n  \"name\": \"warehouse\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Query the shared warehouse\"\n}",
+    "language": "json",
+    "optional": true,
+    "href": "/harnest/build/agent-plugins",
     "example": true
   },
   {
