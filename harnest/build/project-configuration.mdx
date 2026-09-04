@@ -4,12 +4,11 @@ sidebarTitle: "Project config"
 description: "Configure the agent, framework, server, discovery metadata, and dependencies."
 ---
 
-The root files separate agent behavior, local serving, public identity, and dependency ownership.
+Keep project and server settings together in `config.yaml`. The Agent Card owns public identity, and `pyproject.toml` owns dependencies.
 
 | File | Owns | Commit it? |
 |---|---|---:|
-| `config.yaml` | Framework and deployment intent | Yes |
-| `server.yaml` | Standalone server settings | Yes |
+| `config.yaml` | Framework, deployment intent, and optional `server` overrides | Yes |
 | `agent-card.yaml` | Public agent identity and capabilities | Yes |
 | `pyproject.toml` | Agent-owned Python dependencies | Yes |
 | `uv.lock` | Reproducible project environment | Yes |
@@ -142,9 +141,19 @@ Vertex Gen AI evaluation metrics are a separate Google service, not calls to the
 
 `OPENAI_API_KEY` does not authenticate these native Google services. Keep model and metric selection in source or `test_config.json`; keep every credential in the process environment or deployment secret mapping.
 
-## `server.yaml`
+## Server settings in `config.yaml`
 
-`server.yaml` controls the standalone bind, remote-bind consent, request timeout, concurrency, request-size limit, and playground. Exact `${NAME}` values are resolved and type-checked at startup. Authentication, persistence, TLS, secrets, and scaling do not belong in this file. See [Server configuration](/harnest/runtime/serving/server-configuration).
+The optional root `server:` section controls the standalone bind, remote-bind consent, request timeout, concurrency, request-size limit, and playground. Omit the section to use all defaults, or specify only what you want to change:
+
+```yaml config.yaml
+# Alongside apiVersion, kind, metadata, and spec:
+server:
+  live: true
+  http:
+    port: 9090
+```
+
+This example enables WebSockets on the HTTP listener and changes its port. Omit `live` for HTTP/SSE only. Exact `${NAME}` values are resolved and type-checked at startup. Authentication, persistence, TLS, secrets, and scaling do not belong in this section. `spec.resources` and `spec.scaling` remain deployment intent; `server` controls the standalone process. See [Server configuration](/harnest/runtime/serving/server-configuration) for defaults and legacy `server.yaml` migration.
 
 ## `agent-card.yaml`
 

@@ -32,7 +32,7 @@ harnest serve support-agent --reload
 </CardGroup>
 
 <Note>
-  Set the bind, limits, timeout, concurrency, and playground in `server.yaml`.
+  Override the bind, limits, timeout, concurrency, or playground under the optional `server:` section in `config.yaml`. Omit it to use the defaults.
 </Note>
 
 See [development reload](/harnest/runtime/serving/development-reload) for restart behavior and [Serving agents](/harnest/runtime/serving) for the HTTP, SSE, WebSocket, approval, authentication, storage, and production boundaries.

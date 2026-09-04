@@ -74,7 +74,7 @@ Sessions outlive the command. Resume one with `--session <id>`; the identity and
 | `--strict` | Rejects the import when any warning or error diagnostic is raised | `fused-cli import plan ./api.json --name X --slug x --strict` |
 | `--public` | Publishes a new service and its first version, or stages a new version of an existing service as public | `fused-cli import plan ./api.json --name X --slug x --public` |
 | `--category` | Category for a new service | `fused-cli import plan ./api.json --name X --slug x --category payments` |
-| `--json` | Returns the raw plan response for CI or an agent | `fused-cli import plan ./api.json --name X --slug x --no-input --json` |
+| `--json` | Returns the raw plan response and still saves the receipt for `import apply` | `fused-cli import plan ./api.json --name X --slug x --no-input --json` |
 | `--receipt-out` | Writes the plan receipt to a chosen path | `fused-cli import plan ./api.json --name X --slug x --receipt-out ./ci/import.json` |
 
 ### `import apply`

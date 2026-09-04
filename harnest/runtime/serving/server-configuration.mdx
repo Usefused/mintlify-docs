@@ -1,43 +1,72 @@
 ---
 title: "Server configuration"
 sidebarTitle: "Server config"
-description: "Configure the standalone server bind, limits, concurrency, timeout, and playground."
+description: "Override standalone server defaults in your project config."
 ---
 
-The standalone launcher reads `server.yaml` beside the compiled artifact.
+Your agent serves on `127.0.0.1:8080` with the playground enabled by default. You do not need a separate server configuration file.
 
-```yaml
-apiVersion: harnest.dev/v1alpha1
-kind: Server
-http:
-  host: 127.0.0.1
-  port: 8080
-  allowRemote: false
-  requestTimeoutSeconds: 300
-  maxConcurrentRequests: 8
-limits:
-  maxRequestBytes: 10MiB
-playground:
-  enabled: true
+Add a root `server:` section to `config.yaml` only when you want to change a default. Each section and setting is optional:
+
+```yaml config.yaml
+# Alongside apiVersion, kind, metadata, and spec:
+server:
+  http:
+    port: 9090
+  limits:
+    maxRequestBytes: 10MiB
 ```
+
+This changes the port and request-size limit. Every other server setting retains its default.
+
+## Enable WebSockets
+
+Set `live: true` under `server` to enable live WebSocket connections:
+
+```yaml config.yaml
+server:
+  live: true
+```
+
+This enables `WS /live` on the same host and port as HTTP, such as `ws://127.0.0.1:8080/live`. It does not open a second listener or require another port. Use `wss://` when your deployment terminates TLS.
+
+New projects default to `live: false`. HTTP requests and SSE streams remain available. When live is disabled, the server rejects all WebSocket upgrades, including native ADK and custom WebSocket routes. `/agent` omits the live endpoint, and the playground disables its **Live** transport choice.
 
 ## Server properties
 
-| Property | Controls | Default intent |
-|---|---|---|
-| `http.host` | Bind host | Loopback only |
-| `http.port` | Bind port | Local development |
-| `http.allowRemote` | Consent for a non-loopback bind | `false` |
-| `http.requestTimeoutSeconds` | Request timeout | Bounded work |
-| `http.maxConcurrentRequests` | Active in-process requests (`1`–`100000`) | `8`; protect runtime and downstream capacity |
-| `limits.maxRequestBytes` | HTTP body and WebSocket frame size | Bounded memory |
-| `playground.enabled` | Development UI | Enabled locally |
+All property paths below are relative to `server` in `config.yaml`.
 
-Exact `${NAME}` values are type-checked environment references. Partial interpolation and missing or invalid values fail at startup.
+| Property | Controls | Default |
+|---|---|---|
+| `live` | Enable WebSocket connections | `false` |
+| `http.host` | Bind host | `127.0.0.1` |
+| `http.port` | Bind port | `8080` |
+| `http.allowRemote` | Consent for a non-loopback bind | `false` |
+| `http.requestTimeoutSeconds` | Request timeout in seconds | `300` |
+| `http.maxConcurrentRequests` | Active in-process requests (`1`–`100000`) | `8` |
+| `limits.maxRequestBytes` | HTTP body and WebSocket frame size | `1MiB` |
+| `playground.enabled` | Development UI | `true` |
+
+Unknown fields, invalid types, and out-of-range values fail during compilation. Omit a field to inherit its default; `null` does not mean “use the default.”
+
+## Environment references
+
+Use exact `${NAME}` values when a setting comes from the server's startup environment:
+
+```yaml config.yaml
+server:
+  live: ${LIVE_ENABLED}
+  http:
+    port: ${PORT}
+  playground:
+    enabled: ${PLAYGROUND_ENABLED}
+```
+
+Compilation preserves these references. The standalone launcher resolves and type-checks them at startup. Partial interpolation and missing, empty, or invalid values fail. Boolean environment values must be `true` or `false`.
 
 ## Concurrency and throughput
 
-`http.maxConcurrentRequests` limits how many agent requests can execute concurrently in each server process. It is an admission limit, not a requests-per-second rate limit or a throughput promise.
+`server.http.maxConcurrentRequests` limits how many agent requests can execute concurrently in each server process. It is an admission limit, not a requests-per-second rate limit or a throughput promise.
 
 Actual throughput depends on model latency and quotas, Agent Tools, MCP services, storage, CPU, memory, and replica count. Increasing the value permits more active work but can reduce reliability when a downstream dependency is already saturated. Requests beyond available capacity may wait or be rejected by the serving layer.
 
@@ -45,7 +74,7 @@ Choose the value from load tests that use representative agents and production d
 
 ## Configuration boundary
 
-| Put in `server.yaml` | Configure elsewhere |
+| Put in `config.yaml` → `server` | Configure elsewhere |
 |---|---|
 | Bind address | Authentication |
 | Timeout and concurrency | TLS |
@@ -53,8 +82,26 @@ Choose the value from load tests that use representative agents and production d
 | Playground toggle | Durable storage |
 | Local operator settings | Replicas and network policy |
 
+`spec.resources` and `spec.scaling` describe deployment intent. Their timeout and concurrency fields do not override `server.http`: the standalone process uses its own server settings.
+
 <Warning>
   `allowRemote: true` only permits the bind. It does not add authentication, TLS, or network policy.
 </Warning>
 
-Command flags temporarily override operational properties without changing the compiled source contract.
+Explicit serve flags temporarily override server settings.
+
+## Existing projects with `server.yaml`
+
+Existing authored `server.yaml` files remain supported. Files without a `live` field retain their previous WebSocket access; set `live: false` in that file to disable it. To consolidate a project:
+
+1. Move its `http`, `limits`, and `playground` mappings under a root `server:` section in `config.yaml`. Add `live: true` there if you want to retain WebSocket access. You can omit other settings that match the defaults.
+2. Leave out the legacy file's `apiVersion` and `kind` fields.
+3. Remove the authored `server.yaml` and compile again.
+
+Harnest rejects projects that declare both `config.yaml` → `server` and an authored `server.yaml`, even if the inline section is empty. Choose one source rather than relying on precedence. New projects and upgrades do not create a server defaults file.
+
+## Compiled artifacts
+
+Compilation writes a complete, versioned `server.yaml` beside `harnest-agent`. The launcher reads that generated operational copy. Operators can replace it and restart the server without changing the compiled agent source; the authored `config.yaml` remains part of the source digest. Normally, edit your project config and compile again.
+
+Python applications that directly embed `create_fastapi_app` or `create_neutral_app` can pass `live_enabled=False` to disable WebSockets. These embedding APIs keep their historical `True` default; the standalone launcher always passes its resolved server setting.

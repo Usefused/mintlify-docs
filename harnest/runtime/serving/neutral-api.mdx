@@ -18,7 +18,7 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
 | `HEAD/GET/DELETE /sessions/{id}/assets/{assetId}` | Inspect, download, or delete an asset |
 | `POST /responses` | Run JSON or SSE responses |
 | `GET /responses/{id}?sessionId=...` | Poll a durable response |
-| `WS /live` | Run a live WebSocket session |
+| `WS /live` | Run a live WebSocket session when `server.live: true` |
 | `GET /healthz` | Check process health |
 | `GET /.well-known/agent-card.json` | Discover the Agent Card |
 
@@ -40,7 +40,7 @@ The binding also supports explicit task lookup, filtered listing, cancellation, 
     Cancel by aborting or closing the HTTP request, such as with `AbortController`. SSE is server-to-client only, so it has no cancel frame or terminal acknowledgement after disconnection. Harnest cancels the managed response and awaits cleanup.
   </Tab>
   <Tab title="WebSocket">
-    Connect to `/live`, send a `connect` frame, wait for `session.connected`, then send `response.create` frames.
+    Set `server.live: true` in `config.yaml`, then connect to `/live` on the HTTP server’s host and port. Send a `connect` frame, wait for `session.connected`, then send `response.create` frames. See [Enable WebSockets](/harnest/runtime/serving/server-configuration#enable-websockets).
 
     Cancel the active response with its server-issued ID:
 
@@ -74,7 +74,7 @@ Malformed or cross-user cursors return `400`.
 
 ## Playground
 
-The playground uses only the neutral API. It supports sessions, state, tool activity, JSON, SSE, and WebSocket conversations.
+The playground uses only the neutral API. It supports sessions, state, tool activity, JSON, SSE, and opt-in WebSocket conversations. Its **Live** transport choice is disabled when the server does not advertise `/live`.
 
 Open `/?session=<id>` to select an owned session and restore its transcript. The session picker filters its bounded list by ID; enter a complete ID to load an owned session outside that page. Selecting or creating a session updates the URL.
 

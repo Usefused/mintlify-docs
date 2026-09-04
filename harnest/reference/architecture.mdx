@@ -29,8 +29,8 @@ agent source → validate → compile for ADK or LangGraph → artifact → neut
 | Owner | What it controls |
 |---|---|
 | Your source | Agent behavior and capabilities |
-| `config.yaml` | Framework, mode, entrypoint, and deployment intent |
-| `server.yaml` | Bind, limits, timeout, concurrency, and playground |
+| `config.yaml` | Framework, mode, entrypoint, deployment intent, and optional `server` overrides |
+| Compiled `server.yaml` | Generated operational copy of bind, limits, timeout, concurrency, and playground settings |
 | Compiler | Validation, adapters, manifest, digest, and launchers |
 | Runtime | Sessions, checkpoints, auth, telemetry, and transports |
 | Deployment engine | Process lifecycle and deployment environment |
