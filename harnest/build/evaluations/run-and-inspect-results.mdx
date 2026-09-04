@@ -22,6 +22,14 @@ If a Python test lane fails, later lanes do not start. During evaluation, a scor
 
 Harnest runs each suite once and processes suite files in deterministic filename order. Judge metrics can still make multiple calls according to their `numSamples` setting.
 
+Native ADK evaluations run with Harnest's managed invocation context: session identity, built-in Agent Skills tools such as `list_skills`, explicitly assigned sandboxes, and configured context resources and credentials are available. ADK still owns the evaluation runner; this does not promise identical lifecycle or plugin behavior to normal serving. Context is available only while that invocation is active; do not retain it for background work after the invocation finishes.
+
+Evaluation session data stays in memory, separate from your deployed session backend. The CLI starts and closes its evaluation resources; the playground reuses the running application's resources. The isolated CLI ADK evaluation runtime does not start task workers or cron schedules, so it does not consume unrelated production queue rows; test queued workflows with an appropriate smoke or integration runtime instead. This session isolation does not make evaluation a dry run: tools, sandboxes, and external services can still have real side effects.
+
+<Note>
+  For native ADK workflow roots that use its legacy runner, such as `SequentialAgent` or a non-`LlmAgent` `BaseAgent`, Harnest rejects a plugin's `before_run_callback` that returns replacement `Content`. Interrupting that response stream can skip invocation cleanup. Return `None` from the callback and produce the response from the agent or a tool instead. This restriction does not apply to the normal `LlmAgent`/node execution path.
+</Note>
+
 ## Select the trajectory policy
 
 ```bash
@@ -162,6 +170,8 @@ If evaluation has started and a provider, adapter, or evaluator raises an infras
 
 Harnest omits the original exception message, traceback, and internals from this field because provider errors can contain credentials or request content. Failures before the eval lane starts, such as compilation, unit tests, or invalid configuration, may produce no result file.
 
+If native ADK cannot complete execution or scoring and produces no metric results, Harnest reports `EvaluationExecutionError`, not a task-quality failure. Its `error.message` gives a privacy-safe explanation and a next step. Check the local traceback for the failing tool, callback, model provider, or runtime configuration, fix the underlying issue, and rerun. A missing Harnest invocation context during managed evaluation is an integration error; do not weaken context checks or lower metric thresholds to work around it.
+
 ## Inspect in the playground
 
 Run `harnest serve AGENT_DIR`, open `/`, and select **Evals**. The workspace lists root suites, configured and supported metrics, and the `business` and `strict` policies. You can run one suite and inspect case, metric, response, and tool-call evidence.
@@ -202,6 +212,7 @@ Configure your CI artifact-upload step to run even when `harnest test` fails. Ot
 | Eval set ID mismatch | Match `eval_set_id` to the filename before `.evalset.json` |
 | Result file is absent | Check whether compilation or Python tests failed before evaluation started |
 | Result status is `error` | Read `error.type` and `error.message`, then verify model, service, and tool credentials |
+| `EvaluationExecutionError` | Execution or scoring failed without metric results. Fix the underlying runtime error before judging task quality; if Harnest context is unavailable through the managed CLI or playground, report an integration bug |
 | Ambiguous agent model transport | Select an eval model ID with one exact transport match, or remove conflicting same-provider transport choices; see [transport selection](/harnest/build/project-configuration#reuse-an-agents-model-client) |
 | Metric is `not_evaluated` | Inspect its per-invocation details and required evidence; this status does not pass |
 | Judge results vary | Increase `numSamples`, tighten the rubric, or use a deterministic reference metric |
