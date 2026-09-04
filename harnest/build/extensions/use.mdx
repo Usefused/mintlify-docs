@@ -27,7 +27,7 @@ The call runs inside a managed invocation, so `warehouse.context` resolves the t
 Trusted application code can ask Harnest for the same invocation-scoped view:
 
 ```python lib/warehouse_service.py
-from harnest import context
+from harnest.context import context
 from harnest.extensions.warehouse import WarehouseContext
 
 

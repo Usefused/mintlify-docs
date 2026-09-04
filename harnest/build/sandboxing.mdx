@@ -53,7 +53,7 @@ Create `tools/total_values.py`. Harnest exposes this tool to the model; the sand
 ```python tools/total_values.py
 import json
 
-from harnest import context
+from harnest.context import context
 from harnest.tool import tool
 
 
@@ -295,6 +295,25 @@ Check `result.status`, not whether stderr is empty. A program can write warnings
 | Cleanup cannot be confirmed | The backend refuses replacement until cleanup is confirmed. For ambiguous creation without an ID, reconcile Docker resources before recreating the backend. |
 
 Provider exceptions are exposed as sanitized `SandboxExecutionError`. Diagnose infrastructure failures with trusted provider diagnostics; do not log generated code, credentials, or complete result payloads as routine audit data.
+
+## Failure recovery and cleanup
+
+An ordinary exception escaping a nested execution scope fails that scope and blocks its retained workers. It does not cancel the parent operation. Your provider can catch a recoverable error, such as a missing container, and retry within the remaining parent budget. A shorter helper deadline also stays local. Explicit cancellation and invocation revocation still block further execution.
+
+Import provider controls with `from harnest.sandbox import control`. Use `control.execute(timeout_seconds=...)` for nested execution scopes and `control.current()` to inspect the active control. Use `control.cleanup(...)` to release resources after cancellation or invocation revocation:
+
+```python
+from harnest.sandbox import control
+
+# Inside your provider's close method; retain this ID if removal fails.
+with control.cleanup(timeout_seconds=5) as cleanup:
+    cleanup.check()
+    client.remove(container_id, timeout=cleanup.remaining())
+```
+
+`client.remove` represents your provider SDK's resource-removal call; use its actual timeout parameter. Cleanup has its own finite deadline, and nested cleanup cannot extend it. New sandbox execution is forbidden inside cleanup. Returning restores the original execution control without clearing its cancellation; retained cleanup contexts are then revoked.
+
+This is a cooperative deadline, not a mechanism for killing Python threads. Check before each cleanup operation and apply the remaining budget to SDK I/O and lock acquisition (`cleanup.acquire(lock)`). A blocking SDK that ignores timeouts can still overrun the budget. Treat timeout or uncertain removal as incomplete cleanup, retain the owned resource handle, and prevent replacement until cleanup is confirmed.
 
 ## Security ownership
 

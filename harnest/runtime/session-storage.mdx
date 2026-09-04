@@ -27,7 +27,7 @@ Committed session state survives an ADK ↔ LangGraph switch when both compiled 
 Use `context.session` for values that should persist with a session without entering prompts or model-visible history:
 
 ```python lib/exports.py
-from harnest import context
+from harnest.context import context
 
 
 async def remember_export(export_id: str):
@@ -72,7 +72,7 @@ def users():
 ```
 
 ```python lib/user_profiles.py
-from harnest import context
+from harnest.context import context
 from harnest.lib.users import UsersRepository
 
 

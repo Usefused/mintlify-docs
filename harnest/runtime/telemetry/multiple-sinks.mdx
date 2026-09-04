@@ -9,7 +9,8 @@ Create one `@lifecycle.telemetry_exporter` factory for each destination:
 ```python lifecycle/telemetry.py
 import os
 
-from harnest import TelemetryExporter, lifecycle
+from harnest.telemetry import TelemetryExporter
+from harnest.lifecycle import lifecycle
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 

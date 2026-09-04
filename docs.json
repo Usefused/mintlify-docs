@@ -154,6 +154,7 @@
                   "harnest/build/agent-concepts",
                   "harnest/build/project-configuration",
                   "harnest/build/agents-and-graphs",
+                  "harnest/build/python-imports",
                   {
                     "group": "Models & libraries",
                     "expanded": false,

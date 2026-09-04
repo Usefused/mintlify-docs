@@ -1,0 +1,62 @@
+---
+title: "Python imports"
+description: "Import authoring contracts from their Harnest domain."
+---
+
+Import each capability from its public domain module. The examples in this documentation use these paths so you can find related types and operations in one place:
+
+```python
+from harnest.agent import Agent
+from harnest.auth import AuthPrincipal, AuthenticationError
+from harnest.lifecycle import lifecycle
+from harnest.sandbox import Sandbox, control
+from harnest.tool import tool, client_tool
+```
+
+## Domain imports
+
+| Capability | Public module | Examples |
+|---|---|---|
+| Agents and graphs | `harnest.agent`, `harnest.graph` | `Agent`, `Graph`, `Edge` |
+| Authentication | `harnest.auth` | `AuthPrincipal`, `Authenticator`, `AuthenticationError`, `principal_for` |
+| HTTP endpoints and hooks | `harnest.http` | `AgentInvoker`, `AgentResponse`, `HTTPCallRequest`, `HTTPLifecycleContext` |
+| Server configuration | `harnest.server` | `ServerConfig`, `ServerLimits`, `load_server_config` |
+| Tools | `harnest.tool` | `tool`, `client_tool`, `ClientToolError`, `ToolCallRequest`, `ToolLifecycleContext` |
+| MCP | `harnest.mcp` | `MCPClient`, `MCPContext`, `MCPToolCallRequest`, `MCPToolCallError` |
+| Models | `harnest.model` | `LiteLLMModel`, `LiteLLMContext`, `ModelCallRequest`, `ModelLifecycleError` |
+| Lifecycle | `harnest.lifecycle` | `lifecycle`, `Next`, `Finish`, `LifecycleCoverage`, `CoverageLevel` |
+| Invocation context | `harnest.context` | `context`, `SessionContext`, `StorageContext`, `ScopedAssets`, `AgentSession` |
+| Sandbox providers | `harnest.sandbox` | `Sandbox`, `SandboxResult`, `SandboxCancelledError`, `control` |
+| Runtime adapters | `harnest.runtime` | `ResponseRequest`, `InvocationRequest`, `RuntimeDriver`, `RuntimeEvent` |
+| Assets | `harnest.assets` | `AssetStorage`, `AssetScope`, `Stored` |
+| Storage | `harnest.store` | `MemoryStore`, `PostgresStore`, `RedisStore`, `CustomStorage`, `StorageRegistry` |
+
+Other existing domain modules include `harnest.approval`, `harnest.content`, `harnest.credentials`, `harnest.continuation`, `harnest.extensions`, `harnest.skills`, `harnest.task`, `harnest.logging`, and `harnest.tracing`.
+
+`AgentResponse` from `harnest.http` represents an HTTP route response. `AgentResponse` from `harnest.context` represents a local agent invocation response; select the contract for your integration.
+
+## Scoped operations
+
+Sandbox execution and cleanup share a namespace:
+
+```python
+from harnest.sandbox import control
+
+with control.execute(timeout_seconds=30) as execution:
+    execution.check()
+    # Perform provider work with execution.remaining() as the I/O budget.
+
+with control.cleanup(timeout_seconds=5) as cleanup:
+    cleanup.check()
+    # Release owned resources using cleanup.remaining() as the I/O budget.
+```
+
+`control.current()` returns the active scope. See [sandbox failure recovery and cleanup](/harnest/build/sandboxing#failure-recovery-and-cleanup) for cancellation and deadline guarantees.
+
+Query lifecycle coverage with the same domain pattern:
+
+```python
+from harnest.lifecycle import lifecycle
+
+coverage = lifecycle.coverage("langgraph", "managed")
+```

@@ -22,7 +22,7 @@ from typing import Annotated
 
 from pydantic import BaseModel
 
-from harnest import Stored
+from harnest.assets import Stored
 from harnest.content import Image, ImageConstraints
 
 
@@ -49,7 +49,8 @@ class CaptureResult(BaseModel):
 ## Register the named store
 
 ```python lifecycle/assets.py
-from harnest import AssetStorage, lifecycle
+from harnest.assets import AssetStorage
+from harnest.lifecycle import lifecycle
 from harnest.lib.assets import S3AssetStorage
 
 

@@ -7,7 +7,7 @@ description: "Use the lazy A2A client directly or compose a remote agent as a gr
 `A2AClient` discovers and validates one Agent Card lazily. Construction performs no network call. Use the client from trusted code when your application decides exactly which operation to perform.
 
 ```python lib/remote_support.py
-from harnest import A2AClient
+from harnest.a2a import A2AClient
 
 
 async def ask_support(question: str) -> dict:
@@ -40,7 +40,7 @@ The client never performs background Task listing. Cancelling a local `send` or 
 Outbound discovery selects JSON-RPC or HTTP+JSON interfaces. Harnest does not connect to gRPC or custom A2A bindings.
 
 ```python lib/remote_support.py
-from harnest import A2AClient
+from harnest.a2a import A2AClient
 
 
 async def stream_support(question: str):
@@ -60,7 +60,8 @@ async def stream_support(question: str):
 `RemoteAgent` retains only opaque A2A context and Task references in graph state. It can run as a portable graph node:
 
 ```python agent.py
-from harnest import START, Edge, Graph, RemoteAgent
+from harnest.graph import START, Edge, Graph
+from harnest.a2a import RemoteAgent
 
 inventory = RemoteAgent(
     name="inventory",
@@ -79,7 +80,7 @@ root_agent = Graph(
 When model-led delegation is a better fit, expose the same boundary as a discovered Agent Tool:
 
 ```python tools/inventory_agent.py
-from harnest import RemoteAgent
+from harnest.a2a import RemoteAgent
 from harnest.tool import tool
 
 inventory_agent = tool(
