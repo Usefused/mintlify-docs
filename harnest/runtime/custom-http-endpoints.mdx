@@ -41,6 +41,57 @@ def http_routes(agent: AgentInvoker):
 
 The factory can return multiple routes or use FastAPI dependencies. Define route factories only at the root. SubAgents do not own server paths.
 
+## Pass application-authorized runtime permissions
+
+After the route authenticates the caller and resolves application permissions,
+create an Agent Runtime Principal and pass it to the invocation. Do not accept
+permission identifiers directly from the request body.
+
+```python lifecycle/http.py
+from fastapi import APIRouter, Request
+from harnest.agent import AgentRuntimePrincipal
+from harnest.auth import principal_for
+from harnest.http import AgentInvoker
+from harnest.lifecycle import lifecycle
+from harnest.lib.authorization import permissions_for
+
+
+@lifecycle.http_routes
+def restricted_routes(agent: AgentInvoker):
+    router = APIRouter(prefix="/assistant")
+
+    @router.post("/execute")
+    async def execute(payload: dict, request: Request):
+        authenticated = principal_for(request)
+        granted = await permissions_for(authenticated.user_id)
+        agent_principal = AgentRuntimePrincipal.create(permissions=granted)
+        return (
+            await agent.invoke(
+                connection=request,
+                input=payload["message"],
+                agent_principal=agent_principal,
+            )
+        ).as_dict()
+
+    return router
+```
+
+Harnest keeps `agent_principal` private to the runtime rather than adding it to
+`context`. ADK and LangGraph receive only the permitted tool projection. The
+same argument is available on local `AgentSession.invoke(...)` and
+`AgentSession.stream(...)` calls.
+
+<Warning>
+  Keep authentication and authoritative authorization at the gateway. Agent
+  Runtime Principal is a fast capability-projection layer, not a substitute for
+  access checks on application data or downstream services.
+</Warning>
+
+Restricted invocations currently reject durable external continuations before
+persistence because another replica cannot reconstruct their opaque principal.
+Process-local approval and client-tool continuations retain the original
+invocation scope.
+
 ## Invoke the agent safely
 
 `AgentInvoker` uses the same response coordinator as `POST /responses`. It does not call the raw ADK or LangGraph object.

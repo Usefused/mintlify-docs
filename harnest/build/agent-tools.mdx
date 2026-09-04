@@ -22,6 +22,7 @@ Agent Tools let a model act through typed, testable capabilities. Choose where e
 | Arguments | Structured values |
 | Results | Structured values, optionally validated by Pydantic |
 | Credentials | Resolve through `context.credentials`, never tool arguments |
+| Runtime permission | Optional stable identifier declared with `permission=` |
 
 <CardGroup cols={2}>
   <Card title="Server tools" icon="server" href="/harnest/build/agent-tools/server-tools">
@@ -47,3 +48,45 @@ Agent Tools let a model act through typed, testable capabilities. Choose where e
 | Remote operation requires permission | Approval policy on the MCP client |
 
 Approval resumes the exact suspended task without replaying earlier work.
+
+## Project tools for one invocation
+
+Declare a stable permission on a server or client-hosted tool when different
+authenticated callers should receive different model capabilities:
+
+```python tools/create_invoice.py
+from harnest.tool import tool
+
+
+@tool(permission="billing.invoice.create")
+async def create_invoice(customer_id: str):
+    """Create an invoice for a customer."""
+
+    return {"customerId": customer_id, "status": "created"}
+```
+
+`@client_tool(permission="device.location.read")` uses the same contract. An
+application can create an `AgentRuntimePrincipal` after it authenticates and
+authorizes a request, then pass it as `agent_principal=` when invoking the
+managed agent. Harnest omits permissioned tools whose identifiers are not
+granted and rechecks the permission before execution. Advanced native apps are
+rejected when an Agent Runtime Principal is supplied because Harnest cannot
+guarantee projection inside an arbitrary framework-owned graph.
+
+Unpermissioned tools remain available. Omitting `agent_principal` preserves the
+existing unrestricted behavior; passing a principal with no grants hides every
+permissioned capability. Harnest gives each principal an opaque generated ID,
+owns its invocation binding, and does not publish it through `context`.
+
+Local nested agent calls inherit the active principal when
+`agent_principal` is omitted. They may pass a principal with fewer grants, but
+cannot add permissions to the active invocation.
+
+<Warning>
+  Runtime projection is a convenience and defense-in-depth boundary, not a
+  replacement for authentication or authorization at your application gateway.
+</Warning>
+
+See [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) for the
+gateway-to-agent handoff and [MCP client](/harnest/build/mcp-client) for remote
+capability permissions.

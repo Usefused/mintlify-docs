@@ -41,6 +41,33 @@ Use `MCPClient.sse(...)` only for a legacy SSE server. Connections and remote to
 
 Harnest keeps connection identity and approval policy consistent. Same-named tools on different servers remain distinct.
 
+## Project MCP capabilities by runtime permission
+
+Use `permission` to require one grant for every tool on a client. Use
+`tool_permissions` to add a grant for selected remote tool names:
+
+```python mcp/billing.py
+from harnest.mcp import MCPClient
+
+
+def client():
+    """Connect to permissioned billing operations."""
+
+    return MCPClient.streamable_http(
+        "https://billing.example.com/mcp",
+        permission="billing.connect",
+        tool_permissions={
+            "read_invoice": "billing.invoice.read",
+            "create_invoice": "billing.invoice.create",
+        },
+    )
+```
+
+A caller needs the client permission and the selected tool permission. Harnest
+omits unavailable MCP tools from the model and from `context.mcp`. If no tools
+remain, the named MCP client is unavailable through `context.mcp` for that
+invocation. Execution is checked again before remote dispatch.
+
 ## Call MCP from trusted code
 
 Use the invocation-scoped facade when a tool or service chooses the remote operation:
@@ -64,7 +91,7 @@ The facade exposes neither the raw transport nor credentials. Calls use the same
 
 ## Authentication and gateways
 
-Read URLs and static credentials from the deployment environment. For user-scoped access, resolve a token through [Authentication and Credentials](/harnest/runtime/authentication-and-credentials).
+Read URLs and static credentials from the deployment environment. For user-scoped access, resolve a token through [Authentication and Credentials](/harnest/runtime/authentication-and-credentials). Runtime permissions decide whether a capability is offered; they do not replace provider or gateway authorization.
 
 Customize the HTTP client only for a gateway, mTLS, or transport policy. Put shared clients in lifecycle resources because adapters may call the factory more than once.
 
