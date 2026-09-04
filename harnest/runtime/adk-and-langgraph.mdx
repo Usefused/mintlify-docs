@@ -42,6 +42,8 @@ In advanced mode, you construct a native target and export it through `Agent.adv
 | Approvals and tracing | Middleware or plugins |
 | Portable invocation hooks | Capability wiring and native model calls |
 
+Agent Runtime Principals are best-effort in advanced mode. Harnest enforces them at Harnest-owned tool, MCP, invocation, and Task boundaries, but it does not rewrite your native graph or wrap tools you wire directly. Apply equivalent policy in user-owned graph paths and downstream gateways when you need complete coverage. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals).
+
 Before moving a project from managed to advanced mode, run the read-only audit:
 
 ```bash

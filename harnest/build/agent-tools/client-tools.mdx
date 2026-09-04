@@ -10,7 +10,7 @@ Use `@client_tool` when the connected client—not the agent server—owns execu
 from harnest.tool import client_tool
 
 
-@client_tool
+@client_tool(permission="browser.open")
 def browser_open(url: str) -> dict[str, str]:
     """Open a URL and return visible page data."""
     ...
@@ -26,7 +26,8 @@ Harnest never executes the declaration body. It suspends the invocation and asks
 | Execution | Connected browser, desktop, or mobile host |
 | Output | Validated before the agent resumes |
 | Policy | Client owns local execution and sandboxing |
-| Runtime requirement | Active managed Harnest invocation |
+| Runtime permission | Optional `@client_tool(permission="browser.open")` |
+| Runtime requirement | Active Harnest invocation; advanced targets own capability wiring |
 
 ## Transport flow
 
@@ -37,6 +38,8 @@ Harnest never executes the declaration body. It suspends the invocation and asks
 | WebSocket | `client_tool.requested` | `client_tool.result` |
 
 The submitted result is identity-bound, one-time, and validated against the declared return type.
+
+When an invocation has an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals), Harnest presents the client tool only when the principal carries its declared permission and checks again before requesting client execution. The client must still authorize the local action.
 
 ## Combine with approval
 

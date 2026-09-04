@@ -51,6 +51,7 @@ The factory can return multiple routes or use FastAPI dependencies. Define route
 | Session omitted | Harnest creates a user-scoped session |
 | Session supplied | Harnest verifies that the authenticated caller owns it |
 | Input schema | Harnest validates the configured Pydantic input model |
+| Runtime capability grants | Trusted route code can pass `agent_principal=` |
 | Lifecycle and credentials | The normal invocation bindings run |
 | Approval or client tool | `status` is `requires_action` and `required_action` describes the continuation |
 | Telemetry and limits | Standard tracing, logging, timeout, concurrency, and request-size policy applies |
@@ -58,6 +59,22 @@ The factory can return multiple routes or use FastAPI dependencies. Define route
 <Warning>
   Pass the current FastAPI `Request` as `connection`. Do not accept or construct a `user_id` from the request body.
 </Warning>
+
+After authenticating the request, your route can derive an invocation-specific tool surface:
+
+```python
+from harnest.agent import AgentRuntimePrincipal
+
+
+permissions = application_permissions_for(authenticated_user)
+response = await agent.invoke(
+    connection=request,
+    input=payload["message"],
+    agent_principal=AgentRuntimePrincipal.create(permissions=permissions),
+)
+```
+
+The principal is optional. Omitting it preserves the existing unrestricted tool surface; pass an empty principal to make every permissioned capability unavailable. Do not accept permission names directly from the request body. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals) for propagation and Advanced-mode coverage.
 
 ## Handle required actions
 

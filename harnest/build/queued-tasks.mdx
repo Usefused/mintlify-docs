@@ -83,6 +83,7 @@ Use `await task.defer(...)` without `handle.result()` for fire-and-forget work. 
 | Database | `HARNEST_TASK_DATABASE_URL`, or one unambiguous `PostgresStore` |
 | Payloads and results | JSON-safe values only |
 | Credentials | Resolved at execution; never serialized into task state |
+| Runtime principal | Active permission names are persisted; identity and credentials are not |
 | Defer boundary | Available only while the compiled Harnest runtime is active |
 
 If the application has multiple PostgreSQL stores, set `HARNEST_TASK_DATABASE_URL` explicitly. Every replica can run a worker against the shared queue.
@@ -122,6 +123,8 @@ and invocation identities on a task retry. User-deferred tasks inherit the
 calling user and public metadata; scheduled tasks use Harnest's automation
 identity. Calls still pass through storage, plugins, lifecycle, tools, and the
 selected framework runtime.
+
+When `.defer()` runs under an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals), Harnest stores only its permission names and reconstructs a fresh principal for each worker attempt. Agent calls made by the Task inherit that restriction unless trusted task code passes a narrower principal. A Task deferred without an active principal preserves compatibility behavior.
 
 Durable external waits return a typed `in_progress` response. Human approvals
 and client tools fail closed because their continuation is process-local after

@@ -6,7 +6,7 @@ description: "Import authoring contracts from their Harnest domain."
 Import each capability from its public domain module. The examples in this documentation use these paths so you can find related types and operations in one place:
 
 ```python
-from harnest.agent import Agent
+from harnest.agent import Agent, AgentRuntimePrincipal
 from harnest.auth import AuthPrincipal, AuthenticationError
 from harnest.lifecycle import lifecycle
 from harnest.sandbox import Sandbox, control
@@ -17,7 +17,7 @@ from harnest.tool import tool, client_tool
 
 | Capability | Public module | Examples |
 |---|---|---|
-| Agents and graphs | `harnest.agent`, `harnest.graph` | `Agent`, `Graph`, `Edge` |
+| Agents and graphs | `harnest.agent`, `harnest.graph` | `Agent`, `AgentRuntimePrincipal`, `AgentRuntimePermissionError`, `Graph`, `Edge` |
 | Authentication | `harnest.auth` | `AuthPrincipal`, `Authenticator`, `AuthenticationError`, `principal_for` |
 | HTTP endpoints and hooks | `harnest.http` | `AgentInvoker`, `AgentResponse`, `HTTPCallRequest`, `HTTPLifecycleContext` |
 | Server configuration | `harnest.server` | `ServerConfig`, `ServerLimits`, `load_server_config` |

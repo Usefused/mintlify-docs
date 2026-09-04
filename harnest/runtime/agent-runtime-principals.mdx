@@ -1,0 +1,129 @@
+---
+title: "Agent Runtime Principals"
+sidebarTitle: "Runtime principals"
+description: "Limit the Harnest capabilities available to one agent invocation."
+---
+
+An `AgentRuntimePrincipal` limits which permissioned capabilities Harnest makes available during one invocation. Create it in trusted application code after authenticating the caller or deciding which service identity a job should use.
+
+```python
+from harnest.agent import AgentRuntimePrincipal
+
+
+agent_principal = AgentRuntimePrincipal.create(
+    permissions={"tickets.read", "tickets.comment"},
+)
+```
+
+The generated `id` is an opaque runtime identity. Your application remains the source of user, tenant, role, and policy decisions.
+
+| Concern | Owner |
+|---|---|
+| Agent capability definition | Your Harnest project |
+| Permission grants for this execution | Your application |
+| Capability projection and execution checks | Harnest-owned runtime boundaries |
+| Final authorization of an external action | Your gateway or downstream service |
+
+<Warning>
+  Do not derive permissions from model output or an untrusted request field. Authenticate at your application or gateway boundary, then construct the principal in trusted code.
+</Warning>
+
+## Mark permissioned capabilities
+
+Server and client-hosted tools accept one permission identifier:
+
+<CodeGroup>
+
+```python tools/read_ticket.py
+from harnest.tool import tool
+
+
+@tool(permission="tickets.read")
+async def read_ticket(ticket_id: str) -> dict:
+    """Read one support ticket."""
+
+    return await tickets.get(ticket_id)
+```
+
+```python tools/open_admin_console.py
+from harnest.tool import client_tool
+
+
+@client_tool(permission="tickets.admin")
+def open_admin_console(ticket_id: str) -> dict:
+    """Open one ticket in the local administration UI."""
+
+    ...
+```
+
+</CodeGroup>
+
+An MCP client can require a permission for every remote tool and add requirements to individual tools:
+
+```python mcp/catalog.py
+import os
+
+from harnest.mcp import MCPClient
+
+
+def client():
+    return MCPClient.streamable_http(
+        os.environ["CATALOG_MCP_URL"],
+        permission="catalog.connect",
+        tool_permissions={
+            "search_products": "catalog.search",
+            "update_product": "catalog.write",
+        },
+    )
+```
+
+`permission=` applies to every tool from that client. A matching `tool_permissions` entry is an additional requirement. Permission identifiers start with a letter and can contain letters, numbers, `.`, `_`, `:`, or `-`.
+
+## Invoke with a principal
+
+Pass the principal through a trusted [custom HTTP endpoint](/harnest/runtime/custom-http-endpoints):
+
+```python
+from harnest.agent import AgentRuntimePrincipal
+
+
+permissions = application_permissions_for(authenticated_user)
+response = await agent.invoke(
+    connection=request,
+    input=payload["message"],
+    agent_principal=AgentRuntimePrincipal.create(permissions=permissions),
+)
+```
+
+You can also pass `agent_principal=` to an in-process `AgentSession.invoke(...)` or `AgentSession.stream(...)` call.
+
+Harnest removes unavailable capabilities from Harnest-owned model tool surfaces and checks the permission again at execution. Treat the execution check as defense in depth. The downstream service must still authorize the actual operation.
+
+## Understand omission and propagation
+
+| Situation | Behavior |
+|---|---|
+| Root invocation omits `agent_principal` | Compatibility mode; permissioned capabilities remain available |
+| Root invocation receives an empty principal | Every permissioned capability is unavailable |
+| Nested agent call omits it | Inherits the active principal |
+| Nested agent call supplies a subset | Uses the narrower principal |
+| Nested agent call attempts to add permissions | Fails before execution |
+| A restricted invocation defers a Task | Persists permission names and reconstructs a fresh principal in the worker |
+| A scheduled Task invokes an agent without one | Uses an empty principal and fails closed for permissioned capabilities |
+
+Queued state contains only permission identifiers. It does not serialize the principal ID, authentication claims, or credentials. A scheduled Task can construct and pass an explicit service principal in trusted task code when it needs declared capabilities.
+
+## Managed and advanced modes
+
+| Mode | Guarantee |
+|---|---|
+| Managed | Harnest requires complete capability projection and fails before execution when the managed topology cannot provide it |
+| Advanced | Best-effort enforcement at boundaries Harnest owns |
+
+In advanced mode, Harnest enforces the principal for Harnest-decorated server tools, client-hosted tools, configured MCP clients, local agent invocation, and queued Task propagation when those operations cross Harnest runtime boundaries.
+
+Harnest does not rewrite a native graph, inspect every framework plugin, or wrap tools that you wire directly into your own agent graph. Those user-owned paths remain your responsibility and can bypass runtime-principal projection. Enforce equivalent policy in the native graph or downstream gateway when you need complete coverage.
+
+<Note>
+  The principal is private runtime state rather than a property on `harnest.context`. Tools and extensions declare required permissions; they do not read or make policy decisions from the active principal.
+</Note>

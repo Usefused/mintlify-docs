@@ -51,6 +51,8 @@ Each occurrence uses the schedule identity and timestamp as its idempotency
 key, then enters the same private task queue as `task.defer(...)`. Every effect
 must still be idempotent because a worker can retry after failure.
 
+When scheduled work invokes the agent without passing an `AgentRuntimePrincipal`, Harnest supplies an empty principal. Permissioned tools and MCP operations therefore fail closed. Construct an explicit service principal in trusted Task code when the schedule needs declared capabilities. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals).
+
 <Note>
   `harnest run` never activates schedules. The application still needs
   `HARNEST_TASK_DATABASE_URL` or one unambiguous PostgreSQL store.

@@ -15,6 +15,7 @@ description: "Connect agents to MCP servers with portable transports, identity, 
 | Legacy transport | SSE |
 | Connection time | Runtime, not compile time |
 | Credentials | Deployment environment or invocation credential provider |
+| Runtime permissions | Optional client-wide `permission` and per-tool `tool_permissions` |
 
 ```python mcp/catalog.py
 import os
@@ -40,6 +41,23 @@ Use `MCPClient.sse(...)` only for a legacy SSE server. Connections and remote to
 | LangGraph | Uses its MCP adapter and discovers remote tools at runtime |
 
 Harnest keeps connection identity and approval policy consistent. Same-named tools on different servers remain distinct.
+
+## Limit tools by runtime principal
+
+Use `permission=` to require one grant for every tool from a client. Use `tool_permissions=` to add a requirement to selected remote tools:
+
+```python
+return MCPClient.streamable_http(
+    os.environ["CATALOG_MCP_URL"],
+    permission="catalog.connect",
+    tool_permissions={
+        "search_products": "catalog.search",
+        "update_product": "catalog.write",
+    },
+)
+```
+
+Harnest filters discovered remote tools against the active [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) and checks the requirement again when either the model or trusted code calls the tool. The MCP server or its gateway remains responsible for authorizing the remote request.
 
 ## Call MCP from trusted code
 

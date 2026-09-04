@@ -27,6 +27,7 @@ def lookup_order(order_id: str):
 | Export | `lookup_order` |
 | Description | Docstring or `@tool(description="...")`; distinguish similar parameters explicitly |
 | Output validation | Pydantic return annotation or `output_schema` |
+| Runtime permission | Optional `@tool(permission="tickets.read")` |
 | Unit testing | Call the decorated function directly |
 
 Arguments and results must be structured. Convert unsupported custom objects to a Pydantic model or mapping at the tool boundary.
@@ -43,6 +44,8 @@ Expose supported filters, pagination, and ordering as typed parameters or separa
 | Downstream credential | `await context.credentials.resolve(...)` |
 
 Credentials are private invocation capabilities. Do not expose them as model-generated arguments or ordinary context resources.
+
+Use `permission=` when trusted application code must select whether the tool is available for one invocation. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals).
 
 ## Wait durably
 

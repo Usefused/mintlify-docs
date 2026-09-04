@@ -247,6 +247,7 @@
                     ]
                   },
                   "harnest/runtime/authentication-and-credentials",
+                  "harnest/runtime/agent-runtime-principals",
                   {
                     "group": "Storage",
                     "expanded": false,
