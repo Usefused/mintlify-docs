@@ -92,6 +92,11 @@ persistence because another replica cannot reconstruct their opaque principal.
 Process-local approval and client-tool continuations retain the original
 invocation scope.
 
+Harnest also rejects the principal before implicit session creation or lifecycle
+resource startup when the compiled topology cannot guarantee complete model and
+tool projection. This includes advanced roots and managed LangGraph graphs that
+embed native `Agent.advanced(...)` or raw `Pregel` nodes.
+
 ## Invoke the agent safely
 
 `AgentInvoker` uses the same response coordinator as `POST /responses`. It does not call the raw ADK or LangGraph object.

@@ -71,7 +71,10 @@ authorizes a request, then pass it as `agent_principal=` when invoking the
 managed agent. Harnest omits permissioned tools whose identifiers are not
 granted and rechecks the permission before execution. Advanced native apps are
 rejected when an Agent Runtime Principal is supplied because Harnest cannot
-guarantee projection inside an arbitrary framework-owned graph.
+guarantee projection inside an arbitrary framework-owned graph. For the same
+reason, a managed LangGraph `Graph` containing `Agent.advanced(...)` or a raw
+native `Pregel` node rejects restricted invocations; use managed `Agent` nodes
+throughout a permission-projected graph.
 
 Unpermissioned tools remain available. Omitting `agent_principal` preserves the
 existing unrestricted behavior; passing a principal with no grants hides every
