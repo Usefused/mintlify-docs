@@ -222,6 +222,7 @@
                     ]
                   },
                   "harnest/build/sandboxing",
+                  "harnest/build/sandboxing/chrome-agent",
                   "harnest/build/testing-and-compilation"
                 ]
               },
