@@ -53,6 +53,32 @@ async def latest_export():
 
 Session writes are scoped to the authenticated user and session. They emit payload-free OTEL audit events.
 
+## Isolate long-lived PostgreSQL leases
+
+Each active invocation holds one PostgreSQL connection for its session advisory lock. By default, `PostgresStore` draws that connection from the primary pool for compatibility. Use `lease_pool_options=` to give long-lived execution leases a dedicated pool and protect short database operations from pool starvation:
+
+```python lib/state.py
+import os
+
+from harnest.store import PostgresStore
+
+
+state = PostgresStore(
+    os.environ["DATABASE_URL"],
+    pool_options={"min_size": 2, "max_size": 20},
+    lease_pool_options={"min_size": 2, "max_size": 20},
+)
+```
+
+| Pool | Operations |
+|---|---|
+| Primary | Session lookup, checkpoints, continuations, and other short store operations |
+| Lease | Session advisory locks plus framework-state and `context.session` writes during those leases |
+
+Both pools connect to the same DSN and are owned by the store. Size the lease pool for the number of simultaneous session executions you want to admit. Size the primary pool for short-operation concurrency. Omitting `lease_pool_options` preserves one shared pool.
+
+Harnest serializes framework-state and application-data writes within each lease because asyncpg allows only one active command per connection. Pool isolation separates workloads; it does not permit concurrent commands on one leased connection.
+
 ## Register a domain repository
 
 Custom storage is for business data that needs a typed repository. It is not a session store or framework checkpointer.

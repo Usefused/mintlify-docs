@@ -86,7 +86,7 @@ Use `await task.defer(...)` without `handle.result()` for fire-and-forget work. 
 | Runtime principal | Active permission names are persisted; identity and credentials are not |
 | Defer boundary | Available only while the compiled Harnest runtime is active |
 
-If the application has multiple PostgreSQL stores, set `HARNEST_TASK_DATABASE_URL` explicitly. Every replica can run a worker against the shared queue.
+If the application has multiple PostgreSQL stores, set `HARNEST_TASK_DATABASE_URL` explicitly. Every replica can run a worker against the shared queue. The Task runtime opens its own Procrastinate connection pool even when it derives the DSN from a `PostgresStore`; `lease_pool_options` controls session execution leases, not Task worker concurrency. Set `HARNEST_TASK_DATABASE_URL` to place Task traffic on a separately provisioned database.
 
 ```bash
 export HARNEST_TASK_DATABASE_URL=postgresql://localhost/harnest
