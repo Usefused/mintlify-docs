@@ -35,6 +35,31 @@ Other existing domain modules include `harnest.approval`, `harnest.content`, `ha
 
 `AgentResponse` from `harnest.http` represents an HTTP route response. `AgentResponse` from `harnest.context` represents a local agent invocation response; select the contract for your integration.
 
+## IDE autocomplete and hover help
+
+Harnest ships as a typed Python package with inline signatures, API docstrings,
+and a PEP 561 `py.typed` marker. Because each agent uses an isolated managed
+environment, point your editor at that environment instead of a system Python.
+
+```bash
+harnest env sync support-agent
+```
+
+The command prints `Agent environment ready:` followed by the exact Python
+executable. Select that executable as the project interpreter in VS Code,
+PyCharm, or another Python IDE. The editor can then resolve `harnest` and show
+completion, parameter and return types, and hover documentation without a
+separate SDK installation.
+
+The managed wheel also includes editor-only definitions for
+`harnest.extensions.docker` and `harnest.extensions.hatchet`. Those imports get
+completion and hover help while the actual modules remain available at runtime
+only when their corresponding official extension is installed in the project.
+
+Run `env sync` and update the editor selection again after dependency changes;
+the content-addressed environment path can change when the resolved runtime
+changes.
+
 ## Scoped operations
 
 Sandbox execution and cleanup share a namespace:
@@ -65,7 +90,8 @@ coverage = lifecycle.coverage("langgraph", "managed")
 
 The modules in the table above are Harnest's supported Python authoring
 surface. Their declared exports are snapshot-tested so an accidental removal or
-move fails the release gate. Re-exports preserve object identity, including
+move fails the release gate. Public callable annotations and hover docstrings
+are checked by the same gate. Re-exports preserve object identity, including
 exception classes used by existing handlers.
 
 During `0.x`, Harnest may make a breaking public Python API change only in a
