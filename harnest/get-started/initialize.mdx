@@ -42,7 +42,7 @@ Create a managed agent, prepare its isolated environment, and run the generated 
     harnest env sync support-agent
     ```
 
-    Synchronization creates `uv.lock`, records the exact resolved framework version in `harnest.lock`, and creates the generated `.harnest/` environment. Commit both lockfiles; do not edit or commit `.harnest/`.
+    Synchronization creates the complete hash-verified `harnest-runtime.lock`, records the exact resolved framework version in `harnest.lock`, and creates the generated `.harnest/` environment. Commit both lockfiles; do not edit or commit `.harnest/`.
   </Step>
   <Step title="Run the offline tests">
     ```bash
@@ -59,7 +59,7 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 | `instructions.md` | Agent instructions |
 | `config.yaml` | Framework, project settings, and optional `server` overrides |
 | `agent-card.yaml` | Public identity, interfaces, and advertised capabilities |
-| `pyproject.toml` | Authored dependencies; `harnest env sync` then creates `uv.lock` |
+| `pyproject.toml` | Authored dependencies; `harnest env sync` then creates `harnest-runtime.lock` |
 | `lib/` and `models/` | Reusable Python and Pydantic contracts |
 | `tools/`, `tasks/`, and `lifecycle/` | Folder-discovered capabilities and runtime behavior |
 | `tests/` | Offline and optional live checks |

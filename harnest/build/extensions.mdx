@@ -4,7 +4,7 @@ sidebarTitle: "Overview"
 description: "Follow the Harnest Extension process from boundary selection through authoring, lifecycle integration, and application use."
 ---
 
-A Harnest Extension packages reusable application functionality. It runs in the agent process and can contribute declared lifecycle, context, storage, HTTP, content, and telemetry capabilities. It does not need to connect to an external service.
+A Harnest Extension packages reusable application functionality. It runs in the agent process and can contribute declared lifecycle, context, storage, HTTP, content, sandbox-provider, and telemetry capabilities. It does not need to connect to an external service.
 
 Building one is a three-part process: define the extension's application-owned object, declare how it joins Harnest lifecycle, then consume its bounded API from agent code.
 
@@ -38,6 +38,7 @@ Building one is a three-part process: define the extension's application-owned o
 |---|---|
 | Reuse portable skills, MCP servers, or both | [Agent Plugin](/harnest/build/agent-plugins) |
 | Wrap an SDK in typed, invocation-scoped Python | Harnest Extension |
+| Implement a reusable sandbox provider | Harnest Extension declaring `sandbox.provider` |
 | Apply behavior to one application without a reusable extension API | Root `lifecycle/` hooks and factories |
 | Run work outside the agent process | Harnest Extension backed by an external service |
 

@@ -4,13 +4,31 @@ sidebarTitle: "Plugins"
 description: "Add portable Agent Plugins containing skills, MCP servers, or both."
 ---
 
-Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `plugins/` to give your managed ADK or LangGraph agent reusable skills, MCP servers, or both. Harnest reads its declarations and connects them to the framework's native runtime. You do not import the plugin or register its components in Python.
+Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `plugins/` to give your managed ADK or LangGraph agent reusable skills, MCP servers, or both. Harnest reads its declarations and connects them to the framework's native runtime. You do not import the plugin or register its components in Python. Advanced-mode applications retain their native composition and must wire equivalent capabilities themselves.
 
 <Note>
   Need Python APIs, SDK dependencies, typed context, or lifecycle behavior? Build a [Harnest Extension](/harnest/build/extensions) in `extensions/`. Application hooks and resource factories belong in `lifecycle/`.
 </Note>
 
 ## Add a plugin
+
+Install a reviewed local package into an agent project:
+
+```bash
+harnest plugins install ./downloads/warehouse --project ./support-agent
+```
+
+Harnest validates the Agent Plugins 1.0 manifest without importing or executing
+package code, then copies ordinary files into
+`support-agent/plugins/<manifest-name>` through same-filesystem staging. It
+rejects links, special files, and an existing destination. Pass `--force` only
+when you intend to replace that complete installed package; a failed final swap
+restores the previous package.
+
+The installer currently accepts local directories. It does not invent a
+registry or download protocol that the Agent Plugins specification does not
+define. `harnest extensions search` remains the separate discovery command for
+executable Harnest Extensions.
 
 Place each package in its own directory. Keep the package's root `plugin.json` intact:
 
@@ -102,6 +120,13 @@ Only `${PLUGIN_ROOT}` and `${PLUGIN_DATA}` expand, and only in stdio `args`, `en
 ### Remote connections and credentials
 
 Remote URLs require HTTPS except for loopback hosts. URL and header values are literal: `${TOKEN}` does not read an environment variable. Do not embed secrets in plugin headers or stdio environment declarations.
+
+Harnest-owned MCP HTTP clients inherit the process's standard uppercase and
+lowercase HTTP(S) and `ALL_PROXY` variables. Released installs include SOCKS
+transport support, including `socks5h://` proxy URLs. This preserves
+operator-managed enterprise egress. Remove the relevant proxy variables from
+the Harnest process when a connection must bypass environment proxy discovery;
+proxy URLs and credentials are omitted from client-construction diagnostics.
 
 Authentication is client-managed; Agent Plugins 1.0 does not define portable credential references or OAuth configuration. When your application needs custom credential resolution, configure a [direct MCP client](/harnest/build/mcp-client) with Harnest's [credential providers](/harnest/runtime/authentication-and-credentials).
 

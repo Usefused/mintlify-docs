@@ -35,7 +35,7 @@ support-agent/
 ├── agent.py
 ├── instructions.md
 ├── pyproject.toml
-├── uv.lock                 created by harnest env sync
+├── harnest-runtime.lock    created by harnest env sync
 ├── harnest.lock
 ├── lib/
 │   └── storage.py
@@ -108,7 +108,7 @@ Put reusable code in `lib/` and Pydantic contracts in `models/`. Those folders a
 | Public filenames identify Python resources | Match each required export to its filename; Agent Plugins use their manifest `name` |
 | Location drives discovery | Do not register sibling resources manually |
 | `.harnest/` is generated | Do not edit or commit it |
-| `uv.lock` is project source | Commit it for repeatable environments |
+| `harnest-runtime.lock` is project source | Commit it for repeatable, hash-verified environments |
 
 `harnest init` creates the required root files. Use `--example` for opt-in templates in guide-only managed folders. Python templates stay named `_example.py`; skill, plugin, and eval templates use ignored native-format paths. Follow each sample's activation instructions before renaming it to a public path.
 

@@ -1,0 +1,78 @@
+---
+title: "Docker extension"
+sidebarTitle: "Docker"
+description: "Run framework-neutral Python sandbox workloads through the Fused-maintained Docker Harnest Extension."
+---
+
+The official Docker Harnest Extension moves Docker SDK and container ownership out of Harnest core. It implements the provider-neutral sandbox contract for managed ADK and LangGraph agents. It is a Harnest Extension, not an Agent Plugin, browser tool, or general container orchestrator.
+
+## Install the extension
+
+```bash
+harnest extensions install docker --project ./my-agent
+# Equivalent: harnest extensions install harnest-extension-docker --project ./my-agent
+harnest env sync ./my-agent
+```
+
+For local extension development, point the same command at a checkout:
+
+```bash
+harnest extensions install ./official-extensions/docker --project ./my-agent --force
+harnest env sync ./my-agent
+```
+
+Harnest validates and copies the package without importing its code. Version `0.2.0` requires Python 3.10 or newer, Harnest `>=0.14,<0.15`, and `docker>=7.1,<8`. The host must provide a reachable Docker daemon.
+
+## Declare a Docker sandbox
+
+Create `sandbox/python.py`. The exported variable must match the filename:
+
+```python sandbox/python.py
+from harnest.extensions.docker import docker
+from harnest.sandbox import SandboxBudget, SandboxNetworkPolicy
+
+
+python = docker.sandbox(
+    image="python:3.12-slim@sha256:<approved-digest>",
+    network_policy=SandboxNetworkPolicy.none(),
+    scope="execution",
+    timeout_seconds=120,
+    max_output_bytes=1_048_576,
+    budget=SandboxBudget(
+        cpu=1.0,
+        memory_bytes=512 * 1024 * 1024,
+        pids=64,
+        scratch_bytes=64 * 1024 * 1024,
+    ),
+)
+```
+
+Add `"python"` to each consuming agent's `sandboxes=[...]` grant. Call it from an authored tool through `context.sandboxes["python"]`. Exactly one of `image` or `docker_path` is required; prefer an immutable image digest in deployments.
+
+## Choose a reuse scope
+
+| Scope | Container ownership |
+|---|---|
+| `execution` | Fresh container for every call; this is the default |
+| `invocation` | Reuse only for the same agent, user, session, and invocation |
+| `session` | Reuse only for the same agent, user, and session |
+
+Retained scopes reuse the container and its `/tmp` scratch files while that identity remains cached, but not live processes or durable storage. Every successful call stops remaining processes. `max_scopes` defaults to `8` and evicts the least recently used retained container before admitting another identity.
+
+## Set network authority
+
+The extension supports `SandboxNetworkPolicy.none()` and `SandboxNetworkPolicy.unrestricted(block_private_networks=False)`. No-network mode is the default. Exact host or port allowlists, and unrestricted networking with private-network blocking, fail closed because this provider does not yet enforce those controls at Docker's network boundary.
+
+Network policy is provider-enforced authority. Validating a URL in an Agent Tool does not replace it. Use another sandbox provider when a workload requires exact destination enforcement.
+
+## Understand deadlines and cleanup
+
+The all-in deadline covers queue admission, image and container startup, and execution. SDK transport timeouts for image preparation and container creation are constrained by the remaining deadline; a host watchdog and control checks bound execution. Output is bounded while streaming; timeout, cancellation, overflow, and failed startup poison the container instead of returning it to a reuse pool.
+
+Cleanup receives a separate bounded five-second window. The provider retains ownership and blocks replacement when termination is uncertain. Startup errors identify the failed phase without exposing raw SDK details. Managed containers carry `dev.harnest.*` labels for operator inventory.
+
+## Security boundary
+
+Docker daemon access is highly privileged. Protect its socket or remote API, restrict who can configure this extension, and use trusted digest-pinned images. Containers run as a non-root user with a read-only root filesystem, dropped capabilities, `no-new-privileges`, bounded `/tmp`, and no host mounts. Docker still shares the host kernel; choose a stronger provider for higher-risk isolation.
+
+The extension does not transfer input or output files. Use stdout or a provider with an explicit file contract. See [Sandboxing](/harnest/build/sandboxing) for agent grants, authored-tool usage, custom providers, and failure handling.

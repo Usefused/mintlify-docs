@@ -6,6 +6,23 @@ description: "Discover a Harnest Extension, consume its compiler-owned namespace
 
 A project-local Harnest Extension is discovered from `extensions/<name>/extension.yaml`. You do not add it to a central registry or manually attach it to the root agent.
 
+Install a verified public PyPI wheel by its short slug or full distribution name:
+
+```bash
+harnest extensions install warehouse --project support-agent
+# Equivalent: harnest extensions install harnest-extension-warehouse --project support-agent
+harnest env sync support-agent
+```
+
+To review and test an unpublished extension, install its local source tree instead:
+
+```bash
+harnest extensions install ./harnest-extension-warehouse --project support-agent
+harnest env sync support-agent
+```
+
+For a PyPI install, Harnest validates the manifest, wheel metadata, digest, entry point, and package layout without importing extension code. For local source, it validates the manifest and layout plus any available project identity and version metadata. Both paths materialize the package into `support-agent/extensions/<manifest-name>` through a staged replacement and preserve a root `README.md` when one is present. Harnest refuses an existing extension unless you pass `--force`. Review same-process extension code and its declared capabilities before installation; installing changes dependency inputs, so refresh `harnest-runtime.lock` with `harnest env sync`.
+
 After compilation, Harnest exposes the extension module as `harnest.extensions.<name>`. Import the singleton from a discovered Agent Tool and call its bounded API:
 
 ```python tools/query_warehouse.py
@@ -51,7 +68,7 @@ harnest extensions search warehouse
 Search verifies package naming, one `harnest.extensions` entry point, the bundled `extension.yaml` and `extension.py`, release identity, and the published wheel digest without importing package code. `official` means Fused controls and explicitly recognizes that package name; `community` means only that the wheel satisfies the structural contract. Neither label is a security review.
 
 <Warning>
-  Search does not install an extension. The current compiler discovers Harnest Extensions from the project-local `extensions/<name>/` folder. Merely adding or installing a PyPI package does not register its entry point as a project extension. Obtain and review the publisher's source bundle, place it under the local `extensions/` directory, then run `harnest env sync` before compiling.
+  Search does not install an extension, and `pip install` alone does not register one with an agent project. Use `harnest extensions install <slug-or-project>` to verify and materialize a published wheel, then run `harnest env sync` before compiling.
 </Warning>
 
 <CardGroup cols={2}>

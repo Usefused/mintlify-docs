@@ -4,12 +4,17 @@ sidebarTitle: "Create an extension"
 description: "Author the Harnest Extension manifest, singleton, typed invocation context, and dependency contract."
 ---
 
-Create a root-owned folder under `extensions/`. The folder name is the extension identity and must be a valid Python identifier.
+Create a root-owned folder under `extensions/`. The folder name is the extension identity and must be a valid Python identifier. The CLI creates the canonical manifest, module, and dependency metadata together:
+
+```bash
+harnest extensions init warehouse --project support-agent
+```
 
 ```text extensions/warehouse/
 extensions/warehouse/
 ├── extension.yaml
 ├── extension.py
+├── README.md            optional package documentation
 ├── pyproject.toml       optional SDK dependencies
 ├── lib/                 private extension helpers
 └── lifecycle/          declared Harnest lifecycle contributions
@@ -31,7 +36,7 @@ runtime:
 
 ```toml extensions/warehouse/pyproject.toml
 [project]
-name = "warehouse"
+name = "harnest-extension-warehouse"
 version = "1.0.0"
 requires-python = ">=3.11,<3.14"
 dependencies = ["warehouse-sdk>=2,<3"]
@@ -39,7 +44,9 @@ dependencies = ["warehouse-sdk>=2,<3"]
 
 </CodeGroup>
 
-`metadata.name` must match the folder. The optional PEP 621 project name and version must match `extension.yaml`. Its static dependencies join the root environment solve.
+`metadata.name` must match the folder. The optional PEP 621 distribution name must be `harnest-extension-<name>` and its version must match `extension.yaml`. The prefix prevents an extension from colliding with an SDK distribution that uses the provider name. Static dependencies join the root environment solve.
+
+A distributable extension may include one regular root `README.md` and reference it from `project.readme`. Package that file with `extension.yaml` and `extension.py` so PyPI renders the same reviewed documentation that Harnest preserves during installation. Harnest rejects links, special files, and unexpected root resources.
 
 ## Export the application-owned singleton
 

@@ -11,7 +11,7 @@ Keep project and server settings together in `config.yaml`. The Agent Card owns 
 | `config.yaml` | Framework, deployment intent, and optional `server` overrides | Yes |
 | `agent-card.yaml` | Public agent identity and capabilities | Yes |
 | `pyproject.toml` | Agent-owned Python dependencies | Yes |
-| `uv.lock` | Reproducible project environment | Yes |
+| `harnest-runtime.lock` | Complete hash-verified runtime resolution | Yes |
 | `harnest.lock` | Project schema and resolved framework version | Yes |
 | `.harnest/` | Generated environments and artifacts | No |
 
@@ -159,7 +159,7 @@ This example enables WebSockets on the HTTP listener and changes its port. Omit 
 
 The Agent Card supplies public discovery metadata and declared capabilities. Compilation validates and copies it into the artifact. The server exposes the card at `/.well-known/agent-card.json` and includes its identity and route links in `GET /agent`. Declare an A2A interface here when you want to [serve the agent through A2A](/harnest/runtime/a2a/serve).
 
-## `pyproject.toml` and `uv.lock`
+## `pyproject.toml` and `harnest-runtime.lock`
 
 Declare only agent-owned provider, tool, and ordinary Python dependencies in `pyproject.toml`. Do not declare Harnest, ADK, LangGraph, LangChain adapters, or other Harnest-owned framework packages. Each Harnest release supplies and checks a compatible framework version.
 
@@ -169,7 +169,13 @@ Synchronize the project environment and commit the resulting lock:
 harnest env sync AGENT_DIR
 ```
 
-The environment lives under `AGENT_DIR/.harnest/environments/` and should not be activated. `compile`, `test`, and `serve` synchronize it automatically. CI can require the committed lock without changing it:
+Harnest resolves the embedded release wheel, selected framework, project and
+Harnest Extension dependencies, optional task runtime, and every transitive
+dependency into `harnest-runtime.lock`. Every distribution is hash verified.
+The generated lock replaces machine-local wheel paths with a release marker, so
+it can be reviewed and committed without recording a developer's filesystem.
+
+The environment lives under `AGENT_DIR/.harnest/environments/` and should not be activated. `compile`, `test`, and `serve` synchronize it automatically. CI can require a current committed lock without resolving or changing it:
 
 ```bash
 harnest env sync AGENT_DIR --frozen
@@ -189,8 +195,8 @@ framework:
   version: 1.2.11
 ```
 
-Commit this file alongside `uv.lock`. Later environment syncs install the exact framework pin, and compilation rejects a different installed version before loading agent code. `harnest env sync --frozen` requires an existing matching framework pin and leaves it unchanged.
+Commit this file alongside `harnest-runtime.lock`. Later environment syncs install the exact complete runtime resolution, and compilation rejects a different installed framework version before loading agent code. `harnest env sync --frozen` requires matching framework and runtime locks and leaves them unchanged. It rejects changed dependency inputs before installation.
 
 To deliberately resolve a newer supported framework release, remove only the `framework` entry and run environment sync again, then review and commit the new pin. Changing the selected framework in `config.yaml` followed by normal sync records the new framework; frozen sync rejects that change. Project schema migrations use `harnest upgrade` and preserve the framework pin.
 
-Harnest's CI exercises both framework adapters and the shared evaluation engine against pinned, minimum-supported, and latest-compatible dependencies on Python 3.10 and 3.12, on pull requests and daily. `harnest.lock` pins the selected agent framework; it does not claim to lock every transitive package or the separate evaluation engine.
+Harnest's CI exercises both framework adapters and the shared evaluation engine against pinned, minimum-supported, and latest-compatible dependencies on Python 3.10 and 3.12, on pull requests and daily. `harnest.lock` records the selected framework; `harnest-runtime.lock` is the deployment resolution and includes Harnest, the framework, extension and task dependencies, and their transitives.

@@ -71,7 +71,10 @@ The first `upgrade` is a read-only plan. Apply verifies the planned source hashe
 
 ## Compatibility
 
-Each Harnest release declares the ADK and LangGraph versions it supports. Project environments use those tested ranges; authored dependencies live in the project's `pyproject.toml` and lock in `uv.lock`.
+Each Harnest release declares the ADK and LangGraph versions it supports.
+Authored dependencies live in the project's `pyproject.toml`; environment sync
+resolves them with the Harnest release, selected framework, extensions, task
+runtime, and all transitives into the hash-verified `harnest-runtime.lock`.
 
 | Check | Command |
 |---|---|

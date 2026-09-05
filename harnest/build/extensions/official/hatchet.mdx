@@ -1,0 +1,64 @@
+---
+title: "Hatchet extension"
+sidebarTitle: "Hatchet"
+description: "Submit and recover durable external workflows through the Fused-maintained Hatchet Harnest Extension."
+---
+
+The official Hatchet Harnest Extension connects agent-owned tools to an independently operated Hatchet runtime. It submits, inspects, waits for, and cancels workflow runs while Harnest owns agent execution and durable continuation state. It is a Harnest Extension, not an Agent Plugin, worker supervisor, or workflow deployment system.
+
+## Install the extension
+
+```bash
+harnest extensions install hatchet --project ./my-agent
+# Equivalent: harnest extensions install harnest-extension-hatchet --project ./my-agent
+harnest env sync ./my-agent
+```
+
+For local extension development, point the same command at a checkout:
+
+```bash
+harnest extensions install ./official-extensions/hatchet --project ./my-agent --force
+harnest env sync ./my-agent
+```
+
+Harnest validates and copies the package without importing its code. Version `0.1.0` requires Python 3.10 or newer, Harnest `>=0.13,<0.15`, and `hatchet-sdk>=1.38,<2`.
+
+## Submit and await a workflow
+
+Author a domain-specific asynchronous Agent Tool and call the compiler-owned extension namespace:
+
+```python
+from harnest.extensions.hatchet import hatchet
+from harnest.tool import tool
+
+
+@tool(durable=True)
+async def build_report(account_id: str) -> dict:
+    """Build one account report in the external workflow system."""
+    job = await hatchet.run("build-report", {"account_id": account_id})
+    return await hatchet.wait(job)
+```
+
+`hatchet.status(job)` reads the current state. `hatchet.cancel(job)` requests provider cancellation. Hatchet workers and workflow definitions remain independently deployed; stopping Harnest does not stop them.
+
+## Configure credentials
+
+The extension declares `context.credentials` and `context.continuations`. Resolve invocation credentials with only the operations a tool needs:
+
+| Operation | Required provider scope |
+|---|---|
+| `run` | `runs:create` |
+| `status` and `wait` | `runs:read` |
+| `cancel` | `runs:cancel` |
+
+The deployment must also provide `HATCHET_CLIENT_TOKEN` so startup recovery can inspect pending waits after a restart. Keep provider tokens in the credential resolver or process environment, not source, workflow input, continuation results, or logs. The extension disables the SDK's implicit working-directory dotenv discovery.
+
+## Recovery and limits
+
+`wait` stores an opaque continuation and can resume after process or replica replacement. Recovery retains pending waits across transient Hatchet outages, applies polling backoff, and uses at most 16 concurrent provider clients. Cancellation is a provider request and does not imply immediate worker shutdown.
+
+An invocation carrying an Agent Runtime Principal cannot suspend an external continuation because another replica cannot reconstruct that opaque authority. In that case `wait` fails closed. Because `run` submits the workflow before `wait` begins, the Hatchet job remains submitted; poll it with `status` in the live invocation or avoid binding a runtime principal when cross-replica waiting is required.
+
+Inputs and workflow results must be JSON mappings. The extension rejects either payload above 1 MiB before submission or durable persistence. Job data crosses the external Hatchet boundary, so send only the fields that workflow requires.
+
+The extension does not deploy Hatchet, define workflows, manage workers, expose automatic model tools, or replace Harnest session and checkpoint storage. See [Durable execution](/harnest/runtime/durable-execution) for continuation behavior and [Authentication and credentials](/harnest/runtime/authentication-and-credentials) for scoped credential providers.

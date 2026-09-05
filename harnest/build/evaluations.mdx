@@ -6,7 +6,7 @@ description: "Choose reference, judge, safety, tool, multi-turn, simulation, or 
 
 Harnest evaluations run your agent against versioned examples and produce a CI-ready quality gate. Google ADK is the evaluation engine for both ADK and LangGraph projects: eval sets, metric configuration, custom scorer interfaces, and captured invocation data use ADK's evaluation contract.
 
-This is shared evaluation infrastructure, not a change to your agent runtime. LangGraph execution and built-in Docker sandboxes do not run through ADK's agent or sandbox executor. Evaluation startup validates the supported ADK version, and Harnest's compatibility CI tests evaluation adapters for both frameworks against pinned, minimum, and latest-compatible dependency sets.
+This is shared evaluation infrastructure, not a change to your agent runtime. LangGraph execution and Docker-extension sandboxes do not run through ADK's agent or sandbox executor. Evaluation startup validates the supported ADK version, and Harnest's compatibility CI tests evaluation adapters for both frameworks against pinned, minimum, and latest-compatible dependency sets.
 
 <Note>
   Your agent framework and your evaluation engine are separate choices. A LangGraph team keeps its LangGraph agent and runs evaluations through Harnest. You do not need to rewrite the agent in ADK or create a separate ADK application.

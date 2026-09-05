@@ -26,7 +26,7 @@ from harnest.tool import tool, client_tool
 | Models | `harnest.model` | `LiteLLMModel`, `LiteLLMContext`, `ModelCallRequest`, `ModelLifecycleError` |
 | Lifecycle | `harnest.lifecycle` | `lifecycle`, `Next`, `Finish`, `LifecycleCoverage`, `CoverageLevel` |
 | Invocation context | `harnest.context` | `context`, `SessionContext`, `StorageContext`, `ScopedAssets`, `AgentSession` |
-| Sandbox providers | `harnest.sandbox` | `Sandbox`, `SandboxResult`, `SandboxCancelledError`, `control` |
+| Sandbox providers | `harnest.sandbox` | `Sandbox`, `SandboxNetworkPolicy`, `SandboxProviderCapabilities`, `SandboxResult`, `control` |
 | Runtime adapters | `harnest.runtime` | `ResponseRequest`, `InvocationRequest`, `RuntimeDriver`, `RuntimeEvent` |
 | Assets | `harnest.assets` | `AssetStorage`, `AssetScope`, `Stored` |
 | Storage | `harnest.store` | `MemoryStore`, `PostgresStore`, `RedisStore`, `CustomStorage`, `StorageRegistry` |
@@ -60,3 +60,21 @@ from harnest.lifecycle import lifecycle
 
 coverage = lifecycle.coverage("langgraph", "managed")
 ```
+
+## Public API stability
+
+The modules in the table above are Harnest's supported Python authoring
+surface. Their declared exports are snapshot-tested so an accidental removal or
+move fails the release gate. Re-exports preserve object identity, including
+exception classes used by existing handlers.
+
+During `0.x`, Harnest may make a breaking public Python API change only in a
+minor release. Public names and signatures are otherwise backward compatible;
+deprecated APIs remain available for at least one minor release before removal,
+except when retaining them would preserve a security defect. Patch releases do
+not intentionally break these contracts.
+
+Serialized plans, locks, manifests, and request/response documents use their own
+schema or format versions. A Python re-export does not change those formats, and
+a schema migration does not imply that exception identity or Python signatures
+may change silently.

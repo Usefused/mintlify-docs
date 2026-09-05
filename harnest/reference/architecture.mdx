@@ -35,7 +35,9 @@ agent source → validate → compile for ADK or LangGraph → artifact → neut
 | Runtime | Sessions, checkpoints, auth, telemetry, and transports |
 | Deployment engine | Process lifecycle and deployment environment |
 
-Treat `.harnest/` as generated output. Commit your source and `uv.lock`; regenerate artifacts when the source or selected framework changes.
+Treat `.harnest/` as generated output. Commit your source, `harnest.lock`, and
+`harnest-runtime.lock`; regenerate artifacts when the source, Harnest release,
+or selected framework changes.
 
 ## Framework boundary
 

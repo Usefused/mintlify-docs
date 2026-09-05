@@ -193,7 +193,15 @@
                       "harnest/build/extensions",
                       "harnest/build/extensions/create",
                       "harnest/build/extensions/lifecycle",
-                      "harnest/build/extensions/use"
+                      "harnest/build/extensions/use",
+                      {
+                        "group": "Official extensions",
+                        "expanded": false,
+                        "pages": [
+                          "harnest/build/extensions/official/docker",
+                          "harnest/build/extensions/official/hatchet"
+                        ]
+                      }
                     ]
                   },
                   {
