@@ -74,7 +74,7 @@ response = await agent.invoke(
 )
 ```
 
-The principal is optional. Omitting it preserves the existing unrestricted tool surface; pass an empty principal to make every permissioned capability unavailable. Do not accept permission names directly from the request body. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals) for propagation and Advanced-mode coverage.
+The principal is optional. Omitting it preserves the existing unrestricted tool surface. Supplying one activates default-deny behavior: untagged capabilities and capabilities without a matching grant are unavailable. An empty principal therefore makes every Harnest-governed capability unavailable. Do not accept permission names directly from the request body. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals) for propagation and Advanced-mode coverage.
 
 ## Handle required actions
 

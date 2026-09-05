@@ -57,7 +57,7 @@ return MCPClient.streamable_http(
 )
 ```
 
-Harnest filters discovered remote tools against the active [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) and checks the requirement again when either the model or trusted code calls the tool. The MCP server or its gateway remains responsible for authorizing the remote request.
+When an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) is active, Harnest hides an MCP operation unless a client-wide or operation-specific permission applies and every applicable permission is present. A completely untagged MCP client has no available operations. Harnest checks the requirement again when either the model or trusted code calls the tool. The MCP server or its gateway remains responsible for authorizing the remote request.
 
 ## Call MCP from trusted code
 

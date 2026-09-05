@@ -26,7 +26,7 @@ Harnest never executes the declaration body. It suspends the invocation and asks
 | Execution | Connected browser, desktop, or mobile host |
 | Output | Validated before the agent resumes |
 | Policy | Client owns local execution and sandboxing |
-| Runtime permission | Optional `@client_tool(permission="browser.open")` |
+| Runtime permission | `@client_tool(permission="browser.open")`; required when the tool must be available under an Agent Runtime Principal |
 | Runtime requirement | Active Harnest invocation; advanced targets own capability wiring |
 
 ## Transport flow
@@ -39,7 +39,7 @@ Harnest never executes the declaration body. It suspends the invocation and asks
 
 The submitted result is identity-bound, one-time, and validated against the declared return type.
 
-When an invocation has an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals), Harnest presents the client tool only when the principal carries its declared permission and checks again before requesting client execution. The client must still authorize the local action.
+When an invocation has an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals), Harnest presents the client tool only when it declares a permission carried by the principal and checks again before requesting client execution. Untagged client tools are unavailable. The client must still authorize the local action.
 
 ## Combine with approval
 

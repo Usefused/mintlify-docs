@@ -4,7 +4,7 @@ sidebarTitle: "Runtime principals"
 description: "Limit the Harnest capabilities available to one agent invocation."
 ---
 
-An `AgentRuntimePrincipal` limits which permissioned capabilities Harnest makes available during one invocation. Create it in trusted application code after authenticating the caller or deciding which service identity a job should use.
+An `AgentRuntimePrincipal` establishes a default-deny boundary for Harnest-governed capabilities during one invocation. A server tool, client-hosted tool, or MCP operation is available only when it declares a permission carried by the principal. Create the principal in trusted application code after authenticating the caller or deciding which service identity a job should use.
 
 ```python
 from harnest.agent import AgentRuntimePrincipal
@@ -30,7 +30,7 @@ The generated `id` is an opaque runtime identity. Your application remains the s
 
 ## Mark permissioned capabilities
 
-Server and client-hosted tools accept one permission identifier:
+Every capability that should remain available under a principal must declare a permission. Server and client-hosted tools accept one permission identifier:
 
 <CodeGroup>
 
@@ -79,6 +79,8 @@ def client():
 
 `permission=` applies to every tool from that client. A matching `tool_permissions` entry is an additional requirement. Permission identifiers start with a letter and can contain letters, numbers, `.`, `_`, `:`, or `-`.
 
+When you omit the client-wide permission, only operations named in `tool_permissions` can be available under a principal. Untagged MCP operations remain unavailable.
+
 ## Invoke with a principal
 
 Pass the principal through a trusted [custom HTTP endpoint](/harnest/runtime/custom-http-endpoints):
@@ -97,14 +99,15 @@ response = await agent.invoke(
 
 You can also pass `agent_principal=` to an in-process `AgentSession.invoke(...)` or `AgentSession.stream(...)` call.
 
-Harnest removes unavailable capabilities from Harnest-owned model tool surfaces and checks the permission again at execution. Treat the execution check as defense in depth. The downstream service must still authorize the actual operation.
+Harnest removes untagged and unmatched capabilities from Harnest-owned model tool surfaces and checks the permission again at execution. Treat the execution check as defense in depth. The downstream service must still authorize the actual operation.
 
 ## Understand omission and propagation
 
 | Situation | Behavior |
 |---|---|
-| Root invocation omits `agent_principal` | Compatibility mode; permissioned capabilities remain available |
-| Root invocation receives an empty principal | Every permissioned capability is unavailable |
+| Root invocation omits `agent_principal` | Compatibility mode; the existing capability surface remains available |
+| Root invocation receives an empty principal | Every Harnest-governed capability is unavailable |
+| Active principal encounters an untagged capability | Capability is unavailable |
 | Nested agent call omits it | Inherits the active principal |
 | Nested agent call supplies a subset | Uses the narrower principal |
 | Nested agent call attempts to add permissions | Fails before execution |
