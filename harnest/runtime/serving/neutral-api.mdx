@@ -17,7 +17,7 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
 | `POST /sessions/{id}/assets` | Upload a session-owned media asset |
 | `HEAD/GET/DELETE /sessions/{id}/assets/{assetId}` | Inspect, download, or delete an asset |
 | `POST /responses` | Run JSON or SSE responses |
-| `GET /responses/{id}?sessionId=...` | Poll a durable response |
+| `GET /responses/{id}?sessionId=...` | Read the latest response state or recover terminal output |
 | `WS /live` | Run a live WebSocket session when `server.live: true` |
 | `GET /healthz` | Check process health |
 | `GET /.well-known/agent-card.json` | Discover the Agent Card |
@@ -26,7 +26,7 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
 
 Declare an A2A HTTP+JSON or JSON-RPC interface in `agent-card.yaml` to mount its URL alongside the neutral API. A blocking send returns a direct A2A `Message` when execution completes without needing task semantics. Streaming, `returnImmediately`, approval, client-tool, and external durable waits use an A2A `Task`.
 
-The binding also supports explicit task lookup, filtered listing, cancellation, and subscriptions. See [Agent2Agent (A2A)](/harnest/runtime/a2a) for serving, outbound clients, security, durable `@task` integration, and replica behavior.
+The binding also supports explicit task lookup, filtered listing, cancellation, and subscriptions. Streaming A2A tasks carry reasoning as working-status messages and portable lifecycle details under `metadata.harnest`; final answer text remains a response artifact. See [Agent2Agent (A2A)](/harnest/runtime/a2a) for serving, outbound clients, security, durable `@task` integration, and replica behavior.
 
 ## Response modes
 
@@ -50,11 +50,96 @@ The binding also supports explicit task lookup, filtered listing, cancellation, 
 
     Harnest waits for managed model and tool cleanup, then sends `response.completed` with `status: "cancelled"`. Partial deltas are not reported as committed output, and the socket remains ready for another `response.create`.
 
+    When Harnest sends `approval.requested`, answer on the same socket:
+
+    ```json
+    {"type":"approval.decision","responseId":"resp_...","approvalId":"approval_...","decision":"approve"}
+    ```
+
+    Harnest sends `approval.resolved` before resumed output. The HTTP approval endpoint remains available for approval interfaces that do not own the socket.
+
     <Note>Cancellation is cooperative. It does not undo tool or external side effects that already completed.</Note>
   </Tab>
 </Tabs>
 
-All modes use the same portable event names. Native metadata stays under `adk` or `langgraph`.
+## Response status and recovery
+
+Harnest records the latest status for every neutral JSON, SSE, and WebSocket response. Use the server-issued response ID and the same session ID:
+
+```http
+GET /responses/resp_...?sessionId=session_...
+```
+
+The authenticated user and session must both match the original invocation. Harnest returns `404` for a missing or mismatched scope so callers cannot probe another user's response IDs.
+
+Process-local receipts make ordinary completions and required actions recoverable while the server process is running. With a Harnest-owned checkpointer, terminal completion envelopes are also durable across replicas and restarts. Pending human approvals and client-tool exchanges still belong to the process holding the suspended invocation.
+
+Advanced mode keeps the same API where Harnest owns the neutral transport. Recovery is best effort when your application replaces the graph, checkpointer, transport, or tool wiring; Harnest leaves those user-owned boundaries alone.
+
+All modes use the same portable activity contract. JSON returns these items in `output`. SSE and WebSocket use the corresponding `response.*` frames.
+
+| Activity | JSON output item | SSE or WebSocket frame |
+|---|---|---|
+| Assistant answer text | `message` | `response.text.delta` |
+| Provider-exposed reasoning text | `thinking` | `response.thinking.delta` |
+| Agent or graph-node lifecycle | `agent_activity` | `response.agent_activity` |
+| Model/provider metadata and token usage | `agent_metadata` | `response.agent_metadata` |
+| Tool invocation | `tool_call` | `response.tool_call` |
+| Tool completion | `tool_result` | `response.tool_result` |
+
+<CodeGroup>
+
+```json JSON output
+[
+  {"type":"agent_activity","agent":"researcher","activity":"started"},
+  {
+    "type":"thinking",
+    "agent":"researcher",
+    "content":[{"type":"thinking_text","text":"Check the constraints"}]
+  },
+  {
+    "type":"agent_metadata",
+    "agent":"researcher",
+    "framework":"langgraph",
+    "model":"provider-model",
+    "finishReason":"stop",
+    "usage":{"inputTokens":42,"outputTokens":9,"totalTokens":51}
+  }
+]
+```
+
+```json Stream frames
+{"type":"response.agent_activity","sequence":1,"responseId":"resp_123","sessionId":"session_123","agent":"researcher","activity":"started"}
+{"type":"response.thinking.delta","sequence":2,"responseId":"resp_123","sessionId":"session_123","agent":"researcher","delta":"Check the constraints"}
+{"type":"response.agent_metadata","sequence":3,"responseId":"resp_123","sessionId":"session_123","agent":"researcher","framework":"langgraph","model":"provider-model","finishReason":"stop","usage":{"inputTokens":42,"outputTokens":9,"totalTokens":51}}
+```
+
+</CodeGroup>
+
+`thinking` is observable agent activity. It is not part of `outputText`, the committed conversation transcript, or evaluation answer text. Providers do not always expose readable reasoning, so a response may contain no thinking events even when reasoning is enabled.
+
+`agent_activity` identifies the normalized agent or LangGraph node and lifecycle transition, such as `started`, `completed`, `handoff`, `interrupted`, or `failed`. Message and tool events can also include an `agent` field. By default Harnest does not forward provider signatures, credentials, framework objects, graph state, or native event metadata through this contract.
+
+`agent_metadata` centralizes metadata for each reported model call. `usage`
+contains exact provider counts; Harnest does not estimate missing values.
+`model`, `provider`, and `finishReason` appear only when reported, and the
+finish-reason value keeps the provider's vocabulary. A completed JSON, SSE, or
+WebSocket response also includes top-level `usage` aggregated across its
+`agent_metadata` events. This is distinct from the response's `metadata`, which
+is caller-supplied invocation metadata.
+
+By default Harnest omits native metadata fields. Configure
+`OutputPolicy(agent_metadata="raw")` to add a `raw` mapping to each metadata
+event. See [Output policy](/harnest/runtime/lifecycle/output-policy) for the ADK
+and LangGraph namespaces and the disclosure warning.
+
+With a Harnest-owned checkpointer, completion output and normalized agent
+metadata are stored before the run becomes terminal. Polling from another
+replica therefore returns the same per-call metadata, aggregate usage, caller
+metadata, and structured result. Raw metadata is stored only when
+`persist_raw_agent_metadata=True` is explicitly combined with raw mode.
+
+Native metadata that you explicitly declare in a structured output remains namespaced under `adk` or `langgraph`. Treat that metadata as framework-specific rather than part of the portable activity contract.
 
 An external or queued durable wait returns `status: in_progress`. Poll the response ID with the same authenticated user and session until it is `completed` or `failed`. See [Durable execution](/harnest/runtime/durable-execution).
 
@@ -74,7 +159,7 @@ Malformed or cross-user cursors return `400`.
 
 ## Playground
 
-The playground uses only the neutral API. It supports sessions, state, tool activity, JSON, SSE, and opt-in WebSocket conversations. Its **Live** transport choice is disabled when the server does not advertise `/live`.
+The playground uses only the neutral API. It supports sessions, state, reasoning and lifecycle activity, tools, JSON, SSE, and opt-in WebSocket conversations. Reasoning appears in a separate collapsible panel, never in the assistant answer. Its **Live** transport choice is disabled when the server does not advertise `/live`.
 
 Open `/?session=<id>` to select an owned session and restore its transcript. The session picker filters its bounded list by ID; enter a complete ID to load an owned session outside that page. Selecting or creating a session updates the URL.
 

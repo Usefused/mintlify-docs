@@ -39,26 +39,32 @@ Other existing domain modules include `harnest.approval`, `harnest.content`, `ha
 
 Harnest ships as a typed Python package with inline signatures, API docstrings,
 and a PEP 561 `py.typed` marker. Because each agent uses an isolated managed
-environment, point your editor at that environment instead of a system Python.
+environment, synchronize it before opening the project in your editor.
 
 ```bash
 harnest env sync support-agent
 ```
 
-The command prints `Agent environment ready:` followed by the exact Python
-executable. Select that executable as the project interpreter in VS Code,
-PyCharm, or another Python IDE. The editor can then resolve `harnest` and show
-completion, parameter and return types, and hover documentation without a
-separate SDK installation.
+The command creates or atomically updates `support-agent/.venv` as a link to the
+current managed environment. VS Code, PyCharm, and other Python IDEs normally
+detect that conventional project path automatically. The editor can then
+resolve `harnest` and show completion, parameter and return types, and hover
+documentation without a separate SDK installation or manual interpreter setup.
+
+Harnest never replaces a `.venv` directory, file, or link that it does not own.
+If the path already belongs to you, synchronization still succeeds and prints
+`IDE environment unchanged:` with the exact managed Python executable to select
+manually. Add `.venv` to version-control ignores when working in a project that
+was not created by `harnest init`.
 
 The managed wheel also includes editor-only definitions for
 `harnest.extensions.docker` and `harnest.extensions.hatchet`. Those imports get
 completion and hover help while the actual modules remain available at runtime
 only when their corresponding official extension is installed in the project.
 
-Run `env sync` and update the editor selection again after dependency changes;
-the content-addressed environment path can change when the resolved runtime
-changes.
+Run `env sync` after dependency changes. Harnest retargets its `.venv` link when
+the content-addressed runtime changes, so an automatically detected interpreter
+continues to resolve the current environment.
 
 ## Scoped operations
 

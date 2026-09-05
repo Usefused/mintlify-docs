@@ -97,7 +97,12 @@ When a compiled project also contains `@task` work, one unambiguous `PostgresSto
 
 An unfinished `@task` awaited inside `@tool(durable=True)` shares the Harnest run and continuation represented by its A2A Task. On `GetTask` or subscription, Harnest reconciles a durable result without replaying the original tool call.
 
-The A2A `contextId` maps to the Harnest session ID. A text-input root accepts A2A text parts; a typed-input root requires exactly one structured data part. Harnest projects customer-visible text and structured results back to A2A parts while keeping tool traces private.
+The A2A `contextId` maps to the Harnest session ID. A text-input root accepts A2A text parts; a typed-input root requires exactly one structured data part. Harnest projects customer-visible text and structured results back to A2A parts while keeping tool traces private. A streaming Task emits provider-exposed reasoning as a working-status message. Its `metadata.harnest.type` is `thinking`. Agent and graph-node lifecycle updates use the same working status with `metadata.harnest.type: agent_activity`; model metadata uses `metadata.harnest.type: agent_metadata`. The final direct Message or Task artifact persists aggregate token counts under `metadata.harnest.usage`. Answer artifacts can carry `metadata.harnest.agent` attribution.
+
+When `OutputPolicy(agent_metadata="raw")` is enabled, streaming metadata updates
+also carry the native ADK or LangGraph `raw` mapping. A remote A2A task store or
+consumer may retain those values. Keep the normalized default unless every A2A
+caller is authorized to receive provider metadata.
 
 `CancelTask` reports success only after Harnest has made the owned run and continuation terminal. For a queued `@task`, cancellation also stops the Procrastinate job and removes its private payload before committing the A2A `CANCELED` snapshot.
 

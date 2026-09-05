@@ -98,3 +98,13 @@ GET /responses/{responseId}?sessionId={sessionId}
 | `failed` | The durable run reached a sanitized terminal failure |
 
 Cross-user and cross-session lookups return the same not-found response as an unknown ID. Any healthy replica can serve the poll and reconstruct state from shared storage.
+
+Before a run becomes terminal, Harnest stores a versioned public completion
+snapshot in its checkpoint scope. The snapshot preserves final output,
+structured result, caller metadata, per-model-call normalized metadata, and
+aggregate token usage, so replica polling does not have to infer them from the
+last session message. Snapshots are JSON-validated and limited to 4 MiB.
+
+Raw provider metadata is not retained by default. To store it for the run's
+checkpoint retention period, explicitly combine `agent_metadata="raw"` with
+`persist_raw_agent_metadata=True` in the application's output policy.

@@ -175,7 +175,13 @@ dependency into `harnest-runtime.lock`. Every distribution is hash verified.
 The generated lock replaces machine-local wheel paths with a release marker, so
 it can be reviewed and committed without recording a developer's filesystem.
 
-The environment lives under `AGENT_DIR/.harnest/environments/` and should not be activated. `compile`, `test`, and `serve` synchronize it automatically. CI can require a current committed lock without resolving or changing it:
+The environment lives under `AGENT_DIR/.harnest/environments/` and should not
+be activated. An explicit sync creates or updates `AGENT_DIR/.venv` as an
+IDE-detectable link to the current environment. Harnest preserves an existing
+`.venv` that it does not own and prints the exact managed interpreter instead.
+`compile`, `test`, and `serve` synchronize the internal environment
+automatically without changing the IDE link. CI can require a current committed
+lock without resolving or changing it:
 
 ```bash
 harnest env sync AGENT_DIR --frozen

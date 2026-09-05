@@ -1,9 +1,11 @@
 ---
 title: "Output policy"
-description: "Control whether intermediate SubAgent narration becomes public."
+description: "Control intermediate SubAgent narration and provider metadata disclosure."
 ---
 
 Output policy changes which model messages Harnest publishes. It does not change prompts or model responses.
+
+## Choose SubAgent narration
 
 | Value | Behavior |
 |---|---|
@@ -19,6 +21,65 @@ from harnest.output import OutputPolicy
 def output_policy():
     return OutputPolicy(subagent_messages="include")
 ```
+
+## Choose agent metadata
+
+Harnest emits one centralized `agent_metadata` event for metadata reported by
+ADK or LangGraph. The default `normalized` mode exposes the portable fields
+that are present: model, provider, finish reason, and exact input, output, and
+total token counts. Counts are never estimated.
+
+Use raw mode when an authorized caller needs the native framework payload:
+
+```python
+from harnest.lifecycle import lifecycle
+from harnest.output import OutputPolicy
+
+
+@lifecycle.output_policy
+def output_policy():
+    return OutputPolicy(agent_metadata="raw")
+```
+
+Raw mode keeps the normalized fields and adds `raw`. ADK uses its native
+`LlmResponse` metadata field names. LangGraph namespaces `stream_metadata`,
+`response_metadata`, `usage_metadata`, and `additional_kwargs` so fields do not
+collide. The primary message content and Harnest-owned event state are not
+copied. Native metadata can still contain provider-defined content-like values,
+including reasoning annotations in `additional_kwargs`.
+
+<Warning>
+  Native metadata can contain provider identifiers, diagnostic details, and
+  other sensitive or high-cardinality values. Raw values cross every enabled
+  neutral transport and may be persisted by a remote A2A task store. Enable raw
+  mode only for callers authorized to receive that provider payload. Harnest
+  never copies raw metadata into its playground trace history.
+</Warning>
+
+When Harnest owns checkpoint storage, it durably retains the normalized
+completion snapshot so another replica can return the same per-call metadata,
+aggregate usage, caller metadata, and structured result. Raw metadata remains
+ephemeral by default, even when it is exposed live. Persist it only with the
+separate opt-in:
+
+```python
+@lifecycle.output_policy
+def output_policy():
+    return OutputPolicy(
+        agent_metadata="raw",
+        persist_raw_agent_metadata=True,
+    )
+```
+
+Durable completion snapshots are JSON-validated and limited to 4 MiB. They use
+the configured checkpoint backend's retention behavior. PostgreSQL retains the
+snapshot with the run; Redis applies the configured checkpoint TTL.
+
+<Warning>
+  Persisted raw metadata remains available for the lifetime of the durable run.
+  Enable `persist_raw_agent_metadata` only when storage, retention, and caller
+  authorization are appropriate for the native provider payload.
+</Warning>
 
 ## What remains visible
 

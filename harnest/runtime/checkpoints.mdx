@@ -4,7 +4,8 @@ sidebarTitle: "Checkpoints"
 description: "Persist private in-progress execution state for recovery, durable waits, and multiple replicas."
 ---
 
-A checkpointer owns private state for an active invocation. It is separate from the [session store](/harnest/runtime/session-storage), which owns committed conversation history and application session data.
+A checkpointer owns private execution state and the bounded public completion
+snapshot for a durable invocation. It is separate from the [session store](/harnest/runtime/session-storage), which owns committed conversation history and application session data.
 
 When Harnest owns portable checkpoint storage, it keeps:
 
@@ -14,6 +15,7 @@ When Harnest owns portable checkpoint storage, it keeps:
 | Framework snapshots | Resume ADK or LangGraph execution through the selected adapter |
 | Pending writes | Preserve parallel framework work until it commits |
 | Wait metadata | Resume durable tools and external continuations |
+| Completion snapshot | Return final output, agent metadata, and usage consistently from any replica |
 
 Native `LangGraphStore` and `ADKStore` authorities expose their framework's narrower checkpoint contract. They do not provide every Harnest-owned capability in this table.
 

@@ -8,13 +8,13 @@ Approvals and client-hosted tools suspend the current invocation before external
 
 | Required action | JSON | SSE or WebSocket | Resume with |
 |---|---|---|---|
-| Human approval | `requires_action` | `approval.requested` | `POST /approvals/{approvalId}` |
+| Human approval | `requires_action` | `approval.requested` | HTTP decision or `approval.decision` frame |
 | Client-hosted tool | `requires_action` | `client_tool.requested` | HTTP result or `client_tool.result` frame |
 
 ## Decide an approval
 
 <Tabs>
-  <Tab title="Approve">
+  <Tab title="HTTP approve">
     ```http
     POST /approvals/{approvalId}
     Content-Type: application/json
@@ -22,7 +22,7 @@ Approvals and client-hosted tools suspend the current invocation before external
     {"decision":"approve"}
     ```
   </Tab>
-  <Tab title="Deny">
+  <Tab title="HTTP deny">
     ```http
     POST /approvals/{approvalId}
     Content-Type: application/json
@@ -30,7 +30,18 @@ Approvals and client-hosted tools suspend the current invocation before external
     {"decision":"deny"}
     ```
   </Tab>
+  <Tab title="WebSocket">
+    Reply on the active `/live` connection with the response and approval IDs issued by Harnest:
+
+    ```json
+    {"type":"approval.decision","responseId":"resp_...","approvalId":"approval_...","decision":"approve"}
+    ```
+
+    Harnest commits the decision, sends `approval.resolved`, and only then resumes execution on that socket. Use `decision: "deny"` to reject the action.
+  </Tab>
 </Tabs>
+
+The HTTP endpoint remains available when the approving interface does not own the live socket. Both paths apply the same user, response, approval, expiry, and one-time-use checks.
 
 ## Approval outcomes
 
@@ -43,6 +54,20 @@ Approvals and client-hosted tools suspend the current invocation before external
 | Later protected block | Create another request |
 
 Harnest does not restart the tool or replay earlier work.
+
+## Recover a response
+
+Every neutral JSON, SSE, and WebSocket invocation has a response ID. Poll it with the same authenticated user and session:
+
+```http
+GET /responses/{responseId}?sessionId={sessionId}
+```
+
+The response reports the latest `in_progress`, `requires_action`, `completed`, `denied`, `cancelled`, or `failed` state. A `requires_action` response includes the approval or client-tool ID, so a client can recover exact task correlation without guessing from the latest chat message.
+
+With a Harnest-owned checkpointer, Harnest stores the completed response envelope before marking the run terminal. Another replica can therefore return the same completion. Pending human approvals and client-tool exchanges remain process-local and must return to the process that owns the suspended execution.
+
+In advanced mode, Harnest provides the response receipt and WebSocket protocol on a best-effort basis. If you replace Harnest's graph, checkpointer, transport, or tool wiring, Harnest does not rewrite that boundary and cannot guarantee cross-process recovery.
 
 ## Submit a client-tool result
 
@@ -72,5 +97,5 @@ Submitted output is identity-bound, consumed once, and validated before executio
 </CardGroup>
 
 <Note>
-  Development stores are process-local. Restart recovery needs durable storage and a resumable framework boundary.
+  Development stores are process-local. Durable terminal recovery needs a Harnest-owned checkpointer; resuming an unfinished action also needs the process that owns that suspension.
 </Note>
