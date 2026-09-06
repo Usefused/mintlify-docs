@@ -105,16 +105,17 @@ Harnest removes untagged and unmatched capabilities from Harnest-owned model too
 
 | Situation | Behavior |
 |---|---|
-| Root invocation omits `agent_principal` | Compatibility mode; the existing capability surface remains available |
+| Root invocation omits `agent_principal` | Compatibility mode; the existing capability surface remains available unless a custom route uses `server.agentPrincipal: required` |
 | Root invocation receives an empty principal | Every Harnest-governed capability is unavailable |
 | Active principal encounters an untagged capability | Capability is unavailable |
 | Nested agent call omits it | Inherits the active principal |
 | Nested agent call supplies a subset | Uses the narrower principal |
 | Nested agent call attempts to add permissions | Fails before execution |
 | A restricted invocation defers a Task | Persists permission names and reconstructs a fresh principal in the worker |
+| A restricted invocation suspends on external work | Persists a private versioned permission-name snapshot and reconstructs a fresh principal on the resuming replica |
 | A scheduled Task invokes an agent without one | Uses an empty principal and fails closed for permissioned capabilities |
 
-Queued state contains only permission identifiers. It does not serialize the principal ID, authentication claims, or credentials. A scheduled Task can construct and pass an explicit service principal in trusted task code when it needs declared capabilities.
+Queued Task and external-continuation states contain only permission identifiers. They do not serialize the principal ID, authentication claims, or credentials. A scheduled Task can construct and pass an explicit service principal in trusted task code when it needs declared capabilities.
 
 ## Managed and advanced modes
 

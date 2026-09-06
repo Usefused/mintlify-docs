@@ -35,8 +35,9 @@ from harnest.tool import tool
 @tool(durable=True)
 async def build_report(account_id: str) -> dict:
     """Build one account report in the external workflow system."""
-    job = await hatchet.run("build-report", {"account_id": account_id})
-    return await hatchet.wait(job)
+    return await hatchet.run_and_wait(
+        "build-report", {"account_id": account_id}
+    )
 ```
 
 `hatchet.status(job)` reads the current state. `hatchet.cancel(job)` requests provider cancellation. Hatchet workers and workflow definitions remain independently deployed; stopping Harnest does not stop them.
@@ -57,7 +58,9 @@ The deployment must also provide `HATCHET_CLIENT_TOKEN` so startup recovery can 
 
 `wait` stores an opaque continuation and can resume after process or replica replacement. Recovery retains pending waits across transient Hatchet outages, applies polling backoff, and uses at most 16 concurrent provider clients. Cancellation is a provider request and does not imply immediate worker shutdown.
 
-An invocation carrying an Agent Runtime Principal cannot suspend an external continuation because another replica cannot reconstruct that opaque authority. In that case `wait` fails closed. Because `run` submits the workflow before `wait` begins, the Hatchet job remains submitted; poll it with `status` in the live invocation or avoid binding a runtime principal when cross-replica waiting is required.
+Agent Runtime Principals can cross an external continuation. Harnest stores only a private versioned snapshot of permission names and reconstructs a fresh opaque principal when another replica resumes the wait. It does not persist principal IDs, credentials, or authentication claims.
+
+Use `run_and_wait` when the tool needs the result because it verifies durable continuation support before submission. Separate `run` and `wait` calls remain available for fire-and-forget and existing-run workflows, but the caller owns the submitted job if a later wait fails for another reason.
 
 Inputs and workflow results must be JSON mappings. The extension rejects either payload above 1 MiB before submission or durable persistence. Job data crosses the external Hatchet boundary, so send only the fields that workflow requires.
 

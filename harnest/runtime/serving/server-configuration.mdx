@@ -39,6 +39,7 @@ All property paths below are relative to `server` in `config.yaml`.
 | Property | Controls | Default |
 |---|---|---|
 | `live` | Enable WebSocket connections | `false` |
+| `agentPrincipal` | Require custom agent invocations to bind runtime grants | `optional` |
 | `http.host` | Bind host | `127.0.0.1` |
 | `http.port` | Bind port | `8080` |
 | `http.allowRemote` | Consent for a non-loopback bind | `false` |
@@ -48,6 +49,11 @@ All property paths below are relative to `server` in `config.yaml`.
 | `playground.enabled` | Development UI | `true` |
 
 Unknown fields, invalid types, and out-of-range values fail during compilation. Omit a field to inherit its default; `null` does not mean “use the default.”
+
+Set `agentPrincipal: required` when every custom HTTP route must pass an
+application-authorized `agent_principal=` to `AgentInvoker`. An omission then
+fails before Harnest creates a session. Neutral Harnest routes do not construct
+application-specific grant sets and are unaffected by this setting.
 
 ## Environment references
 
@@ -105,3 +111,5 @@ Harnest rejects projects that declare both `config.yaml` → `server` and an aut
 Compilation writes a complete, versioned `server.yaml` beside `harnest-agent`. The launcher reads that generated operational copy. Operators can replace it and restart the server without changing the compiled agent source; the authored `config.yaml` remains part of the source digest. Normally, edit your project config and compile again.
 
 Python applications that directly embed `create_fastapi_app` or `create_neutral_app` can pass `live_enabled=False` to disable WebSockets. These embedding APIs keep their historical `True` default; the standalone launcher always passes its resolved server setting.
+Pass `agent_principal_required=True` to apply the custom-route principal policy
+when embedding the server directly.

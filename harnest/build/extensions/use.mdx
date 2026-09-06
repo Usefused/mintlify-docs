@@ -21,7 +21,7 @@ harnest extensions install ./harnest-extension-warehouse --project support-agent
 harnest env sync support-agent
 ```
 
-For a PyPI install, Harnest validates the manifest, wheel metadata, digest, entry point, and package layout without importing extension code. For local source, it validates the manifest and layout plus any available project identity and version metadata. Both paths materialize the package into `support-agent/extensions/<manifest-name>` through a staged replacement and preserve a root `README.md` when one is present. Harnest refuses an existing extension unless you pass `--force`. Review same-process extension code and its declared capabilities before installation; installing changes dependency inputs, so refresh `harnest-runtime.lock` with `harnest env sync`.
+For a PyPI install, Harnest accepts a universal `py3-none-any` wheel and validates the manifest, wheel metadata, digest, entry point, and package layout without importing extension code. Platform- or ABI-specific wheels are not installed. For local source, it validates the manifest and layout plus any available project identity and version metadata. Both paths materialize the package into `support-agent/extensions/<manifest-name>` through a staged replacement and preserve a root `README.md` when one is present. Harnest refuses an existing extension unless you pass `--force`. Review same-process extension code and its declared capabilities before installation; installing changes dependency inputs, so refresh `harnest-runtime.lock` with `harnest env sync`.
 
 After compilation, Harnest exposes the extension module as `harnest.extensions.<name>`. Import the singleton from a discovered Agent Tool and call its bounded API:
 

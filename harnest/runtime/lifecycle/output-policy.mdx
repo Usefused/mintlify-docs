@@ -1,6 +1,6 @@
 ---
 title: "Output policy"
-description: "Control intermediate SubAgent narration and provider metadata disclosure."
+description: "Control SubAgent narration, provider reasoning, and metadata disclosure."
 ---
 
 Output policy changes which model messages Harnest publishes. It does not change prompts or model responses.
@@ -21,6 +21,20 @@ from harnest.output import OutputPolicy
 def output_policy():
     return OutputPolicy(subagent_messages="include")
 ```
+
+## Choose provider reasoning
+
+Provider-exposed reasoning is private by default. Opt in only when every caller
+may receive prompt-derived details and provisional internal narration:
+
+```python
+@lifecycle.output_policy
+def output_policy():
+    return OutputPolicy(thinking="include")
+```
+
+This controls readable ADK thought parts and LangGraph reasoning content. It
+does not enable model reasoning or expose provider signatures.
 
 ## Choose agent metadata
 
@@ -89,7 +103,7 @@ snapshot with the run; Redis applies the configured checkpoint TTL.
 | Tool calls and results | Yes | Yes |
 | Final answer | Yes | Yes |
 | Intermediate SubAgent narration | No | Yes |
-| Hidden model reasoning | No | No |
+| Provider-exposed reasoning | No | Yes, with `thinking="include"` |
 
 <Warning>
   Intermediate narration may be provisional and later revised. Use `include` only when your product deliberately presents progress.

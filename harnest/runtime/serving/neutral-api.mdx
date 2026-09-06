@@ -26,7 +26,7 @@ The neutral API keeps product-facing behavior stable across frameworks and autho
 
 Declare an A2A HTTP+JSON or JSON-RPC interface in `agent-card.yaml` to mount its URL alongside the neutral API. A blocking send returns a direct A2A `Message` when execution completes without needing task semantics. Streaming, `returnImmediately`, approval, client-tool, and external durable waits use an A2A `Task`.
 
-The binding also supports explicit task lookup, filtered listing, cancellation, and subscriptions. Streaming A2A tasks carry reasoning as working-status messages and portable lifecycle details under `metadata.harnest`; final answer text remains a response artifact. See [Agent2Agent (A2A)](/harnest/runtime/a2a) for serving, outbound clients, security, durable `@task` integration, and replica behavior.
+The binding also supports explicit task lookup, filtered listing, cancellation, and subscriptions. With `OutputPolicy(thinking="include")`, streaming A2A tasks carry provider-exposed reasoning as working-status messages. Portable lifecycle details remain under `metadata.harnest`, and final answer text remains a response artifact. See [Agent2Agent (A2A)](/harnest/runtime/a2a) for serving, outbound clients, security, durable `@task` integration, and replica behavior.
 
 ## Response modes
 
@@ -81,7 +81,7 @@ All modes use the same portable activity contract. JSON returns these items in `
 | Activity | JSON output item | SSE or WebSocket frame |
 |---|---|---|
 | Assistant answer text | `message` | `response.text.delta` |
-| Provider-exposed reasoning text | `thinking` | `response.thinking.delta` |
+| Opted-in provider reasoning text | `thinking` | `response.thinking.delta` |
 | Agent or graph-node lifecycle | `agent_activity` | `response.agent_activity` |
 | Model/provider metadata and token usage | `agent_metadata` | `response.agent_metadata` |
 | Tool invocation | `tool_call` | `response.tool_call` |
@@ -116,7 +116,7 @@ All modes use the same portable activity contract. JSON returns these items in `
 
 </CodeGroup>
 
-`thinking` is observable agent activity. It is not part of `outputText`, the committed conversation transcript, or evaluation answer text. Providers do not always expose readable reasoning, so a response may contain no thinking events even when reasoning is enabled.
+`thinking` is observable agent activity enabled by `OutputPolicy(thinking="include")`. It is suppressed by default and is never part of `outputText`, the committed conversation transcript, or evaluation answer text. Providers do not always expose readable reasoning, so a response may contain no thinking events even after opting in.
 
 `agent_activity` identifies the normalized agent or LangGraph node and lifecycle transition, such as `started`, `completed`, `handoff`, `interrupted`, or `failed`. Message and tool events can also include an `agent` field. By default Harnest does not forward provider signatures, credentials, framework objects, graph state, or native event metadata through this contract.
 

@@ -76,6 +76,17 @@ response = await agent.invoke(
 
 The principal is optional. Omitting it preserves the existing unrestricted tool surface. Supplying one activates default-deny behavior: untagged capabilities and capabilities without a matching grant are unavailable. An empty principal therefore makes every Harnest-governed capability unavailable. Do not accept permission names directly from the request body. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals) for propagation and Advanced-mode coverage.
 
+For a security-sensitive deployment, require grants on every custom agent
+invocation:
+
+```yaml config.yaml
+server:
+  agentPrincipal: required
+```
+
+With this setting, a custom route that omits `agent_principal=` fails before
+session creation instead of restoring the root agent's unrestricted surface.
+
 ## Handle required actions
 
 An invocation can pause instead of returning a final answer:
