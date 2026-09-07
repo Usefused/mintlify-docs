@@ -88,19 +88,19 @@ Compiled directories are reproducible output. Do not edit or commit them.
 | Harnest Extension `pyproject.toml` | Joins the same dependency solve and lock |
 | Public `@task` | Adds pinned Procrastinate support |
 | Active `mcp/*.py` | Adds the selected framework's MCP adapter |
-| `test` command | Selects the pytest-backed test profile |
+| `serve`, `run`, or `test` | Selects the shared development profile |
 | `test --evals` | Selects the Google ADK evaluation profile |
 
 Harnest resolves the selected environment before importing the agent or its
-Harnest Extensions. Runtime, test, and eval use independent locks so deployment
-does not inherit development-only packages.
+Harnest Extensions. Production runtime, development, and eval use independent
+locks so compiled deployment artifacts do not inherit development-only packages.
 
 ## CI
 
 A minimal offline CI sequence is:
 
 ```bash
-harnest env sync AGENT_DIR --profile test --frozen
+harnest env sync AGENT_DIR --profile development --frozen
 harnest test AGENT_DIR
 harnest env sync AGENT_DIR --frozen
 harnest compile AGENT_DIR --output .harnest/my-agent

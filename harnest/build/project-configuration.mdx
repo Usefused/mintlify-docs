@@ -11,8 +11,8 @@ Keep project and server settings together in `config.yaml`. The Agent Card owns 
 | `config.yaml` | Framework, deployment intent, and optional `server` overrides | Yes |
 | `agent-card.yaml` | Public agent identity and capabilities | Yes |
 | `pyproject.toml` | Agent-owned Python dependencies | Yes |
-| `harnest-runtime.lock` | Hash-verified serving resolution | Yes |
-| `harnest-test.lock`, `harnest-eval.lock` | Optional test/eval resolutions | When used |
+| `harnest-runtime.lock` | Hash-verified production compilation resolution | Yes |
+| `harnest-development.lock`, `harnest-eval.lock` | Optional development/eval resolutions | When used |
 | `harnest.lock` | Project schema and resolved framework version | Yes |
 | `.harnest/` | Generated environments and artifacts | No |
 
@@ -179,14 +179,14 @@ adapters join the solve only when an active `mcp/*.py` exists in the agent tree.
 Development tools use independent profiles and locks:
 
 ```bash
-harnest env sync AGENT_DIR --profile test
+harnest env sync AGENT_DIR --profile development
 harnest env sync AGENT_DIR --profile eval
 ```
 
-The test profile adds pytest and writes `harnest-test.lock`. The eval profile
+The development profile adds pytest and writes `harnest-development.lock`. The eval profile
 adds pytest plus Google ADK's evaluation dependencies and writes
-`harnest-eval.lock`. `harnest test` and `harnest test --evals` select these
-profiles automatically. Commit each lock used by CI. Test/eval locks are not
+`harnest-eval.lock`. `harnest serve`, `harnest run`, and ordinary `harnest test`
+share development; `harnest test --evals` selects eval. Commit each lock used by CI. Development/eval locks are not
 copied into deployable artifacts and do not change the deployable source digest.
 The generated lock replaces machine-local wheel paths with a release marker, so
 it can be reviewed and committed without recording a developer's filesystem.
@@ -195,7 +195,8 @@ The environment lives under `AGENT_DIR/.harnest/environments/` and should not
 be activated. An explicit sync creates or updates `AGENT_DIR/.venv` as an
 IDE-detectable link to the current environment. Harnest preserves an existing
 `.venv` that it does not own and prints the exact managed interpreter instead.
-`compile`, `run`, and `serve` select runtime; `test` selects test or eval.
+`compile` selects the lean production runtime; `run`, `serve`, and ordinary
+`test` select development; `test --evals` selects eval.
 Each command synchronizes its internal environment automatically without
 changing the IDE link and leases the selected
 environment for its complete lifetime. After a replacement is published,
@@ -205,7 +206,7 @@ require a current committed lock without resolving or changing it:
 
 ```bash
 harnest env sync AGENT_DIR --frozen
-harnest env sync AGENT_DIR --profile test --frozen
+harnest env sync AGENT_DIR --profile development --frozen
 harnest env sync AGENT_DIR --profile eval --frozen
 ```
 
@@ -227,4 +228,4 @@ Commit this file alongside the profile locks used by the project. Later environm
 
 To deliberately resolve a newer supported framework release, remove only the `framework` entry and run environment sync again, then review and commit the new pin. Changing the selected framework in `config.yaml` followed by normal sync records the new framework; frozen sync rejects that change. Project schema migrations use `harnest upgrade` and preserve the framework pin.
 
-Harnest's CI exercises both framework adapters and the shared evaluation engine against pinned, minimum-supported, and latest-compatible dependencies on Python 3.10 and 3.12, on pull requests and daily. `harnest.lock` records the selected framework; `harnest-runtime.lock` remains the lean deployment resolution, while test and eval tooling stays in its own locks.
+Harnest's CI exercises both framework adapters and the shared evaluation engine against pinned, minimum-supported, and latest-compatible dependencies on Python 3.10 and 3.12, on pull requests and daily. `harnest.lock` records the selected framework; `harnest-runtime.lock` remains the lean deployment resolution, while development and eval tooling stays in its own locks.

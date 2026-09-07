@@ -19,6 +19,10 @@ harnest compile AGENT_DIR --output .harnest/my-agent
 
 </CodeGroup>
 
+Serving from source uses the shared development environment and
+`harnest-development.lock`. `harnest compile` uses the lean production profile;
+serve the resulting launcher in deployment so development tools are not packaged.
+
 | URL | Purpose |
 |---|---|
 | `http://127.0.0.1:8080/` | Playground |

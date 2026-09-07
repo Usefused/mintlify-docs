@@ -42,7 +42,7 @@ Create a managed agent, prepare its isolated environment, and run the generated 
     harnest env sync support-agent
     ```
 
-    Synchronization creates the lean, hash-verified `harnest-runtime.lock`, records the exact resolved framework version in `harnest.lock`, and creates the generated `.harnest/` environment. It also maintains an IDE-detectable `.venv` link unless that path already belongs to you. `harnest test` creates the separate `harnest-test.lock`; `test --evals` creates `harnest-eval.lock`. Commit the locks you use; do not edit or commit `.harnest/` or `.venv`.
+    Synchronization creates the lean, hash-verified production `harnest-runtime.lock`, records the exact resolved framework version in `harnest.lock`, and creates the generated `.harnest/` environment. It also maintains an IDE-detectable `.venv` link unless that path already belongs to you. `harnest serve`, `run`, and ordinary `test` share `harnest-development.lock`; `test --evals` creates `harnest-eval.lock`. Commit the locks you use; do not edit or commit `.harnest/` or `.venv`.
   </Step>
   <Step title="Run the offline tests">
     ```bash
