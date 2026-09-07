@@ -21,21 +21,21 @@ harnest extensions install ./official-extensions/docker --project ./my-agent --f
 harnest env sync ./my-agent
 ```
 
-Harnest validates and copies the package without importing its code. Version `0.2.1` requires Python 3.10 or newer, Harnest `>=0.15,<0.16`, and `docker>=7.1,<8`. The host must provide a reachable Docker daemon.
+Harnest validates and copies the package without importing its code. Version `0.3.0` requires Python 3.10 or newer, Harnest `>=0.15,<0.16`, and `docker>=7.1,<8`. The host must provide a reachable Docker daemon.
 
 ## Declare a Docker sandbox
 
 Create `sandbox/python.py`. The exported variable must match the filename:
 
 ```python sandbox/python.py
-from harnest.extensions.docker import docker
+from harnest.extensions.docker import docker, DockerScope
 from harnest.sandbox import SandboxBudget, SandboxNetworkPolicy
 
 
 python = docker.sandbox(
     image="python:3.12-slim@sha256:<approved-digest>",
     network_policy=SandboxNetworkPolicy.none(),
-    scope="execution",
+    scope=DockerScope.EXECUTION,
     timeout_seconds=120,
     max_output_bytes=1_048_576,
     budget=SandboxBudget(
@@ -49,13 +49,46 @@ python = docker.sandbox(
 
 Add `"python"` to each consuming agent's `sandboxes=[...]` grant. Call it from an authored tool through `context.sandboxes["python"]`. Exactly one of `image` or `docker_path` is required; prefer an immutable image digest in deployments.
 
+## Add service containers
+
+Attach bounded services when the primary Python container needs another process:
+
+```python sandbox/worker.py
+from harnest.extensions.docker import docker, DockerScope
+from harnest.sandbox import SandboxBudget, SandboxNetworkPolicy
+
+
+queue = docker.service(
+    name="queue",
+    image="redis:7-alpine@sha256:<approved-digest>",
+    command=["redis-server", "--save", ""],
+    ports=[6379],
+    readiness=docker.readiness(command=["redis-cli", "ping"]),
+    budget=SandboxBudget(memory_bytes=128 * 1024 * 1024),
+)
+
+worker = docker.sandbox(
+    image="python:3.12-slim@sha256:<approved-digest>",
+    services=[queue],
+    network=docker.network(internal=True),
+    network_policy=SandboxNetworkPolicy.none(),
+    scope=DockerScope.SESSION,
+)
+```
+
+The extension creates one uniquely named bridge for the primary container and up to eight services. Use each service name or alias as its internal DNS name. Declared ports describe the container-to-container contract and are never published on the host.
+
+An internal topology network remains inside the sandbox boundary, so services can communicate when `network_policy` denies external egress. Use `docker.network(internal=False)` only with `SandboxNetworkPolicy.unrestricted()`. That choice gives every topology container the same unrestricted egress authority.
+
+Services start in declaration order. A declared readiness command becomes a bounded Docker health check, and submitted Python does not run until every service is healthy. Each service has its own `SandboxBudget`. Cleanup removes the primary container, service containers in reverse order, and then the owned network. If cleanup cannot be confirmed, the topology remains poisoned and replacement is blocked until cleanup succeeds.
+
 ## Choose a reuse scope
 
 | Scope | Container ownership |
 |---|---|
-| `execution` | Fresh container for every call; this is the default |
-| `invocation` | Reuse only for the same agent, user, session, and invocation |
-| `session` | Reuse only for the same agent, user, and session |
+| `DockerScope.EXECUTION` | Fresh topology for every call; this is the default |
+| `DockerScope.INVOCATION` | Reuse only for the same agent, user, session, and invocation |
+| `DockerScope.SESSION` | Reuse only for the same agent, user, and session |
 
 Retained scopes reuse the container and its `/tmp` scratch files while that identity remains cached, but not live processes or durable storage. Every successful call stops remaining processes. `max_scopes` defaults to `8` and evicts the least recently used retained container before admitting another identity.
 
@@ -70,6 +103,8 @@ Network policy is provider-enforced authority. Validating a URL in an Agent Tool
 The all-in deadline covers queue admission, image and container startup, and execution. SDK transport timeouts for image preparation and container creation are constrained by the remaining deadline; a host watchdog and control checks bound execution. Output is bounded while streaming; timeout, cancellation, overflow, and failed startup poison the container instead of returning it to a reuse pool.
 
 Cleanup receives a separate bounded five-second window. The provider retains ownership and blocks replacement when termination is uncertain. Startup errors identify the failed phase without exposing raw SDK details. Managed containers carry `dev.harnest.*` labels for operator inventory.
+
+Docker startup, network, service, execution, and cleanup operations emit correlated logs and traces through Harnest observability. Every signal carries `harnest.extension.name=docker`. Topology IDs and service names make owned resources traceable without recording image references, commands, environment values, user/session identities, readiness output, or raw Docker errors.
 
 ## Security boundary
 

@@ -47,15 +47,20 @@ The Playwright package and image must use the same version so the package can fi
 
 ## Declare the sandbox
 
-Create `sandbox/chrome.py`. Browser navigation needs network access, so this sandbox opts in with `network=True` and uses larger memory, process, and scratch budgets than the calculation example.
+Install the Docker extension, then create `sandbox/chrome.py`. Browser navigation needs network access, so this sandbox explicitly permits unrestricted egress and uses larger memory, process, and scratch budgets than the calculation example.
+
+```bash
+harnest extensions install docker --project .
+```
 
 ```python sandbox/chrome.py
-from harnest.sandbox import Sandbox, SandboxBudget
+from harnest.extensions.docker import docker
+from harnest.sandbox import SandboxBudget, SandboxNetworkPolicy
 
 
-chrome = Sandbox.container(
+chrome = docker.sandbox(
     image="harnest-chrome-sandbox:1.61.0",
-    network=True,
+    network_policy=SandboxNetworkPolicy.unrestricted(),
     timeout_seconds=45,
     max_output_bytes=32_768,
     budget=SandboxBudget(
@@ -231,7 +236,7 @@ the tool returned it successfully. Summarize only what the tool returned.
 For deployment, publish the image to your registry and change `image` to its immutable registry reference.
 
 <Warning>
-  `network=True` gives the container outbound network access. The tool's exact-host allowlist is therefore part of its security boundary. Review redirects, resource hosts, credentials, downloads, and returned content before expanding it. Harnest's Docker container is the process isolation boundary in this example; Chromium's own namespace sandbox is disabled. Docker shares the host kernel, so use a stronger browser isolation provider for hostile sites or higher-risk workloads.
+  `SandboxNetworkPolicy.unrestricted()` gives the container outbound network access. The tool's exact-host allowlist is therefore part of its security boundary. Review redirects, resource hosts, credentials, downloads, and returned content before expanding it. Harnest's Docker container is the process isolation boundary in this example; Chromium's own namespace sandbox is disabled. Docker shares the host kernel, so use a stronger browser isolation provider for hostile sites or higher-risk workloads.
 </Warning>
 
 See [Sandboxing](/harnest/build/sandboxing) for scope, resource, cleanup, custom provider, and framework behavior.

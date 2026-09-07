@@ -127,12 +127,12 @@ The root `sandbox/` catalog is available to all agents in the same project, incl
 The Docker extension works with both frameworks and does not use ADK's sandbox executor. Defaults provide a fresh container per execution, disabled networking, a non-root user, a read-only root filesystem, and bounded writable `/tmp` scratch space.
 
 ```python sandbox/calculations.py
-from harnest.extensions.docker import docker
+from harnest.extensions.docker import docker, DockerScope
 from harnest.sandbox import SandboxBudget, SandboxNetworkPolicy
 
 calculations = docker.sandbox(
     image="python:3.12-slim@sha256:<approved-digest>",
-    scope="execution",
+    scope=DockerScope.EXECUTION,
     budget=SandboxBudget(
         cpu=1.0,
         memory_bytes=512 * 1024 * 1024,
@@ -147,9 +147,9 @@ calculations = docker.sandbox(
 
 | Setting | Default and behavior |
 |---|---|
-| `scope` | `"execution"`: remove the container after every call |
-| `scope="invocation"` | Reuse only for the same agent, user, session, and invocation |
-| `scope="session"` | Reuse only for the same agent, user, and session |
+| `scope` | `DockerScope.EXECUTION`: remove the topology after every call |
+| `DockerScope.INVOCATION` | Reuse only for the same agent, user, session, and invocation |
+| `DockerScope.SESSION` | Reuse only for the same agent, user, and session |
 | `max_scopes` | `8`: evict the least recently used retained container before exceeding this cap |
 | `budget.cpu` | `1.0` CPU, enforced by Docker |
 | `budget.memory_bytes` | `512 MiB`, with no additional swap allowance |
@@ -157,11 +157,13 @@ calculations = docker.sandbox(
 | `budget.scratch_bytes` | `64 MiB` for writable `/tmp`; the root filesystem is read-only |
 | `timeout_seconds` | `300`; includes queue waiting and active execution |
 | `max_output_bytes` | `1 MiB` combined stdout/stderr, bounded while streaming |
-| `network_policy` | `SandboxNetworkPolicy.none()`; uses Docker's `none` network |
+| `network_policy` | `SandboxNetworkPolicy.none()`; uses Docker's `none` network without services or an internal topology bridge with services |
 | `image` / `docker_path` | Supply exactly one; custom images must provide `python3` and must not declare volumes |
 | `base_url` | Optional Docker daemon URL |
 
-Retained scopes reuse the container and its `/tmp` scratch files while that identity remains cached, but not live Python processes or durable storage. Every successful call stops all processes, including detached children. Containers are scoped caches and may be evicted; use application storage for persistence. Invocation/session scopes reject requests without the full required identity. A session ID alone never permits reuse across users or agents.
+Retained scopes reuse the primary container and its `/tmp` scratch files while that identity remains cached, but not live Python processes or durable storage. Every successful call stops primary-container processes, including detached children. Declared service containers remain running for the retained topology. Topologies are scoped caches and may be evicted; use application storage for persistence. Invocation/session scopes reject requests without the full required identity. A session ID alone never permits reuse across users or agents.
+
+The Docker extension can also create an extension-owned bridge with bounded service containers, internal DNS aliases, readiness checks, and independent budgets. It never publishes declared service ports on the host. See [Docker extension](/harnest/build/extensions/official/docker#add-service-containers) for the topology API and cleanup contract.
 
 The extension starts Docker only on execution. Timeouts, cancellation, and output overflow remove the owned container. Replacement waits for confirmed cleanup; ambiguous creation or failed cleanup blocks further admission until ownership is reconciled. Application shutdown closes created providers and removes all retained containers.
 
