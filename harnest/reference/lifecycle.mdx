@@ -18,7 +18,7 @@ Root files under `lifecycle/**/*.py` add behavior around the agent. Harnest disc
 | `@lifecycle.tool.before/after/on_error` | Many | Tool policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.mcp.before/after/on_error` | Many | Governed remote-tool policy | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.http.before/after/on_error` | Many | HTTP request and response policy | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
-| `@lifecycle.output_policy` | Zero or one | Public SubAgent messages | [Output policy](/harnest/runtime/lifecycle/output-policy) |
+| `@lifecycle.output_policy` | Zero or one | Public narration, tool activity, reasoning, and metadata | [Output policy](/harnest/runtime/lifecycle/output-policy) |
 | `@lifecycle.adk_plugin` | Many | ADK-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
 | `@lifecycle.langgraph_middleware` | Many | LangGraph-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
 | `@lifecycle.http_routes` | Many | Application HTTP routes | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |

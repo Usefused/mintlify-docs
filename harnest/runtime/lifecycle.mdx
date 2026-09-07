@@ -11,7 +11,7 @@ Lifecycle hooks and resource factories manage behavior around the agent without 
 | Start and close a dependency | Application resource |
 | Publish a value to agent code | Context resource |
 | Observe or transform execution | Invocation hook |
-| Control public SubAgent narration | Output policy |
+| Control public narration, tool activity, reasoning, and metadata | Output policy |
 | Add framework-specific behavior | Native integration |
 | Add application HTTP routes | HTTP route factory |
 | Store sessions or checkpoints | Storage factory |
@@ -30,7 +30,7 @@ Lifecycle is root-owned. SubAgents cannot add private lifecycle hooks and factor
     Observe or transform agent, model, and tool execution.
   </Card>
   <Card title="Output policy" icon="message" href="/harnest/runtime/lifecycle/output-policy">
-    Decide whether intermediate SubAgent narration becomes public.
+    Select public narration, tool activity, provider reasoning, and model metadata.
   </Card>
   <Card title="Native integrations" icon="code" href="/harnest/runtime/lifecycle/native-integrations">
     Add ADK plugins or LangGraph middleware when portable hooks are not enough.
