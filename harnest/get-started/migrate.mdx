@@ -65,6 +65,9 @@ Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle 
     ```bash
     harnest upgrade existing-agent --apply
     ```
+
+    This also rewrites released `OutputPolicy` string and positional forms to
+    the current keyword-only boolean and enum contract.
   </Step>
   <Step title="Test the upgraded project">
     ```bash

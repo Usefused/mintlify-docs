@@ -142,9 +142,11 @@ snapshot with the run; Redis applies the configured checkpoint TTL.
   `True` only when your product deliberately presents progress.
 </Warning>
 
-Released string values remain accepted as compatibility input and are
-normalized to booleans. New code should use `True` and `False` so invalid
-policy modes are visible to type checkers and editors.
+All arguments are keyword-only. Binary controls require `True` or `False`, and
+`agent_metadata` requires `AgentMetadataMode`; string policy values are not
+accepted. When moving an older project to this contract, run
+`harnest upgrade AGENT_DIR --apply` to rewrite released string and positional
+forms.
 
 ## Scope
 
