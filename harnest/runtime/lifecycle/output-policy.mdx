@@ -1,25 +1,26 @@
 ---
 title: "Output policy"
-description: "Control SubAgent narration, provider reasoning, and metadata disclosure."
+description: "Control SubAgent narration, tool activity, provider reasoning, and metadata disclosure."
 ---
 
-Output policy changes which model messages Harnest publishes. It does not change prompts or model responses.
+Output policy changes which events and metadata Harnest publishes. It does not
+change prompts or model responses.
 
 ## Choose SubAgent narration
 
 | Value | Behavior |
 |---|---|
-| `suppress` | Hide provisional SubAgent narration; the default |
-| `include` | Publish that narration to neutral transports and the playground |
+| `False` | Hide provisional SubAgent narration; the default |
+| `True` | Publish that narration to neutral transports and the playground |
 
 ```python
 from harnest.lifecycle import lifecycle
-from harnest.output import OutputPolicy
+from harnest.output import AgentMetadataMode, OutputPolicy
 
 
 @lifecycle.output_policy
 def output_policy():
-    return OutputPolicy(subagent_messages="include")
+    return OutputPolicy(subagent_messages=True)
 ```
 
 ## Choose provider reasoning
@@ -30,29 +31,59 @@ may receive prompt-derived details and provisional internal narration:
 ```python
 @lifecycle.output_policy
 def output_policy():
-    return OutputPolicy(thinking="include")
+    return OutputPolicy(thinking=True)
 ```
 
 This controls readable ADK thought parts and LangGraph reasoning content. It
 does not enable model reasoning or expose provider signatures.
 
+## Choose tool activity
+
+Tool execution remains enabled even when its public progress is hidden. Use a
+suppressed tool-activity policy when callers should receive only agent
+lifecycle updates and the canonical answer or structured result:
+
+```python
+@lifecycle.output_policy
+def output_policy():
+    return OutputPolicy(tool_activity=False)
+```
+
+The default `True` value publishes neutral `tool_call` and `tool_result`
+events. `False` removes both event types from JSON,
+SSE, WebSocket, local, and playground output. A2A already keeps tool arguments
+and results private.
+
 ## Choose agent metadata
 
 Harnest emits one centralized `agent_metadata` event for metadata reported by
-ADK or LangGraph. The default `normalized` mode exposes the portable fields
-that are present: model, provider, finish reason, and exact input, output, and
-total token counts. Counts are never estimated.
+ADK or LangGraph. The default `AgentMetadataMode.NORMALIZED` mode exposes the
+portable fields that are present: model, provider, finish reason, and exact
+input, output, and total token counts. Counts are never estimated.
+
+Use `AgentMetadataMode.SUPPRESS` when callers must not receive any
+model/provider metadata:
+
+```python
+@lifecycle.output_policy
+def output_policy():
+    return OutputPolicy(agent_metadata=AgentMetadataMode.SUPPRESS)
+```
+
+Suppression removes per-call `agent_metadata` events and the aggregate `usage`
+derived from them. Suppressed metadata is not added to durable completion
+snapshots.
 
 Use raw mode when an authorized caller needs the native framework payload:
 
 ```python
 from harnest.lifecycle import lifecycle
-from harnest.output import OutputPolicy
+from harnest.output import AgentMetadataMode, OutputPolicy
 
 
 @lifecycle.output_policy
 def output_policy():
-    return OutputPolicy(agent_metadata="raw")
+    return OutputPolicy(agent_metadata=AgentMetadataMode.RAW)
 ```
 
 Raw mode keeps the normalized fields and adds `raw`. ADK uses its native
@@ -80,7 +111,7 @@ separate opt-in:
 @lifecycle.output_policy
 def output_policy():
     return OutputPolicy(
-        agent_metadata="raw",
+        agent_metadata=AgentMetadataMode.RAW,
         persist_raw_agent_metadata=True,
     )
 ```
@@ -97,17 +128,23 @@ snapshot with the run; Redis applies the configured checkpoint TTL.
 
 ## What remains visible
 
-| Event | `suppress` | `include` |
-|---|---:|---:|
-| Root-agent messages | Yes | Yes |
-| Tool calls and results | Yes | Yes |
-| Final answer | Yes | Yes |
-| Intermediate SubAgent narration | No | Yes |
-| Provider-exposed reasoning | No | Yes, with `thinking="include"` |
+| Event | Default | Suppression control |
+|---|---:|---|
+| Root-agent messages | Visible | Always visible |
+| Tool calls and results | Visible | `tool_activity=False` |
+| Final answer or structured result | Visible | Always visible |
+| Intermediate SubAgent narration | Hidden | `subagent_messages=False` |
+| Provider-exposed reasoning | Hidden | `thinking=False` |
+| Model/provider metadata and usage | Visible, normalized | `agent_metadata=AgentMetadataMode.SUPPRESS` |
 
 <Warning>
-  Intermediate narration may be provisional and later revised. Use `include` only when your product deliberately presents progress.
+  Intermediate narration may be provisional and later revised. Use
+  `True` only when your product deliberately presents progress.
 </Warning>
+
+Released string values remain accepted as compatibility input and are
+normalized to booleans. New code should use `True` and `False` so invalid
+policy modes are visible to type checkers and editors.
 
 ## Scope
 

@@ -106,5 +106,6 @@ aggregate token usage, so replica polling does not have to infer them from the
 last session message. Snapshots are JSON-validated and limited to 4 MiB.
 
 Raw provider metadata is not retained by default. To store it for the run's
-checkpoint retention period, explicitly combine `agent_metadata="raw"` with
+checkpoint retention period, explicitly combine
+`agent_metadata=AgentMetadataMode.RAW` with
 `persist_raw_agent_metadata=True` in the application's output policy.

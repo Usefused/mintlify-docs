@@ -74,12 +74,15 @@ The first `upgrade` is a read-only plan. Apply verifies the planned source hashe
 Each Harnest release declares the ADK and LangGraph versions it supports.
 Authored dependencies live in the project's `pyproject.toml`; environment sync
 resolves them with the Harnest release, selected framework, extensions, task
-runtime, and all transitives into the hash-verified `harnest-runtime.lock`.
+runtime, and all transitives. Runtime, test, and eval profiles have separate
+hash-verified locks so serving excludes pytest, evaluation, and unused MCP
+packages.
 
 | Check | Command |
 |---|---|
 | CLI and runtime match | `harnest doctor` |
 | Project environment is current | `harnest env sync <project>` |
+| Test environment is current | `harnest env sync <project> --profile test` |
 | Source works with the selected framework | `harnest test <project>` |
 | Artifact is reproducible | `harnest compile <project>` |
 

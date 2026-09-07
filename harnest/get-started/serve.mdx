@@ -10,6 +10,13 @@ Compile and start the standalone development server:
 harnest serve support-agent
 ```
 
+For a normal launch without `--output` or `--reload`, Harnest retains the
+validated compilation under `.harnest/artifacts/`. A later launch with the same
+source, configuration, locks, and managed compiler starts from that artifact
+without importing and validating the graph again. When any of those inputs
+changes, Harnest publishes a new immutable generation before it removes the
+superseded generation in the background.
+
 Reload after authored file changes during local development:
 
 ```bash
