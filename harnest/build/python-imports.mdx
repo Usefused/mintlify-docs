@@ -8,7 +8,7 @@ Import each capability from its public domain module. The examples in this docum
 ```python
 from harnest.agent import Agent, AgentRuntimePrincipal, client_tool, tool
 from harnest.auth import AuthPrincipal, AuthenticationError
-from harnest import context, lifecycle
+from harnest import context, cron, lifecycle
 from harnest.sandbox import Sandbox, control
 ```
 
@@ -27,6 +27,7 @@ The package root exposes feature namespaces only. Classes, decorators, functions
 | Models | `harnest.model` | `LiteLLMModel`, `LiteLLMContext`, `ModelCallRequest`, `ModelLifecycleError` |
 | Lifecycle | `from harnest import lifecycle` | `agent`, `model`, `tool`, `mcp`, `http`, `storage`, `resource`, `coverage` |
 | Invocation context | `from harnest import context` | `provider`, `resource`, `SessionContext`, `StorageContext`, `ScopedAssets`, `AgentSession` |
+| Recurring Tasks | `from harnest import cron` | `Cron`, `CronJob`, `create`, `get`, `list`, `update`, `pause`, `resume`, `cancel`, `delete` |
 | Sandbox providers | `harnest.sandbox` | `Sandbox`, `SandboxNetworkPolicy`, `SandboxProviderCapabilities`, `SandboxResult`, `control` |
 | Runtime adapters | `harnest.runtime` | `ResponseRequest`, `InvocationRequest`, `RuntimeDriver`, `RuntimeEvent` |
 | Assets | `harnest.assets` | `AssetStorage`, `AssetScope`, `Stored` |

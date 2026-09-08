@@ -1,11 +1,108 @@
 ---
-title: "Scheduled tasks"
+title: "Schedule recurring Tasks"
 sidebarTitle: "Scheduled tasks"
-description: "Schedule folder-discovered queued tasks with a strict UTC cron expression."
+description: "Declare fixed schedules or let managed Harnest code create and control user-owned recurring Tasks."
 ---
 
-A cron declaration targets an existing root `@task`. It does not expose a new
-model tool.
+Every cron job targets an existing root `@task` and uses a strict five-field UTC expression. Choose a declaration under `cron/` for an application-owned fixed schedule. Use the `harnest.cron` operations when a Tool, Task, lifecycle hook, or other managed runtime code needs to create and manage schedules for the active user.
+
+## Create a schedule from a Tool
+
+Define the Task once in a shared library and re-export it from `tasks/` so the compiler discovers it:
+
+<CodeGroup>
+
+```python lib/report_tasks.py
+from harnest.task import task
+
+
+@task(queue="reports", max_retries=3)
+async def build_report(account_id: str) -> dict:
+    """Build one account report on the reports queue."""
+
+    return {"account_id": account_id, "status": "ready"}
+```
+
+```python tasks/build_report.py
+from harnest.lib.report_tasks import build_report
+```
+
+```python tools/schedule_report.py
+from harnest import cron
+from harnest.agent import tool
+from harnest.lib.report_tasks import build_report
+
+
+@tool
+async def schedule_report(account_id: str, expression: str) -> dict:
+    """Schedule a recurring UTC report for the current user."""
+
+    job = await cron.create(
+        key=f"weekly-report:{account_id}",
+        expression=expression,
+        task=build_report,
+        arguments={"account_id": account_id},
+    )
+    return {
+        "id": job.id,
+        "expression": job.expression,
+        "status": job.status,
+        "timezone": job.timezone,
+    }
+```
+
+</CodeGroup>
+
+`key` is an idempotency key within the active user's schedule scope. Repeating the same create request with the same definition returns the same job in its current state, including when it is paused or cancelled. Reusing the key for a different Task, expression, or arguments raises `CronConflictError`, which prevents a replayed Tool call from silently changing an existing schedule.
+
+Only a compiled `@task` callable can be scheduled. Harnest validates its arguments against the Task signature and stores JSON-safe values; a Tool cannot turn model-generated text into arbitrary executable code.
+
+## Inspect and control schedules
+
+Use the module functions when you have a schedule ID. A returned `CronJob` offers the same mutation methods directly.
+
+```python
+from harnest import cron
+
+job = await cron.get(schedule_id)
+if job is None:
+    return {"found": False}
+
+job = await cron.update(
+    job.id,
+    expression="0 10 * * 1",
+    arguments={"account_id": "acct_123"},
+)
+job = await cron.pause(job.id)
+job = await cron.resume(job.id)
+job = await cron.cancel(job.id)
+
+# Equivalent object methods:
+# await job.update(expression="0 10 * * 1")
+# await job.pause()
+# await job.resume()
+# await job.cancel()
+# await job.delete()
+```
+
+| Operation | Result |
+|---|---|
+| `await cron.create(...)` | Create a job or idempotently retrieve the existing job in its current state |
+| `await cron.get(id)` | Return the owned job, or `None` when it is absent or outside the active owner scope |
+| `await cron.list(after=..., limit=...)` | Return a stable ID-ordered page of owned jobs; `limit` is 1–100 |
+| `await cron.update(id, ...)` | Replace the expression and/or full argument mapping |
+| `await cron.pause(id)` | Stop future occurrences until the job is resumed |
+| `await cron.resume(id)` | Resume a paused job at the next matching UTC minute |
+| `await cron.cancel(id)` | Permanently stop future occurrences but retain the job record |
+| `await cron.delete(id)` | Remove the job record and return whether it existed |
+
+Cancellation and deletion stop subsequent dispatches, but an occurrence already selected by the minute dispatcher may still enter the queue, and queued or running work continues. Use cancellation when the user may need to list the stopped schedule later; use deletion when they explicitly want its schedule record removed. A cancelled job cannot be updated, paused, or resumed; cancelling it again returns it unchanged.
+
+All reads and mutations are scoped to the current managed invocation's user. An ID from another user is not a capability to read or change their schedule. Mutations that require an existing job raise `CronNotFoundError` when that owned record is absent. Updating, pausing, or resuming a cancelled job raises `CronConflictError`. Call these APIs only from managed runtime code: ordinary module imports and isolated unit tests have no active owner or cron runtime and raise `CronUnavailableError`.
+
+## Declare an application-owned schedule
+
+A declaration under `cron/` is loaded at compile time and is not a model Tool.
 
 <CodeGroup>
 
@@ -21,11 +118,11 @@ async def build_report(account_id: str) -> dict:
 ```
 
 ```python cron/daily_report.py
-from harnest.cron import Cron
+from harnest import cron
 from tasks.build_report import build_report
 
 
-daily_report = Cron(
+daily_report = cron.Cron(
     "0 9 * * 1-5",
     task=build_report,
     arguments={"account_id": "acct_123"},
@@ -34,8 +131,7 @@ daily_report = Cron(
 
 </CodeGroup>
 
-The export name must match `cron/<name>.py`. Arguments are JSON-safe,
-signature-checked at compile time, and kept in Harnest's private payload store.
+The export name must match `cron/<name>.py`. Arguments are JSON-safe, signature-checked at compile time, and kept in Harnest's private payload store. These declarations belong to the application and are separate from dynamic, user-owned `CronJob` records.
 
 ## Schedule contract
 
@@ -44,7 +140,7 @@ signature-checked at compile time, and kept in Harnest's private payload store.
 | Fields | Minute, hour, day of month, month, day of week |
 | Timezone | `UTC` only |
 | Syntax | `*`, ASCII numbers, comma lists, ascending ranges, `/step` |
-| Ownership | Long-lived `harnest serve` or `harnest-agent serve` processes |
+| Runtime ownership | Long-lived `harnest serve` or `harnest-agent serve` processes |
 | Replicas | Shared PostgreSQL commits one periodic occurrence |
 
 Each occurrence uses the schedule identity and timestamp as its idempotency
@@ -54,7 +150,9 @@ must still be idempotent because a worker can retry after failure.
 When scheduled work invokes the agent without passing an `AgentRuntimePrincipal`, Harnest supplies an empty principal. All Harnest-governed tools and MCP operations therefore fail closed. Construct an explicit service principal in trusted Task code and tag every capability it needs. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals).
 
 <Note>
-  `harnest run` never activates schedules. The application still needs
+  Fixed and dynamic schedules require the durable Task backend and a long-lived
+  `harnest serve` or `harnest-agent serve` process. `harnest run` never
+  activates schedules. The application still needs
   `HARNEST_TASK_DATABASE_URL` or one unambiguous PostgreSQL store.
 </Note>
 
