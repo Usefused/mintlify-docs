@@ -5,7 +5,7 @@ description: "Make a service available to every SDK and MCP server in your works
 
 Nothing in Fused can call a service until your workspace has enabled it. This page takes a service from "exists in the Registry" to "usable by your apps."
 
-The workspace config is the allowlist: which services are enabled, at which versions. It lives at `.fused/workspace.yaml` and reaches the Engine through plan and apply.
+Workspace config declares services and policy you want to manage locally. Teams can use the UI alone, keep an optional aggregate `.fused/workspace.yaml`, or split selected declarations into `.fused/services/**/*.yaml` files with `type: services`. Local files reach the Engine only through plan and apply.
 
 ## Add and activate it
 
@@ -34,9 +34,9 @@ fused-cli workspace has "Stripe"
 
 `workspace has` matches the service *name*, not the slug. Use it as an exact check rather than primary discovery.
 
-## Need the full workspace diff?
+## Need a controlled workspace diff?
 
-Use the [advanced controlled workflow](/advanced/control-the-workflow) when you want to author without applying, inspect the complete workspace diff, store a receipt elsewhere, or make broader policy and removal changes. Full `workspace apply` can activate and deactivate services beyond one scoped addition.
+Use the [advanced controlled workflow](/advanced/control-the-workflow) when you want to author without applying, inspect the workspace diff, store a receipt elsewhere, or make broader policy changes. Omission is non-destructive: deleting a service declaration from a local file does not remove that service from the workspace. Explicit removal is a separate reviewed operation.
 
 Starting from nothing, `fused-cli workspace init` creates the skeleton, and `--extend` adds to it without replacing what is already there.
 
@@ -57,20 +57,26 @@ Terminal selection and confirmation are the default. The retained `--interactive
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--service` | Enables a service inline; repeatable, version optional | `fused-cli workspace init --service 'stripe=2024-06-20'` |
-| `--extend` | Adds to an existing file instead of refusing to overwrite it | `fused-cli workspace init --extend --service 'slack=v1'` |
+| `--service` | Enables services inline as `<service>[@<version>]`; comma-separated or repeatable | `fused-cli workspace init --service 'stripe@2024-06-20,github@v3'` |
+| `--extend` | Adds to an existing file instead of refusing to overwrite it | `fused-cli workspace init --extend --service 'slack@v1'` |
 
 Creation never replaces an existing file. Extension is additive and idempotent — re-running it reports `unchanged` rather than duplicating a service.
 
-## Mirror the Engine's actual state
+## Pull Engine state into local files
 
-`workspace sync` rewrites your local `services:` map from what the Engine reports as activated right now.
+`workspace sync` refreshes only the local service declarations you select. It never mutates the Engine, and it never exposes a local source path to the shared UI or Engine.
 
 ```bash
-fused-cli workspace sync -f .fused/workspace.yaml
+fused-cli workspace sync
+fused-cli workspace sync --file .fused/services/payments.yaml
+fused-cli workspace sync --service stripe
+fused-cli workspace sync --service stripe@v1,github@v3 --file .fused/services/payments.yaml
+fused-cli workspace sync --all
 ```
 
-This is a full mirror, not a merge. A service the Engine no longer reports is **removed from your local file**, and an empty remote result empties the map. Sync only touches the fields it owns, so anything else you have hand-written under a service survives.
+With no flags, sync refreshes services already declared in `.fused/workspace.yaml` and `.fused/services/**/*.yaml`. `--file` scopes the pull to identities in that file. `--service <service>[@<version>]` accepts comma-separated values or repeated flags; omit the version to pull every active version, or name exact active versions without deleting unselected local versions. With `--file`, selected services share that destination; declarations in another local file transfer with authored policy intact. Without `--file`, each new service gets its own readable `.fused/services/<service-slug>.yaml` `type: services` document, with a stable identity suffix when readable slugs collide. Only `--all` imports every active service.
+
+A local declaration missing from the Engine is retained and reported as inactive remotely. Sync only updates fields it owns, so other hand-written service fields survive.
 
 ## When permission is the blocker
 

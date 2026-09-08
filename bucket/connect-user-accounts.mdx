@@ -179,10 +179,12 @@ With several resources and no default, a call must pass an explicit `X-Fused-Res
 
 ```bash
 fused-cli bucket connections prod-credentials --service jira
+fused-cli bucket connections prod-credentials --service jira,github@v3
+fused-cli bucket connections prod-credentials --service jira --service github@v3
 fused-cli bucket connections prod-credentials --user user_123
 ```
 
-This lists every end user who has connected to any service through the bucket, and whether their token is healthy. Do not confuse it with `workspace connection resources`, which is about one already-connected user's reachable tenants.
+`--service` accepts comma-separated values or repeated flags. Use `<service>@<version>` to match only one immutable service version; a service without a version matches all of its versions. The resulting union is paginated by Engine. This lists every matching end user who has connected through the bucket, and whether their token is healthy. Do not confuse it with `workspace connection resources`, which is about one already-connected user's reachable tenants.
 
 <Card title="Share the bucket" icon="users" href="/bucket/share-a-bucket">
   Let other teams select this bucket without handing them its contents.

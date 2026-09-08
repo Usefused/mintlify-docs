@@ -49,7 +49,7 @@ services:
     select_all: true
 ```
 
-Each service key is the canonical Registry slug selected by the CLI. Pass an explicit `<service>=<version>` only when you need a version other than the default.
+Each service key is the canonical Registry slug selected by the CLI. `--service` accepts comma-separated selectors or repeated flags; pass an explicit `<service>@<version>` only when you need a version other than the default.
 
 `operations` and `select_all: true` are alternatives. Exactly one is required per service, never both and never neither.
 
@@ -148,7 +148,7 @@ Both are derived from the generated source and validated against it, so the meth
 |---|---|---|
 | `--sdk` | Creates, applies, and downloads a typed SDK | `fused-cli init support --sdk --service linear` |
 | `--api` | Creates and applies a `kind: sdk` app with `generate: false` | `fused-cli init support-api --api --service linear` |
-| `--service` | Adds a service; version is optional and defaults to an enabled or latest public version | `fused-cli init support --sdk --service linear` |
+| `--service` | Adds services as `<service>[@<version>]`; comma-separated or repeatable, with an omitted version defaulting to an enabled or latest public version | `fused-cli init support --sdk --service linear@v1,slack` |
 | `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --sdk --service linear --operation 'linear=issueUpdate'` |
 | `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --sdk --service linear --select-all linear` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --sdk --bucket prod-credentials` |
