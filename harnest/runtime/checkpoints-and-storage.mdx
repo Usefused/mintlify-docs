@@ -10,6 +10,7 @@ Harnest keeps committed session state separate from private in-progress executio
 |---|---|---|---|
 | Sessions | Committed conversation history and application session data | `context.session` | [Sessions and application storage](/harnest/runtime/session-storage) |
 | Checkpoints | Active run state, framework snapshots, pending writes, and resumable waits | Framework-owned | [Checkpoints](/harnest/runtime/checkpoints) |
+| Tasks and cron | Queued work, results, leases, and recurring schedules | `harnest.task` / `harnest.cron` | [Task and cron storage](/harnest/runtime/task-storage) |
 | Named assets | Session-owned media bytes | `context.assets("name")` | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
 | Named custom storage | Domain repositories | `context.storage("name")` | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
 

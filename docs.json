@@ -262,6 +262,7 @@
                     "expanded": false,
                     "pages": [
                       "harnest/runtime/checkpoints-and-storage",
+                      "harnest/runtime/task-storage",
                       "harnest/runtime/session-storage",
                       "harnest/runtime/checkpoints"
                     ]
