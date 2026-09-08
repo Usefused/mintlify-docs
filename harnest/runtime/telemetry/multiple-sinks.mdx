@@ -10,7 +10,7 @@ Create one `@lifecycle.telemetry_exporter` factory for each destination:
 import os
 
 from harnest.telemetry import TelemetryExporter
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
@@ -48,7 +48,7 @@ def compliance_logs():
     )
 ```
 
-Configure complete OTLP/HTTP signal URLs:
+From the agent folder, configure complete OTLP/HTTP signal URLs:
 
 ```bash
 export PRIMARY_OTLP_TRACES_ENDPOINT=https://primary.example.com/v1/traces
@@ -56,7 +56,7 @@ export PRIMARY_OTLP_LOGS_ENDPOINT=https://primary.example.com/v1/logs
 export PRIMARY_OTLP_TOKEN=primary-secret
 export COMPLIANCE_OTLP_LOGS_ENDPOINT=https://compliance.example.com/v1/logs
 export COMPLIANCE_OTLP_TOKEN=compliance-secret
-harnest serve support-agent
+harnest serve .
 ```
 
 ## Factory contract

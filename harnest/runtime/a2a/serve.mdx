@@ -29,10 +29,10 @@ skills:
     tags: [support, product]
 ```
 
-The URL path, `/support/a2a` in this example, becomes the mounted route. Use the public deployment URL in the Agent Card, then serve the project normally:
+The URL path, `/support/a2a` in this example, becomes the mounted route. Use the public deployment URL in the Agent Card, then serve from the agent folder:
 
 ```bash
-harnest serve support-agent
+harnest serve .
 ```
 
 Clients discover the same compiled card at `GET /.well-known/agent-card.json`. Use `JSONRPC` instead of `HTTP+JSON` when that binding fits the client ecosystem better. Author A2A 1.0 for new integrations; Harnest also accepts protocol version 0.3 for compatibility on these two HTTP bindings.
@@ -79,7 +79,7 @@ state = PostgresStore(os.environ["DATABASE_URL"])
 ```
 
 ```python lifecycle/storage.py
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 from harnest.lib.state import state
 
 

@@ -30,7 +30,7 @@ Put a shared connection in `lib/`, then declare each responsibility in its own e
   <Tab title="lifecycle/sessions.py">
     ```python
     from harnest.lib.state import state
-    from harnest.lifecycle import lifecycle
+    from harnest import lifecycle
 
 
     @lifecycle.storage.sessions
@@ -43,7 +43,7 @@ Put a shared connection in `lib/`, then declare each responsibility in its own e
   <Tab title="lifecycle/checkpoints.py">
     ```python
     from harnest.lib.state import state
-    from harnest.lifecycle import lifecycle
+    from harnest import lifecycle
 
 
     @lifecycle.storage.checkpoints

@@ -6,26 +6,27 @@ description: "Import authoring contracts from their Harnest domain."
 Import each capability from its public domain module. The examples in this documentation use these paths so you can find related types and operations in one place:
 
 ```python
-from harnest.agent import Agent, AgentRuntimePrincipal
+from harnest.agent import Agent, AgentRuntimePrincipal, client_tool, tool
 from harnest.auth import AuthPrincipal, AuthenticationError
-from harnest.lifecycle import lifecycle
+from harnest import context, lifecycle
 from harnest.sandbox import Sandbox, control
-from harnest.tool import tool, client_tool
 ```
+
+The package root exposes feature namespaces only. Classes, decorators, functions, errors, and types stay in the feature module that owns them.
 
 ## Domain imports
 
 | Capability | Public module | Examples |
 |---|---|---|
-| Agents and graphs | `harnest.agent`, `harnest.graph` | `Agent`, `AgentRuntimePrincipal`, `AgentRuntimePermissionError`, `Graph`, `Edge` |
+| Agents and graphs | `harnest.agent`, `harnest.graph` | `Agent`, `tool`, `client_tool`, `AgentRuntimePrincipal`, `Graph`, `Edge` |
 | Authentication | `harnest.auth` | `AuthPrincipal`, `Authenticator`, `AuthenticationError`, `principal_for` |
 | HTTP endpoints and hooks | `harnest.http` | `AgentInvoker`, `AgentResponse`, `HTTPCallRequest`, `HTTPLifecycleContext` |
 | Server configuration | `harnest.server` | `ServerConfig`, `ServerLimits`, `load_server_config` |
-| Tools | `harnest.tool` | `tool`, `client_tool`, `ClientToolError`, `ToolCallRequest`, `ToolLifecycleContext` |
+| Agent tools | `harnest.agent` | `tool`, `client_tool`, `ClientToolError`, `ToolCallRequest`, `ToolLifecycleContext` |
 | MCP | `harnest.mcp` | `MCPClient`, `MCPContext`, `MCPToolCallRequest`, `MCPToolCallError` |
 | Models | `harnest.model` | `LiteLLMModel`, `LiteLLMContext`, `ModelCallRequest`, `ModelLifecycleError` |
-| Lifecycle | `harnest.lifecycle` | `lifecycle`, `Next`, `Finish`, `LifecycleCoverage`, `CoverageLevel` |
-| Invocation context | `harnest.context` | `context`, `SessionContext`, `StorageContext`, `ScopedAssets`, `AgentSession` |
+| Lifecycle | `from harnest import lifecycle` | `agent`, `model`, `tool`, `mcp`, `http`, `storage`, `resource`, `coverage` |
+| Invocation context | `from harnest import context` | `provider`, `resource`, `SessionContext`, `StorageContext`, `ScopedAssets`, `AgentSession` |
 | Sandbox providers | `harnest.sandbox` | `Sandbox`, `SandboxNetworkPolicy`, `SandboxProviderCapabilities`, `SandboxResult`, `control` |
 | Runtime adapters | `harnest.runtime` | `ResponseRequest`, `InvocationRequest`, `RuntimeDriver`, `RuntimeEvent` |
 | Assets | `harnest.assets` | `AssetStorage`, `AssetScope`, `Stored` |
@@ -42,10 +43,10 @@ and a PEP 561 `py.typed` marker. Because each agent uses an isolated managed
 environment, synchronize it before opening the project in your editor.
 
 ```bash
-harnest env sync support-agent
+harnest env sync .
 ```
 
-The command creates or atomically updates `support-agent/.venv` as a link to the
+From the agent folder, the command creates or atomically updates `.venv` as a link to the
 current managed environment. VS Code, PyCharm, and other Python IDEs normally
 detect that conventional project path automatically. The editor can then
 resolve `harnest` and show completion, parameter and return types, and hover
@@ -87,7 +88,7 @@ with control.cleanup(timeout_seconds=5) as cleanup:
 Query lifecycle coverage with the same domain pattern:
 
 ```python
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 
 coverage = lifecycle.coverage("langgraph", "managed")
 ```

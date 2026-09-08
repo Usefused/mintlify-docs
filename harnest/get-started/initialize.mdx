@@ -23,9 +23,23 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     </CodeGroup>
 
-    The default scaffold is a small, runnable managed agent. Add `--example` for ignored code samples in folders that otherwise contain only guides. The existing agent and storage code stay unchanged.
+    Choose how much structure to create:
 
-    Explore the generated project below. Select a file or folder to preview its contents. Folders tagged **optional** can be omitted until you need that capability. Root files show generated contents; optional folders show examples you can add.
+    | Profile | Result |
+    |---|---|
+    | Default | Runnable agent plus optional folders containing ignored `_README.md` guides |
+    | `--minimal` | Only the files required to compile and run |
+    | `--example` | Default scaffold plus ignored examples in guide-only managed folders |
+
+    `--minimal` and `--example` are mutually exclusive. Existing agent and storage code stays unchanged when you choose the example profile.
+
+    For example, create a strict minimal ADK agent with:
+
+    ```bash
+    harnest init support-agent --framework adk --minimal
+    ```
+
+    Explore the generated project below. The explorer shows the default guided profile; a minimal scaffold contains only its active root files and required lifecycle storage. Select a file or folder to preview its contents. Folders tagged **optional** can be omitted until you need that capability. Root files show generated contents; optional folders show examples you can add.
 
     <HarnestProjectExplorer />
 
@@ -37,17 +51,43 @@ Create a managed agent, prepare its isolated environment, and run the generated 
       `harnest init` accepts a new directory or an existing empty directory. It refuses a non-empty directory so it cannot overwrite an existing project.
     </Note>
   </Step>
+  <Step title="Enter the agent folder and add capabilities">
+    ```bash
+    cd support-agent
+    ```
+
+    A minimal agent is ready to compile immediately. Add only the resources it needs:
+
+    ```bash
+    harnest add tool customer-lookup
+    harnest add task prepare-report
+    harnest add lifecycle audit
+    harnest add context request-cache
+    ```
+
+    Managed ADK agents can also add an automatically discovered subagent:
+
+    ```bash
+    harnest add subagent researcher
+    ```
+
+    Each command creates a missing optional folder and refuses to overwrite an existing resource. LangGraph and advanced-mode topology stays explicit in `agent.py`.
+
+    When you run a command from elsewhere, add `--project <agent-root>`.
+  </Step>
   <Step title="Synchronize the project environment">
     ```bash
-    harnest env sync support-agent
+    harnest env sync .
     ```
 
     Synchronization creates the lean, hash-verified production `harnest-runtime.lock`, records the exact resolved framework version in `harnest.lock`, and creates the generated `.harnest/` environment. It also maintains an IDE-detectable `.venv` link unless that path already belongs to you. `harnest serve`, `run`, and ordinary `test` share `harnest-development.lock`; `test --evals` creates `harnest-eval.lock`. Commit the locks you use; do not edit or commit `.harnest/` or `.venv`.
   </Step>
   <Step title="Run the offline tests">
     ```bash
-    harnest test support-agent
+    harnest test .
     ```
+
+    A minimal project without `tests/unit/` still compiles and reports that it has no authored Python tests.
   </Step>
 </Steps>
 
@@ -66,6 +106,8 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 | `tests/` | Offline and optional live checks |
 
 With `--example` in managed mode, Harnest adds `_example.py` templates to guide-only Python folders: `lib/`, `models/`, `tools/`, `tasks/`, `cron/`, `subagents/`, `mcp/`, `sandbox/`, `tests/unit/`, and `tests/smoke/`. It does not add another example to `lifecycle/`, which already contains working storage code, or replace `agent.py`.
+
+With `--minimal`, Harnest omits those optional folders entirely. The required lifecycle storage remains because the generated agent uses session history. Add commands recreate supported folders when you need them.
 
 Skills, extensions, plugins, and evals retain their required formats under ignored paths: `skills/_example/SKILL.md`, `extensions/_example/` for a Harnest Extension, `plugins/_example_agent/` for an Agent Plugins 1.0 package with `plugin.json`, and `evals/_example.evalset.json`. Both managed frameworks receive the templates; framework-specific samples identify their restrictions. The default `lifecycle/storage.py` already contains working code and needs no extra sample.
 

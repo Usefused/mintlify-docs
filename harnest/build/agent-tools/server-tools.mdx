@@ -9,7 +9,7 @@ When only part of a tool needs isolated Python execution, call an assigned [Sand
 
 ```python tools/lookup_order.py
 from harnest.models.orders import OrderStatus
-from harnest.tool import tool
+from harnest.agent import tool
 
 
 @tool(output_schema=OrderStatus)
@@ -53,7 +53,7 @@ Use an async durable tool when queued or external work must survive a request en
 
 ```python tools/request_report.py
 from harnest.lib.report_tasks import build_report
-from harnest.tool import tool
+from harnest.agent import tool
 
 
 @tool(durable=True)

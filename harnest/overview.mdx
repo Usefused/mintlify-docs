@@ -70,17 +70,30 @@ harnest init support-agent --framework langgraph
 
 </CodeGroup>
 
-Then sync and test the isolated environment:
+Then enter the agent folder, sync, and test the isolated environment:
 
 ```bash
-harnest env sync support-agent
-harnest test support-agent
+cd support-agent
+harnest env sync .
+harnest test .
 ```
 
 | Option | Result |
 |---|---|
-| Default | Small, runnable managed agent |
+| Default | Runnable managed agent with optional guide-only folders |
+| `--minimal` | Creates only the runnable core files |
 | `--example` | Adds ignored samples to managed folders without default code; rename selected samples to activate them |
+
+Start with only the core files, then add resources from inside the new agent:
+
+```bash
+harnest init minimal-agent --framework adk --minimal
+cd minimal-agent
+harnest add tool customer-lookup
+harnest add subagent researcher
+```
+
+You can also add `task`, `lifecycle`, and `context` resources. Use `--project <agent-root>` only when running outside the agent folder.
 
 `compile`, `test`, and `serve` sync automatically. Add only your packages to `pyproject.toml`; Harnest owns the framework dependency.
 
@@ -100,9 +113,10 @@ Start with the mode that preserves your current behavior. Harnest adds tests, se
 Preview first, then apply and test:
 
 ```bash
-harnest upgrade existing-agent
-harnest upgrade existing-agent --apply
-harnest test existing-agent
+cd existing-agent
+harnest upgrade .
+harnest upgrade . --apply
+harnest test .
 ```
 
 The first command previews the change. Apply verifies the reviewed files and creates backups.
@@ -121,8 +135,8 @@ spec:
 Test and serve the target framework:
 
 ```bash
-harnest test existing-agent
-harnest serve existing-agent
+harnest test .
+harnest serve .
 ```
 
 <Warning>
@@ -134,7 +148,8 @@ Follow the full [framework migration checklist](/harnest/runtime/adk-and-langgra
 ## Serve a project
 
 ```bash
-harnest serve support-agent
+cd support-agent
+harnest serve .
 ```
 
 | URL | Use it for |

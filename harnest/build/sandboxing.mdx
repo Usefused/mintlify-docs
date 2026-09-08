@@ -14,11 +14,11 @@ An assignment does not create a model-callable execution tool. You choose the bu
 
 ## Enable container execution
 
-Install the Fused-maintained Docker Harnest Extension, then resolve it into the agent's runtime lock:
+From the agent folder, install the Fused-maintained Docker Harnest Extension, then resolve it into the agent's runtime lock:
 
 ```bash
-harnest extensions install docker --project support-agent
-harnest env sync support-agent
+harnest extensions install docker
+harnest env sync .
 ```
 
 Create one file per sandbox, then choose which sandboxes each agent can use. For example, `sandbox/calculations.py` must define a variable named `calculations`. If initialization generated `sandbox/_example.py`, rename it to `calculations.py`; the example already uses that variable name. Underscore-prefixed examples remain ignored.
@@ -62,9 +62,9 @@ Create `tools/total_values.py`. Harnest exposes this tool to the model; the sand
 ```python tools/total_values.py
 import json
 
-from harnest.context import context
+from harnest import context
 from harnest.sandbox import SandboxStatus
-from harnest.tool import tool
+from harnest.agent import tool
 
 
 @tool
@@ -97,7 +97,7 @@ The API also accepts keyword-only `input_files=()` for providers that support fi
    the total returned by the tool rather than inventing an execution result.
    ```
 
-4. Run `harnest test support-agent`, then `harnest serve support-agent`, replacing `support-agent` with your project path.
+4. From the agent folder, run `harnest test .`, then `harnest serve .`.
 5. Open the playground at `http://127.0.0.1:8080/` and ask: “Use total_values to add 17, 23, and 41.” Check the tool event as well as the final answer; the expected tool result is `{"total": 81}`.
 
 Offline tests validate your project but do not prove Docker execution works. The playground check uses your configured model and the Docker extension. See [Serving agents](/harnest/runtime/serving) for server settings and authentication.

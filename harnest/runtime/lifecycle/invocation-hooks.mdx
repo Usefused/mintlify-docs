@@ -5,6 +5,14 @@ description: "Observe or transform agent, model, and tool execution in a portabl
 
 Portable hooks apply the same policy around Harnest-owned ADK and LangGraph boundaries.
 
+From the agent root, create an observational agent hook starter:
+
+```bash
+harnest add lifecycle audit
+```
+
+Use `--project <agent-root>` when running the command from elsewhere, then choose the boundary and phase that owns the policy.
+
 | Boundary | Decorators | Typical use |
 |---|---|---|
 | Agent | `lifecycle.agent.before/after/on_error` | Request policy and accounting |
@@ -14,7 +22,7 @@ Portable hooks apply the same policy around Harnest-owned ADK and LangGraph boun
 | HTTP | `lifecycle.http.before/after/on_error` | Routing and response-head policy |
 
 ```python
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 
 
 @lifecycle.tool.before(order=-100)

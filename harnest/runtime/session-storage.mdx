@@ -10,7 +10,7 @@ Every application resolves exactly one session factory across its root and Harne
 
 ```python lifecycle/sessions.py
 from harnest.lib.state import state
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 
 
 @lifecycle.storage.sessions
@@ -27,7 +27,7 @@ Committed session state survives an ADK ↔ LangGraph switch when both compiled 
 Use `context.session` for values that should persist with a session without entering prompts or model-visible history:
 
 ```python lib/exports.py
-from harnest.context import context
+from harnest import context
 
 
 async def remember_export(export_id: str):
@@ -86,7 +86,7 @@ Custom storage is for business data that needs a typed repository. It is not a s
 ```python lifecycle/users.py
 import os
 
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 from harnest.lib.users import UsersRepository
 
 
@@ -98,7 +98,7 @@ def users():
 ```
 
 ```python lib/user_profiles.py
-from harnest.context import context
+from harnest import context
 from harnest.lib.users import UsersRepository
 
 
@@ -116,7 +116,7 @@ A custom store must provide async `start()` and `close()` methods. Prefer domain
 Declare one or more named stores for session-owned media:
 
 ```python lifecycle/assets.py
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 from harnest.lib.assets import S3AssetStorage
 
 

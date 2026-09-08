@@ -39,12 +39,13 @@ Choose the mode that preserves the agent's current behavior:
     Use `--framework langgraph` for an existing LangGraph agent.
   </Step>
   <Step title="Move the agent and its dependencies">
-    Export a managed `Agent` or `Graph`, or wrap the existing native target with `Agent.advanced(...)`. Add only agent-owned packages to `pyproject.toml`.
+    Move the source into `migrated-agent`, then export a managed `Agent` or `Graph`, or wrap the existing native target with `Agent.advanced(...)`. Add only agent-owned packages to `pyproject.toml`.
   </Step>
   <Step title="Test through the harness">
     ```bash
-    harnest test migrated-agent
-    harnest serve migrated-agent
+    cd migrated-agent
+    harnest test .
+    harnest serve .
     ```
   </Step>
 </Steps>
@@ -56,22 +57,24 @@ Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle 
 <Steps>
   <Step title="Preview the migration">
     ```bash
-    harnest upgrade existing-agent
+    cd existing-agent
+    harnest upgrade .
     ```
 
     This command is read-only. Review its plan before continuing.
   </Step>
   <Step title="Apply the reviewed migration">
     ```bash
-    harnest upgrade existing-agent --apply
+    harnest upgrade . --apply
     ```
 
-    This also rewrites released `OutputPolicy` string and positional forms to
-    the current keyword-only boolean and enum contract.
+    This splits old package-root imports into their owning feature modules,
+    rewrites lifecycle and context decorators to their first-class namespaces,
+    and updates released `OutputPolicy` forms.
   </Step>
   <Step title="Test the upgraded project">
     ```bash
-    harnest test existing-agent
+    harnest test .
     ```
   </Step>
 </Steps>
@@ -92,8 +95,8 @@ spec:
 Then validate the target framework:
 
 ```bash
-harnest test existing-agent
-harnest serve existing-agent
+harnest test .
+harnest serve .
 ```
 
 <Warning>

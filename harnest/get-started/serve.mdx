@@ -4,10 +4,10 @@ sidebarTitle: "Serve"
 description: "Launch the neutral server and development playground."
 ---
 
-Compile and start the standalone development server:
+From the agent folder, compile and start the standalone development server:
 
 ```bash
-harnest serve support-agent
+harnest serve .
 ```
 
 For a normal launch without `--output` or `--reload`, Harnest retains the
@@ -20,7 +20,7 @@ superseded generation in the background.
 Reload after authored file changes during local development:
 
 ```bash
-harnest serve support-agent --reload
+harnest serve . --reload
 ```
 
 | URL | Use it for |

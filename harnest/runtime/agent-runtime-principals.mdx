@@ -35,7 +35,7 @@ Every capability that should remain available under a principal must declare a p
 <CodeGroup>
 
 ```python tools/read_ticket.py
-from harnest.tool import tool
+from harnest.agent import tool
 
 
 @tool(permission="tickets.read")
@@ -46,7 +46,7 @@ async def read_ticket(ticket_id: str) -> dict:
 ```
 
 ```python tools/open_admin_console.py
-from harnest.tool import client_tool
+from harnest.agent import client_tool
 
 
 @client_tool(permission="tickets.admin")

@@ -12,10 +12,10 @@ spec:
     cli: true
 ```
 
-Run one turn in the agent's compiled runtime:
+From the agent folder, run one turn in its compiled runtime:
 
 ```bash
-harnest run support-agent "Summarize the open incidents"
+harnest run . "Summarize the open incidents"
 ```
 
 For multiline or sensitive input, pipe the message. Harnest always sends it to
@@ -23,7 +23,7 @@ the generated runtime through stdin, not process arguments.
 
 ```bash
 printf '%s\n' 'Continue the incident review' \
-  | harnest run support-agent --session incident-review
+  | harnest run . --session incident-review
 ```
 
 | Option | Behavior |
@@ -45,7 +45,7 @@ can execute queued tasks but does not activate cron schedules.
 Run a retained artifact directly with the same contract:
 
 ```bash
-harnest compile support-agent --output .harnest/support-agent
+harnest compile . --output .harnest/support-agent
 printf '%s\n' 'Hello' | .harnest/support-agent/harnest-agent run
 ```
 

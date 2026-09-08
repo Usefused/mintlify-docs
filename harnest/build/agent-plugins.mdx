@@ -12,15 +12,15 @@ Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `
 
 ## Add a plugin
 
-Install a reviewed local package into an agent project:
+From the agent folder, install a reviewed local package into the project:
 
 ```bash
-harnest plugins install ./downloads/warehouse --project ./support-agent
+harnest plugins install ../downloads/warehouse
 ```
 
 Harnest validates the Agent Plugins 1.0 manifest without importing or executing
 package code, then copies ordinary files into
-`support-agent/plugins/<manifest-name>` through same-filesystem staging. It
+`plugins/<manifest-name>` through same-filesystem staging. It
 rejects links, special files, and an existing destination. Pass `--force` only
 when you intend to replace that complete installed package; a failed final swap
 restores the previous package.

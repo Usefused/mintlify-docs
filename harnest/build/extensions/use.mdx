@@ -6,28 +6,28 @@ description: "Discover a Harnest Extension, consume its compiler-owned namespace
 
 A project-local Harnest Extension is discovered from `extensions/<name>/extension.yaml`. You do not add it to a central registry or manually attach it to the root agent.
 
-Install a verified public PyPI wheel by its short slug or full distribution name:
+From the agent folder, install a verified public PyPI wheel by its short slug or full distribution name:
 
 ```bash
-harnest extensions install warehouse --project support-agent
-# Equivalent: harnest extensions install harnest-extension-warehouse --project support-agent
-harnest env sync support-agent
+harnest extensions install warehouse
+# Equivalent: harnest extensions install harnest-extension-warehouse
+harnest env sync .
 ```
 
 To review and test an unpublished extension, install its local source tree instead:
 
 ```bash
-harnest extensions install ./harnest-extension-warehouse --project support-agent
-harnest env sync support-agent
+harnest extensions install ../harnest-extension-warehouse
+harnest env sync .
 ```
 
-For a PyPI install, Harnest accepts a universal `py3-none-any` wheel and validates the manifest, wheel metadata, digest, entry point, and package layout without importing extension code. Platform- or ABI-specific wheels are not installed. For local source, it validates the manifest and layout plus any available project identity and version metadata. Both paths materialize the package into `support-agent/extensions/<manifest-name>` through a staged replacement and preserve a root `README.md` when one is present. Harnest refuses an existing extension unless you pass `--force`. Review same-process extension code and its declared capabilities before installation; installing changes dependency inputs, so refresh `harnest-runtime.lock` with `harnest env sync`.
+For a PyPI install, Harnest accepts a universal `py3-none-any` wheel and validates the manifest, wheel metadata, digest, entry point, and package layout without importing extension code. Platform- or ABI-specific wheels are not installed. For local source, it validates the manifest and layout plus any available project identity and version metadata. Both paths materialize the package into `extensions/<manifest-name>` through a staged replacement and preserve a root `README.md` when one is present. Harnest refuses an existing extension unless you pass `--force`. Review same-process extension code and its declared capabilities before installation; installing changes dependency inputs, so refresh `harnest-runtime.lock` with `harnest env sync .`.
 
 After compilation, Harnest exposes the extension module as `harnest.extensions.<name>`. Import the singleton from a discovered Agent Tool and call its bounded API:
 
 ```python tools/query_warehouse.py
 from harnest.extensions.warehouse import extension as warehouse
-from harnest.tool import tool
+from harnest.agent import tool
 
 
 @tool
@@ -44,7 +44,7 @@ The call runs inside a managed invocation, so `warehouse.context` resolves the t
 Trusted application code can ask Harnest for the same invocation-scoped view:
 
 ```python lib/warehouse_service.py
-from harnest.context import context
+from harnest import context
 from harnest.extensions.warehouse import WarehouseContext
 
 

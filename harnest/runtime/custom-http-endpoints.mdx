@@ -13,7 +13,7 @@ Create a synchronous route factory in the root agent's `lifecycle/` directory. H
 ```python lifecycle/http.py
 from fastapi import APIRouter, Request
 from harnest.http import AgentInvoker
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 
 
 @lifecycle.http_routes
@@ -114,7 +114,7 @@ query an application-owned index instead:
 ```python lifecycle/http.py
 from fastapi import APIRouter, Request
 from harnest.http import AgentInvoker
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 from harnest.auth import principal_for
 from harnest.lib.site_sessions import site_sessions
 

@@ -64,8 +64,8 @@ When an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) is 
 Use the invocation-scoped facade when a tool or service chooses the remote operation:
 
 ```python tools/search_catalog.py
-from harnest.context import context
-from harnest.tool import tool
+from harnest import context
+from harnest.agent import tool
 
 
 @tool

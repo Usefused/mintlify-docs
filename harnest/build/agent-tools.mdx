@@ -6,6 +6,14 @@ description: "Choose server tools, client-hosted tools, MCP tools, and approval 
 
 Agent Tools let a model act through typed, testable capabilities. Choose where each capability should run.
 
+From a managed agent's root, create a server-tool starter without replacing existing code:
+
+```bash
+harnest add tool customer-lookup
+```
+
+Use `--project <agent-root>` when running the command from elsewhere.
+
 | Tool type | Runs in | Best for |
 |---|---|---|
 | `@tool` | Agent server | Business logic and provider calls |

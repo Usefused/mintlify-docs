@@ -77,7 +77,7 @@ Harnest inspects decoded bytes. Client-supplied metadata does not bypass the con
   <Tab title="Server tool output">
     ```python tools/analyze.py
     from harnest.models.vision import VisionOutput
-    from harnest.tool import tool
+    from harnest.agent import tool
 
 
     @tool(output_schema=VisionOutput)
@@ -89,7 +89,7 @@ Harnest inspects decoded bytes. Client-supplied metadata does not bypass the con
     ```python tools/browser.py
     from pydantic import BaseModel
 
-    from harnest.tool import client_tool
+    from harnest.agent import client_tool
     from harnest.models.vision import Screenshot
 
 

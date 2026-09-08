@@ -4,13 +4,13 @@ sidebarTitle: "One sink"
 description: "Send Harnest traces and logs to one OTLP collector."
 ---
 
-Set one shared OTLP endpoint to export both traces and logs:
+From the agent folder, set one shared OTLP endpoint to export both traces and logs:
 
 ```bash
 export OTEL_SERVICE_NAME=support-agent
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
 export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-harnest serve support-agent
+harnest serve .
 ```
 
 Setting an OTLP endpoint enables export automatically. Harnest includes the OTLP/HTTP exporter; no additional package is required. `OTEL_SERVICE_NAME` is optional and defaults to the compiled application name.

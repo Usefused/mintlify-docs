@@ -12,7 +12,7 @@ Root files under `lifecycle/**/*.py` add behavior around the agent. Harnest disc
 |---|---:|---|---|
 | `@lifecycle.resource` | Many | Application dependency | [Application resources](/harnest/runtime/lifecycle/application-resources) |
 | `@lifecycle.skills.source("name")` | Many, with unique names | Dynamic skill catalog | [Agent Skills](/harnest/build/agent-skills) |
-| `@context("name")` | Many | Publish a resource | [Application resources](/harnest/runtime/lifecycle/application-resources) |
+| `@context.provider("name")` | Many | Publish a resource | [Application resources](/harnest/runtime/lifecycle/application-resources) |
 | `@lifecycle.agent.before/after/on_error` | Many | Agent policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.model.before/after/on_error` | Many | Model policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.tool.before/after/on_error` | Many | Tool policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |

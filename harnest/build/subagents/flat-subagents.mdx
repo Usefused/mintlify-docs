@@ -6,12 +6,20 @@ description: "Add a SubAgent definition that does not need private instructions 
 
 Use a flat file for a small SubAgent that needs only its definition.
 
+From a managed ADK agent's root, create the discovered starter:
+
+```bash
+harnest add subagent researcher
+```
+
+The command refuses to overwrite an existing definition. Use `--project <agent-root>` when running it from elsewhere. LangGraph graphs define SubAgent topology explicitly in `agent.py`; see [framework behavior](/harnest/build/subagents/framework-behavior).
+
 ```text
 subagents/
 └── researcher.py
 ```
 
-`subagents/researcher.py` exports an `AgentDefinition` named `researcher`.
+`subagents/researcher.py` exports an `Agent` named `researcher`.
 
 ## Flat SubAgent properties
 

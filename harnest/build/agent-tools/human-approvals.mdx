@@ -14,7 +14,7 @@ Choose the approval boundary that matches the risk.
   <Tab title="Approve every invocation">
     ```python
     from harnest.approval import require_human_approval
-    from harnest.tool import tool
+    from harnest.agent import tool
 
 
     @tool
@@ -26,7 +26,7 @@ Choose the approval boundary that matches the risk.
   <Tab title="Approve after evaluation">
     ```python
     from harnest.approval import request_human_approval
-    from harnest.tool import tool
+    from harnest.agent import tool
 
 
     @tool

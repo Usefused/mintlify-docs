@@ -6,14 +6,21 @@ description: "Start dependencies once, publish them to agent code, and close the
 
 Use lifecycle resources for database pools, service clients, caches, and other application-owned dependencies.
 
+From the agent root, create an invocation-scoped provider starter:
+
+```bash
+harnest add context catalog
+```
+
+Use `--project <agent-root>` when running the command from elsewhere. Add `@lifecycle.resource` when the value should be created once for the application instead of once per invocation.
+
 ```python
-from harnest.context import context
-from harnest.lifecycle import lifecycle
+from harnest import context, lifecycle
 from harnest.lib.catalog import CatalogClient
 
 
 @lifecycle.resource
-@context("catalog")
+@context.provider("catalog")
 async def catalog():
     client = CatalogClient()
     try:
@@ -28,14 +35,14 @@ async def catalog():
 |---|---|---:|
 | `@lifecycle.resource` | Application | No |
 | Both decorators | Application | Yes |
-| `@context("name")` | Invocation | Yes |
+| `@context.provider("name")` | Invocation | Yes |
 
 Harnest starts application resources by ascending `order`, then source location, and closes them in reverse order.
 
 ## Read a resource
 
 ```python
-from harnest.context import context
+from harnest import context
 
 
 def search_catalog(query: str):

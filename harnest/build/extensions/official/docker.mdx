@@ -8,17 +8,19 @@ The official Docker Harnest Extension moves Docker SDK and container ownership o
 
 ## Install the extension
 
+From the agent folder:
+
 ```bash
-harnest extensions install docker --project ./my-agent
-# Equivalent: harnest extensions install harnest-extension-docker --project ./my-agent
-harnest env sync ./my-agent
+harnest extensions install docker
+# Equivalent: harnest extensions install harnest-extension-docker
+harnest env sync .
 ```
 
 For local extension development, point the same command at a checkout:
 
 ```bash
-harnest extensions install ./official-extensions/docker --project ./my-agent --force
-harnest env sync ./my-agent
+harnest extensions install ../official-extensions/docker --force
+harnest env sync .
 ```
 
 Harnest validates and copies the package without importing its code. Version `0.3.0` requires Python 3.10 or newer, Harnest `>=0.15,<0.16`, and `docker>=7.1,<8`. The host must provide a reachable Docker daemon.

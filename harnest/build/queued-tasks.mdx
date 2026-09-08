@@ -14,6 +14,14 @@ Use `@task` for application-owned queue work. A task is not model-visible; an Ag
 
 ## Define and call a task
 
+From the agent root, create a compilable task starter:
+
+```bash
+harnest add task build-report
+```
+
+Use `--project <agent-root>` when running the command from elsewhere. The generated file is suitable when no other module imports the task; use the shared-library pattern below when tools also import it.
+
 When a tool needs the task callable, define it once in `lib/` and re-export it from `tasks/`:
 
 <CodeGroup>
@@ -35,7 +43,7 @@ from harnest.lib.report_tasks import build_report
 
 ```python tools/request_report.py
 from harnest.lib.report_tasks import build_report
-from harnest.tool import tool
+from harnest.agent import tool
 
 
 @tool(durable=True)
@@ -90,9 +98,9 @@ If the application has multiple PostgreSQL stores, set `HARNEST_TASK_DATABASE_UR
 
 ```bash
 export HARNEST_TASK_DATABASE_URL=postgresql://localhost/harnest
-harnest env sync support-agent
-harnest test support-agent
-harnest serve support-agent
+harnest env sync .
+harnest test .
+harnest serve .
 ```
 
 Harnest creates and updates its private Task and payload schema during runtime startup. Calling `.defer()` from an ordinary imported module without an active compiled runtime raises `TaskUnavailableError`; call the task body directly for isolated unit tests.
@@ -102,7 +110,7 @@ Harnest creates and updates its private Task and payload schema during runtime s
 A task can invoke the compiled root agent without an HTTP call:
 
 ```python tasks/review_report.py
-from harnest.context import context
+from harnest import context
 from harnest.task import task
 
 

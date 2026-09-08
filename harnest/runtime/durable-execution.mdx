@@ -16,16 +16,16 @@ Use durable execution when a tool waits longer than one request or process lifet
 ## Suspend a tool
 
 The repository's Fused-maintained Hatchet Extension owns its SDK dependency.
-Install and lock it before importing the compiler-owned namespace:
+From the agent folder, install and lock it before importing the compiler-owned namespace:
 
 ```bash
-harnest extensions install hatchet --project support-agent
-harnest env sync support-agent
+harnest extensions install hatchet
+harnest env sync .
 ```
 
 ```python
 from harnest.extensions.hatchet import extension as hatchet
-from harnest.tool import tool
+from harnest.agent import tool
 
 
 @tool(durable=True)

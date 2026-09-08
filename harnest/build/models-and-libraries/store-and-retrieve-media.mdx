@@ -50,7 +50,7 @@ class CaptureResult(BaseModel):
 
 ```python lifecycle/assets.py
 from harnest.assets import AssetStorage
-from harnest.lifecycle import lifecycle
+from harnest import lifecycle
 from harnest.lib.assets import S3AssetStorage
 
 
@@ -68,7 +68,7 @@ Store names are explicit. Harnest does not choose another backend or storage pol
     `context.assets` supplies the current authenticated user and session and routes the reference to its named store.
 
     ```python
-    from harnest.context import context
+    from harnest import context
 
 
     record = await context.assets.stat(result.screenshot)

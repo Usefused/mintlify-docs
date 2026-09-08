@@ -4,10 +4,10 @@ sidebarTitle: "Create an extension"
 description: "Author the Harnest Extension manifest, singleton, typed invocation context, and dependency contract."
 ---
 
-Create a root-owned folder under `extensions/`. The folder name is the extension identity and must be a valid Python identifier. The CLI creates the canonical manifest, module, and dependency metadata together:
+From the agent folder, create a root-owned folder under `extensions/`. The folder name is the extension identity and must be a valid Python identifier. The CLI creates the canonical manifest, module, and dependency metadata together:
 
 ```bash
-harnest extensions init warehouse --project support-agent
+harnest extensions init warehouse
 ```
 
 ```text extensions/warehouse/
@@ -149,8 +149,8 @@ requires:
 Harnest rejects missing dependencies and cycles. Extension Python dependencies share one solve with the root project; incompatible constraints fail `harnest env sync` instead of creating isolated environments.
 
 ```bash
-harnest env sync support-agent
-harnest test support-agent
+harnest env sync .
+harnest test .
 ```
 
 <Card title="Add lifecycle behavior" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
