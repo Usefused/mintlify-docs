@@ -6,32 +6,38 @@ description: "Use PostgreSQL, Redis, or a custom database for Harnest-owned dura
 Harnest owns task execution, retry policy, lease renewal, cron calculation, and continuation recovery. Your storage provider owns durable records and atomic state transitions. Authoring stays under `harnest.task` and `harnest.cron`; changing the database does not change your Tools or Tasks.
 
 <Note>
-  Provider packages accompany Harnest 0.18. Until that release is published,
-  install the core and provider from the same source checkout as shown below.
+  These providers are bundled with the storage-neutral feature and its next
+  Harnest release. Earlier Harnest releases do not include these imports.
 </Note>
 
 ## Choose and register a provider
 
-From your agent folder, install one optional provider into its environment:
+The `harnest_postgres` and `harnest_redis` Python packages ship inside Harnest's runtime wheel, just like `harnest` itself. They are versioned and installed with the CLI runtime, not distributed separately on PyPI. You do not need to add `harnest-postgres` or `harnest-redis` to your agent dependencies.
+
+From your agent folder, synchronize the matching runtime:
+
+```bash
+harnest env sync .
+```
+
+The managed ADK and LangGraph environment profiles already include the database drivers. For direct Python development from the feature checkout, install the matching optional driver extra:
 
 <CodeGroup>
 ```bash PostgreSQL
-python -m pip install harnest-postgres
+python -m pip install '/path/to/harnest[postgres]'
 ```
 ```bash Redis
-python -m pip install harnest-redis
+python -m pip install '/path/to/harnest[redis]'
 ```
 </CodeGroup>
 
-For an unreleased source checkout, replace those commands with:
+Both provider imports are available in either installation. Only the selected extra installs its database driver; importing a provider does not open a database connection. For both drivers in a direct Python environment:
 
 ```bash
-python -m pip install '/path/to/harnest[postgres]'
-python -m pip install --no-deps /path/to/harnest/providers/postgres
-# For Redis, use '[redis]' above and providers/redis below.
+python -m pip install '/path/to/harnest[postgres,redis]'
 ```
 
-Declare the dependency in your agent's dependency configuration too, so other deployments install the same provider. Register one shared factory in `lifecycle/storage.py`, replacing the corresponding existing storage factories:
+Register one shared factory in `lifecycle/storage.py`, replacing the corresponding existing storage factories:
 
 <CodeGroup>
 ```python PostgreSQL

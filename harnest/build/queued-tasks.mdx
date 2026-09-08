@@ -87,7 +87,7 @@ Use `await task.defer(...)` without `handle.result()` for fire-and-forget work. 
 | Requirement | Behavior |
 |---|---|
 | Queue backend | Harnest workers with an explicit `lifecycle.storage.tasks` provider; legacy Procrastinate otherwise |
-| Installation | Optional `harnest-postgres`, `harnest-redis`, or your custom adapter; legacy dependency added only without an explicit provider |
+| Installation | `harnest_postgres` and `harnest_redis` are bundled with Harnest; install custom adapters separately. Legacy dependency added only without an explicit provider |
 | Database | Selected by the provider; the legacy path uses `HARNEST_TASK_DATABASE_URL` or one unambiguous `PostgresStore` |
 | Payloads and results | JSON-safe values only |
 | Credentials | Resolved at execution; never serialized into task state |
