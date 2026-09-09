@@ -35,6 +35,8 @@ The model uses the shared `OLLAMA_MODEL`, `OLLAMA_BASE_URL`, and optional `OLLAM
 
 `history="session"` is the default and includes earlier user and assistant turns from the same Harnest session. Use `history="turn"` for an isolated model call. Do not duplicate the conversation transcript in graph state.
 
+Use an optional `token_policy` to observe usage, enforce budgets, or choose context reductions per agent. Policies are absent by default and can be disabled or overridden in trusted invocation code. See [Token utilisation](/harnest/build/models-and-libraries/token-utilisation).
+
 ## Portable graph
 
 Use a graph for deterministic routing, parallel branches, joins, agent nodes, or a topology that should lower to either framework:

@@ -1,0 +1,147 @@
+---
+title: "Token utilisation"
+sidebarTitle: "Token utilisation"
+description: "Observe token usage, set budgets, and choose how managed agents reduce model context."
+---
+
+Harnest can observe and control model context for managed ADK and LangGraph agents. You choose each policy on the agent; no token policy is installed by default. Observation, enforcement, and context reductions are independent controls.
+
+## Start with observation
+
+Add a policy to your existing agent definition:
+
+```python agent.py
+from harnest.agent import Agent
+from harnest.model import OllamaModel
+from harnest.tokens import TokenPolicy
+
+root_agent = Agent(
+    name="support",
+    model=OllamaModel.from_environment(),
+    token_policy=TokenPolicy(),
+)
+```
+
+Keep your existing `instructions.md`. `TokenPolicy()` observes without changing the model request or blocking calls. Harnest logs numeric reports at INFO level through `harnest.tokens`, or sends them to your `observer` callback. It does not log prompt or tool-result content through this feature.
+
+You can set budgets while leaving `enforce=False` to observe which input, context-window, and model-call budgets would be exceeded. An output limit is passed to the provider only when enforcement is enabled.
+
+## Choose limits and reductions
+
+```python
+from harnest.tokens import TokenPolicy
+
+policy = TokenPolicy(
+    observe=True,
+    enforce=True,
+    max_input_tokens=24_000,
+    context_window=32_000,
+    reserve_output_tokens=4_000,
+    max_output_tokens=2_000,
+    max_model_calls=8,
+    keep_recent_turns=6,
+    max_tool_result_chars=4_000,
+)
+```
+
+Pass this object as `Agent(token_policy=policy, ...)`. These numbers are examples, not defaults. Configure each graph agent or subagent independently; a parent's policy does not automatically configure its children or native targets.
+
+| Setting | Default | Behaviour |
+|---|---|---|
+| `enabled` | `True` | `False` bypasses counting, observers, reductions, and enforcement. |
+| `observe` | `True` | Emit reports to `observer`, or the `harnest.tokens` logger. |
+| `enforce` | `False` | Stop calls that exceed configured budgets and apply the output ceiling. |
+| `max_input_tokens` | `None` | Maximum counted input after reductions, including system instructions and tool descriptors. |
+| `context_window` | `None` | Maximum counted input plus reserved output capacity. |
+| `reserve_output_tokens` | `0` | Capacity reserved for the response; Harnest reserves the larger of this value and `max_output_tokens`. |
+| `max_output_tokens` | `None` | Provider output ceiling; preserves a stricter existing native limit. |
+| `output_token_parameter` | `None` | LangGraph override for `max_tokens`, `max_completion_tokens`, or `max_output_tokens`. By default Harnest uses an existing request parameter, then `max_tokens`. ADK always uses its native `max_output_tokens` field. |
+| `max_model_calls` | `None` | Maximum admitted model attempts per agent per runtime invocation, including failed attempts. |
+| `keep_recent_turns` | `None` | Keep this many recent human turns and their model/tool exchanges; pin system/developer instructions. |
+| `max_tool_result_chars` | `None` | Cap each tool-response text string, with a truncation marker. This is a per-string character ceiling, not a total JSON or token ceiling. |
+
+Reductions run when you explicitly configure them, even if `enforce=False`. To observe unchanged requests, leave all reductions and transforming callbacks unset.
+
+<Note>
+The default counter estimates serialized input at four characters per token. Reports mark these counts as estimates. Provider framing, language, media, and generated tool schemas can change actual usage. Supply a model-aware `count_tokens` callback when you need accurate admission checks. A count-based input budget is not a guaranteed billing cap.
+</Note>
+
+Harnest counts input after reductions and checks budgets before dispatch. A violation raises `TokenBudgetExceeded`, with `budget`, `limit`, and `observed` numeric attributes. It does not silently shorten the request further, switch models, or invent a successful answer. In a streamed invocation, earlier output may already have reached the caller before a later model attempt is blocked.
+
+Model-call counters are shared across concurrent calls to the same agent in an invocation. They reset for a new runtime invocation, including a resumed invocation; they are not durable spending limits across processes or sessions. Calls and retries inside a provider client are outside this counter.
+
+## Keep the original history
+
+History retention and tool-text reduction affect a detached model request. They do not delete messages from the session transcript or checkpoint, or alter the result returned by the tool itself. Disabling a policy lets the framework use its normal history again, subject to your existing `history` setting.
+
+The built-in history reduction removes complete earlier turns. It keeps the latest user turn and its ongoing tool exchanges together, and preserves system/developer instructions. It does not generate summaries. Tool-text reduction preserves identifiers and structured scalar types, and leaves LangGraph non-text media blocks intact. ADK JSON response string values are shortened individually.
+
+Reductions can omit information the agent needs. Choose them for your workload and compare task success, retries, latency, and total token usage. Use your own request transformation when summaries or selected fields are more appropriate than retention and truncation.
+
+## Override or disable for one invocation
+
+Use a trusted Python scope around runtime calls:
+
+```python
+from dataclasses import replace
+from harnest.tokens import token_policy_scope
+
+# `driver` and `request` are your existing Harnest runtime objects.
+with token_policy_scope(None):
+    result = await driver.invoke(request)
+
+with token_policy_scope(replace(policy, max_model_calls=12), agent_name="support"):
+    async for event in driver.stream(request):
+        handle_event(event)
+```
+
+The scope applies to child tasks and restores the previous configuration on exit. Agent-specific overrides take precedence over scope-wide overrides. Keep the scope open for the entire consumption of a stream.
+
+An agent must have an adapter installed before a scope can enable policy for it. Use `Agent(token_policy=TokenPolicy(enabled=False), ...)` to install a disabled adapter for later activation. `Agent(token_policy=None, ...)`, the default, installs no adapter at all.
+
+HTTP request metadata does not enable, relax, or disable token policy. If your application offers caller-selectable profiles, authenticate the caller and choose an allowed policy in trusted Python code. For direct native execution outside a Harnest invocation, `token_policy_scope(...)` also supplies the state required by `max_model_calls`.
+
+## Supply your own strategies
+
+All strategy callbacks accept ordinary or asynchronous functions. Synchronous model calls require synchronous strategies. Harnest does not call an additional model unless your strategy does so.
+
+| Callback | Input | Return |
+|---|---|---|
+| `count_tokens` | Detached `TokenRequest` | `TokenCount(tokens=..., estimated=...)` |
+| `request_transform` | Detached `TokenRequest` | A `TokenRequest`, for example using `dataclasses.replace`. |
+| `tool_selector` | Detached `TokenRequest` after transformation | A list or tuple of existing tool names to expose on this call. |
+| `observer` | Content-free `TokenReport` | No return value required. |
+
+The order is: count original input, apply configured built-in reductions, run `request_transform`, run `tool_selector`, count the resulting input, check budgets, then dispatch. Harnest retains the original tool ordering when selecting tools to avoid unnecessary prompt-prefix changes. The selector cannot add tools or expand an agent's permissions.
+
+For example, restrict exposed tools using an application-owned set:
+
+```python
+from harnest.tokens import TokenPolicy, TokenRequest, TokenReport
+
+allowed_tools = {"lookup_order", "search_help"}
+
+def select_tools(request: TokenRequest) -> list[str]:
+    """Expose the tools selected for this application profile."""
+    return [tool["name"] for tool in request.tools if tool["name"] in allowed_tools]
+
+def record_usage(report: TokenReport) -> None:
+    """Forward numeric observations to your metrics sink."""
+    print(report)
+
+policy = TokenPolicy(tool_selector=select_tools, observer=record_usage)
+```
+
+`TokenRequest` exposes `framework`, `model`, `messages`, `system`, `tools`, `settings`, and read-only-by-contract `context_metadata`. ADK messages use Google `Content` dictionaries. LangGraph messages use LangChain's `messages_to_dict` representation; their content is under `data`. System values also use the framework's representation. Settings are native generation options, so a provider-specific strategy should branch on `framework`.
+
+A request transformation may edit messages, system instructions, and generation settings. It cannot change the framework, model, tool descriptors, or `context_metadata`. Use `tool_selector` for selection. Keep tool-call/result pairing, native message metadata, and any required instructions intact when supplying your own summarizer. `context_metadata` includes additional provider tool or output-schema information for counters, not writable provider settings.
+
+`TokenReport` distinguishes `input_before` and `input_after` counts from provider-reported `input_tokens`, `output_tokens`, and `total_tokens`. Cache-read and reasoning counts are included when available. Missing provider usage remains `None`. Reports include the agent name, admitted/attempted model-call number, removed message/tool counts, exceeded budgets, and a phase of `before`, `after`, `blocked`, or `error`. Observer failures log a content-free warning and do not interrupt model execution.
+
+## Framework coverage
+
+Policies apply to configured managed agents, including those placed in portable graphs. ADK runs the boundary around model generation after model callbacks; LangGraph uses model middleware. Normal invocation and response streaming are supported. Native/advanced targets and arbitrary model calls inside authored Python code need their own integration; configuring a parent does not intercept them.
+
+ADK live model connections currently reject an active token policy. Explicitly disable it for that connection to use normal native live behaviour. Provider prompt caching and reasoning options remain provider-owned; you can configure them through existing model settings or your request transformation. This feature does not install a cache service, an automatic tool-search tool, or a summarising model.
+
+See [Agents and graphs](/harnest/build/agents-and-graphs), [Lifecycle](/harnest/build/extensions/lifecycle), and [Telemetry](/harnest/runtime/telemetry) for the surrounding runtime contracts.
