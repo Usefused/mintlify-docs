@@ -62,6 +62,8 @@ Scores equal to the threshold pass. Choose a threshold inside the metric's docum
 
 Judge-backed criteria use the properties below. The final-output option applies only where the evaluator consumes final answer text.
 
+Harnest passes only the judge's final response to verdict parsing. Provider-marked reasoning and partial response chunks are excluded; a rationale written in the final response is retained. Missing final answers do not become passing verdicts. This is separate from `includeIntermediateResponsesInFinal`, which controls evidence from the agent under test, not the judge.
+
 | Property | Default | Applies to | Purpose |
 |---|---:|---|---|
 | `threshold` | Required | Every metric | Pass boundary |
