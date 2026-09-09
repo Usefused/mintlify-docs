@@ -89,6 +89,18 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     A minimal project without `tests/unit/` still compiles and reports that it has no authored Python tests.
   </Step>
+  <Step title="Prepare Ollama for live calls">
+    Generated ADK and LangGraph agents use `OllamaModel.from_environment()`, not OpenAI. [Install and start Ollama](https://docs.ollama.com/quickstart), then [sign in for cloud access](https://docs.ollama.com/cloud) to use the default cloud-backed `qwen3.5:cloud` model:
+
+    ```bash
+    ollama signin
+    harnest serve .
+    ```
+
+    The default endpoint is `http://localhost:11434`. The `:cloud` model uses Ollama's cloud even though the daemon is local; it is not an offline model. To run locally, pull a tool-capable model supported by your machine and change `spec.environment.OLLAMA_MODEL` in `config.yaml` to that model's name. Local Ollama normally needs no API key.
+
+    See [model configuration](/harnest/build/project-configuration#configure-model-credentials) for remote endpoints, optional credentials, and explicitly opting into another provider.
+  </Step>
 </Steps>
 
 ## What each generated path owns

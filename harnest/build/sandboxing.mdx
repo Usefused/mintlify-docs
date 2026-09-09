@@ -44,11 +44,11 @@ Add `sandboxes=["calculations"]` to the existing `Agent(...)` declaration in `ag
 
 ```python agent.py
 from harnest.agent import Agent
-from harnest.model import LiteLLMModel
+from harnest.model import OllamaModel
 
 root_agent = Agent(
     name="support",
-    model=LiteLLMModel.from_openai_environment(),
+    model=OllamaModel.from_environment(),
     sandboxes=["calculations"],
 )
 ```

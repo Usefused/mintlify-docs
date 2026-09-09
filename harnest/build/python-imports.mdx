@@ -24,7 +24,7 @@ The package root exposes feature namespaces only. Classes, decorators, functions
 | Server configuration | `harnest.server` | `ServerConfig`, `ServerLimits`, `load_server_config` |
 | Agent tools | `harnest.agent` | `tool`, `client_tool`, `ClientToolError`, `ToolCallRequest`, `ToolLifecycleContext` |
 | MCP | `harnest.mcp` | `MCPClient`, `MCPContext`, `MCPToolCallRequest`, `MCPToolCallError` |
-| Models | `harnest.model` | `LiteLLMModel`, `LiteLLMContext`, `ModelCallRequest`, `ModelLifecycleError` |
+| Models | `harnest.model` | `OllamaModel`, `LiteLLMModel`, `LiteLLMContext`, `ModelCallRequest`, `ModelLifecycleError` |
 | Lifecycle | `from harnest import lifecycle` | `agent`, `model`, `tool`, `mcp`, `http`, `storage`, `resource`, `coverage` |
 | Invocation context | `from harnest import context` | `provider`, `resource`, `SessionContext`, `StorageContext`, `ScopedAssets`, `AgentSession` |
 | Recurring Tasks | `from harnest import cron` | `Cron`, `CronJob`, `create`, `get`, `list`, `update`, `pause`, `resume`, `cancel`, `delete` |

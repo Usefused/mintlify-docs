@@ -60,60 +60,72 @@ launcher's `run` command. Omit it for a server-only artifact.
 
 ## Configure model credentials
 
-Use one OpenAI-compatible model configuration for agents, eval judges, and text user simulators. They inherit the environment of the same Harnest command; there is no separate eval credential channel.
+Harnest defaults to Ollama for generated agents, eval judges, and text user simulators. They inherit the environment of the same Harnest command; there is no separate eval credential channel. OpenAI is an explicit opt-in, not a fallback.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `OPENAI_MODEL` | Model name, with an optional `openai/` prefix | `gpt-4.1-mini` |
-| `OPENAI_BASE_URL` | OpenAI-compatible API endpoint | OpenAI's API endpoint |
-| `OPENAI_API_KEY` | Credential for that endpoint | None |
+| `OLLAMA_MODEL` | Ollama model name | `qwen3.5:cloud` |
+| `OLLAMA_BASE_URL` | Ollama API endpoint, without `/v1` | `http://localhost:11434` |
+| `OLLAMA_API_KEY` | Optional credential for a protected endpoint | None |
 
 Use the shared helper in managed ADK or LangGraph agents:
 
 ```python agent.py
 from harnest.agent import Agent
-from harnest.model import LiteLLMModel
+from harnest.model import OllamaModel
 
 root_agent = Agent(
     name="support",
-    model=LiteLLMModel.from_openai_environment(),
+    model=OllamaModel.from_environment(),
 )
 ```
 
-The helper normalizes `gpt-4.1-mini` to `openai/gpt-4.1-mini`. It rejects native provider prefixes such as `ollama_chat/` on this path so that the model keeps the shared OpenAI-compatible credential contract. You can still author a separate `LiteLLMModel("provider/model", ...)` for an explicit native provider integration.
+Start Ollama before running live model calls. The default `qwen3.5:cloud` model runs in Ollama's cloud through your local daemon and requires Ollama sign-in; a localhost endpoint does not make this model offline. To run a local model instead, pull a tool-capable model supported by your machine and set `OLLAMA_MODEL` to its name in `config.yaml`.
 
 <Note>
-  Existing agents are not automatically rewritten. If your source reads `LITELLM_MODEL` or `LITELLM_API_BASE`, or selects `ollama_chat/`, switch it to `LiteLLMModel.from_openai_environment()` and rename the non-secret settings to `OPENAI_MODEL` and `OPENAI_BASE_URL`. Use the OpenAI-compatible endpoint, including `/v1` for Ollama, and supply `OPENAI_API_KEY`. An explicitly authored native-provider connector remains a valid opt-in and keeps that provider's credential variables.
+  Existing agents are not automatically rewritten. To switch an OpenAI-configured agent to Ollama, change its model to `OllamaModel.from_environment()` and replace `OPENAI_MODEL` and `OPENAI_BASE_URL` with `OLLAMA_MODEL` and `OLLAMA_BASE_URL`. Use Ollama's endpoint without `/v1`. Remove unused OpenAI credential mappings; supply `OLLAMA_API_KEY` only if your Ollama endpoint requires one.
 </Note>
 
-Export credentials before `harnest test`, `harnest run`, or `harnest serve`:
+For the default cloud-backed model, sign in to your running Ollama daemon before live commands:
 
 ```bash Local agent and evals
-export OPENAI_API_KEY="..."
-harnest test AGENT_DIR --evals
+ollama signin
+harnest test . --evals
 ```
 
 Put non-secret model and endpoint settings in `spec.environment`, or export them when they are not configured there. `spec.environment` overrides matching values from the parent process. Use the same credential pattern in CI through its secret store. Harnest does not load `.env` files. It also excludes `.env` and `.env.*` files from the authored source tree.
 
-For an OpenAI-compatible backend such as Ollama, keep these same variable names. For example, set `OPENAI_MODEL: openai/qwen3.5:9b` and `OPENAI_BASE_URL: http://127.0.0.1:11434/v1` when that model is available on your local endpoint. Use `OPENAI_API_KEY` for any required endpoint credential, not `OLLAMA_API_KEY`.
+The local Ollama daemon normally needs no API key. A protected remote endpoint can use `OLLAMA_API_KEY`, exported before the command or injected by the deployment engine.
 
 <Warning>
   Never put a credential value in `spec.environment`, agent source, or `evals/test_config.json`. Those files are authored configuration and can be copied into artifacts or source control.
 </Warning>
 
-For deployment, map the same credential variable to an opaque secret reference:
+For a protected deployment endpoint, map the optional credential variable to an opaque secret reference:
 
 ```yaml config.yaml
 spec:
   environment:
-    OPENAI_MODEL: gpt-4.1-mini
-    OPENAI_BASE_URL: https://api.openai.com/v1
+    OLLAMA_MODEL: qwen3.5:cloud
+    OLLAMA_BASE_URL: https://ollama.example.com
   secrets:
-    - environmentVariable: OPENAI_API_KEY
-      secretRef: projects/example/secrets/openai-api-key/latest
+    - environmentVariable: OLLAMA_API_KEY
+      secretRef: projects/example/secrets/ollama-api-key/latest
 ```
 
-The deployment engine resolves `secretRef` and injects its value as `OPENAI_API_KEY`. Local `test`, `run`, and `serve` commands do not resolve `spec.secrets`; export the variable in their process environment even when the deployment mapping exists.
+The deployment engine resolves `secretRef` and injects its value as `OLLAMA_API_KEY`. Local `test`, `run`, and `serve` commands do not resolve `spec.secrets`; export the variable in their process environment even when the deployment mapping exists. The endpoint must be reachable from the deployed agent; `localhost` refers to that agent's own host or container.
+
+### Opt into OpenAI or another provider
+
+Keep `LiteLLMModel.from_openai_environment()` when you explicitly want OpenAI or an OpenAI-compatible endpoint:
+
+```python
+from harnest.model import LiteLLMModel
+
+model = LiteLLMModel.from_openai_environment()
+```
+
+This helper reads `OPENAI_MODEL` (default `gpt-4.1-mini`), `OPENAI_BASE_URL` (default OpenAI's API endpoint), and `OPENAI_API_KEY`. It normalizes bare model names to the `openai/` prefix. Other native providers remain available through `LiteLLMModel("provider/model", ...)`. Selecting an explicit OpenAI agent does not change omitted eval model IDs: configure judge and simulator IDs explicitly if they should also use OpenAI.
 
 ### Reuse an agent's model client
 
@@ -136,11 +148,11 @@ The runtime retains ownership of borrowed clients. A playground eval does not cl
 
 ### Eval model overrides and native services
 
-When you omit `judgeModelOptions.judgeModel` or the text simulator's `model` from `evals/test_config.json`, Harnest uses `OPENAI_MODEL` with the same `gpt-4.1-mini` default. Scenario suites use this default even when the entire `userSimulatorConfig` block is absent. An explicitly authored model ID wins. For example, `judgeModel: "gemini-2.5-flash"` opts into ADK's native Gemini provider and requires its credentials, such as `GOOGLE_API_KEY`, in addition to the agent's OpenAI-compatible credentials.
+When you omit `judgeModelOptions.judgeModel` or the text simulator's `model` from `evals/test_config.json`, Harnest uses `OLLAMA_MODEL` with the same `qwen3.5:cloud` default and Ollama endpoint configuration. Scenario suites use this default even when the entire `userSimulatorConfig` block is absent. An explicitly authored model ID wins. For example, `judgeModel: "gemini-2.5-flash"` opts into ADK's native Gemini provider and requires its credentials, such as `GOOGLE_API_KEY`, independently of the agent's Ollama setup.
 
 Vertex Gen AI evaluation metrics are a separate Google service, not calls to the configured judge model. The ADK evaluation facade uses `GOOGLE_API_KEY` when set. Otherwise, set `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` and make Application Default Credentials available. The `cloud_tts` audio simulator also uses Application Default Credentials and treats `GOOGLE_CLOUD_PROJECT` as its quota project when present.
 
-`OPENAI_API_KEY` does not authenticate these native Google services. Keep model and metric selection in source or `test_config.json`; keep every credential in the process environment or deployment secret mapping.
+Neither `OLLAMA_API_KEY` nor `OPENAI_API_KEY` authenticates these native Google services. Keep model and metric selection in source or `test_config.json`; keep every credential in the process environment or deployment secret mapping.
 
 ## Server settings in `config.yaml`
 
