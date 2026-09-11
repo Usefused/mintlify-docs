@@ -1,101 +1,37 @@
 ---
-title: "Fused: one controlled path to every service"
+title: "Introduction"
 sidebarTitle: "Introduction"
 description: "One controlled path from your applications and agents to every service they depend on."
 ---
 
-Fused sits between the software making a call and the service being called. For every request it decides whether the call is allowed, resolves the credential, applies the policy, performs the provider interaction, and records what happened.
+Fused connects your applications and AI agents to internal and external APIs through one controlled runtime. It handles provider credentials, access control, retries, pagination, and execution records so you can focus on what your software does.
 
-Your product code stops carrying provider auth, retries, and pagination. Your agents stop holding credentials. Both get one consistent way in.
+Use a **typed SDK**, call the **REST API**, or connect an agent through an **MCP server**. All three use the same Engine, with provider credentials kept out of your application code and agent context.
 
-## Two components
+## How it works
 
 <CardGroup cols={2}>
   <Card title="Registry" icon="cloud">
-    The catalogue. It turns an API description into a versioned service contract every team can inherit instead of working out again.
+    A catalogue of versioned service contracts that describe APIs and how to connect to them.
   </Card>
   <Card title="Engine" icon="server">
-    The runtime, in your infrastructure. Credentials, execution, policy, and event delivery stay inside it.
+    Your workspace runtime, hosted or self-hosted. It checks access, resolves credentials, calls providers, and records each execution.
   </Card>
 </CardGroup>
 
-Registry defines and distributes integration knowledge. Engine applies and runs it inside your workspace boundary. Provider credentials, request payloads, and execution receipts stay with the Engine.
+Your [workspace](/workspace/enable-a-service) defines which services are available. Each SDK or MCP exposes the operations its caller needs, and [buckets](/bucket/store-credentials) hold the provider credentials used for those calls.
 
-## The four things you will work with
+## Get started
+
+First, [get an Engine running](/deploy-an-engine). Then choose what you want to build:
 
 <CardGroup cols={2}>
-  <Card title="Workspace" icon="toggle-on" href="/workspace/enable-a-service">
-    Which services and versions your company has approved.
+  <Card title="Build an SDK" icon="cube" href="/quickstart">
+    Install the CLI, select operations, and make your first call from a typed package.
   </Card>
-  <Card title="App (SDK)" icon="cube" href="/app/build-an-sdk">
-    A typed package holding only what one product needs.
-  </Card>
-  <Card title="MCP" icon="robot" href="/mcp/deploy-a-server">
-    An Engine-hosted server giving an agent scoped access across services.
-  </Card>
-  <Card title="Bucket" icon="key" href="/bucket/store-credentials">
-    Where credentials live, and how they reach a call without reaching your code.
+  <Card title="Deploy an MCP server" icon="robot" href="/mcp/deploy-a-server">
+    Give an agent scoped access to operations across your services.
   </Card>
 </CardGroup>
 
-## Create your first app
-
-Use one command whether the caller will import a package, call the centralized API, or connect as an MCP client:
-
-```bash
-fused-cli init support-app --service linear
-```
-
-Without a mode flag, the terminal asks what you want to build. Pass a mode when you already know:
-
-| Mode | Command shape | Successful result |
-|---|---|---|
-| Typed SDK | `fused-cli init <name> --sdk --service <service>` | Applied SDK config, downloaded package, and first-call guidance |
-| Direct API | `fused-cli init <name> --api --service <service>` | Applied `kind: sdk` config with `generate: false` and a REST request template |
-| MCP server | `fused-cli init <name> --mcp --service <service>` | Applied Engine-hosted server and its connection details |
-
-Init generates only the desired-state files needed for the mode you chose. It does not add sample SDK or MCP configs that could be mistaken for resources you intended to apply.
-
-## How a change reaches the Engine
-
-Everything configurable is a file under `.fused/`, and every change is still governed by a plan and an apply.
-
-```bash
-fused-cli sdk plan     # validates and previews; may offer missing credential setup
-fused-cli sdk apply    # commits exactly what the receipt describes
-```
-
-The receipt binds an apply to that exact file content and that exact Engine. If the file changes, or you point at a different Engine, the apply is refused rather than doing something you did not review. An unchanged apply is a no-op.
-
-For a new app, `fused-cli init <name>` drives those boundaries for you. Choose a typed SDK, direct API, or MCP server, then select services and operations. The command can enable a missing service and create the app after one combined confirmation while retaining separate workspace and app receipts. Use the [advanced controlled workflow](/advanced/control-the-workflow) when you want independent review, structured CI output, or a recovery boundary.
-
-In a terminal, omit interaction flags. Fused asks only when it needs a selection or confirmation, and SDK planning may offer optional credential setup. In automation, pass `--no-input` so missing required choices fail instead of waiting for a person; missing credential values remain non-blocking readiness metadata. Add `--json` when the command supports machine-readable output.
-
-Immutable things behave accordingly: re-applying identical content to an existing app version changes nothing, and changing its scope returns `app_version_immutable`. You publish a new version instead of quietly rewriting the contract of software already in production.
-
-## Three credentials
-
-Keeping these apart avoids most early confusion.
-
-| Credential | Authenticates | Lives in |
-|---|---|---|
-| CLI API key | Management calls to the Engine | Your CLI config, from `fused-cli login` |
-| Execution token | An app or agent calling the Engine at runtime | Your application's secret manager |
-| Provider credentials | The Engine to the provider | An Engine bucket |
-
-Provider credentials never appear in a config file, a generated package, or an agent's context.
-
-<CardGroup cols={2}>
-  <Card title="Get an Engine running" icon="server" href="/deploy-an-engine">
-    Hosted or your own infrastructure. Everything else needs one.
-  </Card>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Install the CLI and ship a working SDK.
-  </Card>
-</CardGroup>
-
-## Running this for a company
-
-Everything on this site works on a Dev license, which is enough to build the whole thing end to end. What it is not is a production tier.
-
-Scale-up and enterprise teams get production licensing, SSO, and a support agreement. [Tell us what you're building](https://usefused.com/?plan=enterprise#enterprise-interest) and we'll size it with you.
+Prefer HTTP without a generated package? Follow the [direct API setup](/app/build-an-sdk#skip-the-package).
