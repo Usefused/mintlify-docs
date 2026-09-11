@@ -98,7 +98,7 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     Include your server's API prefix in the URL, commonly `/v1`. Export `OPENAI_API_KEY` in the command's environment if your endpoint requires authentication. Keep credentials out of `config.yaml`.
 
-    See [model configuration](/harnest/build/project-configuration#configure-model-credentials) for remote endpoints, optional credentials, and explicitly opting into another provider.
+    See [Configure a model](/harnest/build/models-and-libraries/configure-a-model) for remote endpoints, optional credentials, and explicitly opting into another provider.
   </Step>
 </Steps>
 
@@ -130,6 +130,11 @@ Advanced mode keeps native framework wiring in `agent.py` and adds only the exam
   `compile`, `test`, and `serve` sync the environment automatically. Add only your provider, tool, and library packages to `pyproject.toml`; Harnest owns the framework dependency.
 </Note>
 
-<Card title="Understand the generated project" icon="folder-tree" href="/harnest/build/agent-concepts">
-  See how Harnest organizes agents, tools, SubAgents, MCP clients, plugins, skills, lifecycle hooks and factories, and tests.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Configure a model" icon="microchip" href="/harnest/build/models-and-libraries/configure-a-model">
+    Choose a model and endpoint, then supply credentials for local use, CI, or deployment.
+  </Card>
+  <Card title="Understand the generated project" icon="folder-tree" href="/harnest/build/agent-concepts">
+    See how Harnest organizes agents, tools, SubAgents, MCP clients, plugins, skills, Lifecycle, and tests.
+  </Card>
+</CardGroup>

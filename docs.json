@@ -159,6 +159,7 @@
                     "group": "Models & libraries",
                     "expanded": false,
                     "pages": [
+                      "harnest/build/models-and-libraries/configure-a-model",
                       "harnest/build/data-models-and-shared-libraries",
                       "harnest/build/models-and-libraries/typed-multimodal-contracts",
                       "harnest/build/models-and-libraries/store-and-retrieve-media",
@@ -223,7 +224,6 @@
                     ]
                   },
                   "harnest/build/sandboxing",
-                  "harnest/build/sandboxing/chrome-agent",
                   "harnest/build/testing-and-compilation"
                 ]
               },
