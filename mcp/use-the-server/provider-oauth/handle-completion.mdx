@@ -1,0 +1,56 @@
+---
+title: "Handle completion and resume the agent"
+sidebarTitle: "Completion and agent resumption"
+description: "Receive the OAuth completion notification, resume the pending task, and prevent duplicate execution."
+---
+
+After your client [presents the authentication link](/mcp/use-the-server/provider-oauth/request-authentication), it waits for the user to complete consent. The client handles the protocol notification and tells the agent how to continue.
+
+## Receive completion
+
+Keep a Streamable HTTP GET event stream open for the same MCP session, with its authentication and session headers. Engine sends the following notification after the browser callback completes and the connection is stored:
+
+```json Completion notification
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/elicitation/complete",
+  "params": {
+    "elicitationId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+Match the opaque ID to a pending authentication prompt. Ignore unknown or already-completed IDs. The notification contains no provider token and does not mean the original operation ran.
+
+Provide cancel and manual continue controls if the user closes the browser or a notification never arrives. Completion belongs to the initiating live MCP session; do not rely on a replacement session receiving it. Respect `expires_at` and obtain a fresh consent session through a subsequent eligible call when a link expires.
+
+## Decide whether to retry
+
+Read `_meta["com.usefused/auth"]` before resubmitting an `execute` script:
+
+| Recovery metadata | Client behavior |
+|---|---|
+| `provider_execution: "not_started"` and `execute_request: "retry_after_auth"` | After authentication, the client may deliberately retry the original request. |
+| `execute_request: "do_not_replay"` | Complete authentication, then inspect prior work and submit only the remaining work. Do not replay the whole script. |
+| Missing or unrecognized metadata | Do not assume the original request is safe to replay. |
+
+Fused sets `automatic_replay: false`: it does not rerun the script on browser completion. An earlier call in the same script, or a sibling in a Unified Operation, may already have changed provider state. Successful authentication does not undo that work.
+
+## Resume the agent after completion
+
+The MCP client receives the notification; the model does not listen to the event stream itself. Your host application must resume the agent's pending task after matching the notification to its authentication prompt.
+
+1. Retain the original task, blocked `execute` request, and Fused recovery metadata when authentication is requested. Tell the agent that the task is waiting for user authentication, and stop repeated calls while it is pending.
+2. On a matching completion notification, mark the prompt completed once and close its waiting UI. Keep the original recovery metadata: the notification does not replace it or make an unsafe request safe.
+3. Resume the agent with the connection outcome and allowed next action. Keep the URL, opaque elicitation ID, and credentials in the client; give the agent only the context needed to continue.
+4. Use one retry owner. If the host retries the request, return its result to the agent. If the agent owns the retry, let it issue the next `execute` call. Do not have both retry independently.
+
+For `retry_after_auth`, the host can resume the agent with a message such as:
+
+> The user connected their provider account. The blocked request did not start any provider work. Continue the pending task by retrying that request once, within the user's original authorization.
+
+For `do_not_replay`, use a message such as:
+
+> The user connected their provider account. Earlier operations may already have run. Do not repeat the previous script. Inspect available results or execution activity, then continue only the unfinished work.
+
+These are example host messages, not MCP protocol fields. Authentication completion grants no new task authorization. The agent must inspect the next tool result before reporting success; another service may still need consent, or the call may fail for another reason. If the user cancels or authentication expires, keep the task blocked and explain what is needed to continue.

@@ -9,7 +9,7 @@ This page covers getting one to the Engine.
 
 ## Before the token exists
 
-An OAuth token resolves against a connection that must already be there. Two things have to happen first, both covered in the Bucket section:
+Provider app credentials must be registered before connecting a user. A dynamic MCP token can start with an unconnected user and let a capable client [request consent when an operation needs it](/mcp/use-the-server/provider-oauth). A fixed token requires the connection to exist when you issue it. To connect beforehand, follow these steps:
 
 <Steps>
   <Step title="Register the OAuth app">
@@ -151,7 +151,7 @@ fused-cli bucket connections default --service jira,github@v3 --user user_123
 
 Nobody, manually. The Engine refreshes eligible connections at startup and hourly, scheduling from whichever expires first. An expired access token is not a reconnect — the Engine rotates it while the refresh grant is still valid.
 
-A connection becomes `reconnect_required` only when refresh material is missing, expired, revoked, or rejected by the provider. Then you run the same connect flow again for the same bucket, service, auth name, and user reference.
+A connection becomes `reconnect_required` only when refresh material is missing, expired, revoked, or rejected by the provider. A client with [URL elicitation support](/mcp/use-the-server/provider-oauth) can present a reconnect link on the affected call. Otherwise, run the same connect flow again for the same bucket, service, auth name, and user reference.
 
 <Warning>
   Never treat an unexpected provider 401 or 403 as permission to replay a mutation.

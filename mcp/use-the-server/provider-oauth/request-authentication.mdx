@@ -1,0 +1,74 @@
+---
+title: "Request authentication"
+sidebarTitle: "Request authentication"
+description: "Advertise URL elicitation and present the authorization link returned by Fused."
+---
+
+Implement the client handshake and browser prompt after completing the [provider OAuth prerequisites](/mcp/use-the-server/provider-oauth#before-you-start).
+
+## Advertise URL elicitation
+
+Include `elicitation.url` as an object in the client's `initialize` capabilities. The following handshake uses the [MCP 2025-11-25 URL elicitation contract](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation):
+
+```json Initialize request
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-11-25",
+    "capabilities": {
+      "elicitation": { "url": {} }
+    },
+    "clientInfo": {
+      "name": "your-client",
+      "version": "1.0.0"
+    }
+  }
+}
+```
+
+Fused remembers this capability for the session. An absent value, `null`, `true`, or form-only elicitation does not enable it. Advertise it only when your client implements the browser handoff and [completion handling](/mcp/use-the-server/provider-oauth/handle-completion).
+
+Finish initialization with `notifications/initialized`. Preserve the returned `Mcp-Session-Id` and negotiated `MCP-Protocol-Version` on subsequent requests. These are transport state owned by the client, not tool arguments.
+
+## Present the authentication link
+
+When `execute` encounters `connection_required` or `reconnect_required`, Engine starts a consent session. The MCP tool call returns a JSON-RPC error with code `-32042` and an entry in `error.data.elicitations`:
+
+```json Authentication required response
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "error": {
+    "code": -32042,
+    "message": "Connect your provider account to continue.",
+    "data": {
+      "elicitations": [{
+        "mode": "url",
+        "message": "Connect your provider account to continue.",
+        "elicitationId": "550e8400-e29b-41d4-a716-446655440000",
+        "url": "https://provider.example.com/authorize?state=example",
+        "_meta": {
+          "com.usefused/auth": {
+            "schema_version": 1,
+            "action": "connect",
+            "expires_at": "2026-12-01T12:10:00Z",
+            "recovery_action": "complete_authentication",
+            "execute_request": "retry_after_auth",
+            "provider_execution": "not_started",
+            "automatic_replay": false
+          }
+        }
+      }]
+    }
+  }
+}
+```
+
+The URL, ID, and expiry above are illustrative. Use the values returned by Engine unchanged. For a lapsed grant, `action` is `reconnect` and the message asks the user to reconnect.
+
+Handle this error in the MCP client and offer a **Connect account** button. Keep the authorization URL in that interaction rather than forwarding it into the model's context. Open it after the user's approval; collect passwords and provider consent only in the browser. Opening the URL is not proof that authentication completed.
+
+
+Next, [handle completion and resume the agent](/mcp/use-the-server/provider-oauth/handle-completion).

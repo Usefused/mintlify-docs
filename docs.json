@@ -55,7 +55,20 @@
                 "expanded": false,
                 "pages": [
                   "mcp/deploy-a-server",
-                  "mcp/use-the-server"
+                  {
+                    "group": "Connect an MCP client",
+                    "pages": [
+                      "mcp/use-the-server",
+                      {
+                        "group": "Provider OAuth",
+                        "pages": [
+                          "mcp/use-the-server/provider-oauth",
+                          "mcp/use-the-server/provider-oauth/request-authentication",
+                          "mcp/use-the-server/provider-oauth/handle-completion"
+                        ]
+                      }
+                    ]
+                  }
                 ]
               },
               {

@@ -1,0 +1,32 @@
+---
+title: "Handle provider OAuth"
+sidebarTitle: "Provider OAuth"
+description: "Advertise URL elicitation so your MCP client can let users connect provider accounts when an operation needs them."
+---
+
+When an operation needs a user's OAuth connection, Fused can return an authentication link to your MCP client. The client presents the link, the user grants consent in their browser, and Engine stores the provider tokens in the bucket.
+
+This page is for client implementers. If you use an existing MCP client, it must already implement URL elicitation; adding a setting to the agent prompt does not enable it. Your [MCP execution token](/mcp/agent-tokens) still authenticates the client to Fused throughout this flow.
+
+## Before you start
+
+- Use [Streamable HTTP](/mcp/use-the-server). Fused's legacy SSE transport does not support this handoff.
+- [Register the provider's OAuth application](/bucket/connect-user-accounts#store-the-oauth-app-credentials) in the MCP's selected bucket and configure the service's OAuth scheme and scopes.
+- Supply a stable user identity. For a first-time connection, use a dynamic token with `X-Fused-End-User-Ref`. A fixed token requires an existing connection at issuance; see [token bindings](/mcp/oauth-tokens#two-ways-to-bind-a-token).
+
+Engine creates the consent session using the MCP's configured service, bucket, and credential routing. The client does not choose a new bucket or manufacture an authorization URL.
+
+## Implement the client flow
+
+<CardGroup cols={2}>
+  <Card title="Request authentication" icon="key" href="/mcp/use-the-server/provider-oauth/request-authentication">
+    Advertise URL elicitation and display the authorization link returned by Engine.
+  </Card>
+  <Card title="Handle completion" icon="check" href="/mcp/use-the-server/provider-oauth/handle-completion">
+    Receive the notification, resume the agent, and decide whether the request can be retried.
+  </Card>
+</CardGroup>
+
+## Clients without URL elicitation
+
+Fused returns an error explaining that URL elicitation support is required and does not create a browser consent session for that client. Connect the user first through the [CLI or application connect flow](/bucket/connect-user-accounts), then call the MCP with the matching user binding. The same fallback applies to legacy SSE clients.
