@@ -20,18 +20,18 @@ The concise form builds a native agent for the selected framework:
 
 ```python agent.py
 from harnest.agent import Agent
-from harnest.model import OllamaModel
+from harnest.model import LiteLLMModel
 
 root_agent = Agent(
     name="support",
-    model=OllamaModel.from_environment(),
+    model=LiteLLMModel.from_openai_environment(),
     description="Answers product questions and triages support requests.",
 )
 ```
 
 `instructions.md` beside `agent.py` is required. It is the default managed prompt and remains bundle metadata for graphs and advanced targets.
 
-The model uses the shared `OLLAMA_MODEL`, `OLLAMA_BASE_URL`, and optional `OLLAMA_API_KEY` process environment. The default `qwen3.5:cloud` runs through your local Ollama daemon but uses Ollama's cloud. Follow [Configure model credentials](/harnest/build/project-configuration#configure-model-credentials) for local-model, CI, deployment, and explicit OpenAI setup.
+The model uses the shared `OPENAI_MODEL`, `OPENAI_BASE_URL`, and optional `OPENAI_API_KEY` process environment. Configure your server's model ID and compatible API URL; no vendor or model is selected by default. Follow [Configure model credentials](/harnest/build/project-configuration#configure-model-credentials) for local, CI, and deployment setup.
 
 `history="session"` is the default and includes earlier user and assistant turns from the same Harnest session. Use `history="turn"` for an isolated model call. Do not duplicate the conversation transcript in graph state.
 

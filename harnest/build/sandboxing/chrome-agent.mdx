@@ -19,7 +19,7 @@ The model cannot submit arbitrary Python or choose another sandbox. The authored
 |---|---|
 | Harnest | The CLI and managed runtime installed on macOS or Linux. Run `harnest --version` and `harnest doctor` to verify them. |
 | Containers | Docker running Linux containers and reachable from the shell. `docker version` must return server details. |
-| Model | An OpenAI API key. This example selects `gpt-4.1-mini` through `https://api.openai.com/v1`. |
+| Model | A tool-capable model served by an OpenAI-compatible API. Set `OPENAI_MODEL` and `OPENAI_BASE_URL` in `config.yaml`; supply `OPENAI_API_KEY` only if your endpoint requires authentication. |
 | Network | Build access to `mcr.microsoft.com` and Python's package index, plus runtime access to every host you approve in the tool. |
 | Host capacity | About 5 GB of free Docker storage, one available CPU, 1 GiB memory, 128 processes, and 256 MiB writable scratch space. |
 
@@ -205,7 +205,7 @@ the tool returned it successfully. Summarize only what the tool returned.
     export OPENAI_API_KEY="your-api-key"
     ```
 
-    Keep secrets out of `config.yaml`, source files, and the browser image. The example's checked-in configuration already sets `OPENAI_MODEL` and `OPENAI_BASE_URL`.
+    Keep secrets out of `config.yaml`, source files, and the browser image. Replace the checked-in `OPENAI_MODEL` and `OPENAI_BASE_URL` placeholders before live calls. The API key is optional for endpoints that do not require authentication.
   </Step>
   <Step title="Build the browser image">
     From the agent project directory, run:

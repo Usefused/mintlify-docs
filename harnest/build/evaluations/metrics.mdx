@@ -67,7 +67,7 @@ Harnest passes only the judge's final response to verdict parsing. Provider-mark
 | Property | Default | Applies to | Purpose |
 |---|---:|---|---|
 | `threshold` | Required | Every metric | Pass boundary |
-| `judgeModelOptions.judgeModel` | `OLLAMA_MODEL`, or `qwen3.5:cloud` | Model-judged metrics | Omit to use the shared Ollama model; explicit IDs select an ADK model provider |
+| `judgeModelOptions.judgeModel` | Configured `OPENAI_MODEL` | Model-judged metrics | Omit to use the shared compatible API; explicit IDs select an ADK model provider |
 | `judgeModelOptions.judgeModelConfig` | None | Model-judged metrics | Google GenAI generation options for judge calls |
 | `judgeModelOptions.numSamples` | `5` | Final-response match, rubric metrics, and simulator-quality metrics | Judge calls per invocation before aggregation |
 | `judgeModelOptions.parallelismLimit` | `1` | Final-response match and rubric metrics | Maximum concurrent judge calls |
@@ -95,7 +95,7 @@ Harnest passes only the judge's final response to verdict parsing. Provider-mark
 
 ### Use a custom judge model
 
-Model precedence is an explicit `judgeModel`, then `OLLAMA_MODEL`, then `qwen3.5:cloud`. Use an explicit provider-prefixed model ID when the judge should differ from the agent:
+Model precedence is an explicit `judgeModel`, then the required `OPENAI_MODEL`. There is no built-in model fallback. Use an explicit provider-prefixed model ID when the judge should differ from the agent:
 
 ```json evals/test_config.json
 {
@@ -103,7 +103,7 @@ Model precedence is an explicit `judgeModel`, then `OLLAMA_MODEL`, then `qwen3.5
     "final_response_match_v2": {
       "threshold": 0.8,
       "judgeModelOptions": {
-        "judgeModel": "ollama_chat/my-judge-model",
+        "judgeModel": "openai/my-judge-model",
         "numSamples": 3
       }
     }
@@ -111,7 +111,7 @@ Model precedence is an explicit `judgeModel`, then `OLLAMA_MODEL`, then `qwen3.5
 }
 ```
 
-Replace `my-judge-model` with a model served by your configured endpoint. This explicit ID overrides `OLLAMA_MODEL`. The judge [reuses a compatible agent model transport](/harnest/build/project-configuration#reuse-an-agents-model-client) when one is available, including a lifecycle-owned client, custom gateway, and headers. Ollama uses `OLLAMA_BASE_URL` and optional `OLLAMA_API_KEY`. To opt into OpenAI, use an `openai/` model ID with `OPENAI_BASE_URL` and `OPENAI_API_KEY`; other native providers use their own model IDs and credentials through the same [process environment](/harnest/build/project-configuration#configure-model-credentials).
+Replace `my-judge-model` with a model served by your configured endpoint. This explicit ID overrides `OPENAI_MODEL`. The judge [reuses a compatible agent model transport](/harnest/build/project-configuration#reuse-an-agents-model-client) when one is available, including a lifecycle-owned client, custom gateway, and headers. The shared compatible API uses `OPENAI_BASE_URL` and optional `OPENAI_API_KEY`; other native providers use their own model IDs and credentials through the same [process environment](/harnest/build/project-configuration#configure-model-credentials).
 
 <Warning>
   Harnest runs each eval set once. That `num_runs=1` safeguard does not replace `judgeModelOptions.numSamples`: a judge-backed metric can still call its judge several times for one invocation. Lower the sample count deliberately when cost matters, and raise it when judge stability matters more.
@@ -167,7 +167,7 @@ The agent under test and every metric backend inherit the same process environme
     `tool_trajectory_avg_score` and `response_match_score` need no metric service. The agent itself can still make live model or tool calls.
   </Tab>
   <Tab title="ADK judge model">
-    Omit `judgeModel` to use `OLLAMA_MODEL` and the shared `OLLAMA_BASE_URL` and optional `OLLAMA_API_KEY` configuration. The default `qwen3.5:cloud` is cloud-backed, not offline. An explicit `judgeModel`, such as `gemini-2.5-flash`, opts into that ADK model provider and requires its own credentials. Harnest does not replace explicit model IDs.
+    Omit `judgeModel` to use `OPENAI_MODEL` and the shared `OPENAI_BASE_URL` and optional `OPENAI_API_KEY` configuration. Choose these settings before running live evaluations. An explicit `judgeModel`, such as `gemini-2.5-flash`, opts into that ADK model provider and requires its own credentials. Harnest does not replace explicit model IDs.
   </Tab>
   <Tab title="Vertex evaluation service">
     `response_evaluation_score`, `safety_v1`, and the three `multi_turn_*_v1` metrics call the Vertex Gen AI evaluation client. If `GOOGLE_API_KEY` is set, ADK constructs that client with the key. Otherwise set both `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` and make Application Default Credentials available. When all are set, the API key path takes precedence.

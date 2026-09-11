@@ -57,7 +57,7 @@ Write the plan as observable user intent. Include completion conditions, allowed
 | Property | Default | Purpose |
 |---|---:|---|
 | `type` | Legacy fallback is `llm_backed` | Selects the simulator; write it explicitly |
-| `model` | `OLLAMA_MODEL`, or `qwen3.5:cloud` | Generates subsequent user turns; an explicit ADK model ID overrides the shared model |
+| `model` | Configured `OPENAI_MODEL` | Generates subsequent user turns; an explicit ADK model ID overrides the shared model |
 | `modelConfiguration` | ADK default generation config | Google GenAI generation options for the simulator |
 | `maxAllowedInvocations` | `20` | Stops a runaway conversation; includes the fixed starting prompt |
 | `includeFunctionCalls` | `false` | Includes tool calls and responses in history shown to the simulator |
@@ -65,7 +65,7 @@ Write the plan as observable user intent. Include completion conditions, allowed
 
 A custom instruction template must contain `{{ stop_signal }}`, `{{ conversation_plan }}`, and `{{ conversation_history }}`. Include `{{ persona }}` if the scenario uses a user persona. Harnest validates this through ADK before running the eval.
 
-Model precedence is an explicit `userSimulatorConfig.model`, then `OLLAMA_MODEL`, then `qwen3.5:cloud`. For example, add `"model": "ollama_chat/my-simulator-model"` to request another model without changing the agent's model. Text simulators [reuse a compatible agent model transport](/harnest/build/project-configuration#reuse-an-agents-model-client) when available. Ollama uses `OLLAMA_BASE_URL` and optional `OLLAMA_API_KEY`; explicitly selected OpenAI models use `OPENAI_BASE_URL` and `OPENAI_API_KEY`. Other native provider model IDs require their own credentials. Harnest also supplies the Ollama default for scenario suites that omit the entire `userSimulatorConfig` block.
+Model precedence is an explicit `userSimulatorConfig.model`, then the required `OPENAI_MODEL`; there is no built-in model fallback. For example, add `"model": "openai/my-simulator-model"` to request another model without changing the agent's model. Text simulators [reuse a compatible agent model transport](/harnest/build/project-configuration#reuse-an-agents-model-client) when available. The compatible API uses `OPENAI_BASE_URL` and optional `OPENAI_API_KEY`. Other native provider model IDs require their own credentials. Harnest also supplies the shared configuration for scenario suites that omit the entire `userSimulatorConfig` block.
 
 `per_turn_user_simulator_quality_v1` is optional, but it is the metric designed to verify that generated user messages followed the scenario. Its `stopSignal` should match the simulator stop signal; `</finished>` is the shared default.
 
@@ -144,8 +144,8 @@ Simulation can involve three independently authenticated components. They all in
 
 | Component | Configuration | Verified setup |
 |---|---|---|
-| Agent under test | `OllamaModel.from_environment()` | Shared `OLLAMA_MODEL`, `OLLAMA_BASE_URL`, and optional `OLLAMA_API_KEY` |
-| Text simulator and per-turn judge | Omitted `model` and `judgeModel` | Same Ollama environment; explicit native provider IDs require their own credentials |
+| Agent under test | `LiteLLMModel.from_openai_environment()` | Shared `OPENAI_MODEL`, `OPENAI_BASE_URL`, and optional `OPENAI_API_KEY` |
+| Text simulator and per-turn judge | Omitted `model` and `judgeModel` | Same compatible API environment; explicit native provider IDs require their own credentials |
 | Cloud audio synthesis | `audioModel: "cloud_tts"` | Enable Google Cloud Text-to-Speech and provide Application Default Credentials |
 
-These calls are live and may consume paid capacity. The default `qwen3.5:cloud` uses Ollama's cloud through the local daemon; choose a local model explicitly for local inference. Follow the shared [model credential process](/harnest/build/project-configuration#configure-model-credentials): supply required credentials before local or CI commands, and use `spec.secrets` only as a deployment mapping. Harnest does not load `.env` files. Never place credentials in eval JSON. Ollama and OpenAI keys do not authenticate Cloud TTS or native Google evaluation services.
+These calls are live and may consume paid capacity at your configured endpoint. Follow the shared [model credential process](/harnest/build/project-configuration#configure-model-credentials): choose the model and endpoint, supply required credentials before local or CI commands, and use `spec.secrets` only as a deployment mapping. Harnest does not load `.env` files. Never place credentials in eval JSON. Compatible API keys do not authenticate Cloud TTS or native Google evaluation services.

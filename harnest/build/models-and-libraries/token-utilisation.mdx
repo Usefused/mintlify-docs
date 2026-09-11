@@ -12,12 +12,12 @@ Add a policy to your existing agent definition:
 
 ```python agent.py
 from harnest.agent import Agent
-from harnest.model import OllamaModel
+from harnest.model import LiteLLMModel
 from harnest.tokens import TokenPolicy
 
 root_agent = Agent(
     name="support",
-    model=OllamaModel.from_environment(),
+    model=LiteLLMModel.from_openai_environment(),
     token_policy=TokenPolicy(),
 )
 ```
