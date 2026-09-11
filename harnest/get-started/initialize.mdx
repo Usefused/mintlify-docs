@@ -89,6 +89,17 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     A minimal project without `tests/unit/` still compiles and reports that it has no authored Python tests.
   </Step>
+  <Step title="Configure your model for live calls">
+    Generated ADK and LangGraph agents use `LiteLLMModel.from_openai_environment()` with an OpenAI-compatible API. Replace `spec.environment.OPENAI_MODEL` and `spec.environment.OPENAI_BASE_URL` placeholders in `config.yaml` with your model ID and compatible API URL. Harnest does not select OpenAI's service, GPT, or another vendor by default.
+
+    ```bash
+    harnest serve .
+    ```
+
+    Include your server's API prefix in the URL, commonly `/v1`. Export `OPENAI_API_KEY` in the command's environment if your endpoint requires authentication. Keep credentials out of `config.yaml`.
+
+    See [Configure a model](/harnest/build/models-and-libraries/configure-a-model) for remote endpoints, optional credentials, and explicitly opting into another provider.
+  </Step>
 </Steps>
 
 ## What each generated path owns

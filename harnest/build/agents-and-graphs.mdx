@@ -31,7 +31,7 @@ root_agent = Agent(
 
 `instructions.md` beside `agent.py` is required. It is the default managed prompt and remains bundle metadata for graphs and advanced targets.
 
-The model uses the shared `OPENAI_MODEL`, `OPENAI_BASE_URL`, and `OPENAI_API_KEY` process environment. Follow [Configure a model](/harnest/build/models-and-libraries/configure-a-model) for local, CI, deployment, and OpenAI-compatible backend setup.
+The model uses the shared `OPENAI_MODEL`, `OPENAI_BASE_URL`, and optional `OPENAI_API_KEY` process environment. Configure your server's model ID and compatible API URL; no vendor or model is selected by default. Follow [Configure a model](/harnest/build/models-and-libraries/configure-a-model) for local, CI, and deployment setup.
 
 `history="session"` is the default and includes earlier user and assistant turns from the same Harnest session. Use `history="turn"` for an isolated model call. Do not duplicate the conversation transcript in graph state.
 

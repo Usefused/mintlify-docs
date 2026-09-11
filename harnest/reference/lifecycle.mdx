@@ -24,6 +24,8 @@ Root files under `lifecycle/**/*.py` add behavior around the agent. Harnest disc
 | `@lifecycle.http_routes` | Many | Application HTTP routes | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
 | `@lifecycle.storage.sessions` | Exactly one | Sessions and transcripts | [Sessions](/harnest/runtime/session-storage) |
 | `@lifecycle.storage.checkpoints` | Exactly one | In-progress execution | [Checkpoints](/harnest/runtime/checkpoints) |
+| `@lifecycle.storage.tasks` | Zero or one | Durable task queue and results | [Task and cron storage](/harnest/runtime/task-storage) |
+| `@lifecycle.storage.cron` | Zero or one | Schedules and atomic occurrence handoff; shares the task provider instance | [Task and cron storage](/harnest/runtime/task-storage) |
 | `@lifecycle.storage.assets("name")` | Many, with unique names | Multimodal asset storage | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
 | `@lifecycle.storage.custom("name")` | Many, with unique names | Domain repositories | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
 | `@lifecycle.authenticate` | Zero or more | Request identity | [Authentication](/harnest/runtime/authentication-and-credentials) |

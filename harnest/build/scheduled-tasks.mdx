@@ -96,7 +96,7 @@ job = await cron.cancel(job.id)
 | `await cron.cancel(id)` | Permanently stop future occurrences but retain the job record |
 | `await cron.delete(id)` | Remove the job record and return whether it existed |
 
-Cancellation and deletion stop subsequent dispatches, but an occurrence already selected by the minute dispatcher may still enter the queue, and queued or running work continues. Use cancellation when the user may need to list the stopped schedule later; use deletion when they explicitly want its schedule record removed. A cancelled job cannot be updated, paused, or resumed; cancelling it again returns it unchanged.
+Cancellation and deletion stop subsequent dispatches, while queued or running work continues. With an explicit storage provider, cancellation is checked atomically with occurrence enqueue: a cancellation committed first prevents that enqueue. The legacy minute dispatcher may enqueue an already selected occurrence. Use cancellation when the user may need to list the stopped schedule later; use deletion when they explicitly want its schedule record removed. A cancelled job cannot be updated, paused, or resumed; cancelling it again returns it unchanged.
 
 All reads and mutations are scoped to the current managed invocation's user. An ID from another user is not a capability to read or change their schedule. Mutations that require an existing job raise `CronNotFoundError` when that owned record is absent. Updating, pausing, or resuming a cancelled job raises `CronConflictError`. Call these APIs only from managed runtime code: ordinary module imports and isolated unit tests have no active owner or cron runtime and raise `CronUnavailableError`.
 
@@ -141,7 +141,7 @@ The export name must match `cron/<name>.py`. Arguments are JSON-safe, signature-
 | Timezone | `UTC` only |
 | Syntax | `*`, ASCII numbers, comma lists, ascending ranges, `/step` |
 | Runtime ownership | Long-lived `harnest serve` or `harnest-agent serve` processes |
-| Replicas | Shared PostgreSQL commits one periodic occurrence |
+| Replicas | Shared Task/cron provider atomically commits one occurrence; legacy applications use PostgreSQL |
 
 Each occurrence uses the schedule identity and timestamp as its idempotency
 key, then enters the same private task queue as `task.defer(...)`. Every effect
@@ -152,8 +152,9 @@ When scheduled work invokes the agent without passing an `AgentRuntimePrincipal`
 <Note>
   Fixed and dynamic schedules require the durable Task backend and a long-lived
   `harnest serve` or `harnest-agent serve` process. `harnest run` never
-  activates schedules. The application still needs
-  `HARNEST_TASK_DATABASE_URL` or one unambiguous PostgreSQL store.
+  activates schedules. Configure [Task and cron storage](/harnest/runtime/task-storage)
+  for PostgreSQL, Redis, or your own database. Applications without explicit
+  providers retain the legacy `HARNEST_TASK_DATABASE_URL` / PostgreSQL path.
 </Note>
 
 See [Create and run Tasks](/harnest/build/queued-tasks) for task results, retries, and
