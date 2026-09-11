@@ -109,7 +109,7 @@ Model precedence is an explicit `judgeModel`, then `OPENAI_MODEL`, then `gpt-4.1
 }
 ```
 
-Replace `my-judge-model` with a model served by your configured endpoint. This explicit ID overrides `OPENAI_MODEL`. The judge [reuses a compatible agent model transport](/harnest/build/project-configuration#reuse-an-agents-model-client) when one is available, including a lifecycle-owned client, custom gateway, and headers. Otherwise it uses the normal `OPENAI_BASE_URL` and `OPENAI_API_KEY` configuration. To select a native non-OpenAI provider instead, use its ADK model ID and supply that provider's credentials through the same [process environment](/harnest/build/project-configuration#configure-model-credentials).
+Replace `my-judge-model` with a model served by your configured endpoint. This explicit ID overrides `OPENAI_MODEL`. The judge [reuses a compatible agent model transport](/harnest/build/models-and-libraries/configure-a-model#reuse-an-agents-model-client) when one is available, including a lifecycle-owned client, custom gateway, and headers. Otherwise it uses the normal `OPENAI_BASE_URL` and `OPENAI_API_KEY` configuration. To select a native non-OpenAI provider instead, use its ADK model ID and supply that provider's credentials through the same [model environment](/harnest/build/models-and-libraries/configure-a-model).
 
 <Warning>
   Harnest runs each eval set once. That `num_runs=1` safeguard does not replace `judgeModelOptions.numSamples`: a judge-backed metric can still call its judge several times for one invocation. Lower the sample count deliberately when cost matters, and raise it when judge stability matters more.
@@ -158,7 +158,7 @@ Use `rubric_based_multi_turn_trajectory_quality_v1` with the same criterion shap
 
 ## Configure evaluation backends
 
-The agent under test and every metric backend inherit the same process environment. Follow [Configure model credentials](/harnest/build/project-configuration#configure-model-credentials) for local, CI, and deployment setup. Metrics may add a second provider to the agent's normal model and tool stack:
+The agent under test and every metric backend inherit the same process environment. Follow [Configure a model](/harnest/build/models-and-libraries/configure-a-model) for local, CI, and deployment setup. Metrics may add a second provider to the agent's normal model and tool stack:
 
 <Tabs>
   <Tab title="Local deterministic">

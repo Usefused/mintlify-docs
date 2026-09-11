@@ -1,0 +1,115 @@
+---
+title: "Configure a model"
+sidebarTitle: "Configure a model"
+description: "Choose an OpenAI-compatible model and endpoint, then supply credentials for local development, CI, deployment, and evaluations."
+---
+
+Harnest uses one OpenAI-compatible model configuration for managed ADK and LangGraph agents, eval judges, and text user simulators.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `OPENAI_MODEL` | Model name, with an optional `openai/` prefix | `gpt-4.1-mini` |
+| `OPENAI_BASE_URL` | OpenAI-compatible API endpoint | OpenAI's API endpoint |
+| `OPENAI_API_KEY` | Credential for that endpoint | None |
+
+## Connect the agent to the environment
+
+The generated `agent.py` already uses the shared environment helper. Use the same declaration in an existing managed ADK or LangGraph agent:
+
+```python agent.py
+from harnest.agent import Agent
+from harnest.model import LiteLLMModel
+
+
+root_agent = Agent(
+    name="support",
+    model=LiteLLMModel.from_openai_environment(),
+)
+```
+
+The helper normalizes `gpt-4.1-mini` to `openai/gpt-4.1-mini`. It deliberately rejects native provider prefixes such as `ollama_chat/` because this path uses the shared OpenAI-compatible credential contract.
+
+<Note>
+  Existing agents are not rewritten automatically. If your source reads `LITELLM_MODEL` or `LITELLM_API_BASE`, switch it to `LiteLLMModel.from_openai_environment()` and rename those settings to `OPENAI_MODEL` and `OPENAI_BASE_URL`.
+</Note>
+
+## Choose the model and endpoint
+
+Put the non-secret model and endpoint in `spec.environment`:
+
+<CodeGroup>
+
+```yaml OpenAI
+spec:
+  environment:
+    OPENAI_MODEL: gpt-4.1-mini
+    OPENAI_BASE_URL: https://api.openai.com/v1
+```
+
+```yaml OpenAI-compatible endpoint
+spec:
+  environment:
+    OPENAI_MODEL: openai/qwen3.5:9b
+    OPENAI_BASE_URL: http://127.0.0.1:11434/v1
+```
+
+</CodeGroup>
+
+Use a model that your endpoint serves. OpenAI-compatible backends such as Ollama keep these variable names and include `/v1` in the endpoint. Use `OPENAI_API_KEY` for an endpoint credential when it requires one; do not put that credential in `spec.environment`.
+
+An explicitly authored `LiteLLMModel("provider/model", ...)` remains available when you intentionally use a provider's native connector. That connector keeps its provider-specific configuration and credentials.
+
+## Supply the credential
+
+Export the credential in the same process that runs Harnest locally or in CI:
+
+```bash Local agent and evals
+export OPENAI_API_KEY="..."
+harnest test AGENT_DIR --evals
+harnest serve AGENT_DIR
+```
+
+Use your CI system's secret store to expose the same variable. Harnest does not load `.env` files and excludes `.env` and `.env.*` from authored source.
+
+<Warning>
+  Never put credential values in `spec.environment`, agent source, or `evals/test_config.json`. Those files can be copied into artifacts or source control.
+</Warning>
+
+For deployment, map the credential variable to an opaque secret reference:
+
+```yaml config.yaml
+spec:
+  environment:
+    OPENAI_MODEL: gpt-4.1-mini
+    OPENAI_BASE_URL: https://api.openai.com/v1
+  secrets:
+    - environmentVariable: OPENAI_API_KEY
+      secretRef: projects/example/secrets/openai-api-key/latest
+```
+
+The deployment engine resolves `secretRef` and injects its value as `OPENAI_API_KEY`. Local `test`, `run`, and `serve` commands do not resolve `spec.secrets`; export the variable locally even when the deployment mapping exists. Values in `spec.environment` override matching values inherited from the parent process.
+
+## Reuse an agent's model client
+
+When your `LiteLLMModel` uses a lifecycle-owned client or explicit transport settings, compatible eval judges and text simulators reuse that transport automatically. Supported settings include custom clients, API base URLs, provider authentication and TLS options, and request headers. Eval calls borrow the existing lifecycle controller instead of creating another owner. No CLI flag is required.
+
+Judges and simulators keep their own generation settings. Reusing a transport does not copy the agent's temperature, sampling, or output options. It also does not change the eval model ID.
+
+| Available agent transports | Eval behavior |
+|---|---|
+| Exactly one binding for the complete eval model ID | Reuse that exact binding |
+| No exact match, but exactly one binding with the same provider prefix | Reuse that transport with the selected eval model ID |
+| Multiple exact matches, or multiple same-provider matches without an exact match | Fail with an ambiguous-transport error |
+| No compatible binding | Use the eval model provider's normal configuration and credentials |
+
+Managed ADK and LangGraph agents propagate these bindings through their runtime targets. Advanced ADK targets expose Harnest-created bindings through their app and agent objects. An opaque advanced LangGraph graph cannot expose a connector hidden inside a closure or node implementation.
+
+The runtime retains ownership of borrowed clients. A playground eval does not close the serving agent's clients; the CLI closes the resources it owns after evaluation.
+
+## Override eval models and native services
+
+When you omit `judgeModelOptions.judgeModel` or a text simulator's `model` from `evals/test_config.json`, Harnest uses `OPENAI_MODEL`, or `gpt-4.1-mini` when that variable is absent. An explicit model ID wins.
+
+For example, `judgeModel: "gemini-2.5-flash"` opts into ADK's native Gemini provider and requires its own credentials, such as `GOOGLE_API_KEY`. Vertex Gen AI evaluation metrics are a separate Google service. They use `GOOGLE_API_KEY` when set, or `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and Application Default Credentials. The `cloud_tts` audio simulator also uses Application Default Credentials.
+
+`OPENAI_API_KEY` does not authenticate native Google services. Keep model and metric selection in source or `test_config.json`; keep every credential in the process environment or deployment secret mapping.

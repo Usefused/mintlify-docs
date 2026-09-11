@@ -213,7 +213,7 @@ Configure your CI artifact-upload step to run even when `harnest test` fails. Ot
 | Result file is absent | Check whether compilation or Python tests failed before evaluation started |
 | Result status is `error` | Read `error.type` and `error.message`, then verify model, service, and tool credentials |
 | `EvaluationExecutionError` | Execution or scoring failed without metric results. Fix the underlying runtime error before judging task quality; if Harnest context is unavailable through the managed CLI or playground, report an integration bug |
-| Ambiguous agent model transport | Select an eval model ID with one exact transport match, or remove conflicting same-provider transport choices; see [transport selection](/harnest/build/project-configuration#reuse-an-agents-model-client) |
+| Ambiguous agent model transport | Select an eval model ID with one exact transport match, or remove conflicting same-provider transport choices; see [transport selection](/harnest/build/models-and-libraries/configure-a-model#reuse-an-agents-model-client) |
 | Metric is `not_evaluated` | Inspect its per-invocation details and required evidence; this status does not pass |
 | Judge results vary | Increase `numSamples`, tighten the rubric, or use a deterministic reference metric |
 | Unexpected model cost | Count the agent calls, simulated turns, judge metrics, and each metric's `numSamples` |

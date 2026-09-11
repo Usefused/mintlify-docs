@@ -75,7 +75,7 @@ For a LangGraph run, Harnest starts the compiled LangGraph runtime, sends the ev
 
 Keep the same text eval sets, criteria, and custom scoring functions when you switch frameworks. Actual tool trajectories can differ between runtimes, so review expectations after a switch. LangGraph non-text user content fails instead of being silently discarded. Use a [smoke test](/harnest/build/testing-and-compilation#smoke-tests) for LangGraph media or bidirectional behavior.
 
-ADK evaluation does not require a Google model for every metric. Deterministic metrics need no judge model; compatible LLM judges and text simulators can use your configured model and agent transport. Some service-backed metrics have their own credentials. See [model configuration](/harnest/build/project-configuration#reuse-an-agents-model-client) and the [metric prerequisites](/harnest/build/evaluations/metrics).
+ADK evaluation does not require a Google model for every metric. Deterministic metrics need no judge model; compatible LLM judges and text simulators can use your configured model and agent transport. Some service-backed metrics have their own credentials. See [model configuration](/harnest/build/models-and-libraries/configure-a-model#reuse-an-agents-model-client) and the [metric prerequisites](/harnest/build/evaluations/metrics).
 
 ## Learn each part
 

@@ -4,11 +4,14 @@ sidebarTitle: "Agent concepts"
 description: "Understand the concepts Harnest composes and where each concept is authored."
 ---
 
+import { HarnestProjectExplorer } from "/snippets/harnest-project-explorer.jsx";
+
 A Harnest agent is an inspectable directory. Each concept has one conventional location:
 
 | Concept | Project source | Purpose |
 | --- | --- | --- |
 | [Project Configuration](/harnest/build/project-configuration) | Root YAML, TOML, and lock files | Runtime, discovery, server, and dependency configuration |
+| [Model configuration](/harnest/build/models-and-libraries/configure-a-model) | `agent.py`, `config.yaml`, process environment | Model selection, endpoint, and credentials |
 | [Agents and Graphs](/harnest/build/agents-and-graphs) | `agent.py`, `instructions.md` | Root agent or graph and its instructions |
 | [Data Models and Shared Libraries](/harnest/build/data-models-and-shared-libraries) | `models/`, `lib/` | Shared contracts and ordinary reusable Python |
 | [Agent Tools](/harnest/build/agent-tools) | `tools/` | Server tools and client-hosted tool declarations |
@@ -26,63 +29,11 @@ A Harnest agent is an inspectable directory. Each concept has one conventional l
 
 ## Start with this project layout
 
-Use the generated project directory as the root for every path in the Harnest docs. This example uses `support-agent/` as the project directory and gives common capabilities concrete, descriptive filenames:
+Use the generated agent folder as the root for every path in the Harnest docs. This is the same default guided scaffold shown during initialization. Select a path to see what it owns and an example of its format.
 
-```text support-agent/
-support-agent/
-├── config.yaml
-├── agent-card.yaml
-├── agent.py
-├── instructions.md
-├── pyproject.toml
-├── harnest-runtime.lock    created by harnest env sync
-├── harnest.lock
-├── lib/
-│   └── storage.py
-├── models/
-│   └── orders.py
-├── tools/
-│   └── lookup_order.py
-├── tasks/
-│   └── build_report.py
-├── cron/
-│   └── daily_report.py
-├── lifecycle/
-│   ├── sessions.py
-│   ├── checkpoints.py
-│   └── telemetry.py
-├── extensions/
-│   └── warehouse/
-│       ├── extension.yaml
-│       ├── extension.py
-│       └── lifecycle/
-│           └── tool_policy.py
-├── plugins/
-│   └── knowledge/
-│       ├── plugin.json
-│       ├── mcp.json
-│       └── skills/
-│           └── search-knowledge/
-│               └── SKILL.md
-├── subagents/
-│   └── billing/
-│       ├── agent.py
-│       └── instructions.md
-├── mcp/
-│   └── catalog.py
-├── skills/
-│   └── refund-policy/
-│       └── SKILL.md
-├── evals/
-│   └── support.evalset.json
-└── tests/
-    ├── unit/
-    │   └── test_tools.py
-    └── smoke/
-        └── test_agent.py
-```
+<HarnestProjectExplorer />
 
-You only need the root files and the capabilities your agent uses. Empty optional directories may be absent. `harnest init --example` adds ignored code samples to managed folders that otherwise contain only guides, without replacing the default agent or storage code.
+You only need the active root files and the capabilities your agent uses. Optional directories contain ignored `_README.md` guides by default and may be deleted. `harnest init --example` adds ignored code samples without replacing the default agent or storage code.
 
 When a page titles a code block `tools/lookup_order.py`, create that path inside your project root. For discovered resources, the filename is also part of the contract:
 
