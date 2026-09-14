@@ -8,6 +8,12 @@ The official RAG Harnest Extension gives Agent Tools and Tasks one typed API for
 
 The extension chunks and embeds documents, enforces namespaces and result bounds, and delegates filtering, ranking, ordering, and limiting to the backend. Your agent decides which retrieval operations become Tools and which ingestion operations remain trusted Task code.
 
+## Choose RAG or long-term memory
+
+Use this extension for application knowledge: documents are chunked, optionally embedded, filtered, and ranked for grounded retrieval. Use Harnest's built-in [`context.memory`](/harnest/runtime/long-term-memory) for deliberate, user-scoped facts and preferences that Agent Tools save and retrieve across sessions. Core memory uses literal text search, while RAG supports keyword, semantic, and hybrid ranking. Neither system adds data to a model prompt automatically.
+
+The similarly named `rag.memory(...)` factory is only the process-local test backend for this RAG API; it is unrelated to `context.memory`. One agent may use both: core memory for explicit user facts and RAG for a searchable document corpus.
+
 ## Install the extension
 
 ```bash
