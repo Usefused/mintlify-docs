@@ -1,0 +1,160 @@
+---
+title: "RAG extension"
+sidebarTitle: "RAG"
+description: "Build tenant-scoped PostgreSQL RAG behind an extensible, typed backend contract."
+---
+
+The official RAG Harnest Extension gives Agent Tools and Tasks one typed API for PostgreSQL retrieval-augmented generation. It also owns the `RAGBackend` contract used by additional datastore extensions, so agents do not change their document, chunk, query, or hit types when storage changes.
+
+The extension chunks and embeds documents, enforces namespaces and result bounds, and delegates filtering, ranking, ordering, and limiting to the backend. Your agent decides which retrieval operations become Tools and which ingestion operations remain trusted Task code.
+
+## Install the extension
+
+```bash
+harnest extensions install rag --project my-agent
+harnest env sync my-agent
+```
+
+The package depends on `asyncpg` and imports it only when a PostgreSQL lifecycle resource starts. It does not install Elasticsearch, Neo4j, or a PostgreSQL server extension.
+
+## Supply an embedder
+
+Implement the small provider-neutral `Embedder` contract in application code:
+
+```python lib/embeddings.py
+from collections.abc import Sequence
+
+
+class Embeddings:
+    """Adapt the application's selected embedding client to RAG."""
+
+    def __init__(self, client) -> None:
+        self._client = client
+
+    async def embed(
+        self, texts: Sequence[str]
+    ) -> Sequence[Sequence[float]]:
+        return await self._client.embed(texts)
+```
+
+The extension requires exactly one finite vector per input. Keyword-only retrieval does not require an embedder.
+
+## Configure PostgreSQL
+
+Create one application lifecycle resource and publish it to trusted agent code:
+
+```python lifecycle/knowledge.py
+import os
+
+from harnest import context, lifecycle
+from harnest.extensions.rag import RAGService, rag
+from lib.embeddings import Embeddings
+from lib.provider_clients import embedding_client
+
+
+knowledge = rag.postgres(
+    os.environ["DATABASE_URL"],
+    table="product_knowledge",
+    embedder=Embeddings(embedding_client),
+    namespace=lambda: context.current().user_id,
+)
+
+
+@lifecycle.resource
+@context.provider("knowledge")
+async def knowledge_resource():
+    async with knowledge:
+        yield knowledge
+```
+
+The backend creates an extension-owned table with a tenant-qualified primary key, a document index, and a generated full-text index. Keyword ranking uses PostgreSQL text search. Semantic and hybrid ranking compute cosine similarity over portable float arrays inside PostgreSQL, so the base extension works on stock PostgreSQL without `pgvector`.
+
+Pass an existing asyncpg pool with `pool=...` when the application already owns connection lifecycle. Set `setup_schema=False` only when operators provision the same table shape before startup.
+
+## Retrieve from an Agent Tool
+
+```python tools/search_knowledge.py
+from harnest import context
+from harnest.agent import tool
+from harnest.extensions.rag import RAGService, SearchMode
+
+
+@tool
+async def search_knowledge(query: str, limit: int = 6) -> list[dict]:
+    """Find grounded passages in the caller's knowledge namespace."""
+
+    knowledge = context.resource("knowledge", RAGService)
+    hits = await knowledge.search(query, mode=SearchMode.HYBRID, limit=limit)
+    return [
+        {
+            "chunk_id": hit.chunk.id,
+            "document_id": hit.chunk.document_id,
+            "title": hit.chunk.title,
+            "uri": hit.chunk.uri,
+            "text": hit.chunk.text,
+            "score": hit.score,
+        }
+        for hit in hits
+    ]
+```
+
+Keep stable source identity and URI fields in the Tool result so the model can cite retrieved evidence. Use portable metadata filters instead of accepting SQL from model input.
+
+## Replace documents from trusted code
+
+```python
+from harnest.extensions.rag import RAGDocument, RAGService
+
+
+async def index_manuals(knowledge: RAGService) -> int:
+    return await knowledge.ingest(
+        (
+            RAGDocument(
+                id="manual-2026",
+                title="Product manual",
+                uri="https://docs.example.com/manual",
+                text="...",
+                metadata={"kind": "manual", "version": "2026"},
+            ),
+        ),
+        trigger="user",
+    )
+```
+
+Ingestion atomically replaces every supplied document in its namespace, including removal of obsolete chunks when content becomes shorter. Harnest emits payload-free extension mutation audit events after committed writes and on failures. Do not expose `ingest` or `delete` directly to the model without explicit permission and approval policy.
+
+## Add another datastore extension
+
+A provider extension depends on `rag` instead of redefining its public API:
+
+```yaml extensions/company-search/extension.yaml
+requires:
+  extensions: [rag]
+```
+
+It then implements the shared contract:
+
+```python
+from collections.abc import Sequence
+from harnest.extensions.rag import RAGChunk, RAGHit, RAGQuery
+
+
+class CompanySearchBackend:
+    async def start(self) -> None: ...
+    async def close(self) -> None: ...
+    async def replace(
+        self,
+        namespace: str,
+        document_ids: Sequence[str],
+        chunks: Sequence[RAGChunk],
+    ) -> None: ...
+    async def delete(self, namespace: str, document_ids: Sequence[str]) -> None: ...
+    async def fetch(
+        self, namespace: str, chunk_ids: Sequence[str]
+    ) -> Sequence[RAGChunk]: ...
+    async def search(self, query: RAGQuery) -> Sequence[RAGHit]: ...
+```
+
+The provider backend must apply predicates, projection, ranking, ordering, and `query.limit` in its datastore. `RAGService` validates returned types, namespace isolation, score threshold, ordering, and result count before exposing hits to agent code.
+
+Use `rag.memory(max_chunks=...)` for deterministic unit tests and small local demonstrations. It is bounded but neither durable nor intended for production knowledge.

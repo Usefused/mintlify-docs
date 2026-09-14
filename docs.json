@@ -214,7 +214,8 @@
                         "expanded": false,
                         "pages": [
                           "harnest/build/extensions/official/docker",
-                          "harnest/build/extensions/official/hatchet"
+                          "harnest/build/extensions/official/hatchet",
+                          "harnest/build/extensions/official/rag"
                         ]
                       }
                     ]
