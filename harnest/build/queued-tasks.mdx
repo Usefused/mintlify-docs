@@ -86,28 +86,23 @@ Use `await task.defer(...)` without `handle.result()` for fire-and-forget work. 
 
 | Requirement | Behavior |
 |---|---|
-| Queue backend | Harnest workers with an explicit `lifecycle.storage.tasks` provider; legacy Procrastinate otherwise |
-| Installation | `harnest_postgres` and `harnest_redis` are bundled with Harnest; install custom adapters separately. Legacy dependency added only without an explicit provider |
-| Database | Selected by the provider; the legacy path uses `HARNEST_TASK_DATABASE_URL` or one unambiguous `PostgresStore` |
+| Queue backend | Harnest workers with an explicit `lifecycle.storage.tasks` provider; no fallback |
+| Installation | `harnest_postgres` and `harnest_redis` are bundled with Harnest; declare custom adapter dependencies in your project |
+| Database | PostgreSQL, Redis, or a custom provider selected by your Lifecycle factory |
 | Payloads and results | JSON-safe values only |
 | Credentials | Resolved at execution; never serialized into task state |
 | Runtime principal | Permission names and invocation identity are persisted separately; the principal object and credentials are not |
 | Defer boundary | Available only while the compiled Harnest runtime is active |
 
-For a new application, configure [Task and cron storage](/harnest/runtime/task-storage)
-to use PostgreSQL, Redis, or a custom database. Every replica can run a worker
-against the same provider. The following commands apply only to the retained
-legacy Procrastinate path. It opens its own pool; set
-`HARNEST_TASK_DATABASE_URL` explicitly if there are multiple PostgreSQL stores.
+Configure [Task and cron storage](/harnest/runtime/task-storage) before serving queued work. That guide shows how to set up a database connection in a shared factory and provide its configuration through the environment. Every replica can run a worker against the same provider. Run these commands from your agent folder after configuring storage:
 
 ```bash
-export HARNEST_TASK_DATABASE_URL=postgresql://localhost/harnest
 harnest env sync .
 harnest test .
 harnest serve .
 ```
 
-Harnest creates and updates its private Task and payload schema during runtime startup. Calling `.defer()` from an ordinary imported module without an active compiled runtime raises `TaskUnavailableError`; call the task body directly for isolated unit tests.
+The selected provider initializes its storage during runtime startup. Compiling a task definition or calling its body directly does not require task storage; starting queued execution does. Missing storage produces an actionable setup error. Calling `.defer()` from an ordinary imported module without an active compiled runtime raises `TaskUnavailableError`; call the task body directly for isolated unit tests.
 
 ## Start a fresh agent session
 

@@ -5,10 +5,7 @@ description: "Use PostgreSQL, Redis, or a custom database for Harnest-owned dura
 
 Harnest owns task execution, retry policy, lease renewal, cron calculation, and continuation recovery. Your storage provider owns durable records and atomic state transitions. Authoring stays under `harnest.task` and `harnest.cron`; changing the database does not change your Tools or Tasks.
 
-<Note>
-  These providers are bundled with the storage-neutral feature and its next
-  Harnest release. Earlier Harnest releases do not include these imports.
-</Note>
+Queued tasks require an explicit `@lifecycle.storage.tasks` provider. Recurring work also requires `@lifecycle.storage.cron` on the same factory. Harnest has no implicit database or alternate queue backend.
 
 ## Choose and register a provider
 
@@ -20,7 +17,7 @@ From your agent folder, synchronize the matching runtime:
 harnest env sync .
 ```
 
-The managed ADK and LangGraph environment profiles already include the database drivers. For direct Python development from the feature checkout, install the matching optional driver extra:
+The managed ADK and LangGraph environment profiles already include the database drivers. For direct Python development from a source checkout, install the matching optional driver extra:
 
 <CodeGroup>
 ```bash PostgreSQL
@@ -81,7 +78,53 @@ harnest test .
 harnest serve .
 ```
 
-Explicit providers neither load Procrastinate nor use `HARNEST_TASK_DATABASE_URL`. The PostgreSQL package creates its own durable task and cron tables. Redis uses atomic scripts and application-scoped indexes; configure persistence, replication, backups, and a no-eviction policy to meet your durability requirements. An in-memory or cache-only Redis deployment is not durable. Task records do not inherit session/checkpoint TTLs.
+The PostgreSQL package creates its own durable task and cron tables. Redis uses atomic scripts and application-scoped indexes; configure persistence, replication, backups, and a no-eviction policy to meet your durability requirements. An in-memory or cache-only Redis deployment is not durable. Task records do not inherit session/checkpoint TTLs.
+
+## Share connection configuration
+
+Run a managed or self-hosted PostgreSQL or Redis service before starting your agent. Harnest connects to that service; it does not provision the database. Workers run inside your long-lived Harnest service, so you do not need a separate queue engine.
+
+To share configuration across modules, put the connection factory in `lib/` and register it through Lifecycle. This is an alternative to the inline factory above, not an additional registration.
+
+<CodeGroup>
+```python lib/task_storage.py
+import os
+
+from harnest_redis import RedisStore
+
+
+def create_store() -> RedisStore:
+    """Read deployment configuration without opening a connection at import time."""
+    return RedisStore(os.environ["TASK_STORAGE_URL"])
+```
+
+```python lifecycle/task_storage.py
+from harnest import lifecycle
+from harnest.lib.task_storage import create_store
+
+
+@lifecycle.storage.tasks
+@lifecycle.storage.cron
+def task_storage():
+    """Share one managed connection across tasks and recurring schedules."""
+    return create_store()
+```
+</CodeGroup>
+
+For PostgreSQL, use `PostgresStore` from `harnest_postgres` in the shared factory and supply a PostgreSQL connection URL. Add custom adapter dependencies to your agent's `pyproject.toml`. Harnest does not infer dependencies by executing your factory during environment synchronization.
+
+From your agent folder, point the factory at your database and start the service:
+
+```bash
+export TASK_STORAGE_URL='redis://127.0.0.1:6379/0'
+harnest env sync .
+harnest test .
+harnest serve .
+```
+
+`TASK_STORAGE_URL` is a name chosen by this example, not a special Harnest setting. In production, supply it through your deployment's secret configuration. Never commit credentials to source. Every replica must use the same application identity and persistent provider to share work.
+
+The shared module and Lifecycle file are optional when you do not use queued tasks or cron. Omit the cron decorator for tasks alone. Preserve any file that also registers required sessions or checkpoints.
 
 ## Write a custom database adapter
 
@@ -153,16 +196,17 @@ Cron cursors survive restart. Missed occurrences catch up in bounded batches; th
 
 ## Move an existing application safely
 
-Without an explicit Task provider, Harnest retains its existing Procrastinate backend and database settings. This compatibility path allows existing work to drain; adding a provider is an explicit storage switch, not a migration command.
+The Procrastinate backend and automatic PostgreSQL fallback have been removed. If you used them, drain work on your currently deployed version **before upgrading**. The new runtime cannot process the old queue tables.
 
 1. Back up your database and inventory recurring schedules for each owner.
 2. Stop new submissions and pause recurring schedules on the old runtime.
 3. Drain or explicitly cancel queued/running Tasks and resolve their waiting
    continuations before stopping the old workers.
 4. Configure the new provider, preserving session/checkpoint storage when it
-   contains history you need. Start the new deployment and recreate dynamic
+   contains history you need. Synchronize the runtime and recompile your agent.
+   Start the new deployment and recreate dynamic
    schedules under their original user scopes. Static declarations reconcile
    automatically.
 5. Verify task execution, recovery, and owner isolation before reopening traffic.
 
-There is no automatic copy of legacy queue rows, schedule IDs, results, or continuation references. Keep the legacy database until its retention and recovery needs are satisfied. Likewise, drain work before renaming/removing a Task or changing its queue: workers subscribe to currently compiled queues, not every historical queue in the database.
+There is no automatic copy of old queue rows, schedule IDs, results, or continuation references. Keep the old database until its retention and recovery needs are satisfied. Likewise, drain work before renaming/removing a Task or changing its queue: workers subscribe to currently compiled queues, not every historical queue in the database.
