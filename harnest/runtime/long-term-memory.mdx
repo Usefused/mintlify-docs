@@ -1,0 +1,225 @@
+---
+title: "Long-term memory"
+description: "Explicitly save and retrieve user-scoped memories across sessions using PostgreSQL, Redis, or your own provider."
+---
+
+Long-term memory stores facts and preferences that your application deliberately chooses to retain across sessions. It is separate from conversation history and checkpoints. Saving a session does not create a memory.
+
+Memory is opt-in. Harnest does not extract facts from conversations, summarize them, call embedding models, or add retrieved memories to prompts. Your Agent Tools or trusted application code decide when to write, retrieve, update, and delete records.
+
+## Connect your existing database
+
+Create `lifecycle/memory.py` in your agent folder. The built-in provider packages ship with Harnest, so managed CLI environments do not need a separate provider package installation.
+
+<CodeGroup>
+```python PostgreSQL
+import os
+
+from harnest import lifecycle
+from harnest_postgres import PostgresMemoryStore
+
+
+@lifecycle.storage.memory
+def memory() -> PostgresMemoryStore:
+    """Store explicit memories in our existing PostgreSQL database."""
+    return PostgresMemoryStore(
+        os.environ["DATABASE_URL"],
+        pool_options={"min_size": 1, "max_size": 5},
+    )
+```
+
+```python Redis
+import os
+
+from harnest import lifecycle
+from harnest_redis import RedisMemoryStore
+
+
+@lifecycle.storage.memory
+def memory() -> RedisMemoryStore:
+    """Use a persistent Redis deployment for cross-session memories."""
+    return RedisMemoryStore(os.environ["REDIS_URL"])
+```
+
+```python Local tests
+from harnest import lifecycle
+from harnest.memory import InMemoryStore
+
+
+@lifecycle.storage.memory
+def memory() -> InMemoryStore:
+    """Keep test memories local to this process."""
+    return InMemoryStore()
+```
+</CodeGroup>
+
+Supply the connection URL through your environment or deployment secrets. From your agent folder:
+
+```bash
+harnest env sync .
+harnest test .
+harnest serve .
+```
+
+The synchronous factory constructs a provider; Harnest awaits its `start()`, storage operations, and `close()`. PostgreSQL creates a `harnest_memories` table alongside your existing tables, using its own connection pool. No vector extension is required. Automatic setup requires table-creation permission. With an already-provisioned Harnest memory table, use `setup_schema=False` to validate it without creating it.
+
+Configure Redis persistence, backups, replication, and a no-eviction policy to meet your durability requirements. A cache-only Redis service is not durable. `InMemoryStore` loses records when the process exits. For direct Python development from source, install Harnest with its `postgres` or `redis` driver extra.
+
+This file is optional. Delete it if the agent does not use memory, provided it does not also register another required resource. There is no implicit fallback provider. You can move connection construction into a shared `lib/` factory, as shown in [Shared connection configuration](/harnest/runtime/task-storage#share-connection-configuration).
+
+## Write deliberately from a tool
+
+Only expose memory writes when they are part of the agent's intended behavior. For example, explicitly remember a reporting preference:
+
+```python tools/remember_report_preference.py
+from harnest import context
+from harnest.agent import tool
+
+
+@tool
+async def remember_report_preference(preference: str) -> dict:
+    """Remember a reporting preference the user explicitly asks us to save."""
+    record = await context.memory.put(
+        key="report-preference",
+        content=preference,
+        metadata={"category": "preferences"},
+    )
+    return {"saved": True, "revision": record.revision}
+```
+
+The runtime binds application and user identity. Tools cannot pass a different user ID to `context.memory`. Derived SubAgents retain the same root application scope. Namespaces separate collections within that scope; they do not grant access to another user or team.
+
+Use distinct compiled application identities for independent agents sharing a database. Replicas that intentionally share memories must retain the same identity. Configure production authentication so user identities come from verified callers, not arbitrary request parameters.
+
+```python
+preferences = context.memory.namespace("preferences")
+record = await preferences.get("report-format")
+await preferences.put("report-format", "Start with an executive summary.")
+```
+
+Do not retain memory handles after an invocation or transfer them to another user. Handles are revoked with their invocation. Await memory operations before returning.
+
+## Read, search, update, and forget
+
+| Operation | Behavior |
+|---|---|
+| `put(key, content, ...)` | Explicitly insert or replace one scoped record |
+| `get(key)` | Return a live record or `None` |
+| `list(limit=20, after=None)` | Return a bounded page in ascending key order |
+| `search(query, limit=20, after=None)` | Return literal, case-sensitive content matches |
+| `delete(key, ...)` | Remove the record and its index references; return whether it existed |
+
+All five operations are async. Search is text matching, not semantic search; wildcard characters have no special meaning. Retrieved text remains untrusted data. Your code decides whether and how to use it in a model request.
+
+```python
+page = await context.memory.search("executive summary", limit=5)
+for record in page.items:
+    print(record.key)  # Avoid logging private memory content.
+
+if page.next_cursor is not None:
+    next_page = await context.memory.search(
+        "executive summary", limit=5, after=page.next_cursor
+    )
+```
+
+Redis examines at most 128 candidate keys per page inside the datastore. A sparse search can return an empty page with a nonempty `next_cursor`; continue until the cursor is `None` when you need all matches. Pages are not snapshots, so concurrent edits may change later results.
+
+Use a revision to avoid overwriting a concurrent update:
+
+```python
+record = await context.memory.get("report-preference")
+if record is not None:
+    updated = await context.memory.put(
+        record.key,
+        "Use bullet points and include a summary.",
+        expected_revision=record.revision,
+    )
+    await context.memory.delete(updated.key, expected_revision=updated.revision)
+```
+
+Import `MemoryConflictError` from `harnest.memory` to handle a stale revision. Without `expected_revision`, `put()` deliberately replaces the current record. Deleting and recreating a key never restores its old revision.
+
+## Retention and boundaries
+
+Pass `expires_at` as a future UTC epoch timestamp for optional expiry. Expired memories are excluded from reads, searches, and conditional updates. Expiry is logical visibility, not a guaranteed physical-erasure deadline: PostgreSQL retains expired rows until overwritten, deleted, or purged, while Redis also removes expired records when visited. Use provider maintenance to physically remove expired records without reading their content.
+
+Records include creation/update timestamps, an opaque revision, optional metadata, and the source session, invocation, and agent name for context writes. Updating a record replaces its content and metadata; it is not a version-history system. Memory has its own lifetime and does not inherit session or checkpoint TTLs. Deleting a session does not delete its deliberately saved memories.
+
+Keys are bounded to 256 UTF-8 bytes, content to 64 KiB, and combined metadata/provenance to 16 KiB. Page limits range from 1 to 100. Store only information your application is permitted to retain. Explicit deletion does not erase previously returned copies, conversation transcripts, database logs, or backups.
+
+Evaluations that execute memory-writing tools can change the configured provider. Use a separate test database or the process-local provider for isolated evaluations.
+
+## Run trusted storage maintenance
+
+Maintenance methods exist only on your Python storage provider. Harnest does not register memory HTTP endpoints, expose bulk deletion through `context.memory`, or add cleanup tools when you run `harnest init`. If you need an endpoint, implement it in your application or Lifecycle and enforce your own authentication and authorization. An unguessable route is not an authorization boundary.
+
+| Provider method | Scope and result |
+| --- | --- |
+| `delete_all(scope)` | Physically remove live and expired records in one namespace; return the removed count |
+| `delete_user(application_id, user_id)` | Remove that application's user across every namespace; return the removed count |
+| `purge_expired(scope, limit=100, after=None)` | Inspect a bounded page and return `MemoryCleanupPage(deleted, next_cursor)` |
+
+Use your already configured provider from trusted maintenance code:
+
+```python
+from harnest.memory import MemoryScope, MemoryStore
+
+
+async def purge_namespace(store: MemoryStore, scope: MemoryScope) -> int:
+    """Sweep expired records in an application-authorized namespace."""
+    cursor, removed = None, 0
+    while True:
+        page = await store.purge_expired(scope, limit=100, after=cursor)
+        removed += page.deleted
+        cursor = page.next_cursor
+        if cursor is None:
+            return removed
+```
+
+Continue when a page removes zero records but has a cursor. Schedule repeated sweeps with your service's maintenance worker or an explicitly configured Harnest task/cron; no cleanup job starts automatically.
+
+For account erasure, authorize the account and revoke its write access before calling `await store.delete_user(application_id, user_id)`. Concurrent writes can otherwise recreate memories. Redis removes namespaces in bounded batches, so erasure is not one cross-namespace transaction. A failure can mean partial progress; retry to remove what remains. Backups, database logs, transcripts, and previously returned copies require separate retention policies.
+
+## Handle connection failures
+
+Bundled providers raise `MemoryStorageError` without including record contents or connection credentials. A connection can drop after a database commits but before the acknowledgement arrives. A write error therefore does not prove that nothing changed. Harnest does not automatically replay Redis writes after a lost acknowledgement.
+
+Read the key again before deciding whether to retry. Use `expected_revision` when replacing a known record, and handle `MemoryConflictError` by reading the current state. Do not blindly retry an unconditional write: it can overwrite a later update.
+
+## Implement a custom provider
+
+The async structural contract lives in the feature namespace:
+
+```python
+from harnest.memory import (
+    MemoryStore,
+    MemoryScope,
+    MemoryRecord,
+    MemoryPage,
+    MemoryCleanupPage,
+    MemoryConflictError,
+    MemoryStorageError,
+)
+```
+
+Implement `start`, `close`, `put`, `get`, `list`, `search`, `delete`, `delete_all`, `delete_user`, and `purge_expired`. Subclassing `MemoryStore` is optional. Register the returned object with `@lifecycle.storage.memory`. Trusted application code can also use the provider directly with an explicit `MemoryScope`; never expose arbitrary scope selection to a model or unauthenticated caller.
+
+Enforce application, user, namespace, expiry, filtering, ordering, and pagination in your datastore. Commit revision checks and mutations atomically. Return detached records with fresh revisions, preserve creation time on updates, and remove search references when deleting. Follow the protocol method docstrings for exact signatures.
+
+Run the bundled conformance suite against an isolated real database:
+
+```python
+import unittest
+
+from harnest.testing import MemoryStoreConformanceMixin
+from my_storage import MyMemoryStore
+
+
+class CustomMemoryTests(MemoryStoreConformanceMixin,
+                        unittest.IsolatedAsyncioTestCase):
+    async def make_store(self):
+        """Return an unstarted provider for an isolated test database."""
+        return MyMemoryStore(...)
+```
+
+The mixin starts and closes your provider and uses a unique application scope per test. Add cleanup for those test records and provider-specific restart, transaction rollback, and connection-loss checks. It does not configure or prove deployment-level durability.
