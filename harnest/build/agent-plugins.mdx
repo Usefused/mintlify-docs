@@ -58,6 +58,44 @@ Plugin skills join the agent's skill registry and load on demand through `list_s
 
 Rebuild after adding a package, or use [development reload](/harnest/runtime/serving/development-reload) while serving locally.
 
+## Attach a plugin after compilation
+
+Agent Desktop can attach Agent Plugins when it creates a session. The desktop client owns discovery and download: it resolves the user-provided Git or marketplace URL, creates a ZIP with `plugin.json` at its root, and sends that immutable snapshot to Harnest. Harnest does not fetch a plugin URL.
+
+```json POST /sessions
+{
+  "id": "desktop-session",
+  "plugins": [
+    {
+      "type": "inline",
+      "name": "warehouse",
+      "sha256": "<64 lowercase hexadecimal characters>",
+      "source": {
+        "type": "base64",
+        "media_type": "application/zip",
+        "data": "<base64 ZIP>"
+      }
+    }
+  ]
+}
+```
+
+`sha256` is optional. When supplied, it must match the decoded ZIP. Harnest always computes its own digest and returns each plugin's `name` and `sha256` in the session `metadata.plugins` array. The archive itself stays in private session application data so a durable session can recover its exact environment after a server restart.
+
+The plugin set is fixed when the session is created. Create another session to add, remove, or update a plugin. Dynamic attachment currently requires a managed root `Agent`; managed `Graph` and advanced applications retain their compiled capability wiring.
+
+| Dynamic package content | Runtime behavior |
+|---|---|
+| Agent Skills | Added to the session's progressive skill tools |
+| `streamable-http` or `sse` MCP | Added to that session's ADK or LangGraph target |
+| `stdio` MCP | Session creation fails because the package could execute code in the Harnest process |
+
+Harnest accepts at most 16 plugins per session and regular files only. It rejects encrypted members, links, absolute or parent paths, case-insensitive path collisions, more than 256 files, files larger than 4 MiB, archives larger than 8 MiB, and expanded content larger than 32 MiB. The server's configured `limits.max_request_bytes` also applies to the base64 JSON request and may impose a lower effective limit.
+
+<Warning>
+  Treat the URL as untrusted input in Agent Desktop. Apply download timeouts, redirect and credential policy, and archive size limits before sending the snapshot. Do not forward a URL for Harnest to fetch.
+</Warning>
+
 ## Configure MCP servers
 
 Portable MCP declarations live in root `mcp.json`, not Python factories. Each server declares its transport explicitly:
