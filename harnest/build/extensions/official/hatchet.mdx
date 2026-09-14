@@ -44,6 +44,18 @@ async def build_report(account_id: str) -> dict:
 
 `hatchet.status(job)` reads the current state. `hatchet.cancel(job)` requests provider cancellation. Hatchet workers and workflow definitions remain independently deployed; stopping Harnest does not stop them.
 
+### Choose an operation
+
+| Operation | Result | Ownership |
+|---|---|---|
+| `run(name, input)` | `HatchetRun` | Submit and return immediately; the caller owns any later wait |
+| `status(job)` | `HatchetRunStatus` | Read `QUEUED`, `RUNNING`, `COMPLETED`, `CANCELLED`, or `FAILED` |
+| `wait(job)` | JSON mapping | Persist a continuation and resume when an existing run terminates |
+| `run_and_wait(name, input)` | JSON mapping | Prove durable suspension support before submitting and waiting |
+| `cancel(job)` | None | Request provider cancellation without claiming worker termination |
+
+Use `run_and_wait` whenever the Tool requires the result. It prevents a known continuation incompatibility from orphaning a newly submitted run. `run` remains appropriate for intentional fire-and-forget work, and `run` followed by `wait` supports an already-owned run.
+
 ## Configure credentials
 
 The extension declares `context.credentials` and `context.continuations`. Resolve invocation credentials with only the operations a tool needs:
@@ -67,3 +79,16 @@ Use `run_and_wait` when the tool needs the result because it verifies durable co
 Inputs and workflow results must be JSON mappings. The extension rejects either payload above 1 MiB before submission or durable persistence. Job data crosses the external Hatchet boundary, so send only the fields that workflow requires.
 
 The extension does not deploy Hatchet, define workflows, manage workers, expose automatic model tools, or replace Harnest session and checkpoint storage. See [Durable execution](/harnest/runtime/durable-execution) for continuation behavior and [Authentication and credentials](/harnest/runtime/authentication-and-credentials) for scoped credential providers.
+
+## Public API and failure behavior
+
+| API | Role |
+|---|---|
+| `hatchet` / `extension` | Installed `HatchetExtension` singleton |
+| `HatchetRun` | Immutable provider run, workflow, and correlation identity |
+| `HatchetRunStatus` | Stable provider-neutral terminal and non-terminal status enum |
+| `HatchetContext` | Revocable invocation-scoped view used by the extension singleton |
+
+Every invocation operation resolves only its required credential immediately before constructing the SDK client. Startup recovery instead uses the application service credential. Harnest supplies deterministic idempotency keys for native durable calls and adopts Hatchet's existing run after an idempotency collision. Provider errors are converted to stable failures without retaining raw exception messages, which may contain credentials. Cancelled and failed terminal jobs resume their Harnest continuation with stable error codes rather than provider payloads.
+
+Workflow names and provider identities must be non-empty. Inputs and results must be finite, acyclic JSON mappings with string keys and encoded size no greater than 1 MiB. Startup recovery uses bounded pages, at most 16 concurrent clients, and exponential polling or outage backoff.

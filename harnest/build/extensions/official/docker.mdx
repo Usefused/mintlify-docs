@@ -51,6 +51,22 @@ python = docker.sandbox(
 
 Add `"python"` to each consuming agent's `sandboxes=[...]` grant. Call it from an authored tool through `context.sandboxes["python"]`. Exactly one of `image` or `docker_path` is required; prefer an immutable image digest in deployments.
 
+### Sandbox configuration
+
+| Option | Default | Purpose |
+|---|---|---|
+| `image` / `docker_path` | None | Select exactly one registry image or local Docker build context |
+| `base_url` | Docker SDK default | Connect to an explicitly configured daemon |
+| `network_policy` | `none()` | Grant no egress or supported unrestricted egress |
+| `services` / `network` | Empty | Declare a private multi-container topology |
+| `timeout_seconds` | 300 | Bound queueing, startup, and execution |
+| `max_output_bytes` | 1 MiB | Bound captured output while streaming |
+| `scope` | `EXECUTION` | Choose execution, invocation, or session reuse |
+| `budget` | Harnest defaults | Bound CPU, memory, processes, and scratch space |
+| `max_scopes` | 8 | Bound retained invocation or session identities |
+
+`options` carries supported ADK parsing and retry options, while `metadata` is attached to the portable sandbox declaration. Construction validates immutable configuration without contacting Docker; the first execution starts provider resources lazily.
+
 ## Add service containers
 
 Attach bounded services when the primary Python container needs another process:
@@ -113,3 +129,17 @@ Docker startup, network, service, execution, and cleanup operations emit correla
 Docker daemon access is highly privileged. Protect its socket or remote API, restrict who can configure this extension, and use trusted digest-pinned images. Containers run as a non-root user with a read-only root filesystem, dropped capabilities, `no-new-privileges`, bounded `/tmp`, and no host mounts. Docker still shares the host kernel; choose a stronger provider for higher-risk isolation.
 
 The extension does not transfer input or output files. Use stdout or a provider with an explicit file contract. See [Sandboxing](/harnest/build/sandboxing) for agent grants, authored-tool usage, custom providers, and failure handling.
+
+## Public API and limits
+
+| API | Role |
+|---|---|
+| `docker.sandbox(...)` / `docker_sandbox(...)` | Create a portable Docker-backed `Sandbox` |
+| `docker.service(...)` | Declare one topology service |
+| `docker.network(...)` | Declare the topology bridge and egress boundary |
+| `docker.readiness(...)` | Declare a bounded service health command |
+| `DockerScope` | Select execution, invocation, or session ownership |
+| `DockerService`, `DockerNetwork`, `DockerReadiness` | Immutable topology contracts |
+| `DockerSandboxProvider` | Runtime adapter implementing Harnest's sandbox provider contract |
+
+A topology supports up to eight services. Each service allows 16 aliases, 32 declared ports, 64 environment entries, and 64 command arguments; bounded authored string values may use up to 8 KiB. Readiness permits 1 to 100 attempts with finite timing values. Service names and aliases must be unique portable lowercase DNS labels. These checks run before the Docker SDK receives configuration.

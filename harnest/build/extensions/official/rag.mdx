@@ -71,6 +71,18 @@ The backend creates an extension-owned table with a tenant-qualified primary key
 
 Pass an existing asyncpg pool with `pool=...` when the application already owns connection lifecycle. Set `setup_schema=False` only when operators provision the same table shape before startup.
 
+| Option | Default | Purpose |
+|---|---|---|
+| `dsn` | None | asyncpg DSN; required unless `pool` is supplied |
+| `table` | `harnest_rag_chunks` | Safe extension-owned table name |
+| `pool` | None | Borrow an existing asyncpg-compatible pool without closing it |
+| `setup_schema` | `True` | Create the schema, or validate an operator-managed schema when false |
+| `pool_options` | None | Additional options for `asyncpg.create_pool` |
+| `embedder` | None | Application-owned embedding adapter |
+| `chunker` | `FixedSizeChunker()` | Application chunking policy |
+| `namespace` | `default` | Fixed or per-operation tenant namespace |
+| `batch_size` | 100 | Chunk texts sent to the embedder per request |
+
 ## Retrieve from an Agent Tool
 
 ```python tools/search_knowledge.py
@@ -100,6 +112,20 @@ async def search_knowledge(query: str, limit: int = 6) -> list[dict]:
 
 Keep stable source identity and URI fields in the Tool result so the model can cite retrieved evidence. Use portable metadata filters instead of accepting SQL from model input.
 
+### Choose a search mode
+
+| Mode | Embedder required | Behavior |
+|---|---|---|
+| `SearchMode.KEYWORD` | No | Full-text candidates ordered by PostgreSQL `ts_rank_cd` |
+| `SearchMode.SEMANTIC` | Yes | Compatible stored vectors ordered by cosine similarity |
+| `SearchMode.HYBRID` | Yes | Lexical or vector candidates scored with equal lexical and non-negative cosine weights |
+
+`search` accepts a result `limit` from 1 to 100, portable metadata `filters`, and an optional finite `min_score`. A scalar filter requires equality. A tuple such as `{"kind": ("manual", "release-note")}` performs membership matching. Different fields combine with AND; tuple values within one field combine with OR. Nested metadata and caller-authored SQL or datastore query syntax are rejected.
+
+### Fetch exact chunks
+
+Use `await knowledge.fetch(("manual-2026:0", "manual-2026:3"))` when application code already knows chunk IDs. PostgreSQL returns existing chunks in caller order, omits missing IDs, and applies the active namespace without relevance ranking.
+
 ## Replace documents from trusted code
 
 ```python
@@ -122,6 +148,14 @@ async def index_manuals(knowledge: RAGService) -> int:
 ```
 
 Ingestion atomically replaces every supplied document in its namespace, including removal of obsolete chunks when content becomes shorter. Harnest emits payload-free extension mutation audit events after committed writes and on failures. Do not expose `ingest` or `delete` directly to the model without explicit permission and approval policy.
+
+Delete complete documents with `await knowledge.delete(("manual-2025",), trigger="user")`. The active namespace applies to the complete mutation.
+
+## Customize chunking
+
+The default `FixedSizeChunker(size=2000, overlap=200)` creates overlapping passages at nearby whitespace and stable IDs from document identity and source order. Supply a synchronous `Chunker` implementation when Markdown, source code, or another structured format needs application-specific boundaries. A custom chunker must return a non-empty sequence of non-empty strings, and shared ingestion bounds still apply.
+
+Use `rag.memory(max_chunks=...)` for deterministic unit tests and small local demonstrations. It implements the same replacement, filtering, scoring, and result validation contracts, but it is process-local, non-durable, and not intended for production knowledge.
 
 ## Add another datastore extension
 
@@ -155,6 +189,19 @@ class CompanySearchBackend:
     async def search(self, query: RAGQuery) -> Sequence[RAGHit]: ...
 ```
 
-The provider backend must apply predicates, projection, ranking, ordering, and `query.limit` in its datastore. `RAGService` validates returned types, namespace isolation, score threshold, ordering, and result count before exposing hits to agent code.
+The provider backend must apply predicates, projection, ranking, ordering, and `query.limit` in its datastore. `RAGService` validates returned types, namespace isolation, score threshold, ordering, and result count before exposing hits to agent code. Harnest rejects missing or cyclic extension dependencies, starts dependencies first, and stops them last. A published provider also declares `harnest-extension-rag` as a Python distribution dependency.
 
-Use `rag.memory(max_chunks=...)` for deterministic unit tests and small local demonstrations. It is bounded but neither durable nor intended for production knowledge.
+## Public API and bounds
+
+| API | Role |
+|---|---|
+| `rag.postgres(...)` | Create the stock-PostgreSQL service |
+| `rag.memory(...)` | Create the bounded in-memory service |
+| `rag.service(...)` | Wrap a custom `RAGBackend` |
+| `RAGService` | Lifecycle-owned ingestion, deletion, fetch, and search API |
+| `RAGDocument`, `RAGChunk`, `RAGQuery`, `RAGHit` | Immutable provider-neutral data contracts |
+| `SearchMode` | Keyword, semantic, or hybrid selection |
+| `Embedder`, `Chunker`, `RAGBackend` | Replaceable provider protocols |
+| `FixedSizeChunker`, `PostgresBackend`, `MemoryBackend` | Built-in implementations |
+
+The shared boundary permits at most 1,000 documents, 50 million source characters, and 10,000 generated chunks per ingestion request. Documents may contain up to 10 million characters, individual chunks up to 1 million, queries up to 16,384, and embeddings up to 65,536 dimensions. Metadata and filters allow 64 fields, with up to 100 scalar values in one membership filter. Empty text, duplicate identities, nested metadata, boolean vector values, and non-finite numbers fail before model or datastore I/O.
