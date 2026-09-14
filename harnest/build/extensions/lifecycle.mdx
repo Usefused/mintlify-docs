@@ -12,7 +12,7 @@ A Harnest Extension participates in three lifecycle layers:
 | Typed access | `Extension.create_context()` | One managed invocation |
 | Harnest hooks and factories | `extensions/<name>/lifecycle/**/*.py` | The lifecycle phase declared by each decorator |
 
-The extension manifest must declare every Harnest capability its lifecycle files contribute. Declaration makes ownership inspectable; it does not grant access to undeclared runtime internals.
+The extension manifest must project lifecycle files through `contributes.lifecycle` and declare every Harnest capability those files use. Path declaration makes content visible to the compiler; capabilities authorize what that content may do. Neither grants access to undeclared runtime internals.
 
 Storage authorities start first. Harnest then calls `Extension.start()` in dependency order, followed by contributed `@lifecycle.resource` factories. Shutdown closes extension resources before calling `Extension.stop()` in reverse dependency order, then closes storage. `ExtensionStartContext` therefore exposes only already-live named custom storage and declared continuations, not arbitrary lifecycle resources or invocation credentials.
 
@@ -28,6 +28,8 @@ metadata:
   version: 1.0.0
 runtime:
   entrypoint: extension:extension
+contributes:
+  lifecycle: [lifecycle/]
 capabilities:
   - lifecycle.tool
 ```

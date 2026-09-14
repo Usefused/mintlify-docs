@@ -70,7 +70,30 @@ Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle 
 
     This splits old package-root imports into their owning feature modules,
     rewrites lifecycle and context decorators to their first-class namespaces,
-    and updates released `OutputPolicy` forms.
+    and updates released `OutputPolicy` forms. It also migrates retired
+    same-process Runtime Plugin packages to Harnest Extensions:
+
+    | Before | After |
+    |---|---|
+    | `plugins/<name>/plugin.yaml` | `extensions/<name>/extension.yaml` |
+    | `plugin.py` and `plugin` | `extension.py` and `extension` |
+    | `kind: RuntimePlugin` | `kind: Extension` |
+    | `requires.plugins` | `requires.extensions` |
+    | `harnest.plugins` | `harnest.extensions` |
+    | `<name>` distribution | `harnest-extension-<name>` distribution |
+    | inferred content folders | explicit `contributes` paths |
+
+    The upgrade declares each existing Runtime Plugin `tools/`, `mcp/`,
+    `skills/`, and `subagents/` directory under the matching `contributes` key.
+    It moves the old package `extensions/` hook directory to `lifecycle/` and
+    declares that path under `contributes.lifecycle`. New Harnest Extensions do
+    not infer content from directory names.
+
+    Agent Plugin folders containing `plugin.json` stay under `plugins/`; they
+    are declarative packages and are not part of this executable-code migration.
+    Harnest no longer infers manifestless `plugins/<name>/{mcp,skills}` packages;
+    install or rebuild those packages against the Agent Plugins standard before
+    compiling the upgraded project.
   </Step>
   <Step title="Test the upgraded project">
     ```bash

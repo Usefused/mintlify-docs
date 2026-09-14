@@ -33,7 +33,10 @@ The package root exposes feature namespaces only. Classes, decorators, functions
 | Assets | `harnest.assets` | `AssetStorage`, `AssetScope`, `Stored` |
 | Storage | `harnest.store` | `MemoryStore`, `PostgresStore`, `RedisStore`, `CustomStorage`, `StorageRegistry` |
 
-Other existing domain modules include `harnest.approval`, `harnest.content`, `harnest.credentials`, `harnest.continuation`, `harnest.extensions`, `harnest.skills`, `harnest.task`, `harnest.logging`, and `harnest.tracing`.
+Agent-owned approval contracts live in `harnest.agent.approval`. Other existing
+domain modules include `harnest.content`, `harnest.credentials`,
+`harnest.continuation`, `harnest.extensions`, `harnest.skills`, `harnest.task`,
+`harnest.logging`, and `harnest.tracing`.
 
 `AgentResponse` from `harnest.http` represents an HTTP route response. `AgentResponse` from `harnest.context` represents a local agent invocation response; select the contract for your integration.
 
