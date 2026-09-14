@@ -1,5 +1,13 @@
 /* Give text, tables, and code room while retaining Mintlify's responsive navigation. */
 @media (min-width: 1024px) {
+  #sidebar-content {
+    width: 18rem;
+  }
+
+  #body-content {
+    padding-left: 18rem;
+  }
+
   #content-area {
     max-width: 64rem;
     /* Center within the space left by the sidebar and table of contents. */
