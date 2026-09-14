@@ -162,6 +162,7 @@
             "pages": [
               {
                 "group": "Build agents",
+                "icon": "robot",
                 "expanded": false,
                 "pages": [
                   "harnest/build/agent-concepts",
@@ -170,6 +171,7 @@
                   "harnest/build/python-imports",
                   {
                     "group": "Models & libraries",
+                    "icon": "layer-group",
                     "expanded": false,
                     "pages": [
                       "harnest/build/models-and-libraries/configure-a-model",
@@ -181,6 +183,7 @@
                   },
                   {
                     "group": "Tools",
+                    "icon": "wrench",
                     "expanded": false,
                     "pages": [
                       "harnest/build/agent-tools",
@@ -191,6 +194,7 @@
                   },
                   {
                     "group": "Subagents",
+                    "icon": "sitemap",
                     "expanded": false,
                     "pages": [
                       "harnest/build/subagents",
@@ -203,6 +207,7 @@
                   "harnest/build/agent-plugins",
                   {
                     "group": "Harnest Extensions",
+                    "icon": "puzzle-piece",
                     "expanded": false,
                     "pages": [
                       "harnest/build/extensions",
@@ -211,6 +216,7 @@
                       "harnest/build/extensions/use",
                       {
                         "group": "Official extensions",
+                        "icon": "circle-check",
                         "expanded": false,
                         "pages": [
                           "harnest/build/extensions/official/docker",
@@ -222,6 +228,7 @@
                   },
                   {
                     "group": "Tasks",
+                    "icon": "list-check",
                     "expanded": false,
                     "pages": [
                       "harnest/build/tasks",
@@ -231,6 +238,7 @@
                   },
                   {
                     "group": "Agent Skills",
+                    "icon": "wand-magic-sparkles",
                     "expanded": false,
                     "pages": [
                       "harnest/build/agent-skills",
@@ -243,6 +251,7 @@
               },
               {
                 "group": "Evaluations",
+                "icon": "clipboard-check",
                 "expanded": false,
                 "pages": [
                   "harnest/build/evaluations",
@@ -256,11 +265,13 @@
               },
               {
                 "group": "Runtime",
+                "icon": "gears",
                 "expanded": false,
                 "pages": [
                   "harnest/runtime/adk-and-langgraph",
                   {
                     "group": "Lifecycle",
+                    "icon": "arrows-rotate",
                     "expanded": false,
                     "pages": [
                       "harnest/runtime/lifecycle",
@@ -274,6 +285,7 @@
                   "harnest/runtime/agent-runtime-principals",
                   {
                     "group": "Storage",
+                    "icon": "database",
                     "expanded": false,
                     "pages": [
                       "harnest/runtime/checkpoints-and-storage",
@@ -286,6 +298,7 @@
                   "harnest/runtime/durable-execution",
                   {
                     "group": "Telemetry",
+                    "icon": "chart-line",
                     "expanded": false,
                     "pages": [
                       "harnest/runtime/telemetry",
@@ -295,6 +308,7 @@
                   },
                   {
                     "group": "A2A",
+                    "icon": "comments",
                     "expanded": false,
                     "pages": [
                       "harnest/runtime/a2a",
@@ -304,6 +318,7 @@
                   },
                   {
                     "group": "Serving",
+                    "icon": "server",
                     "expanded": false,
                     "pages": [
                       "harnest/runtime/serving",
@@ -319,6 +334,7 @@
               },
               {
                 "group": "Reference",
+                "icon": "book-open",
                 "expanded": false,
                 "pages": [
                   "harnest/reference/architecture",
