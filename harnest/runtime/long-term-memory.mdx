@@ -1,0 +1,221 @@
+---
+title: "Long-term memory"
+description: "Explicitly save and retrieve user-scoped memories across sessions using PostgreSQL, Redis, or your own provider."
+---
+
+Remember user preferences across sessions. Your Agent Tools decide what to save and when to retrieve it; Harnest does not extract memories or add them to prompts automatically.
+
+## Connect your existing database
+
+Create `lifecycle/memory.py` in your agent folder. Both database providers ship with the managed Harnest runtime.
+
+<CodeGroup>
+```python PostgreSQL
+import os
+
+from harnest import lifecycle
+from harnest_postgres import PostgresMemoryStore
+
+
+@lifecycle.storage.memory
+def memory() -> PostgresMemoryStore:
+    """Store explicit memories in our existing PostgreSQL database."""
+    return PostgresMemoryStore(
+        os.environ["DATABASE_URL"],
+        pool_options={"min_size": 1, "max_size": 5},
+    )
+```
+
+```python Redis
+import os
+
+from harnest import lifecycle
+from harnest_redis import RedisMemoryStore
+
+
+@lifecycle.storage.memory
+def memory() -> RedisMemoryStore:
+    """Use a persistent Redis deployment for cross-session memories."""
+    return RedisMemoryStore(os.environ["REDIS_URL"])
+```
+
+```python Local tests
+from harnest import lifecycle
+from harnest.memory import InMemoryStore
+
+
+@lifecycle.storage.memory
+def memory() -> InMemoryStore:
+    """Keep test memories local to this process."""
+    return InMemoryStore()
+```
+</CodeGroup>
+
+Supply the connection URL through your environment or deployment secrets. From your agent folder:
+
+```bash
+harnest env sync .
+harnest test .
+harnest serve .
+```
+
+| Provider | Setup |
+| --- | --- |
+| PostgreSQL | Creates `harnest_memories` using its own pool; no vector extension needed. Requires table-creation permission, or `setup_schema=False` for a pre-provisioned table. |
+| Redis | Configure persistence, backups, replication, and no eviction. A cache-only deployment is not durable. |
+| `InMemoryStore` | For tests; loses memories when the process exits. |
+
+Harnest owns startup and shutdown. The memory factory is optional; remove it when unused. For shared configuration or direct Python driver installation, see [Task and cron storage](/harnest/runtime/task-storage).
+
+## Write deliberately from a tool
+
+Save a preference only when the user asks:
+
+```python tools/remember_report_preference.py
+from harnest import context
+from harnest.agent import tool
+
+
+@tool
+async def remember_report_preference(preference: str) -> dict:
+    """Remember a reporting preference the user explicitly asks us to save."""
+    record = await context.memory.put(
+        key="report-preference",
+        content=preference,
+        metadata={"category": "preferences"},
+    )
+    return {"saved": True, "revision": record.revision}
+```
+
+`context.memory` is scoped to the current application and authenticated user, including calls from SubAgents. Replicas share an application identity; independent agents need distinct identities. Use namespaces to organize one user's memories:
+
+```python
+preferences = context.memory.namespace("preferences")
+record = await preferences.get("report-format")
+await preferences.put("report-format", "Start with an executive summary.")
+```
+
+Await operations within the invocation; handles cannot be retained for later use.
+
+## Read, search, update, and forget
+
+| Operation | Behavior |
+|---|---|
+| `put(key, content, ...)` | Explicitly insert or replace one scoped record |
+| `get(key)` | Return a live record or `None` |
+| `list(limit=20, after=None)` | Return a bounded page in ascending key order |
+| `search(query, limit=20, after=None)` | Return literal, case-sensitive content matches |
+| `delete(key, ...)` | Remove the record and its index references; return whether it existed |
+
+All operations are async. Search is literal text matching, not semantic search. Treat retrieved content as untrusted data.
+
+```python
+page = await context.memory.search("executive summary", limit=5)
+for record in page.items:
+    print(record.key)  # Avoid logging private memory content.
+
+if page.next_cursor is not None:
+    next_page = await context.memory.search(
+        "executive summary", limit=5, after=page.next_cursor
+    )
+```
+
+Continue until `next_cursor` is `None`, even after an empty page. Concurrent edits can change later pages.
+
+Use a revision to avoid overwriting a concurrent update:
+
+```python
+record = await context.memory.get("report-preference")
+if record is not None:
+    updated = await context.memory.put(
+        record.key,
+        "Use bullet points and include a summary.",
+        expected_revision=record.revision,
+    )
+    await context.memory.delete(updated.key, expected_revision=updated.revision)
+```
+
+Catch `harnest.memory.MemoryConflictError` for stale revisions. Without `expected_revision`, `put()` replaces the current record unconditionally.
+
+## Retention and limits
+
+| Setting | Behavior |
+| --- | --- |
+| `expires_at` | Optional future UTC epoch timestamp. Expired records disappear from reads; purge them for physical cleanup. |
+| Session lifetime | Deleting a session or expiring a checkpoint does not delete memories. |
+| Record metadata | Creation/update times, revision, and source session/invocation/agent; updates replace content and metadata, not append history. |
+| Size limits | Key: 256 UTF-8 bytes. Content: 64 KiB. Metadata and provenance: 16 KiB combined. |
+| Page size | 1–100 records. |
+
+Use a separate database for evaluations that write memories.
+
+## Run trusted storage maintenance
+
+These Python provider methods are for trusted application code—not built-in HTTP endpoints or generated Agent Tools. Any route you add must enforce authentication and authorization.
+
+| Provider method | Scope and result |
+| --- | --- |
+| `delete_all(scope)` | Physically remove live and expired records in one namespace; return the removed count |
+| `delete_user(application_id, user_id)` | Remove that application's user across every namespace; return the removed count |
+| `purge_expired(scope, limit=100, after=None)` | Inspect a bounded page and return `MemoryCleanupPage(deleted, next_cursor)` |
+
+Sweep expired records using your configured provider:
+
+```python
+from harnest.memory import MemoryScope, MemoryStore
+
+
+async def purge_namespace(store: MemoryStore, scope: MemoryScope) -> int:
+    """Sweep expired records in an application-authorized namespace."""
+    cursor, removed = None, 0
+    while True:
+        page = await store.purge_expired(scope, limit=100, after=cursor)
+        removed += page.deleted
+        cursor = page.next_cursor
+        if cursor is None:
+            return removed
+```
+
+Schedule repeated sweeps with your maintenance worker or [Harnest cron](/harnest/build/scheduled-tasks).
+
+Before account erasure, authorize the owner and revoke writes to prevent new memories. Redis deletes namespaces in batches; retry after a partial failure. Deletion does not erase backups, database logs, transcripts, or previously returned copies.
+
+## Handle connection failures
+
+`MemoryStorageError` can mean the database committed but its acknowledgement was lost. Read the key again before retrying, and use revision checks to avoid overwriting a later update. Harnest does not automatically replay Redis writes after a lost acknowledgement.
+
+## Implement a custom provider
+
+Import the async contract and result types from `harnest.memory`:
+
+```python
+from harnest.memory import (
+    MemoryStore,
+    MemoryScope,
+    MemoryRecord,
+    MemoryPage,
+    MemoryCleanupPage,
+    MemoryConflictError,
+    MemoryStorageError,
+)
+```
+
+Implement the operations above plus `start()` and `close()`, then register your provider with `@lifecycle.storage.memory`. Subclassing is optional; follow `MemoryStore`'s signatures and guarantees for datastore-side isolation, atomic revision checks, and detached results. Explicit `MemoryScope` values belong in trusted code, never model-supplied arguments.
+
+Run the bundled conformance suite against an isolated real database:
+
+```python
+import unittest
+
+from harnest.testing import MemoryStoreConformanceMixin
+from my_storage import MyMemoryStore
+
+
+class CustomMemoryTests(MemoryStoreConformanceMixin,
+                        unittest.IsolatedAsyncioTestCase):
+    async def make_store(self):
+        """Return an unstarted provider for an isolated test database."""
+        return MyMemoryStore(...)
+```
+
+The mixin uses a unique application scope per test. Add test-data cleanup and provider-specific crash, rollback, and connection-loss checks; also verify your deployment's persistence settings.

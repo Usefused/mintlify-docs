@@ -3,16 +3,13 @@ title: "Task and cron storage"
 description: "Use PostgreSQL, Redis, or a custom database for Harnest-owned durable workers and schedules."
 ---
 
-Harnest owns task execution, retry policy, lease renewal, cron calculation, and continuation recovery. Your storage provider owns durable records and atomic state transitions. Authoring stays under `harnest.task` and `harnest.cron`; changing the database does not change your Tools or Tasks.
+Use PostgreSQL, Redis, or your own storage without changing your Tasks. Harnest runs the workers, retries, and schedules; your provider persists their state.
 
-<Note>
-  These providers are bundled with the storage-neutral feature and its next
-  Harnest release. Earlier Harnest releases do not include these imports.
-</Note>
+Queued tasks require `@lifecycle.storage.tasks`. Add `@lifecycle.storage.cron` to the same factory for recurring work. There is no default database.
 
 ## Choose and register a provider
 
-The `harnest_postgres` and `harnest_redis` Python packages ship inside Harnest's runtime wheel, just like `harnest` itself. They are versioned and installed with the CLI runtime, not distributed separately on PyPI. You do not need to add `harnest-postgres` or `harnest-redis` to your agent dependencies.
+`harnest_postgres` and `harnest_redis` ship with the Harnest runtime, not as separate PyPI distributions. Managed ADK and LangGraph environments include both drivers.
 
 From your agent folder, synchronize the matching runtime:
 
@@ -20,7 +17,7 @@ From your agent folder, synchronize the matching runtime:
 harnest env sync .
 ```
 
-The managed ADK and LangGraph environment profiles already include the database drivers. For direct Python development from the feature checkout, install the matching optional driver extra:
+For direct Python development from source, install the driver you need:
 
 <CodeGroup>
 ```bash PostgreSQL
@@ -31,11 +28,7 @@ python -m pip install '/path/to/harnest[redis]'
 ```
 </CodeGroup>
 
-Both provider imports are available in either installation. Only the selected extra installs its database driver; importing a provider does not open a database connection. For both drivers in a direct Python environment:
-
-```bash
-python -m pip install '/path/to/harnest[postgres,redis]'
-```
+Use `[postgres,redis]` to install both drivers. Imports do not open connections.
 
 Register one shared factory in `lifecycle/storage.py`, replacing the corresponding existing storage factories:
 
@@ -72,16 +65,64 @@ def storage() -> RedisStore:
 ```
 </CodeGroup>
 
-Harnest calls the factory once and starts/closes the returned object once. Sessions and checkpoints can instead use a separate provider. Tasks and cron must share the **same instance**, because committing an occurrence and advancing its schedule must be one atomic operation. Task storage alone is valid when you do not need cron; omit `@lifecycle.storage.cron` in that case.
+| Role | Configuration |
+| --- | --- |
+| Tasks and cron | Must share one instance so scheduling and enqueueing are atomic. Omit the cron decorator for tasks alone. |
+| Sessions and checkpoints | Can share this provider or use a separate one. |
+| Local tests | Use `harnest.task.MemoryTaskStore`; jobs disappear on process exit. |
 
-The provider decorators and their file are optional when you do not use these roles. Do not delete a file that also supplies your required sessions or checkpoints. `MemoryTaskStore` from `harnest.task` supports both task roles for tests, but loses all jobs and schedules when the process exits.
+Harnest calls the factory, starts the provider, and closes it once. Remove unused decorators; keep any file that still provides sessions or checkpoints.
 
 ```bash
 harnest test .
 harnest serve .
 ```
 
-Explicit providers neither load Procrastinate nor use `HARNEST_TASK_DATABASE_URL`. The PostgreSQL package creates its own durable task and cron tables. Redis uses atomic scripts and application-scoped indexes; configure persistence, replication, backups, and a no-eviction policy to meet your durability requirements. An in-memory or cache-only Redis deployment is not durable. Task records do not inherit session/checkpoint TTLs.
+PostgreSQL creates Harnest-owned task and cron tables. For Redis, configure persistence, replication, backups, and no eviction; a cache-only deployment is not durable. Task records do not inherit session/checkpoint TTLs.
+
+## Share connection configuration
+
+Start your database service before the agent. Workers run inside Harnest; no separate queue engine is needed.
+
+For reusable configuration, move the factory into `lib/`. Use this instead of the inline task/cron factory above:
+
+<CodeGroup>
+```python lib/task_storage.py
+import os
+
+from harnest_redis import RedisStore
+
+
+def create_store() -> RedisStore:
+    """Read deployment configuration without opening a connection at import time."""
+    return RedisStore(os.environ["TASK_STORAGE_URL"])
+```
+
+```python lifecycle/task_storage.py
+from harnest import lifecycle
+from harnest.lib.task_storage import create_store
+
+
+@lifecycle.storage.tasks
+@lifecycle.storage.cron
+def task_storage():
+    """Share one managed connection across tasks and recurring schedules."""
+    return create_store()
+```
+</CodeGroup>
+
+For PostgreSQL, substitute `harnest_postgres.PostgresStore` and a PostgreSQL URL. Declare custom adapter dependencies in your agent's `pyproject.toml`.
+
+From your agent folder, point the factory at your database and start the service:
+
+```bash
+export TASK_STORAGE_URL='redis://127.0.0.1:6379/0'
+harnest env sync .
+harnest test .
+harnest serve .
+```
+
+Match environment-variable names to your factory and inject production credentials through deployment secrets. Replicas must share the same application identity and persistent provider.
 
 ## Write a custom database adapter
 
@@ -97,27 +138,18 @@ from harnest.cron import CronRecord, CronStore, CronStoreConflictError
 | `TaskStore` | `start`, `close`, `enqueue_task`, `get_task`, `claim_tasks`, `renew_task_lease`, `finish_task`, `cancel_task` |
 | `CronStore` | `start`, `close`, `create_cron`, `get_cron`, `list_crons`, `update_cron`, `delete_cron`, `list_due_crons`, `commit_cron_occurrence` |
 
-Use the protocol signatures and method docstrings as the implementation contract. Records use UTC epoch seconds and JSON-safe payloads. Return detached record snapshots, not mutable references into your database cache.
+Follow the protocol signatures and method docstrings. Records use UTC epoch seconds, JSON-safe payloads, and detached snapshots.
 
-The critical guarantees are:
+| Guarantee | Provider responsibility |
+| --- | --- |
+| Enqueue | Persist payload and job atomically. Scope idempotency to application, user, task, and key; retain a fingerprint after payload cleanup. |
+| Leases | Claim atomically with a fresh attempt token. Fence renewals and results with the matching, unexpired token. |
+| Retries | Persist timing and attempt counts; terminalize exhausted crashed attempts. |
+| Cancellation | Invalidate leases atomically; scrub arguments, invocation snapshots, and permissions at terminal transitions. |
+| Isolation | Apply owner predicates, ordering, and bounded pagination in the database. `get_task(user_id=None)` is for trusted workers, not Agent Tools. |
+| Cron | Revision-check edits; atomically commit each occurrence and advance its cursor through the same provider. |
 
-- Enqueue payload and job together. Scope idempotency to application, user, task,
-  and key; retain an immutable fingerprint after terminal payload cleanup.
-- Claim due work atomically across replicas. Every attempt gets a fresh lease
-  token. Renewals and outcome writes require the matching, unexpired token.
-- Persist retry time and attempt count. Exhausted crashed attempts become
-  terminal failures instead of becoming stranded.
-- Cancel atomically, invalidate leases, and scrub arguments, invocation
-  snapshots, and permission names on terminal transitions.
-- Apply application/user predicates and bounded ordering/pagination in the
-  database. `get_task(user_id=None)` is a trusted worker lookup, not a public
-  authorization bypass to expose to Tools.
-- Revision-check schedule edits. Commit an occurrence and advance its cursor
-  together, checking the current status and revision inside that transaction.
-  Separate databases need a durable transactional-outbox design; the current
-  contract deliberately requires one provider boundary.
-
-Register your adapter with `@lifecycle.storage.tasks` and, if implemented, `@lifecycle.storage.cron`. Harnest calls these methods; you do not need to write another scheduler or worker engine.
+Register the adapter with `@lifecycle.storage.tasks` and, when supported, `@lifecycle.storage.cron`.
 
 ## Test a custom adapter
 
@@ -141,7 +173,7 @@ class MyStoreContractTests(TaskStoreConformanceMixin,
 python -m unittest discover -s tests -v
 ```
 
-The suite exercises both task and cron contracts, including concurrent claims, scope isolation, lease expiry, deduplication after cleanup, revision conflicts, and atomic occurrence dispatch. Add provider-specific crash, transaction rollback, connection-loss, and restart tests. Passing this suite is not proof that your deployment's disk persistence or replication is configured safely.
+The suite checks isolation, concurrent claims, leases, deduplication, revisions, and atomic scheduling. Add database-specific crash, rollback, connection-loss, and restart tests. Verify deployment persistence separately.
 
 ## Execution and recovery guarantees
 
@@ -153,16 +185,17 @@ Cron cursors survive restart. Missed occurrences catch up in bounded batches; th
 
 ## Move an existing application safely
 
-Without an explicit Task provider, Harnest retains its existing Procrastinate backend and database settings. This compatibility path allows existing work to drain; adding a provider is an explicit storage switch, not a migration command.
+The Procrastinate backend and automatic PostgreSQL fallback have been removed. If you used them, drain work on your currently deployed version **before upgrading**. The new runtime cannot process the old queue tables.
 
 1. Back up your database and inventory recurring schedules for each owner.
 2. Stop new submissions and pause recurring schedules on the old runtime.
 3. Drain or explicitly cancel queued/running Tasks and resolve their waiting
    continuations before stopping the old workers.
 4. Configure the new provider, preserving session/checkpoint storage when it
-   contains history you need. Start the new deployment and recreate dynamic
+   contains history you need. Synchronize the runtime and recompile your agent.
+   Start the new deployment and recreate dynamic
    schedules under their original user scopes. Static declarations reconcile
    automatically.
 5. Verify task execution, recovery, and owner isolation before reopening traffic.
 
-There is no automatic copy of legacy queue rows, schedule IDs, results, or continuation references. Keep the legacy database until its retention and recovery needs are satisfied. Likewise, drain work before renaming/removing a Task or changing its queue: workers subscribe to currently compiled queues, not every historical queue in the database.
+There is no automatic copy of old queue rows, schedule IDs, results, or continuation references. Keep the old database until its retention and recovery needs are satisfied. Likewise, drain work before renaming/removing a Task or changing its queue: workers subscribe to currently compiled queues, not every historical queue in the database.

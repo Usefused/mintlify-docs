@@ -93,7 +93,7 @@ def state_storage():
 
 </CodeGroup>
 
-When a compiled project also contains `@task` work, one unambiguous `PostgresStore` can supply its Procrastinate database. Otherwise set `HARNEST_TASK_DATABASE_URL`. Redis can persist A2A Task snapshots, but the compiled Task queue still requires PostgreSQL.
+When a compiled project also contains `@task` work, register an explicit `@lifecycle.storage.tasks` provider. Sessions and checkpoints do not implicitly configure queued work. PostgreSQL, Redis, and custom providers can persist the queue; see [Task and cron storage](/harnest/runtime/task-storage). Recurring work also requires the same provider under `@lifecycle.storage.cron`.
 
 An unfinished `@task` awaited inside `@tool(durable=True)` shares the Harnest run and continuation represented by its A2A Task. On `GetTask` or subscription, Harnest reconciles a durable result without replaying the original tool call.
 
@@ -104,7 +104,7 @@ also carry the native ADK or LangGraph `raw` mapping. A remote A2A task store or
 consumer may retain those values. Keep the normalized default unless every A2A
 caller is authorized to receive provider metadata.
 
-`CancelTask` reports success only after Harnest has made the owned run and continuation terminal. For a queued `@task`, cancellation also stops the Procrastinate job and removes its private payload before committing the A2A `CANCELED` snapshot.
+`CancelTask` reports success only after Harnest has made the owned run and continuation terminal. For a queued `@task`, cancellation also invalidates its execution lease and removes its private payload in task storage before committing the A2A `CANCELED` snapshot. Cancellation cannot undo external side effects already performed by the task.
 
 <Warning>
   Human approvals and client-tool requests are process-local. If a durable run resumes into one of those interactions on a replica that does not own it, Harnest fails the A2A Task rather than advertising input that replica cannot accept.

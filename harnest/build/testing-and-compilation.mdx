@@ -86,7 +86,7 @@ Compiled directories are reproducible output. Do not edit or commit them.
 |---|---|
 | Root `pyproject.toml` | Resolves application dependencies |
 | Harnest Extension `pyproject.toml` | Joins the same dependency solve and lock |
-| Public `@task` | Adds pinned Procrastinate support |
+| Public `@task` | Uses built-in Harnest workers; provider dependencies come from project metadata |
 | Active `mcp/*.py` | Adds the selected framework's MCP adapter |
 | `serve`, `run`, or `test` | Selects the shared development profile |
 | `test --evals` | Selects the Google ADK evaluation profile |

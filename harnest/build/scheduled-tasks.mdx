@@ -153,8 +153,8 @@ When scheduled work invokes the agent without passing an `AgentRuntimePrincipal`
   Fixed and dynamic schedules require the durable Task backend and a long-lived
   `harnest serve` or `harnest-agent serve` process. `harnest run` never
   activates schedules. Configure [Task and cron storage](/harnest/runtime/task-storage)
-  for PostgreSQL, Redis, or your own database. Applications without explicit
-  providers retain the legacy `HARNEST_TASK_DATABASE_URL` / PostgreSQL path.
+  for PostgreSQL, Redis, or your own database. Register the same provider under
+  `lifecycle.storage.tasks` and `lifecycle.storage.cron`; there is no implicit backend.
 </Note>
 
 See [Create and run Tasks](/harnest/build/queued-tasks) for task results, retries, and
