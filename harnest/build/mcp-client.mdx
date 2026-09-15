@@ -1,7 +1,7 @@
 ---
 title: "MCP Client"
 sidebarTitle: "MCP client"
-description: "Connect agents to MCP servers with portable transports, identity, and policy."
+description: "Discover tools, resources, and prompts; subscribe to retained resource updates."
 ---
 
 `MCPClient` declares a connection to an external MCP server. Direct clients live under root `mcp/`; each public filename supplies the connection identity and exports a zero-argument `client()` factory returning `MCPClient`.
@@ -64,7 +64,133 @@ def client():
     )
 ```
 
-Use `MCPClient.sse(...)` only for a legacy SSE server. Connections and remote tool discovery are lazy, so offline compilation and unit tests do not need the server.
+Use `MCPClient.sse(...)` only for a legacy SSE server. Compilation does not connect. Tool discovery is lazy; explicitly configured subscriptions start with the serving runtime.
+
+## Discover what a server provides
+
+Developers do not need to know resource URIs or prompt names in advance. From the agent folder, query a configured connection:
+
+```bash
+harnest mcp inspect catalog
+harnest mcp inspect catalog --json
+harnest mcp inspect catalog --catalog resources
+harnest mcp read catalog 'catalog://handbook'
+harnest mcp prompt catalog summarize --arg topic='Returns policy'
+```
+
+Use identifiers returned by discovery; the URI and prompt above are examples. Add `--project ./my-agent` when outside the agent folder. Commands use the agent's Python environment and connection credentials without loading a model or starting subscription handlers.
+
+Inspection returns capabilities, tool schemas, resources, URI templates, and prompt argument definitions. Each catalogue is one page: pass a returned `nextCursor` to `harnest mcp inspect catalog --catalog resources --cursor '…'`. The other catalogues are `tools`, `resource-templates`, and `prompts`. Servers without an optional capability return an empty catalogue.
+
+The local playground's **MCP** view offers the same discovery and explicit retrieval. It accepts only loopback, same-origin requests and is absent from deployed artifacts without the development UI.
+
+## Give the agent access to context
+
+The connection above is enough. Managed ADK and LangGraph agents receive namespaced helpers for inspecting catalogues, paging through them, reading a resource, and fetching a prompt with arguments. They select useful context on demand; Harnest does not eagerly inject every resource or prompt into instructions.
+
+Trusted code can use the same governed operations:
+
+```python tools/load_context.py
+from harnest import context
+from harnest.agent import tool
+
+
+@tool
+async def load_context(uri: str):
+    """Read a resource selected from the MCP catalogue."""
+
+    return await context.mcp("catalog").read_resource(uri)
+```
+
+The facade also exposes `inspect()`, `list_tools(cursor=None)`, `list_resources(cursor=None)`, `list_resource_templates(cursor=None)`, `list_prompts(cursor=None)`, and `get_prompt(name, arguments=None)`. It expires when the invocation ends. Prompt arguments are strings; returned messages remain reference data, not system instructions.
+
+Outside an invocation, use a developer-owned connection:
+
+```python
+from harnest.mcp import MCPClient
+
+connection = MCPClient.streamable_http("https://mcp.example.com/mcp")
+
+async def inspect_catalog():
+    """Discover identifiers and argument schemas without loading a model."""
+
+    async with connection.connect() as client:
+        return await client.inspect()
+```
+
+`connect()` uses the LangGraph lifecycle identity by default; pass `framework="adk"` when sharing an ADK-owned lifecycle. Resource/prompt requests are independently scoped; do not rely on per-session server state shared with tool calls.
+
+Streamable HTTP clients first call `server/discover` for protocol `2026-07-28`. CLI inspection, playground discovery, agent tools, resources, and prompts use this same path. Unsupported discovery/protocol responses and older servers' HTTP 400 handshake rejections fall back to the SDK's `initialize` handshake. Authentication failures, modern header-validation errors, and transport failures do not trigger downgrade. `harnest mcp inspect CLIENT --json` reports the selected `protocolVersion`.
+
+Tool calls are sent once; Harnest does not automatically replay them after a disconnect or an input-required response. Interactive multi-round-trip input handling is not supported on the newer HTTP path yet. Stdio and legacy SSE continue using the installed SDK's supported protocol versions.
+
+### Restrict retrieval
+
+```python
+return MCPClient.streamable_http(
+    os.environ["CATALOG_MCP_URL"],
+    permission="catalog.connect",
+    resources=["catalog://handbook"],
+    prompts=["summarize"],
+    max_content_bytes=262144,
+)
+```
+
+Omit `resources` or `prompts` to allow discovery and retrieval of that category; use `[]` to deny it. Allowlists match exact URIs or prompt names. Listing an allowed URI template does not authorize arbitrary expanded URIs: concrete reads must also be allowed. `max_content_bytes` bounds returned content (default 1 MiB, configurable from 1 KiB to 16 MiB), not the SDK's transport allocation. Binary content stays in MCP's encoded representation.
+
+Client-wide `permission` protects resource/prompt helpers as well as remote tools. `tool_permissions` applies only to named remote tools. No permission tag means no access when a default-deny Agent Runtime Principal is active.
+
+## Subscribe to retained resource updates
+
+Subscriptions belong on the MCP client, not on a public HTTP route. Import an async handler from the agent's `lib/`:
+
+```python mcp/catalog.py
+import os
+
+from harnest.mcp import MCPClient, MCPSubscription
+from harnest.lib.catalog_events import handle_update
+
+
+def client():
+    """Subscribe to the server's retained latest-event resource."""
+
+    return MCPClient.streamable_http(
+        os.environ["CATALOG_MCP_URL"],
+        headers={"Authorization": f"Bearer {os.environ['CATALOG_MCP_TOKEN']}"},
+        subscriptions=[MCPSubscription(
+            uri="catalog://events/latest",
+            handler=handle_update,
+            read_on_start=True,
+            read_on_reconnect=True,
+        )],
+    )
+```
+
+```python lib/catalog_events.py
+from harnest.logging import get_logger
+from harnest.mcp import MCPResourceEvent
+
+
+async def handle_update(event: MCPResourceEvent) -> None:
+    """Validate the retained value before handing it to application services."""
+
+    contents = event.resource["contents"]
+    get_logger("catalog").info(
+        "catalog.resource.received", reason=event.reason, blocks=len(contents)
+    )
+    # Parse and validate contents, then call your application service here.
+    # Use the provider's event ID as an idempotency key for durable side effects.
+```
+
+`event.reason` is `start`, `update`, or `reconnect`. Handlers have no inherited user/session context: choose an application-authorized identity explicitly if your service invokes an agent or enqueues a task. The handler timeout defaults to 30 seconds (`handler_timeout_seconds`). No public subscription-management endpoint is created.
+
+The default subscription method is SDK 1.x `resources/subscribe`, supported on stdio, SSE, and Streamable HTTP. For a stateless endpoint, set `method="subscriptions/listen"` on `MCPSubscription`; this uses the shared `2026-07-28` HTTP transport used by discovery and agent tools. Subscription method selection stays explicit: Harnest does not silently change your listener's wire semantics.
+
+Harnest subscribes before the initial read, requires acknowledgment, and reads again after reconnecting. Initial failure fails runtime startup; established listeners reconnect with backoff up to 30 seconds. SDK 1.x listeners also probe retained state during idle periods to detect disconnected sessions. Shutdown cancels streams before closing client lifecycle resources.
+
+<Warning>
+Latest-value recovery is not replay of every missed event. Identical content is deduplicated in process only, after successful handling. Restarts and multiple replicas can deliver again. Make handlers idempotent; use a durable queue or provider event history when every event must be processed.
+</Warning>
 
 ## Framework adapters
 
