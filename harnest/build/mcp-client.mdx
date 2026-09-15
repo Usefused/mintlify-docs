@@ -86,7 +86,15 @@ The local playground's **MCP** view offers the same discovery and explicit retri
 
 ## Give the agent access to context
 
-The connection above is enough. Managed ADK and LangGraph agents receive namespaced helpers for inspecting catalogues, paging through them, reading a resource, and fetching a prompt with arguments. They select useful context on demand; Harnest does not eagerly inject every resource or prompt into instructions.
+The connection above is enough. Managed ADK and LangGraph agents receive namespaced helpers based on the server's advertised capabilities and your allowlists:
+
+| Available capability | Helpers shown to the model |
+|---|---|
+| Tools only | Remote tools; no extra local helpers |
+| Resources | List resources, list URI templates, read a resource |
+| Prompts | List prompts, fetch a prompt with arguments |
+
+Resource and prompt helpers are additive. Setting `resources=[]` or `prompts=[]` hides that category's helpers and denies retrieval. An empty catalogue does not disable an advertised capability: resources or prompts can appear later. Harnest does not eagerly inject their contents into instructions.
 
 Trusted code can use the same governed operations:
 
@@ -102,7 +110,7 @@ async def load_context(uri: str):
     return await context.mcp("catalog").read_resource(uri)
 ```
 
-The facade also exposes `inspect()`, `list_tools(cursor=None)`, `list_resources(cursor=None)`, `list_resource_templates(cursor=None)`, `list_prompts(cursor=None)`, and `get_prompt(name, arguments=None)`. It expires when the invocation ends. Prompt arguments are strings; returned messages remain reference data, not system instructions.
+The facade also exposes `inspect()`, `list_tools(cursor=None)`, `list_resources(cursor=None)`, `list_resource_templates(cursor=None)`, `list_prompts(cursor=None)`, and `get_prompt(name, arguments=None)`. Inspection and tool-catalogue listing are developer operations, not additional model tools. These methods remain available regardless of model exposure and still enforce permissions, allowlists, auditing, and invocation lifetime. Unsupported optional catalogues return empty lists; unsupported reads fail explicitly. Prompt arguments are strings; returned messages remain reference data, not system instructions.
 
 Outside an invocation, use a developer-owned connection:
 
