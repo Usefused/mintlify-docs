@@ -21,7 +21,7 @@ harnest extensions install rag --project my-agent
 harnest env sync my-agent
 ```
 
-The package depends on `asyncpg` and imports it only when a PostgreSQL lifecycle resource starts. It does not install Elasticsearch, Neo4j, or a PostgreSQL server extension.
+The package requires Harnest `>=0.18,<0.23`. It depends on `asyncpg` and imports it only when a PostgreSQL lifecycle resource starts. It does not install Elasticsearch, Neo4j, or a PostgreSQL server extension.
 
 ## Supply an embedder
 
