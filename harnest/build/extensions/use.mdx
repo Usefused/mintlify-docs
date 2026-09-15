@@ -23,6 +23,8 @@ harnest env sync .
 
 For a PyPI install, Harnest accepts a universal `py3-none-any` wheel and validates the manifest, wheel metadata, digest, entry point, and package layout without importing extension code. Platform- or ABI-specific wheels are not installed. For local source, it validates the manifest and layout plus any available project identity and version metadata. Both paths materialize the complete package into `extensions/<manifest-name>` through a staged replacement and preserve its internal paths. Compilation projects only directories listed in `contributes`; it does not scatter their files into the agent root. Harnest refuses an existing extension unless you pass `--force`. Review same-process extension code and its declared capabilities before installation; installing changes dependency inputs, so refresh `harnest-runtime.lock` with `harnest env sync .`.
 
+Published wheels may declare dependencies on Harnest or its framework packages. During installation, Harnest omits those compiler-owned requirements from the materialized project and supplies its pinned runtime versions instead. Extension-owned dependencies remain in the root environment solve. Locally authored extensions must not redeclare compiler-owned packages.
+
 After compilation, Harnest exposes the extension module as `harnest.extensions.<name>`. Import the singleton from a discovered Agent Tool and call its bounded API:
 
 ```python tools/query_warehouse.py

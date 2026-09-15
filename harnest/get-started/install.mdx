@@ -32,6 +32,8 @@ Install the native CLI and its managed runtime on macOS or Linux.
   </Step>
 </Steps>
 
+Outside an agent folder, `doctor` checks only the core runtime; it does not require ADK or LangGraph. Once you have a project, run `harnest doctor .` from its folder to check its framework and synchronized environment. If that environment is missing, run `harnest env sync .` first.
+
 <Note>
   A Harnest release includes the native CLI, its matching Python runtime package, and the `uv` bootstrapper. You do not need a preinstalled Python.
 </Note>

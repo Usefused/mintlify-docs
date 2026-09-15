@@ -27,9 +27,9 @@ Agent replies in the local playground support Markdown headings, lists, tables, 
 
 | URL | Purpose |
 |---|---|
-| `http://127.0.0.1:8080/` | Playground, local `harnest serve` only |
-| `http://127.0.0.1:8080/docs` | OpenAPI explorer |
-| `http://127.0.0.1:8080/healthz` | Process health |
+| `http://127.0.0.1:1907/` | Playground, local `harnest serve` only |
+| `http://127.0.0.1:1907/docs` | OpenAPI explorer |
+| `http://127.0.0.1:1907/healthz` | Process health |
 
 <CardGroup cols={2}>
   <Card title="Server configuration" icon="sliders" href="/harnest/runtime/serving/server-configuration">
@@ -53,6 +53,8 @@ Agent replies in the local playground support Markdown headings, lists, tables, 
 </CardGroup>
 
 ## Response modes
+
+Start with the [copyable curl requests](/harnest/runtime/serving/neutral-api#send-your-first-request). For machine-readable discovery, fetch `/agent` and `/openapi.json`; `/docs` provides the interactive API explorer.
 
 | Mode | Start with | Receive |
 |---|---|---|

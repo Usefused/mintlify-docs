@@ -98,7 +98,7 @@ The API also accepts keyword-only `input_files=()` for providers that support fi
    ```
 
 4. From the agent folder, run `harnest test .`, then `harnest serve .`.
-5. Open the playground at `http://127.0.0.1:8080/` and ask: “Use total_values to add 17, 23, and 41.” Check the tool event as well as the final answer; the expected tool result is `{"total": 81}`.
+5. Open the playground at `http://127.0.0.1:1907/` and ask: “Use total_values to add 17, 23, and 41.” Check the tool event as well as the final answer; the expected tool result is `{"total": 81}`.
 
 Offline tests validate your project but do not prove Docker execution works. The playground check uses your configured model and the Docker extension. See [Serving agents](/harnest/runtime/serving) for server settings and authentication.
 

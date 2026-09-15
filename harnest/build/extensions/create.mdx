@@ -61,6 +61,8 @@ dependencies = ["warehouse-sdk>=2,<3"]
 
 `metadata.name` must match the folder. The optional PEP 621 distribution name must be `harnest-extension-<name>` and its version must match `extension.yaml`. The prefix prevents an extension from colliding with an SDK distribution that uses the provider name. Static dependencies join the root environment solve.
 
+For a local extension, declare only extension-owned dependencies, such as `warehouse-sdk` above. Do not pin `harnest` or compiler-owned framework packages; upgrade Harnest to change its runtime versions. Published wheels can carry those requirements for standalone installation, but [Harnest's installer](/harnest/build/extensions/use) leaves their versions to the pinned runtime.
+
 A distributable extension may include one regular root `README.md` and reference it from `project.readme`. Package that file with `extension.yaml` and `extension.py` so PyPI renders the same reviewed documentation that Harnest preserves during installation. Harnest rejects links, special files, and unexpected root resources.
 
 `contributes` is the only content projection contract. Harnest does not infer content from folder names. Each value is a package-relative directory; paths must exist, remain inside the package, and cannot overlap. You may use conventional paths as above or a custom source such as `resources/tools/`. Harnest installs the complete package under `extensions/<name>/` and composes declared content from there—it does not copy files into the agent's root `tools/`, `mcp/`, or other authored folders. Omitting `contributes` creates a runtime-only extension.

@@ -37,6 +37,18 @@ harnest --version
 harnest doctor
 ```
 
+## Diagnose an agent
+
+From your agent folder:
+
+```bash
+harnest doctor .
+```
+
+`doctor` detects the framework from `config.yaml`. It checks the existing runtime environment, or a development/eval environment if runtime has not been synchronized yet. It does not install or update dependencies. Run `harnest env sync .` to create or refresh the runtime environment, then retry.
+
+With no directory argument, `doctor` detects an agent in the current folder; otherwise it checks core packages only. `--framework adk` or `--framework langgraph` explicitly adds that framework's checks. `--python` and `HARNEST_PYTHON` select an explicit interpreter for diagnosis, and the output shows which interpreter was checked. A missing framework in the shared core runtime does not mean it is missing from an agent's isolated environment.
+
 ## Installer properties
 
 | Property | Default | Use it for |

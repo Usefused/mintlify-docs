@@ -4,7 +4,7 @@ sidebarTitle: "Server config"
 description: "Override standalone server defaults in your project config."
 ---
 
-Local `harnest serve` listens on `127.0.0.1:8080` with the playground enabled by default. Compiled launchers serve the agent API without the playground. You do not need a separate server configuration file.
+Local `harnest serve` listens on `127.0.0.1:1907` with the playground enabled by default. Compiled launchers serve the agent API without the playground. You do not need a separate server configuration file.
 
 Add a root `server:` section to `config.yaml` only when you want to change a default. Each section and setting is optional:
 
@@ -28,9 +28,20 @@ server:
   live: true
 ```
 
-This enables `WS /live` on the same host and port as HTTP, such as `ws://127.0.0.1:8080/live`. It does not open a second listener or require another port. Use `wss://` when your deployment terminates TLS.
+This enables `WS /live` on the same host and port as HTTP, such as `ws://127.0.0.1:1907/live`. It does not open a second listener or require another port. Use `wss://` when your deployment terminates TLS.
 
 New projects default to `live: false`. HTTP requests and SSE streams remain available. When live is disabled, the server rejects all WebSocket upgrades, including native ADK and custom WebSocket routes. `/agent` omits the live endpoint, and the playground disables its **Live** transport choice.
+
+## Hide API documentation
+
+```yaml config.yaml
+server:
+  openapi: false
+```
+
+This disables `/docs`, `/redoc`, `/openapi.json`, and `/openapi.yaml`, and removes their links from the playground, `/agent`, and startup output. The agent API still works. Hiding documentation is not authentication; protect the API separately for deployment.
+
+With the default `openapi: true`, both spec formats are available as HTTP resources. `harnest serve .` prints the Swagger URL and both spec URLs using the effective bind address and port. The compiled launcher uses the same policy.
 
 ## Server properties
 
@@ -39,9 +50,10 @@ All property paths below are relative to `server` in `config.yaml`.
 | Property | Controls | Default |
 |---|---|---|
 | `live` | Enable WebSocket connections | `false` |
+| `openapi` | Expose API documentation and JSON/YAML spec resources | `true` |
 | `agentPrincipal` | Require custom agent invocations to bind runtime grants | `optional` |
 | `http.host` | Bind host | `127.0.0.1` |
-| `http.port` | Bind port | `8080` |
+| `http.port` | Bind port | `1907` |
 | `http.allowRemote` | Consent for a non-loopback bind | `false` |
 | `http.requestTimeoutSeconds` | Request timeout in seconds | `300` |
 | `http.maxConcurrentRequests` | Active in-process requests (`1`–`100000`) | `8` |
