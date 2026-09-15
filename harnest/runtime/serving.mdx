@@ -21,11 +21,13 @@ harnest compile AGENT_DIR --output .harnest/my-agent
 
 Serving from source uses the shared development environment and
 `harnest-development.lock`. `harnest compile` uses the lean production profile;
-serve the resulting launcher in deployment so development tools are not packaged.
+serve the resulting launcher in deployment so development tools are not packaged. Playground assets, including the Markdown parser, live in the native CLI—not in compiled agents or the Python runtime wheel. Local `harnest serve` provides those assets temporarily; the deployed launcher does not expose the playground, its trace viewer, or its evaluation routes.
+
+Agent replies in the local playground support Markdown headings, lists, tables, links, and code blocks across responses, streams, and restored sessions. Raw HTML and automatic image loading are disabled; tool payloads remain plain text.
 
 | URL | Purpose |
 |---|---|
-| `http://127.0.0.1:8080/` | Playground |
+| `http://127.0.0.1:8080/` | Playground, local `harnest serve` only |
 | `http://127.0.0.1:8080/docs` | OpenAPI explorer |
 | `http://127.0.0.1:8080/healthz` | Process health |
 

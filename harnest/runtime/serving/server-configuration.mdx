@@ -4,7 +4,7 @@ sidebarTitle: "Server config"
 description: "Override standalone server defaults in your project config."
 ---
 
-Your agent serves on `127.0.0.1:8080` with the playground enabled by default. You do not need a separate server configuration file.
+Local `harnest serve` listens on `127.0.0.1:8080` with the playground enabled by default. Compiled launchers serve the agent API without the playground. You do not need a separate server configuration file.
 
 Add a root `server:` section to `config.yaml` only when you want to change a default. Each section and setting is optional:
 
@@ -46,7 +46,7 @@ All property paths below are relative to `server` in `config.yaml`.
 | `http.requestTimeoutSeconds` | Request timeout in seconds | `300` |
 | `http.maxConcurrentRequests` | Active in-process requests (`1`–`100000`) | `8` |
 | `limits.maxRequestBytes` | HTTP body and WebSocket frame size | `1MiB` |
-| `playground.enabled` | Development UI | `true` |
+| `playground.enabled` | Allow the UI supplied by local `harnest serve`; does not add UI to deployments | `true` |
 
 Unknown fields, invalid types, and out-of-range values fail during compilation. Omit a field to inherit its default; `null` does not mean “use the default.”
 

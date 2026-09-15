@@ -6,6 +6,8 @@ description: "Add the security, durability, and operations missing from the stan
 
 The standalone server is a runtime process, not a complete production platform.
 
+Deploy the compiled `harnest-agent` launcher using the production runtime environment. Compiled agents and the Python runtime wheel exclude playground assets and its Markdown parser. The launcher does not expose playground, trace-viewer, or evaluation routes, even when `server.playground.enabled` is `true`; that setting only controls local `harnest serve`.
+
 ## Production checklist
 
 | Before a remote deployment | Why |
