@@ -2,6 +2,7 @@
 @media (min-width: 1024px) {
   #sidebar-content {
     width: 18rem;
+    border-right: 1px solid color-mix(in srgb, currentColor 12%, transparent);
   }
 
   #body-content {
