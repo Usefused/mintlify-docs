@@ -6,6 +6,39 @@ description: "Connect agents to MCP servers with portable transports, identity, 
 
 `MCPClient` declares a connection to an external MCP server. Direct clients live under root `mcp/`; each public filename supplies the connection identity and exports a zero-argument `client()` factory returning `MCPClient`.
 
+## Scaffold a connection
+
+Create an authenticated Streamable HTTP client without putting its token in source:
+
+```bash
+harnest add mcp catalog \
+  --url https://mcp.example.com/mcp \
+  --token-env CATALOG_MCP_TOKEN
+```
+
+The generated `mcp/catalog.py` reads the token through `${CATALOG_MCP_TOKEN}`, sends it as `Authorization: Bearer <token>`, and prefixes discovered tool names with `catalog_`.
+
+Choose where and how the token is sent when a server uses a different header scheme:
+
+```bash
+harnest add mcp internal \
+  --url https://mcp.example.com/mcp \
+  --token-env INTERNAL_MCP_KEY \
+  --token-header X-API-Key \
+  --token-prefix=
+```
+
+| Flag | Behavior |
+|---|---|
+| `--url` | Required HTTP or HTTPS MCP endpoint |
+| `--transport` | `streamable-http` by default; use `sse` only for a legacy server |
+| `--token-env` | Environment variable that supplies the token; omit for an unauthenticated server |
+| `--token-header` | Destination header; defaults to `Authorization` |
+| `--token-prefix` | Text before the token; defaults to `Bearer `; use an empty value for a raw token |
+| `--project` | Agent root; defaults to the current directory |
+
+The command accepts only the environment variable's name. It rejects token values, credentials embedded in URLs, invalid header names, and advanced-mode projects where `mcp/` discovery is not active.
+
 | Property | Rule |
 |---|---|
 | Location | `mcp/<name>.py` |
