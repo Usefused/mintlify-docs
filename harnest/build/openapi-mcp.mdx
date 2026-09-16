@@ -1,0 +1,80 @@
+---
+title: "Connect to OpenAPI at runtime"
+sidebarTitle: "OpenAPI to MCP"
+description: "Use MCPClient.from_openapi to turn an OpenAPI specification into a runtime MCP connection."
+---
+
+Use `MCPClient.from_openapi(...)` to connect directly to an API described by OpenAPI. Harnest loads the spec and constructs a local FastMCP bridge when the MCP connection opens. There is no client-generation command or provisioning step.
+
+## Declare a client
+
+Place the specification at `mcp/_specs/crm.yaml` and declare its connection:
+
+```python mcp/crm.py
+from pathlib import Path
+
+from harnest.mcp import MCPClient
+
+
+def client() -> MCPClient:
+    """Connect to CRM through its OpenAPI specification."""
+    return MCPClient.from_openapi(
+        Path(__file__).parent / "_specs" / "crm.yaml",
+        headers={"Authorization": "Bearer ${CRM_API_TOKEN}"},
+    )
+```
+
+The `_specs` directory is excluded from Python capability discovery and copied into the compiled agent. Resolving the path beside `__file__` keeps it valid after deployment. A relative string path resolves against the runtime working directory.
+
+Each `from_openapi` call creates one standard MCP client for one spec. Declare separate clients for separate APIs. To combine multiple specs into one remotely hosted MCP server, use [`harnest_fused`](/harnest/build/fused-mcp).
+
+## Runtime dependency
+
+Add the optional extra to the agent's existing dependency list:
+
+```toml pyproject.toml
+[project]
+# Keep your existing project name, version, and dependencies.
+dependencies = ["harnest[openapi]"]
+```
+
+Run `harnest env sync .` to update the managed environment and its lock. If you manage your own interpreter, install `harnest[openapi]` alongside your framework's MCP adapter.
+
+## Load a URL
+
+```python
+MCPClient.from_openapi(
+    "https://crm.example.com/openapi.json",
+    base_url="https://api.example.com/v1",
+    headers={"X-API-Key": "${CRM_API_KEY}"},
+    tools=["get_customer", "list_orders"],
+    prefix="crm",
+)
+```
+
+`base_url` overrides the first top-level OpenAPI server URL. Supply it when a local spec has a relative server, lacks a server, or uses server variables. A relative server in a remote spec resolves against that spec's URL.
+
+Remote specs are fetched when a connection starts, including reconnects. Source changes can therefore change the available tools. Use a bundled local file when deployments must use a fixed specification. Spec downloads do not follow redirects or receive the API headers. Download protected specs separately and pass a local path.
+
+## Credentials and policies
+
+`headers` supports the same `${VARIABLE}` references as other MCP connections. Values resolve when the connection opens and are sent only to the API. The spec's `securitySchemes` do not automatically provision credentials or perform OAuth consent.
+
+The standard stdio client options apply, including `tools`, `prefix`, `permission`, `tool_permissions`, and `timeout_seconds`. Omit `tools` to expose all operations. See [MCP Client](/harnest/build/mcp-client) for runtime permissions and trusted-code access.
+
+## Inspect and compile
+
+```bash
+harnest mcp inspect crm
+harnest compile . --output .harnest/compiled
+```
+
+Inspection opens the connection and verifies conversion. Compilation does not read or download the spec, contact the API, or start the bridge. At runtime, Harnest's Python interpreter starts the bridge as a managed stdio subprocess, and the MCP connection owns its lifetime. This uses the FastMCP Python library and requires neither `fused-cli` nor a separately installed converter CLI.
+
+For use outside a discovered agent, create the same client in Python and open it with `async with client.connect()`. The returned read client supports discovery and reads such as `list_tools()` and `read_resource(...)`. Inside a running agent, invoke tools through `context.mcp("crm").call_tool(...)`, or use the standard ADK or LangGraph tool adapter.
+
+## Supported specifications
+
+The bridge supports OpenAPI 3.0 and 3.1 in JSON or YAML through FastMCP 2.x. Bundle external `$ref` files or URLs into one document first; internal `#/...` references are retained. Input documents are limited to 16 MiB. Source and operation validation happens when the connection starts.
+
+Swagger 2.0, OpenAPI 3.2, and automatic OAuth flows are not supported by this bridge. The separate [`harnest_fused` package](/harnest/build/fused-mcp) can use `fused-cli` for explicit setup and Fused-managed execution.
