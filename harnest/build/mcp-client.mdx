@@ -93,3 +93,11 @@ Customize the HTTP client only for a gateway, mTLS, or transport policy. Put sha
 | Connection for one agent | Root `mcp/` |
 | Portable MCP declarations, optionally with Agent Skills | [Agent Plugin](/harnest/build/agent-plugins) using `mcp.json` |
 | MCP plus SDK, context, or lifecycle behavior | [Harnest Extension](/harnest/build/extensions) |
+
+## Combine APIs with Fused
+
+Use the optional [`harnest_fused` package](/harnest/build/fused-mcp) to provision one Fused MCP server from multiple OpenAPI specifications. Include all operations or select operations per spec, then connect through a standard MCP Client. Provisioning is an explicit setup step.
+
+## Connect to OpenAPI at runtime
+
+Use [`MCPClient.from_openapi(...)`](/harnest/build/openapi-mcp) to load a local or remote specification when the MCP connection starts. Each spec has its own runtime FastMCP bridge, with normal MCP policies and environment credential references. No client-generation command is needed.

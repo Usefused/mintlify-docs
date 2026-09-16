@@ -1,0 +1,124 @@
+---
+title: "Compose APIs with Fused"
+sidebarTitle: "Fused MCP"
+description: "Combine multiple OpenAPI specifications into one Fused MCP server and connect through a standard Harnest MCP Client."
+---
+
+Use the optional `harnest_fused` package to describe several OpenAPI services, provision one Fused MCP server, and connect your agent to that server. Each spec includes all operations unless you provide an explicit selection.
+
+## Install the package
+
+Until the first package release is published, install from the Harnest checkout:
+
+```bash
+python -m pip install ./packages/harnest-fused
+```
+
+Install the appropriate Harnest MCP adapter for your framework: `harnest[adk-mcp]` or `harnest[langgraph-mcp]`. Setup also requires `fused-cli` installed on your system and configured for your Fused Engine. The CLI uses its existing login and credential precedence. Your chosen bucket and any provider credentials must already exist in Fused.
+
+## Declare the services
+
+```python mcp/business.py
+from harnest_fused import FusedMCPClient, OpenAPISpec
+
+
+def client() -> FusedMCPClient:
+    """Connect to the combined customer and billing service."""
+    return FusedMCPClient.from_openapi(
+        OpenAPISpec("specs/crm.yaml", name="crm"),
+        OpenAPISpec(
+            "specs/billing.yaml",
+            name="billing",
+            operations=["listInvoices", "getInvoice"],
+        ),
+        name="business",
+    )
+```
+
+This declaration is a Harnest `MCPClient`. Creating it does not read the specs, start processes, contact Fused, or resolve environment variables. Harnest can discover and compile it through the normal [MCP Client](/harnest/build/mcp-client) workflow.
+
+| Property | Behavior |
+|---|---|
+| `source` | Local OpenAPI path or HTTP(S) URL. Local paths resolve against the setup `project` directory. Fused parses the source and its supported references. |
+| `name` | Unique lowercase service slug. Defaults to the source filename stem, with underscores replaced by hyphens. Set it explicitly when several URLs end in `openapi.json`. |
+| `operations` | Optional list of exact operation IDs. Omit it for all operations. Empty lists, strings in place of lists, and duplicate selections are rejected. Fused validates IDs when planning the MCP server. |
+| `version` | Optional provider-version fallback for a spec that does not declare one. This is separate from the MCP server version. |
+| `auth` | Optional Fused credential selector containing `type`, `name`, and optionally `ref`. Provider credentials stay in Fused. |
+| `scopes` | Optional provider connection scopes, projected into Fused's `connect.scopes`. |
+
+For all operations from every source, strings are shorthand:
+
+```python
+connection = FusedMCPClient.from_openapi(
+    "specs/crm.yaml",
+    "specs/billing.yaml",
+    "specs/support.yaml",
+    name="business",
+)
+```
+
+Operation selection limits the MCP server. Setup imports each complete service specification into Fused; it does not remove unselected endpoints from the imported service or change other MCP servers.
+
+## Provision explicitly
+
+Call `setup()` from a developer setup script. Keep it outside the `mcp/` factory, agent imports, and runtime lifecycle hooks.
+
+```python
+result = connection.setup(
+    project=".",
+    description="Find customers, review their invoices, and retrieve support cases.",
+    bucket="default",
+    version="1.0.0",
+)
+
+print(result.url)
+print(result.token_env)
+```
+
+`description` and `bucket` are required. The bucket must be an existing bucket you are allowed to use. `version` defaults to `1.0.0`; choose a new version when changing an already published MCP server's immutable configuration.
+
+<Steps>
+  <Step title="Plan the imports">
+    Setup checks the configured CLI identity and plans every spec with strict import validation. Each plan has its own retained receipt under `.fused/harnest/<name>/setup-.../`.
+  </Step>
+  <Step title="Import the services">
+    Setup applies the exact receipts and verifies their committed service and version identities. Fused's successful import also activates those versions in its workspace.
+  </Step>
+  <Step title="Create one MCP server">
+    Setup writes one Fused MCP configuration containing every selected service, plans it, and applies it. Fused validates operation selections, credentials, and access requirements.
+  </Step>
+  <Step title="Bind the client">
+    Setup reads the structured version catalogue and returns the exact version's Streamable HTTP endpoint and a standard `MCPClient`. It does not select whichever version happens to be latest.
+  </Step>
+</Steps>
+
+The current CLI displays the first MCP execution token directly in its apply output. Capture it in your secret manager and supply it through the variable named by `result.token_env`. The package does not scrape human output, save a token to source files, or generate replacement tokens automatically. An idempotent apply does not reveal the original token again; retain your existing token.
+
+For the authored `mcp/business.py` declaration, supply:
+
+| Variable | Value |
+|---|---|
+| `HARNEST_FUSED_BUSINESS_URL` | `result.url` |
+| `HARNEST_FUSED_BUSINESS_TOKEN` | Fused MCP execution token |
+
+Override the variable names with `url_env=` and `token_env=` on `from_openapi()`. Never use a Fused control-plane API key as the MCP execution token.
+
+## Generate a regular client file
+
+For a project without an existing `mcp/business.py`, setup can write a standard client declaration:
+
+```python
+result.write_client("mcp/business.py")
+```
+
+The file contains the pinned server URL and token environment reference. It imports only `harnest.mcp`, so this runtime path needs neither `harnest_fused` nor `fused-cli`. The method refuses to overwrite an existing file.
+
+Standard client options such as `prefix`, `permission`, `tool_permissions`, and `timeout_seconds` can be passed to `from_openapi()` and are preserved. Use environment references for any additional connection headers. Lifecycle and other executable Python objects cannot be emitted into a generated file; use `result.client` or your authored factory when supplying those options.
+
+## Handle setup failures
+
+Setup never retries a failed mutation automatically and does not claim to roll back imported services. A later MCP plan failure can leave earlier imports committed. Receipts and the MCP configuration remain available for inspection and recovery. For an uncertain import outcome, use `fused-cli import status <plan-id>` with the ID in that source's receipt before deciding whether to retry.
+
+`FusedCLIError` reports the failed phase without copying captured provider output or credentials into the exception. Human MCP apply output remains under the CLI's control. The configurable `timeout_seconds` bounds each subprocess and defaults to 1,260 seconds to accommodate Fused's import timeout.
+
+An existing Fused MCP server needs no OpenAPI setup. Connect to it directly with the regular [MCP Client](/harnest/build/mcp-client).
