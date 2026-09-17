@@ -1,0 +1,78 @@
+---
+title: "Authenticate into Fused"
+description: "Use the built-in Fused Auth client to sign a user into Fused with OAuth and act on their behalf."
+---
+
+Direct OAuth 2.0 client for Fused's own authorization server. Download the fixed
+`fused-auth` package:
+
+```shell
+fused-cli sdk auth-client --language ts      # TypeScript, npm package "fused-auth"
+fused-cli sdk auth-client --language python  # Python, import "fused.fused_auth"
+```
+
+Register a client under **Access → OAuth Clients** first. Confidential clients
+return a one-time `client_secret`; public clients use PKCE with no secret. The
+redirect URI must match the one you registered.
+
+## Sign a user in
+
+<Tabs>
+<Tab title="TypeScript">
+```ts
+import { FusedAuthClient } from "fused-auth";
+
+const client = new FusedAuthClient({
+  issuer: "https://engine.example.com",
+  clientId: "foc_...",
+  clientSecret: "fos_...", // omit for public clients
+  redirectUri: "https://app.example.com/oauth/callback",
+});
+
+// 1. Start the flow and send the user's browser to `url`.
+const { url, state, codeVerifier } = await client.authorizeUrl({
+  scopes: ["service.consume"],
+});
+
+// 2. On the callback, exchange the code.
+const tokens = await client.exchangeCode(code, codeVerifier);
+
+// 3. Refresh and revoke as needed.
+const refreshed = await client.refresh(tokens.refresh_token!);
+await client.revoke(refreshed.access_token);
+```
+</Tab>
+<Tab title="Python">
+```py
+from fused.fused_auth import FusedAuthClient, FusedAuthConfig
+
+client = FusedAuthClient(FusedAuthConfig(
+    issuer="https://engine.example.com",
+    client_id="foc_...",
+    client_secret="fos_...",  # omit for public clients
+    redirect_uri="https://app.example.com/oauth/callback",
+))
+
+# 1. Start the flow and send the user's browser to `req.url`.
+req = client.authorize_url(scopes=["service.consume"])
+
+# 2. On the callback, exchange the code.
+tokens = client.exchange_code(code, req.code_verifier)
+
+# 3. Refresh and revoke as needed.
+refreshed = client.refresh(tokens.refresh_token)
+client.revoke(refreshed.access_token)
+```
+</Tab>
+</Tabs>
+
+## Endpoints
+
+All paths are relative to `issuer` (your Engine's public URL):
+
+| Operation | URL |
+| --- | --- |
+| Discovery | `{issuer}/.well-known/oauth-authorization-server` |
+| Authorize | `{issuer}/oauth/authorize` |
+| Token (code + refresh) | `{issuer}/oauth/token` |
+| Revoke | `{issuer}/oauth/revoke` |

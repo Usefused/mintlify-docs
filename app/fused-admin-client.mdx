@@ -1,0 +1,71 @@
+---
+title: "Manage MCP servers programmatically"
+description: "Use the built-in Fused Admin client to list and deploy MCP servers and mint execution tokens with an OAuth access token."
+---
+
+Management client for a Fused Engine. It authenticates with an OAuth access
+token issued by the [Fused Auth client](/app/fused-auth-client), so a server-side
+app can manage a user's MCP servers without a `fused-cli` session. Download the
+fixed `fused-admin` package:
+
+```shell
+fused-cli sdk admin-client --language ts      # TypeScript, npm package "fused-admin"
+fused-cli sdk admin-client --language python  # Python, import "fused.fused_admin"
+```
+
+## List, deploy, and mint
+
+<Tabs>
+<Tab title="TypeScript">
+```ts
+import { FusedAdminClient } from "fused-admin";
+
+const client = new FusedAdminClient({
+  engineUrl: "https://engine.example.com",
+  accessToken: "<oauth access token from fused-auth>",
+});
+
+// List the workspace's MCP servers.
+const { items, total } = await client.listServers(20, 0);
+
+// Deploy a new MCP server from a declarative `kind: mcp` config object.
+const server = await client.deployServer({ name: "studio-mcp" });
+
+// Mint a one-time execution token for it (by name or id).
+const { token } = await client.generateToken(server.name, { name: "studio" });
+```
+</Tab>
+<Tab title="Python">
+```py
+from fused.fused_admin import FusedAdminClient, FusedAdminConfig, AppTokenPayload
+
+client = FusedAdminClient(FusedAdminConfig(
+    engine_url="https://engine.example.com",
+    access_token="<oauth access token from fused-auth>",
+))
+
+# List the workspace's MCP servers.
+result = client.list_servers(limit=20, offset=0)
+
+# Deploy a new MCP server from a declarative `kind: mcp` config dict.
+server = client.deploy_server({"name": "studio-mcp"})
+
+# Mint a one-time execution token for it (by name or id).
+app_token = client.generate_token(server.name, AppTokenPayload(name="studio"))
+```
+</Tab>
+</Tabs>
+
+## Endpoints
+
+All paths are relative to `engineUrl` (your Engine's public URL):
+
+| Operation | Method + URL |
+| --- | --- |
+| List MCP servers | `POST {engineUrl}/engine/graphql` — `mcpServers` |
+| Deploy MCP server | `POST {engineUrl}/engine/graphql` — `deployMcpServer` |
+| Resolve MCP family id | `POST {engineUrl}/engine/graphql` — `appFamilyReference` |
+| Mint execution token | `POST {engineUrl}/workspace/app-tokens?app_family_id=…` |
+
+`deployServer` accepts the full declarative `kind: mcp` config object; the
+Engine validates it exactly like `fused-cli`.

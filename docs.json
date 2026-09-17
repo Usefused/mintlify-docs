@@ -47,7 +47,9 @@
                 "pages": [
                   "app/build-an-sdk",
                   "app/use-in-your-app",
-                  "app/run-an-operation"
+                  "app/run-an-operation",
+                  "app/fused-auth-client",
+                  "app/fused-admin-client"
                 ]
               },
               {
