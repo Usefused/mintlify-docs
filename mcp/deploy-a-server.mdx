@@ -44,6 +44,8 @@ services:
 
 `description` summarizes what the server helps an agent accomplish in one to three concise sentences. Keep operation IDs out of this overview; the agent discovers exact calls later through `search_docs`. In a terminal, init prompts when you omit it. With `--no-input`, pass it explicitly.
 
+Each service resolves credentials through its own `bucket:` override when one is set, otherwise it falls back to the top-level `bucket:`. An `auth.ref` may only join two services that resolve to the same bucket.
+
 Use `fused-cli mcp list` whenever you need to recover the stable and pinned endpoints after initialization.
 
 <Warning>

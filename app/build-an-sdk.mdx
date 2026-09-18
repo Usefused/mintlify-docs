@@ -210,7 +210,17 @@ The operation's imported security requirements are authoritative, and they are a
 
 Where a service declares several named schemes of one type, carry both the type and the exact name. Never rely on declaration order.
 
-Credentials themselves never appear in this file. They resolve from the bucket when a connection starts or an operation dispatches.
+Credentials themselves never appear in this file. They resolve from the bucket when a connection starts or an operation dispatches. Each service resolves through its own `bucket:` override when one is set, otherwise it falls back to the top-level `bucket:`:
+
+```yaml
+services:
+  slack:
+    version: "v1"
+    bucket: slack-credentials
+    operations: ["chatPostMessage"]
+```
+
+Webhook secret references still resolve through the top-level bucket, and an `auth.ref` may only join two services that resolve to the same bucket.
 
 <Card title="Store the credentials" icon="key" href="/bucket/store-credentials">
   Terminal plans can securely fill readiness warnings and retry once, but setup is optional. Automation receives structured `credential_readiness` metadata and may pre-provision the exact bucket. If setup is deferred, the first affected call returns `bucket_credentials_missing` with the exact safe command.
