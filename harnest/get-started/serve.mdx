@@ -11,6 +11,16 @@ From the agent folder, compile and start the standalone development server:
 harnest serve .
 ```
 
+Send a message from another terminal:
+
+```bash
+curl --fail-with-body -sS http://127.0.0.1:1907/responses \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"Hello! What can you help me with?"}'
+```
+
+The response includes `outputText` and a `sessionId` you can reuse. See [API requests and streaming examples](/harnest/runtime/serving/neutral-api) for the request fields, typed inputs, authentication, and SSE. Startup output lists the Swagger URL and downloadable `openapi.json` / `openapi.yaml` resources. Calling agents can discover those resources through `/agent`. Set [`server.openapi: false`](/harnest/runtime/serving/server-configuration#hide-api-documentation) to hide them.
+
 For a normal launch without `--output` or `--reload`, Harnest retains the
 validated compilation under `.harnest/artifacts/`. A later launch with the same
 source, configuration, locks, and managed compiler starts from that artifact
@@ -26,15 +36,15 @@ harnest serve . --reload
 
 | URL | Use it for |
 |---|---|
-| `http://127.0.0.1:8080/` | Test the agent in the playground |
-| `http://127.0.0.1:8080/docs` | Inspect the generated API |
-| `http://127.0.0.1:8080/healthz` | Check process health |
+| `http://127.0.0.1:1907/` | Test the agent in the playground |
+| `http://127.0.0.1:1907/docs` | Inspect the generated API |
+| `http://127.0.0.1:1907/healthz` | Check process health |
 
 <CardGroup cols={2}>
-  <Card title="Open the playground" icon="display" href="http://127.0.0.1:8080/">
+  <Card title="Open the playground" icon="display" href="http://127.0.0.1:1907/">
     Test managed or advanced ADK and LangGraph agents in the same UI.
   </Card>
-  <Card title="Inspect the API" icon="brackets-curly" href="http://127.0.0.1:8080/docs">
+  <Card title="Inspect the API" icon="brackets-curly" href="http://127.0.0.1:1907/docs">
     Explore HTTP, SSE, sessions, approvals, and client tools.
   </Card>
 </CardGroup>

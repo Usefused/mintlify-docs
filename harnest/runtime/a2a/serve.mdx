@@ -40,7 +40,7 @@ Clients discover the same compiled card at `GET /.well-known/agent-card.json`. U
 Test the HTTP+JSON binding at the exact path declared by the card:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8080/support/a2a/message:send \
+curl -sS -X POST http://127.0.0.1:1907/support/a2a/message:send \
   -H 'A2A-Version: 1.0' \
   -H 'Content-Type: application/a2a+json' \
   --data '{"message":{"messageId":"demo-1","role":"ROLE_USER","parts":[{"text":"Hello"}]},"configuration":{"historyLength":0}}'

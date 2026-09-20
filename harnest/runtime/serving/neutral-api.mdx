@@ -3,7 +3,62 @@ title: "Neutral API"
 description: "Use portable sessions, responses, SSE events, WebSockets, and the playground."
 ---
 
-The neutral API keeps product-facing behavior stable across frameworks and authoring modes.
+Call your agent through the same HTTP API whether it uses ADK or LangGraph. The default address is `http://127.0.0.1:1907`.
+
+## Send your first request
+
+From your agent folder, run `harnest serve .`. In another terminal:
+
+```bash
+curl --fail-with-body -sS http://127.0.0.1:1907/responses \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"Hello! What can you help me with?"}'
+```
+
+You do not need to create a session first. Read `outputText` for the answer and keep the returned `sessionId` for follow-up turns. This is Harnest's API: send `input`, not an OpenAI `messages` array, and configure the model on the agent rather than in this request.
+
+| Request field | Use |
+|---|---|
+| `input` | Required non-empty message. Agents with a typed input contract require the object shown in their OpenAPI schema instead. |
+| `sessionId` | Omit for a new conversation. To continue, use an existing session ID returned by the server. An unknown or inaccessible ID returns `404`. |
+| `stream` | Optional boolean, default `false`. Set `true` for SSE. |
+| `metadata` | Optional JSON object for caller metadata; does not set user identity or authentication. |
+
+Continue the conversation, replacing the placeholder with the returned ID:
+
+```bash
+curl --fail-with-body -sS http://127.0.0.1:1907/responses \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"Tell me more.","sessionId":"REPLACE_WITH_RETURNED_SESSION_ID"}'
+```
+
+For streaming, `-N` disables curl's output buffering:
+
+```bash
+curl --fail-with-body -sS -N http://127.0.0.1:1907/responses \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"Hello!","stream":true}'
+```
+
+Inspect `status`, not just the HTTP status code. A response can be `completed`, `in_progress`, or `requires_action`; see [response recovery](#response-status-and-recovery) and [approvals and client tools](/harnest/runtime/serving/approvals-and-client-tools).
+
+<Note>
+  These commands target a local agent without authentication. For a protected deployment, use the authentication configured by its owner; for bearer authentication, add `-H "Authorization: Bearer $HARNEST_TOKEN"`. Do not put credentials in `metadata`.
+</Note>
+
+## Discover the API
+
+```bash
+curl --fail-with-body -sS http://127.0.0.1:1907/agent
+curl --fail-with-body -sS http://127.0.0.1:1907/openapi.json
+curl --fail-with-body -sS http://127.0.0.1:1907/openapi.yaml
+```
+
+Coding agents should fetch `/agent` for enabled routes and its `resources` list. Each spec resource provides a relative `uri`, `name`, and `mimeType`; resolve the URI against the server address and fetch JSON or YAML according to your client's parser. Both contain the same machine-readable request and response schemas, including custom HTTP routes. Find `POST /responses` (operation ID `createAgentResponse`) and inspect `requestBody.content.application/json`, including its `input` schema. Typed-input agents may require fields beyond a message string.
+
+`harnest serve .` prints the Swagger URL and both spec URLs. To save a local copy, use `curl --fail-with-body -sS http://127.0.0.1:1907/openapi.yaml -o openapi.yaml`. Harnest does not automatically attach the spec to model prompts or create a tool for it.
+
+For interactive use, open [Swagger UI](http://127.0.0.1:1907/docs), expand **Send a message to the agent**, choose an example, then select **Try it out** and **Execute**. Swagger displays the curl request and response. These API docs remain available in compiled deployments without the playground; configured authentication still applies. Set [`server.openapi: false`](/harnest/runtime/serving/server-configuration#hide-api-documentation) to disable the documentation routes and stop advertising them.
 
 ## Endpoints
 
