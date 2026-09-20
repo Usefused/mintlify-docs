@@ -1,0 +1,120 @@
+---
+title: "Use a Managed service"
+description: "Connect users through a Fused Managed App without storing your own OAuth client pair."
+---
+
+A **Managed service** uses a Fused-managed OAuth application for a supported service. You still enable the service, select operations and scopes, and ask each user to connect their account. Fused operates the provider application and keeps its client secret on the Fused broker Engine.
+
+| Setup | Choose it when | Application credentials |
+|---|---|---|
+| Managed service | Fused offers a managed application for your service and auth scheme | Stored on Fused's broker Engine |
+| Your own provider application | You need your own app identity, provider settings, or a service without a managed offering | Stored in your Engine bucket |
+
+Both paths use the same SDK methods, MCP tools, and Engine refresh coordination. With managed auth, your Engine stores the encrypted user access and refresh tokens and delegates exchange and refresh to the broker. The broker processes those grants during exchange; it does not own your durable user connection.
+
+<Note>
+  Registry availability alone does not mean a service has a Fused Managed App. Fused must publish the exact service and auth scheme, and support your deployment's callback URL. Managed auth does not replace unrelated API keys, mTLS credentials, or other schemes required by an operation.
+</Note>
+
+## Check your Engine
+
+Hosted and self-hosted Engines use the same setup:
+
+```bash
+fused-cli workspace managed-auth status
+```
+
+The Engine discovers the broker through its Registry handshake and enrolls in the background when that capability is available. `ready` means enrollment is usable; it does not prove that every service has a managed application.
+
+| Status | Next step |
+|---|---|
+| `ready` | Configure an available managed service |
+| `disabled` | Run `fused-cli workspace managed-auth enable` if you want to re-enable it |
+| `enrollment_required` | Run `fused-cli workspace managed-auth enable` to enroll or repair enrollment |
+| `temporarily_unavailable` | Check Engine-to-Registry and Engine-to-broker connectivity, then retry |
+
+If your Registry does not announce a broker, your deployment operator must configure that capability. A consumer Engine needs no copy of Fused's client secret or manually populated Fused bucket.
+
+## Select managed auth in your app
+
+First [enable the service](/workspace/enable-a-service). In your SDK or MCP config, set the service's `auth.ref` to `${fused.bucket.auth.<service>.<auth-name>}`. Use its exact published service and auth scheme names.
+
+For example, if Fused provides `slack` with an auth scheme named `oauth2`, the service configuration includes:
+
+```yaml
+bucket: connections
+services:
+  slack:
+    version: "v1"
+    operations: ["auth.test"]
+    auth:
+      type: oauth
+      name: oauth2
+      ref: "${fused.bucket.auth.slack.oauth2}"
+    connect:
+      scopes: ["app_mentions:read"]
+```
+
+This is a fragment for a `kind: sdk` or `kind: mcp` config. Use your actual version and operation IDs; the example is not a catalogue availability guarantee. The `connections` bucket must exist and pass your permission checks. It stores user connections, not the managed application's client pair.
+
+Use `fused-cli init ... --no-apply` when preparing a new app, add the reference, then plan and apply. Changing `auth.ref` on an already published app requires a new immutable version.
+
+<Note>
+  Missing local credentials never switch an app to Fused automatically. This reference selects managed auth explicitly. It cannot read arbitrary Fused API keys or signing secrets.
+</Note>
+
+## Connect a user
+
+An SDK or MCP uses the reference from its applied config. For standalone CLI consent, pass it explicitly:
+
+```bash
+fused-cli workspace service connect slack \
+  --bucket connections \
+  --user-ref user_123 \
+  --type oauth \
+  --auth-name oauth2 \
+  --auth-ref '${fused.bucket.auth.slack.oauth2}' \
+  --scope app_mentions:read
+```
+
+The user completes provider consent. Your app then uses the usual `endUserRef`, or your MCP client uses `X-Fused-End-User-Ref`. Neither client receives Fused's application secret or the user's provider tokens.
+
+The current consent flow uses your Engine's canonical public URL plus `/workspace/connect/callback`. That URL must be allowed by the managed provider application. Self-hosting does not remove this requirement; confirm callback support for your deployment before starting consent.
+
+## Receive managed provider events
+
+Managed OAuth alone does not subscribe your app to webhooks. When the managed offering supports events, Fused configures the provider's app-level webhook URL and verifies requests with its signing secret on the broker. Your Engine pulls only events authorized for your verified connection into its existing webhook stream.
+
+Create a local receiver using your connection ID and the broker registration ID supplied by the managed service operator:
+
+```yaml managed-slack-events.yaml
+apiVersion: fused/v1
+kind: webhook
+name: managed-slack-events
+services:
+  slack:
+    relay:
+      source:
+        bucket: connections
+        connection_id: "<your-connection-uuid>"
+        registration_id: "<broker-webhook-registration-uuid>"
+```
+
+```bash
+fused-cli webhook plan -f managed-slack-events.yaml
+fused-cli webhook apply -f managed-slack-events.yaml
+```
+
+Find your connection with `fused-cli bucket connections connections --service slack`. A broker registration ID is not a secret or a substitute for authorization: the broker proves the provider app and account from its own OAuth response. Connections created before event routing was configured may need fresh consent.
+
+Do not set `secret` on this receiver or register its local URL with the provider. The provider calls Fused's broker. Your Engine needs outbound broker connectivity for events, with no public consumer webhook endpoint. OAuth callback requirements remain separate.
+
+Attach `managed-slack-events` to an [SDK receiver](/app/receive-events) or [MCP event resource](/mcp/receive-events) and select provider event names. SDK delivery is durable and at least once. MCP supplies live update notifications and a read of the latest retained occurrence.
+
+## Disable managed auth
+
+```bash
+fused-cli workspace managed-auth disable
+```
+
+This saves the opt-out and withdraws this Engine's broker authority. If the broker is unavailable, the Engine retries revocation and status reports pending cleanup. Local user connections are preserved, but broker-dependent connect, refresh, and event delivery cannot continue while disabled. Re-enable explicitly when needed.

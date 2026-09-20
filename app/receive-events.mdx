@@ -13,10 +13,12 @@ The event source determines how it is registered:
 Both arrive through `FusedWebhooks`. Creating an SDK client does not start a listener; your application registers handlers when it is ready to consume events.
 
 <Note>
-  Delivery is an SDK surface. A `kind: mcp` config cannot select webhooks at all — neither `webhooks` nor `webhooks_select_all` is valid on an MCP service.
+  MCP servers can also select provider webhooks as [event resources](/mcp/receive-events). SDK receivers offer durable ack/nack delivery; MCP offers live update notifications and a read of the latest retained occurrence. Fused auth lifecycle events described here remain an SDK receiver surface.
 </Note>
 
 ## Register provider ingress
+
+For a [Managed service with event support](/workspace/use-managed-service#receive-managed-provider-events), create a local `relay.source` receiver instead of storing a signing secret. Fused verifies requests at its broker, and your Engine pulls authorized events into this same delivery path. Use the following direct-ingress setup when you own the provider application and signing secret.
 
 A `kind: webhook` config is a named, team-owned bundle that can span several services, with its own plan and apply lifecycle.
 
@@ -41,6 +43,10 @@ Plan validates the local webhook config before contacting the Engine. Use `webho
 Apply prints each registration's URL, which is what you give the provider:
 
 ```text
+# reserved default name -> predictable, signature-required:
+<engine-url>/webhook/svc/<service>
+
+# every other name -> opaque token:
 <engine-url>/webhook/<name>-<service>
 ```
 
@@ -55,6 +61,8 @@ Its `SIGNATURE` column reads `set` or `none` — never the secret itself.
 ### About `name` and `secret`
 
 `name` is this config's identity. The pair `(service, name)` must be globally unique per account: a second config trying to claim a pair another config already owns is a plan-time conflict, never a silent takeover.
+
+`name: default` is reserved. Its registrations get a predictable URL — `/webhook/svc/<service>` — and must therefore be signature-verified: a `default` config whose service declares no inbound webhook signature is rejected at plan time, and an unsigned delivery to a default URL is rejected at ingress.
 
 `services.<slug>.secret` is the signing secret used to verify inbound deliveries. It takes a bucket reference — either `` `${bucket.<name>.secret.<key>}` `` or the shorthand `` `${bucket.secret.<key>}` `` against the `default` bucket. Omit it entirely for a provider that does not sign its webhooks.
 

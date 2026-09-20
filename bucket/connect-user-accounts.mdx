@@ -7,8 +7,14 @@ When your product acts on behalf of individual users, each one needs their own p
 
 There are two separate things here, easy to conflate:
 
-- **The app credentials** — your `client_id` and `client_secret` from the provider. Stored per bucket, service, and auth scheme.
+- **The app credentials** — the provider's `client_id` and `client_secret`. Your own pair lives in your bucket; a Fused Managed App's client secret stays on the broker.
 - **A user connection** — one person's grant against that registration. Many per registration.
+
+## Choose a provider application
+
+Use a [Managed service](/workspace/use-managed-service) where Fused offers the exact service and auth scheme, or register your own provider app using the steps below. Both choices store user connections in your Engine and use its existing refresh coordination. Managed auth still requires user consent; it does not expose Fused's application secret to your bucket.
+
+For managed CLI consent, pass `--auth-ref '${fused.bucket.auth.<service>.<auth-name>}'`. SDK and MCP connections use the reference from their applied app config. The [Managed service guide](/workspace/use-managed-service#connect-a-user) covers enrollment, callback requirements, and the complete command.
 
 ## Store the OAuth app credentials
 
@@ -142,7 +148,7 @@ Omit `--scope` to request the service's declared scope catalogue. OIDC subsets m
 | `--bucket` | Bucket holding or referencing the app credentials (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
 | `--user-ref` | Stable end-user reference (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
 | `--scope` | Requests one scope; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --scope read:jira-work` |
-| `--auth-ref` | Reuses one complete source registration in the same bucket | `fused-cli workspace service connect google-sheets --bucket prod --user-ref user_123 --type oauth --auth-name oauth2 --auth-ref '${bucket.auth.gmail.oauth2}'` |
+| `--auth-ref` | Selects a local source registration or a Fused Managed App | `fused-cli workspace service connect slack --bucket prod --user-ref user_123 --type oauth --auth-name oauth2 --auth-ref '${fused.bucket.auth.slack.oauth2}'` |
 | `--resource-input` | Tenant input as `key=value`; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --resource-input site=acme` |
 
 The command has no SDK or MCP identity selector. Generated runtimes use the

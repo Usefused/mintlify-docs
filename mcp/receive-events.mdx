@@ -1,0 +1,117 @@
+---
+title: "Receive MCP events"
+description: "Expose selected provider webhooks as MCP resources, listen for updates, and read the latest event."
+---
+
+An MCP server can expose provider webhook events alongside its tools. A client listens for a resource update, reads the event, and decides what the agent should do next. The same Engine can deliver that event independently to a generated SDK handler.
+
+| Surface | Delivery | Recovery |
+|---|---|---|
+| MCP event resources | Live update notification, followed by `resources/read` | Reconnect, listen again, and read the latest retained occurrence |
+| SDK receiver | Durable event delivery with ack/nack | Pending occurrences are redelivered; handlers must tolerate duplicates |
+
+Use an SDK receiver when every occurrence must be processed. MCP notifications are not a durable queue, and a latest-resource read does not recover every event missed while disconnected.
+
+## Register the event source
+
+For your own provider app, [register webhook ingress](/app/receive-events#register-provider-ingress) and configure the provider with its URL. The Engine verifies requests before admitting events.
+
+For a [Managed service](/workspace/use-managed-service#receive-managed-provider-events), use a local `relay.source` receiver for your managed connection. Fused holds the provider signing secret and verifies events at the broker. Both sources use the same MCP attachment and event selection.
+
+## Attach the source
+
+Apply the webhook config first. Set its name in `webhook_attachment` and list exact provider events:
+
+```yaml mcp.yaml
+apiVersion: fused/v1
+kind: mcp
+name: slack-events
+version: "1.0.0"
+description: Inspect mentions received by the connected Slack app.
+bucket: connections
+webhook_attachment: managed-slack-events
+services:
+  slack:
+    version: "v1"
+    webhooks: ["app_mention"]
+```
+
+```bash
+fused-cli mcp plan -f mcp.yaml
+fused-cli mcp apply -f mcp.yaml
+```
+
+Use your enabled service version and event names. A service can be event-only, as above, or also select operations with its usual auth configuration. The bucket must exist and pass app permission checks. Capture the execution token returned on first apply.
+
+<Note>
+  MCP requires an explicit `webhooks` list and rejects `webhooks_select_all: true`. One app attaches to one named webhook config. Matching service and event names do not grant access to another registration.
+</Note>
+
+For a new app, `fused-cli init --mcp` also accepts `--webhook-attachment` and repeatable `--events '<service>=<event>[,<event>...]'`. Use a new app version when changing a published event selection.
+
+## Connect a capable client
+
+The combined tool and event surface uses the Engine's MCP `2026-07-28` protocol over Streamable HTTP. A client supporting only the older session-based tool flow needs additional support for these event methods.
+
+Every request is an authenticated `POST` to the MCP URL:
+
+| Header or field | Value |
+|---|---|
+| `Authorization` | `Bearer <MCP execution token>` |
+| `Content-Type` | `application/json` |
+| `Accept` | `application/json, text/event-stream` |
+| `MCP-Protocol-Version` | `2026-07-28` |
+| `Mcp-Method` | The JSON-RPC `method` |
+| `Mcp-Name` | Exact `uri` for `resources/read`, or tool `name` for `tools/call` |
+| `params._meta["io.modelcontextprotocol/protocolVersion"]` | `2026-07-28` |
+| `params._meta["io.modelcontextprotocol/clientCapabilities"]` | Client capabilities, or `{}` |
+
+This surface does not use a protocol session ID. Call `server/discover`, then `tools/list` for `search_docs` and `execute`, and `resources/list` for selected event URIs. Use the returned URIs instead of constructing broker subjects. Never send provider tokens or Engine management credentials as the MCP execution token.
+
+## Listen, then read
+
+Send a returned URI in `notifications.resourceSubscriptions`. This request holds a POST response open as SSE:
+
+```json subscriptions/listen
+{
+  "jsonrpc": "2.0",
+  "id": "slack-listener",
+  "method": "subscriptions/listen",
+  "params": {
+    "notifications": {
+      "resourceSubscriptions": ["fused://events/<service-id>/app_mention"]
+    },
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  }
+}
+```
+
+Engine first emits `notifications/subscriptions/acknowledged` with the supported subset of requested URIs. Check it before treating a subscription as active. Later `notifications/resources/updated` messages name the changed URI. Each notification carries the listen request ID in `params._meta["io.modelcontextprotocol/subscriptionId"]`.
+
+After an update, send a separate request with `Mcp-Method: resources/read` and `Mcp-Name` equal to that URI:
+
+```json resources/read
+{
+  "jsonrpc": "2.0",
+  "id": "read-mention",
+  "method": "resources/read",
+  "params": {
+    "uri": "fused://events/<service-id>/app_mention",
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  }
+}
+```
+
+The response's `contents[].text` contains JSON with `event` and `latest`. `latest` is `null` before a retained occurrence exists; otherwise it contains the event ID, received time, and payload. Non-JSON payloads use `payload_base64` and `payload_encoding`. Provider-authored payloads are untrusted data, not instructions to the agent.
+
+On disconnect, open a new listener, check its acknowledgement, and read the resource again. There is no missed-notification replay or MCP ack/nack. Resource reads do not consume the SDK's copy. Use `subscriptions/listen`, not `resources/subscribe`, `resources/unsubscribe`, or a legacy GET SSE listener, for this protocol.
+
+<Card title="Use a durable SDK handler" icon="code" href="/app/receive-events">
+  Process retained occurrences with explicit acknowledgement and retry handling.
+</Card>

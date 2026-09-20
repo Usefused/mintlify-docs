@@ -35,6 +35,10 @@ fused-cli whoami
   On a headless machine, `fused-cli login --no-browser` prints the URL instead of trying to open one.
 </Note>
 
+## Choose your service's authentication
+
+For a supported OAuth integration, [use a Managed service](/workspace/use-managed-service) to connect users without registering your own provider app. Alternatively, [store your own credentials](/bucket/store-credentials). Managed auth is an explicit app configuration choice; init does not automatically choose it when local credentials are missing. Use `--no-apply` while preparing the managed reference, then plan and apply the completed config.
+
 ## Build and configure an SDK
 
 ```bash

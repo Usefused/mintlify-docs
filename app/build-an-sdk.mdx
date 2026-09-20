@@ -222,6 +222,10 @@ services:
 
 Webhook secret references still resolve through the top-level bucket, and an `auth.ref` may only join two services that resolve to the same bucket.
 
-<Card title="Store the credentials" icon="key" href="/bucket/store-credentials">
+<Card title="Use a Managed service" icon="link" href="/workspace/use-managed-service">
+  For supported OAuth services, select a Fused Managed App instead of storing your own client pair. Your Engine still owns each user's connection. Add the managed reference before publishing, or publish a new version when changing an existing app.
+</Card>
+
+<Card title="Store your own credentials" icon="key" href="/bucket/store-credentials">
   Terminal plans can securely fill readiness warnings and retry once, but setup is optional. Automation receives structured `credential_readiness` metadata and may pre-provision the exact bucket. If setup is deferred, the first affected call returns `bucket_credentials_missing` with the exact safe command.
 </Card>

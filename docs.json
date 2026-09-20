@@ -38,6 +38,7 @@
                 "expanded": false,
                 "pages": [
                   "workspace/enable-a-service",
+                  "workspace/use-managed-service",
                   "workspace/bring-your-own-api"
                 ]
               },
@@ -57,6 +58,7 @@
                 "expanded": false,
                 "pages": [
                   "mcp/deploy-a-server",
+                  "mcp/receive-events",
                   {
                     "group": "Connect an MCP client",
                     "pages": [

@@ -7,6 +7,8 @@ An MCP server is an Engine-hosted runtime with its own stable URL. It never buil
 
 One server can span several internal and external services, so an agent needs one connection rather than one per provider.
 
+For supported OAuth integrations, [use a Managed service](/workspace/use-managed-service) or [configure your own provider app](/bucket/connect-user-accounts). Managed auth uses the same MCP connection flow, while Fused keeps the provider client secret on its broker.
+
 ## Author and deploy
 
 ```bash
@@ -44,7 +46,7 @@ services:
 
 `description` summarizes what the server helps an agent accomplish in one to three concise sentences. Keep operation IDs out of this overview; the agent discovers exact calls later through `search_docs`. In a terminal, init prompts when you omit it. With `--no-input`, pass it explicitly.
 
-Each service resolves credentials through its own `bucket:` override when one is set, otherwise it falls back to the top-level `bucket:`. An `auth.ref` may only join two services that resolve to the same bucket.
+Each service resolves credentials through its own `bucket:` override when set, otherwise the top-level `bucket:`. A local `${bucket.auth...}` reference joins services in the same bucket. A managed `${fused.bucket.auth...}` reference selects a Fused Managed App while keeping user connections in the selected bucket.
 
 Use `fused-cli mcp list` whenever you need to recover the stable and pinned endpoints after initialization.
 
@@ -63,6 +65,8 @@ Use `fused-cli mcp list` whenever you need to recover the stable and pinned endp
 | `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --mcp --service linear --operation 'linear=issueUpdate'` |
 | `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --mcp --service slack --select-all slack` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --mcp --bucket agent-credentials` |
+| `--webhook-attachment` | Attaches an already applied webhook config | `--webhook-attachment managed-slack-events` |
+| `--events` | Selects explicit provider events; repeatable | `--events 'slack=app_mention'` |
 | `--version` | Sets the initial server version | `fused-cli init support --mcp --version 2.0.0 --service linear` |
 | `--no-apply` | Writes validated desired state, saves available plan receipts, and prints the commands to apply later | `fused-cli init support --mcp --service linear --no-apply` |
 
@@ -103,7 +107,7 @@ MCP planning never mutates credentials. It reports missing entries as readiness 
 
 ## MCP-specific constraints
 
-- **No webhooks.** `webhooks` and `webhooks_select_all` are rejected on an MCP config by both the CLI and the Engine. Treat event delivery as an SDK-only surface.
+- **Explicit webhook selection.** Set `webhook_attachment` and a per-service `webhooks` list to expose provider events as MCP resources. Event-only services are supported. `webhooks_select_all: true` is rejected. See [receive MCP events](/mcp/receive-events) for client requirements, live notifications, and retained payload reads.
 - **Unified operations require explicit targets.** A top-level `unified_operations` map uses the same bindings, dependencies, rollback, mapping, and output contract as an SDK. Each operation authorized by the execution token appears in `search_docs` and runs through the existing `execute` tool with `await call(operationId, {input, targets, selectors?, pagination?, idempotencyKey?})`. `targets` is always required, must be dependency-closed, and never defaults to every declared binding. See [declare a unified operation](/app/unified/declare) and [call a unified operation](/app/unified/call).
 - **No implicit latest app.** Init may default a provider version while writing the config, but MCP app references and runtime promotions always resolve one exact immutable app version.
 

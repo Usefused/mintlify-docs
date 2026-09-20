@@ -23,6 +23,12 @@ If no suitable Registry service exists, [bring the API in yourself](/workspace/b
   Creating a new SDK, API app, or MCP server? Start with [`fused-cli init`](/app/build-an-sdk) instead. It folds this activation into app creation and keeps separate workspace and app receipts.
 </Note>
 
+## Choose how to authenticate
+
+For a supported OAuth integration, use a [Managed service](/workspace/use-managed-service) to connect users through Fused's provider application, or [bring your own application credentials](/bucket/connect-user-accounts#store-the-oauth-app-credentials). Managed auth keeps Fused's client secret on the broker and user tokens in your Engine. It still requires service activation, an available managed offering, and user consent.
+
+For API keys, basic auth, or other schemes, [store the required credentials](/bucket/store-credentials) in your bucket.
+
 ## Inspect before you change anything
 
 Use read-only search when you want to compare what is already enabled before starting an addition:

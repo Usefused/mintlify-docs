@@ -11,7 +11,7 @@ This page is for client implementers. If you use an existing MCP client, it must
 ## Before you start
 
 - Use [Streamable HTTP](/mcp/use-the-server). Fused's legacy SSE transport does not support this handoff.
-- [Register the provider's OAuth application](/bucket/connect-user-accounts#store-the-oauth-app-credentials) in the MCP's selected bucket and configure the service's OAuth scheme and scopes.
+- [Use a Managed service](/workspace/use-managed-service) where available, or [register your own OAuth application](/bucket/connect-user-accounts#store-the-oauth-app-credentials) in the MCP's selected bucket. Configure the exact auth scheme, scopes, and application reference before publishing.
 - Supply a stable user identity. For a first-time connection, use a dynamic token with `X-Fused-End-User-Ref`. A fixed token requires an existing connection at issuance; see [token bindings](/mcp/oauth-tokens#two-ways-to-bind-a-token).
 
 Engine creates the consent session using the MCP's configured service, bucket, and credential routing. The client does not choose a new bucket or manufacture an authorization URL.

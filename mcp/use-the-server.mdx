@@ -12,6 +12,8 @@ The MCP client owns JSON-RPC initialization, protocol negotiation, sessions, and
 
 For services that need a user's OAuth consent, see [Handle provider OAuth](/mcp/use-the-server/provider-oauth). It explains how a capable client advertises URL elicitation and presents the authentication link when an operation needs it.
 
+For provider webhook notifications, use a client that supports the Engine's combined MCP `2026-07-28` surface. [Receive MCP events](/mcp/receive-events) covers explicit event selection, `subscriptions/listen`, and retained payload reads. The older session-based tool handshake described below does not by itself enable that event surface.
+
 ## Get the stable URL
 
 ```bash
