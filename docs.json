@@ -331,7 +331,8 @@
                       "harnest/runtime/serving/neutral-api",
                       "harnest/runtime/custom-http-endpoints",
                       "harnest/runtime/serving/approvals-and-client-tools",
-                      "harnest/runtime/serving/production"
+                      "harnest/runtime/serving/production",
+                      "harnest/runtime/serving/provisioning"
                     ]
                   }
                 ]

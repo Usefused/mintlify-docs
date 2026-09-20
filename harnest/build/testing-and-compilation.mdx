@@ -13,6 +13,38 @@ Harnest owns the environment and compiled application used by every test lane. A
 | Evals | `harnest test AGENT_DIR --evals` | Depends on eval | Quality and tool trajectories |
 | Compile | `harnest compile AGENT_DIR` | No | Reproducible standalone artifact |
 
+## Review changes in Agent Builder
+
+Harnest Studio is bundled with the release CLI, including its web server, browser assets, and compiled Build with AI assistant. Start it from the folder you want to use as your workspace:
+
+```bash
+harnest studio
+```
+
+If `--workspace` is omitted, Studio uses your current working directory. Select a different existing folder or port explicitly:
+
+```bash
+harnest studio --workspace /path/to/agents --port 1940
+```
+
+Open the private launch URL printed in the terminal. Studio binds to `127.0.0.1` on port 1940 by default. The first launch prepares an isolated runtime from the bundled release; Python and dependency downloads may require network access. Later launches reuse that runtime. Agent builds retain their own locked dependency environments. The compiled assistant is included and does not compile on first use; configure model-provider credentials to use **Build with AI**.
+
+Keep the command running while using Studio. Ctrl+C stops its local server and supervised processes. An explicit `--python` or `HARNEST_PYTHON` uses that interpreter instead, which must already contain Studio and its matching dependencies.
+
+In the standalone Agent Builder, **Build with AI** creates a source proposal for review. The **Source context** selector chooses the initial files shared with your configured model provider. **Allow AI to read related project source** is enabled by default in the UI; turn it off to share only selected files.
+
+With related source access enabled, the assistant can request additional files from the current project's source inventory. It reads the actual contents and regenerates the proposal before review. Hidden files, environment files, generated directories, and symbolic links are excluded. Each proposal lists the source files read, with a limit of 24 files and 160 KiB of context across at most two additional reading rounds.
+
+Choose **Review changes**, inspect the before and after contents, then **Apply to project**. Studio checks source revisions before writing, so concurrent edits are preserved. A proposal does not execute commands or connect to a database. Use **Build agent** and the **Run & test** menu to validate changes after applying them.
+
+### Delete and restore capabilities
+
+Select a capability on the Agent Builder canvas, then choose **Delete capability…** in the inspector. Expand a category to select an individual tool, agent, skill, or other source capability. The preview lists the affected files and possible code references. Deleting a package entrypoint, such as a skill's `SKILL.md` or a subagent's `agent.py`, removes the complete package and its supporting assets from discovery. Root project files and category folders cannot be deleted this way.
+
+Deletion moves source into `.harnest/builder-deleted/` inside the project. **Deleted capabilities** above the canvas lists recoverable items after refresh or restart. Choose **Restore** to return an item to its original location; Studio refuses to overwrite a new file or folder there. Stop running builds and previews before deleting or restoring a capability.
+
+Explicit imports, graph node references, schedules, and other authored wiring are not rewritten. Review the possible references and build the agent after updating them. Deleting source does not remove a deployed container, an external service, or its database data.
+
 ## Unit tests
 
 Run the default offline lane:

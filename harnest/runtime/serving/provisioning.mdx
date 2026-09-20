@@ -1,0 +1,180 @@
+---
+title: "Provision agents and services"
+sidebarTitle: "Provisioning"
+description: "Deploy agent images and their dependencies locally or to K3s, and connect externally managed databases."
+---
+
+Use the Harnest provisioner to run agent images and backing services together. Each service can run from a container image or connect to an existing endpoint, including a database hosted by Aiven or another provider. An environment override lets you provision Redis locally and connect to hosted Redis in production.
+
+| Service mode | Harnest owns |
+|---|---|
+| `provision` | Container or Kubernetes Deployment, connection Service, and retained storage |
+| `connect` | Connection settings injected into dependent workloads; no external infrastructure |
+
+The local backend uses Docker Compose v2 with `up --wait` support. The `kubernetes` backend uses `kubectl` against an **existing context and namespace**, including K3s. Configure registry access, cluster networking, TLS, and external database firewall rules in your deployment environment.
+
+## Configure a deployment
+
+Create a starter from your project folder:
+
+```bash
+harnest provision init
+```
+
+Edit `harnest-deployment.yaml`. This file is separate from the agent's `config.yaml` and any template-generated `docker-compose.yml`. Existing template service declarations continue to generate Compose files without starting services. Provisioner declarations retain the `provides` environment-binding convention and explicitly declare lifecycle behavior.
+
+```yaml harnest-deployment.yaml
+version: 1
+name: support
+backend: local
+services:
+  database:
+    mode: connect
+    type: postgres
+    url: {secret: DATABASE_URL}
+    variable: DATABASE_URL
+  cache:
+    mode: provision
+    type: redis
+    image: redis:7.4
+    command: [redis-server, --appendonly, 'yes']
+    ports: {redis: 6379}
+    publish: {redis: 16379}
+    healthcheck:
+      command: [redis-cli, ping]
+    persistence:
+      mount: /data
+      size: 5Gi
+    provides:
+      REDIS_URL: redis://${services.cache.host}:${services.cache.ports.redis}/0
+agents:
+  support:
+    image: registry.example.com/support-agent:1.0
+    ports: {http: 1907}
+    publish: {http: 1907}
+    healthcheck:
+      command:
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:1907/healthz')"
+    depends_on: [database, cache]
+    environment:
+      OPENAI_API_KEY: {secret: OPENAI_API_KEY}
+    resources:
+      cpus: 1.0
+      memory: 512Mi
+```
+
+Replace the example agent image with an image you have built. Its entrypoint must start the agent and listen on the declared container port. The provisioner deploys supplied images; it does not build or publish them. Apply freezes image identities before creating a revision. Local tags resolve to the current local image ID; an absent image is pulled first. Kubernetes tags resolve to registry digests through Docker Buildx (`docker buildx imagetools inspect`), which requires registry access but not a running Docker daemon. An explicit `image@sha256:<digest>` needs no registry lookup by the provisioner. Pull or rebuild a local tag before Apply when you want to deploy its updated contents.
+
+Set secret values in the provisioner's environment, or in the environment of the Builder process when launching from Studio. `{secret: DATABASE_URL}` resolves that variable only when applying. A literal URL also works for non-sensitive endpoints. Use `provides: {DATABASE_URL: {secret: DATABASE_URL}}` instead of `url` and `variable` when a service supplies multiple bindings.
+
+<Note>
+`depends_on` injects the selected services' `provides` bindings into that container. It does not configure a Harnest storage implementation automatically. Your agent's lifecycle must consume those environment variables using its chosen storage backend. A locally served agent outside Compose uses the loopback published port and its own environment settings.
+</Note>
+
+## Apply and inspect
+
+```bash
+harnest provision plan
+harnest provision apply
+harnest provision status
+harnest provision stop
+harnest provision apply  # restart or update from the manifest
+harnest provision remove
+```
+
+Each command accepts `--project /path/to/agent` and `--environment local`. A plan displays images, component ownership, dependency names, and environment variable names without displaying connection values. Apply resolves required credentials before touching infrastructure and waits for provisioned dependencies to become healthy before their consumers become ready.
+
+In the standalone **Agent Builder**, click **Deploy**. If no manifest exists, complete **Configure deployment**, review the generated source proposal, and apply it. Open **Deploy** again to review agent images, services, and the selected environment. Resolve any missing environment variables, then choose **Deploy agent** or **Deploy update**. Building agent source does not build the container image: make that image available to Docker or your cluster first.
+
+The deployment screen stays open while workloads start and readiness checks run. A successful plan is only a configuration review; **Deployment is running** means the backend has confirmed readiness. **Refresh status** checks the deployed workloads again. Errors appear in the deployment screen, with full command output retained in the terminal.
+
+Under **Access your agent**, each agent has its own connection details. Published local ports show a loopback endpoint and a copy button; ports named `http` or `https` also have **Open agent endpoint**. Unpublished local ports are labelled internal with instructions to publish them. Kubernetes agents show a copyable `kubectl port-forward` command scoped to the configured context and namespace. Run it on your computer and keep it running before opening the local endpoint. This does not create public ingress. Routes and authentication depend on the deployed image.
+
+Access details shown before deployment are labelled as planned. Once running, they come from the recorded deployment revision, even if you subsequently edit the manifest. The CLI plan, apply, and status results expose these details in `access` within their deployment summary.
+
+Closing a browser tab does not stop deployed containers. Closing the Builder process cancels an in-progress CLI command; rerun Apply to reconcile an interrupted deployment. Expand **Manage deployment** for separate stop and remove actions; persistent volumes and connected external services are retained.
+
+Status reports live readiness separately from the recorded outcome of the last operation. Backend errors omit tool output that might contain credentials; use Docker or kubectl to inspect image pulls, probes, and application logs.
+
+## Use external services in production
+
+Add an environment overlay to the same manifest:
+
+```yaml
+# Add alongside services and agents.
+environments:
+  production:
+    backend: kubernetes
+    context: production-k3s
+    namespace: support
+    services:
+      cache:
+        mode: connect
+        type: redis
+        url: {secret: REDIS_URL}
+        variable: REDIS_URL
+```
+
+```bash
+harnest provision plan --environment production
+harnest provision apply --environment production
+```
+
+Switching a service's mode replaces its entire declaration. Image, storage, and health-check settings from the provisioned service do not carry over into connect mode. Other overlay mappings merge recursively; lists replace their previous values. The default environment is `local`; other environment names must be declared.
+
+Kubernetes `ports` create internal ClusterIP Services. `publish` applies only to local Compose and binds to loopback. Use your cluster's ingress, gateway, or port forwarding to expose agent endpoints. External endpoints must already be reachable from the pods. `connect` does not create a managed-provider account, database, or firewall rule and does not run an external service health check.
+
+## Multi-agent applications and custom images
+
+Add each independently deployable agent under `agents`. Agents can depend on other agents, and their environment can reference `${agents.worker.host}` or `${agents.worker.ports.http}`. Service references use `${services.cache.host}` and `${services.cache.ports.redis}`. References resolve to backend-specific internal DNS names.
+
+Each agent image receives its own Deployment on Kubernetes. In-process SubAgents remain inside their parent image; separate images need explicit network communication, such as A2A. Set `replicas` for agents that use shared external state. Fixed local published ports and single-writer volumes require one replica.
+
+Use `mode: provision` with any suitable image for a custom service. `type` is a descriptive label; Harnest does not infer an image's ports, credentials, initialization, or storage settings. Declare an exec `healthcheck.command` for every provisioned component. The probe executable must exist in its image. Optional `command` replaces the image's default arguments on both backends.
+
+| Field | Behavior |
+|---|---|
+| `environment` | Container variables as strings or `{secret: VARIABLE}` references |
+| `ports` | Named container TCP ports |
+| `publish` | Named ports mapped to fixed loopback host ports locally |
+| `depends_on` | Provisioned readiness dependencies and connected-service bindings |
+| `healthcheck` | Required exec command; optional interval, timeout, and retries in seconds/count |
+| `persistence` | One retained volume with `mount`, Kubernetes `size`, and optional `storage_class` |
+| `resources` | CPU and memory limits; defaults to 1 CPU and 512 MiB |
+| `replicas` | Agent instances; defaults to one |
+
+## Ownership and recovery
+
+Harnest stores current ownership and revision history in a private `revisions.sqlite3` database under `.harnest/provisioner/<environment>/`. Keep it with the project while a deployment is active. Earlier `state.json` ownership journals are imported automatically; they cannot provide rollback snapshots for deployments made before revision tracking. Resource names include a project-specific identity. Moving the project changes that identity, so remove its existing deployment before moving it or manage migration explicitly.
+
+Apply can be retried after a partial failure. A failed readiness check leaves resources in place for inspection. Stop and Remove use the recorded target and inventory even if the manifest changes or is deleted. Remove the existing deployment before changing its name, Kubernetes context, namespace, or backend within the same environment.
+
+**Remove preserves database data.** Local named volumes and Kubernetes PVCs remain, along with all externally managed services and the namespace. Switching a provisioned service to `connect` removes its old workloads after a successful apply but retains its volume. Delete retained data through the backend explicitly when it is no longer needed. Retained volumes are not backups; configure backup and recovery separately for databases you operate.
+
+
+## Deployment versions and rollback
+
+Every Apply creates a monotonically numbered revision for the selected environment. You can also add a human-readable `release` label to the manifest, such as `release: "2026.09.20"`. The manifest's `version: 1` remains its configuration format version.
+
+```bash
+harnest provision history --environment production
+harnest provision history --environment production --limit 10 --before-revision 21
+harnest provision plan --environment production --revision 12
+harnest provision rollback --environment production --revision 12
+```
+
+History records creation and completion times, outcome, configuration fingerprint, requested and resolved image identities, release label, and the source revision of a rollback. It returns the newest revisions first and a `next_before` cursor for the next page. The status response distinguishes the active successful revision from the most recent attempted revision. A failed attempt never advances the active pointer; partially applied workloads remain visible through live status.
+
+Rollback deploys the saved configuration and image identities as a **new revision** linked to the selected successful revision. It restores the full agent group and reconciles non-persistent dependencies, including removal of workloads added since that revision. Editing or deleting the current manifest does not change a recorded snapshot. Plan with `--revision` previews the same rollback checks without changing infrastructure. Rollback does not rewrite your current manifest; a later Apply deploys that manifest again.
+
+In **Deploy**, expand **Deployment history** and choose **Review rollback** beside a successful revision. Review its saved configuration, then select **Roll back to revision** to apply it. Older revisions are loaded in pages. Revision identity is also recorded in Docker container labels and Kubernetes resource annotations. Agent pods carry their deployment revision; an unchanged persistent database is not restarted merely to change this marker.
+
+<Note>
+Snapshots retain authored configuration, including literal values, but never resolved values from `{secret: VARIABLE}` references. Use secret references for credentials. Rollback resolves those references from the current provisioner environment, so credential rotation is preserved. History responses expose metadata rather than snapshot contents. Retain local image IDs or registry digests for as long as you need to roll back to them.
+</Note>
+
+Rollback does **not** restore database contents, revert migrations, or downgrade a persistent backing service. It rejects changes to a persistent service's image, mount, or other declaration; reconcile database compatibility explicitly before rolling back across such a change. Volumes remain retained. Use backward-compatible database migrations when deploying agents that may need to roll back.
+
+Successful, failed, and interrupted attempts stay in history across restarts and deployment removal. Stop retains the active revision. Remove clears the active pointer and retains history and volumes. Rollback requires an existing deployment in the same target and a successful recorded revision. If an apply is interrupted, retry Apply or roll back to a compatible successful revision after inspecting the live state.
