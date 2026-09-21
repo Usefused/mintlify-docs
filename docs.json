@@ -210,6 +210,7 @@
                   "harnest/build/mcp-client",
                   "harnest/build/openapi-mcp",
                   "harnest/build/fused-mcp",
+                  "harnest/build/channels",
                   "harnest/build/agent-plugins",
                   {
                     "group": "Harnest Extensions",

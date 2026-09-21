@@ -101,6 +101,8 @@ Use neutral routes for portable behavior. Native routes remain framework-owned.
 
 ## Deployment plan
 
+Deployment execution requires the process opt-in `HARNEST_ENABLE_DEPLOYMENT=true`; it is disabled by default. See [Enable deployment](/harnest/runtime/serving/provisioning#enable-deployment). Rendering a plan remains available without the flag.
+
 An orchestrator selects agent folders and deployment settings. The Go engine receives the JSON plan, compiles each agent, and starts its artifact.
 
 The digest covers agent-owned inputs. A pre-rendered plan lets CI inspect the deployment without executing authored Python later.

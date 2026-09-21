@@ -1,0 +1,138 @@
+---
+title: "Connect a Slack channel through Fused"
+description: "Receive Slack mentions through a shared Fused connection and deliver threaded agent replies."
+---
+
+Use a Fused-managed Slack connection to send allowlisted mentions into a Harnest
+agent. Fused owns provider credentials and verified event delivery. Harnest owns
+actor-scoped sessions, durable processing, and reply delivery intent.
+
+<Note>
+Channel workers currently require the Harnest source checkout containing channel
+support. The runnable acceptance example is `examples/channels/slack-agent`, with
+its worker at `examples/channels/slack_worker.py`. It uses a deterministic Harnest
+Graph so you can verify transport without configuring a model or external tools.
+Replace it with your own served agent after the acceptance test passes.
+</Note>
+
+## Prepare the Fused connection
+
+Use an existing bucket your application is allowed to select. Bucket sharing does
+not grant secret administration or access to another installation's events.
+For a Fused Managed App, select its exact managed auth reference; do not copy the
+broker's client secret or signing secret into Harnest.
+
+Your immutable **Python SDK** version must select:
+
+- The reviewed Slack reply operation corresponding to `chat.postMessage`.
+- The explicit `app_mention` event and the applied `webhook_attachment`.
+- The intended bucket and managed OAuth reference, with `app_mentions:read` and
+  `chat:write` consent for the approved bot installation.
+
+Publish a new version if those selections change. Complete fresh consent if the
+existing grant lacks the reply permission. Install the generated Python package
+and use its documented module name and exact generated webhook enum value.
+Export that version's Engine execution OpenAPI document and verify the reply
+operation accepts `channel`, `text`, `thread_ts`, `reply_broadcast`, `unfurl_links`,
+and `unfurl_media` in its physical `input` object.
+
+For managed events, the consumer's webhook registration uses `relay.source` with
+the approved connection and operator-supplied broker registration. OAuth alone
+does not subscribe the application to events. See [Fused webhook registration](/app/receive-events)
+for ingress and attachment configuration.
+
+## Configure one test conversation
+
+Keep this JSON outside the agent source. Replace every placeholder with the
+reviewed application, generated SDK, and Slack identities. Use a dedicated,
+stable receiver name for this worker; another test subscriber should use its own
+name so it cannot consume this worker's deliveries.
+
+```json channel.json
+{
+  "application_id": "slack-channel-test",
+  "binding_id": "slack-mentions",
+  "agent_url": "http://127.0.0.1:1911",
+  "engine_url": "http://127.0.0.1:8081",
+  "grpc_url": "http://127.0.0.1:15052",
+  "sdk_module": "<installed generated Python SDK module>",
+  "receiver_name": "harnest-slack-channel-test",
+  "webhook_event": "<exact generated APP_MENTION enum value>",
+  "app_id": "<immutable SDK version UUID>",
+  "reply_operation": "<exact exported Slack reply operation>",
+  "end_user_ref": "<approved connected bot reference>",
+  "slack_team_id": "<approved Slack workspace ID>",
+  "slack_app_id": "<approved Slack application ID>",
+  "allowed_conversations": ["<disposable conversation ID>"],
+  "allowed_senders": ["<your Slack user ID>"],
+  "accept_after": 0
+}
+```
+
+Before the first run, set `accept_after` to the current Unix timestamp (for example,
+from `date +%s`). Keep that value across restarts. This excludes old retained
+mentions while allowing already-admitted work to recover.
+
+Load these values through your normal secret mechanism:
+
+| Environment variable | Purpose |
+| --- | --- |
+| `CHANNEL_DATABASE_URL` | PostgreSQL database for the worker inbox/outbox and example agent sessions/checkpoints |
+| `FUSED_CHANNEL_TOKEN` | That SDK's execution token; never a provider token or Engine management credential |
+| `CHANNEL_AGENT_TOKEN` | A separate random service credential shared only by the worker and example agent |
+
+Use TLS for remote Engine and agent connections. The loopback URLs above are
+local acceptance defaults. Neither runtime token belongs in `channel.json`.
+
+## Start and test
+
+From the Harnest source checkout, compile and serve the acceptance agent with
+`CHANNEL_DATABASE_URL` and `CHANNEL_AGENT_TOKEN` available:
+
+```bash
+harnest compile examples/channels/slack-agent --output .harnest/slack-channel-test
+harnest serve examples/channels/slack-agent
+```
+
+In a second terminal with the installed generated SDK and the three runtime
+inputs above, start the worker:
+
+```bash
+python examples/channels/slack_worker.py --config /path/to/channel.json
+```
+
+Mention the bot in the allowlisted conversation. The agent replies in that
+message's thread. A mention by another actor, in another conversation, or from
+another installation does not invoke the agent. Bot messages are ignored.
+
+The example agent authenticates the worker's service credential before accepting
+its hashed actor header. For your own agent, provide equivalent authentication;
+request metadata does not establish user identity. Sessions include application,
+binding, installation, conversation, thread, and sender scope. Replies remain
+visible to participants in the Slack conversation.
+
+## Delivery and recovery behavior
+
+The generated SDK handler acknowledges Fused only after the task store commits
+input and processing intent together. A database failure produces a negative
+acknowledgement. Reply intent is persisted before calling Fused, and both Engine
+HTTP success and Slack's `ok` result must pass before marking delivery complete.
+
+| Boundary | Recovery |
+| --- | --- |
+| Duplicate event or delivery ID changes | One admitted input per application, binding, installation, and provider event |
+| Restart before processing | Pending input remains available |
+| Restart after the reply is queued | Send the saved reply without another agent invocation |
+| Execution timeout or ambiguous send | Record `execution_unknown` or `delivery_unknown`; do not automatically replay |
+| Process dies during a claimed effect | Lease expiry retires the job as `task_failed`; inspect before any manual retry |
+| Allowlist narrows | Recheck retained input and pending replies before their next effect |
+| Agent requires approval | Stop the job for operator attention; never approve automatically |
+
+Use one worker per binding for the initial deployment. Claims are disjoint across
+replicas, but strict ordering of simultaneous messages is not guaranteed. This
+contract does not promise exactly-once external effects across process crashes.
+
+The worker reuses `PostgresTaskStore`, with `channel.inbox` and `channel.outbox`
+queues. Scoped `get_task` reads expose status and privacy-safe failure codes.
+Terminal task transitions remove private arguments; inspect the Harnest session
+and Fused execution receipt when reconciling an ambiguous outcome.

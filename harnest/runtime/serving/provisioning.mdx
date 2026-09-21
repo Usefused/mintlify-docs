@@ -13,6 +13,19 @@ Use the Harnest provisioner to run agent images and backing services together. E
 
 The local backend uses Docker Compose v2 with `up --wait` support. The `kubernetes` backend uses `kubectl` against an **existing context and namespace**, including K3s. Configure registry access, cluster networking, TLS, and external database firewall rules in your deployment environment.
 
+## Enable deployment
+
+Deployment is disabled by default. Set the process environment flag before starting Studio or running any provision command:
+
+```bash
+export HARNEST_ENABLE_DEPLOYMENT=true
+harnest studio
+```
+
+Without this opt-in, Studio hides deployment controls and guidance, deployment API requests are rejected, and the CLI hides `provision` from its normal help. All provision operations, including initialization, previews, status, history, and rollback, require the flag. Direct Python provisioning and the Go deployment pipeline require it too, including `harnest-runtime` dry runs. Only `true` enables the feature, ignoring case and surrounding whitespace; missing, false, and other values keep it off.
+
+Restart Studio after changing the environment. Unset the flag or set it to `false` to disable deployment again. This does not stop existing workloads or delete deployment history. Building, testing, and serving agents locally remain available.
+
 ## Configure a deployment
 
 Create a starter from your project folder:

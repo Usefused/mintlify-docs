@@ -37,6 +37,18 @@ With related source access enabled, the assistant can request additional files f
 
 Choose **Review changes**, inspect the before and after contents, then **Apply to project**. Studio checks source revisions before writing, so concurrent edits are preserved. A proposal does not execute commands or connect to a database. Use **Build agent** and the **Run & test** menu to validate changes after applying them.
 
+### Connect and create MCP servers
+
+Open **MCP connections** in the workspace sidebar. Choose **Add HTTP MCP endpoint** to connect an existing Streamable HTTP server, or enter your Fused Engine URL and choose **Connect Fused**. Complete sign-in in the same browser, then reopen the dialog. Management credentials remain in Studio's server memory; restarting Studio requires reconnecting.
+
+After connecting, choose **Add existing Fused MCP** to select an active server version, or **Create MCP with Fused** to select workspace services and their operations. Choose the owning agent, the Fused bucket, and an optional owner team. An empty operation selection is rejected; **All operations** must be selected explicitly. Provider connections and bucket permissions must already be configured in Fused.
+
+**Review connection** shows the exact provisioning configuration and source diffs. **Apply connection** can create a server, issue a seven-day execution token, and write the owning agent's MCP Client. It also adds runtime environment references to an existing `harnest-deployment.yaml`; select a deployment agent name if that manifest contains multiple agents. Studio checks source revisions before provisioning. If the remote result is uncertain, check Fused's server list before preparing another review; Studio does not replay that mutation automatically.
+
+Runtime credentials are stored outside project source in owner-only files under `~/.harnest/studio-credentials`. Set `HARNEST_BUILDER_CREDENTIALS_DIR` before starting Studio to choose another private directory. Studio supplies these bindings only to commands for that project and redacts execution tokens from command output. Restart an already-running agent after applying a connection. For commands launched outside Studio or deployments managed elsewhere, provide the variables shown in the review through your own secret manager. Disconnecting Fused clears management access and pending reviews; it does not revoke existing MCP execution tokens.
+
+**Build with AI** uses the same discovery and review backend. Enable **Allow Fused service and operation metadata to be shared with the model** to let it inspect connected workspace capabilities. This is separate from source-sharing permission and is off by default. The model receives discovered metadata and proposes an MCP plan; it never receives OAuth grants or execution credentials and cannot apply the plan itself.
+
 ### Delete and restore capabilities
 
 Select a capability on the Agent Builder canvas, then choose **Delete capability…** in the inspector. Expand a category to select an individual tool, agent, skill, or other source capability. The preview lists the affected files and possible code references. Deleting a package entrypoint, such as a skill's `SKILL.md` or a subagent's `agent.py`, removes the complete package and its supporting assets from discovery. Root project files and category folders cannot be deleted this way.

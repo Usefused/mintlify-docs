@@ -8,7 +8,7 @@ A **Managed service** uses a Fused-managed OAuth application for a supported ser
 | Setup | Choose it when | Application credentials |
 |---|---|---|
 | Managed service | Fused offers a managed application for your service and auth scheme | Stored on Fused's broker Engine |
-| Your own provider application | You need your own app identity, provider settings, or a service without a managed offering | Stored in your Engine bucket |
+| Your own provider application | You want to manage credentials in your Engine, or there is no suitable managed offering | Stored in your Engine bucket |
 
 Both paths use the same SDK methods, MCP tools, and Engine refresh coordination. With managed auth, your Engine stores the encrypted user access and refresh tokens and delegates exchange and refresh to the broker. The broker processes those grants during exchange; it does not own your durable user connection.
 
@@ -63,6 +63,22 @@ Use `fused-cli init ... --no-apply` when preparing a new app, add the reference,
   Missing local credentials never switch an app to Fused automatically. This reference selects managed auth explicitly. It cannot read arbitrary Fused API keys or signing secrets.
 </Note>
 
+## Choose a specific managed application
+
+Fused can publish several applications for the same service and auth scheme. Your operator supplies the application UUID and authorizes your Engine installation. Keep the provider's `auth.name` unchanged and add the selector beside the managed reference:
+
+```yaml
+auth:
+  type: oauth
+  name: oauth2
+  ref: "${fused.bucket.auth.slack.oauth2}"
+  managed_application_id: "729ea172-5512-4f37-b202-31084e2d2766"
+```
+
+The same field works in SDK and MCP configs. Omit it to select the service's original default application. Omission never selects an arbitrary available application. Publishing applications and granting consumer access are Fused operator operations; consumer configs cannot publish an application or read its secrets.
+
+Your connection keeps its selected application for callback and refresh. Changing the selector requires a new immutable SDK/MCP version and consent using that application. Use separate connection buckets when the same end-user reference needs simultaneous connections to multiple applications for the same service and scheme; the existing bucket/service/scheme/user connection identity is unchanged.
+
 ## Connect a user
 
 An SDK or MCP uses the reference from its applied config. For standalone CLI consent, pass it explicitly:
@@ -77,13 +93,17 @@ fused-cli workspace service connect slack \
   --scope app_mentions:read
 ```
 
+For a named application, also pass `--managed-application-id <application-uuid>`. Use the same UUID as your SDK or MCP config. REST and GraphQL connect requests accept `managed_application_id` alongside `auth_ref`.
+
 The user completes provider consent. Your app then uses the usual `endUserRef`, or your MCP client uses `X-Fused-End-User-Ref`. Neither client receives Fused's application secret or the user's provider tokens.
 
 The current consent flow uses your Engine's canonical public URL plus `/workspace/connect/callback`. That URL must be allowed by the managed provider application. Self-hosting does not remove this requirement; confirm callback support for your deployment before starting consent.
 
 ## Receive managed provider events
 
-Managed OAuth alone does not subscribe your app to webhooks. When the managed offering supports events, Fused configures the provider's app-level webhook URL and verifies requests with its signing secret on the broker. Your Engine pulls only events authorized for your verified connection into its existing webhook stream.
+Managed OAuth alone does not subscribe your app to webhooks. OAuth application selection also works for services with no supported webhook relay. When the managed offering supports events, Fused configures the provider's app-level webhook URL and verifies requests with its signing secret on the broker. Your Engine pulls only events authorized for your verified connection into its existing webhook stream.
+
+The current relay requires an authenticated signed request body and provider app/resource claims from the broker token exchange. Provider-specific subscription lifecycles, such as Google Drive notification channels, need additional support.
 
 Create a local receiver using your connection ID and the broker registration ID supplied by the managed service operator:
 
