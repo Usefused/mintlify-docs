@@ -36,6 +36,56 @@ A root skill belongs to the root agent. A folder SubAgent can own private skills
 
 Use an [Agent Plugin](/harnest/build/agent-plugins) to distribute reusable skills, optionally with the MCP servers that supply their operations. Skills-only plugins are supported.
 
+## Automatic selection with decisions
+
+Enable decision-backed skill selection on an individual managed `Agent`. It works with ADK and LangGraph and is off by default:
+
+```python agent.py
+from harnest.agent import Agent
+from harnest.skills import DecisionSkillSelector, SkillContext
+
+
+def selection_input(context: SkillContext):
+    return {
+        "task": context.task,
+        "product": context.state.get("product"),
+    }
+
+
+root_agent = Agent(
+    name="support",
+    model="openai/gpt-4.1-mini",
+    skill_selection=DecisionSkillSelector(
+        provider="jev",
+        instructions="Select skills needed for the task and product; skip unrelated skills.",
+        input=selection_input,
+        max_skills=3,
+        max_candidates=30,
+        fallback=DecisionSkillSelector.DISCOVERY,
+    ),
+)
+```
+
+Register the provider in the root `decisions` context resource using the existing [decision-provider contract](/harnest/build/models-and-libraries/typed-decisions/providers). The selector can use [Jev](/harnest/build/models-and-libraries/typed-decisions/jev) or another provider; it does not construct a client or read provider credentials. A registry used only for skill selection can have `bindings=()` because Harnest builds its definitions dynamically. Omit `provider` when the registry contains exactly one provider; otherwise specify its registered name.
+
+### What reaches the decision provider
+
+Harnest lists a bounded first catalog page through the current agent's authorized skill scope. Filesystem, plugin, extension, and dynamic-source skills participate through the same registry. There is no second list of skill names to maintain.
+
+The selector constructs one `Choice` question per candidate with `select` and `skip` outcomes. Each question contains the configured selection instructions and the candidate's source, ID, version, name, and description. Providers must support `QuestionKind.CHOICE` and batching when there is more than one candidate. The definition version identifies the exact candidate metadata and instructions.
+
+The input callback receives the existing **`SkillContext`**, not a separate selection context. During automatic selection, `context.task` is the current textual task and `context.state` is a read-only JSON snapshot of session/native application state with conversation messages and private Harnest channels excluded. These two properties are unavailable outside that selection scope. Existing identity, claims, storage, credential resolution, and exported resources retain their usual access boundaries.
+
+The callback may be synchronous or asynchronous and must return a JSON-compatible mapping. Its return value is the complete `DecisionRequest.state["input"]` payload; Harnest does not merge additional task, identity, metadata, history, or state into it. Without a callback, this payload is just `{"task": context.task}`. Candidate questions are constructed separately, so a callback field cannot replace the authorized candidates. Skill bodies are not sent to the decision provider.
+
+### Loading and fallback
+
+Exact `$skill-id` mentions within the visible candidate page are loaded before automatic choices, up to `max_skills`. Normal skill tools remain available, including when the model needs to follow another explicit request or discover candidates beyond the bounded page. Automatic selection does not grant tools, execution permission, or access to another agent's skills.
+
+Harnest loads selected source/ID/version tuples through the existing loader and appends their instructions to the agent's model request without writing them into session history. Selection and loaded bodies are reused across model/tool rounds for the same agent and task within one invocation. Another invocation discovers the catalog again. If more candidates are selected than `max_skills`, catalog order breaks the tie. Selecting none is valid.
+
+`timeout_seconds` defaults to 10 and bounds discovery, input preparation, provider evaluation, and loading together. The registered decision provider's own timeout also applies. Failures fall back to normal discovery with `DecisionSkillSelector.DISCOVERY`; choose `DecisionSkillSelector.ERROR` to stop with a redacted `SkillSelectionError`. These are `SkillSelectionFallback` enum members; string values are rejected. Cancellation propagates and existing version pins are never silently replaced.
+
 ## Dynamic sources
 
 Implement `SkillSource` in `harnest.lib` when skills come from an API or database:
