@@ -14,10 +14,11 @@ From the repository root, with a Harnest build that includes typed decisions:
 harnest env sync examples/jev-triage --profile development
 export TYPESAFE_AI_KEY="your-api-key"
 export JEV_LLM_MODEL="ollama_chat/qwen3.5:cloud"
+export JEV_LLM_REASONING_EFFORT="none"
 harnest serve examples/jev-triage
 ```
 
-The default LLM is `ollama_chat/qwen3.5:cloud`; your local Ollama service must have that model available and cloud access configured. Set `JEV_LLM_MODEL` to another LiteLLM provider/model identifier, with optional `JEV_LLM_API_BASE` and `JEV_LLM_API_KEY` overrides. Ollama reasoning is disabled for this short drafting step.
+Set `JEV_LLM_MODEL` to your LiteLLM provider/model identifier before a live run; the source default is the compile-only placeholder `openai/your-model`. The command above uses `ollama_chat/qwen3.5:cloud`, which requires a local Ollama service with that model and cloud access configured. You can also set `JEV_LLM_API_BASE` and `JEV_LLM_API_KEY`. For models that support it, `JEV_LLM_REASONING_EFFORT="none"` disables reasoning for this short drafting step; omit the variable to use the provider default.
 
 `TYPESAFE_API_KEY` also works and takes precedence when both are set. Ask “I was charged twice for the same order.” The public result contains the customer-facing `reply`; department, confidence, queue, and live/offline provenance remain internal. Billing and support require confidence of at least `0.8`; other categories and evaluation failures recommend manual review.
 
