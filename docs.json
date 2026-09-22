@@ -318,7 +318,8 @@
                     "pages": [
                       "harnest/runtime/telemetry",
                       "harnest/runtime/telemetry/single-sink",
-                      "harnest/runtime/telemetry/multiple-sinks"
+                      "harnest/runtime/telemetry/multiple-sinks",
+                      "harnest/runtime/telemetry/threadify"
                     ]
                   },
                   {

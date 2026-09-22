@@ -1,0 +1,150 @@
+---
+title: "Threadify"
+sidebarTitle: "Threadify"
+description: "Opt into session-linked business telemetry without exporting framework noise."
+---
+
+Use `harnest-threadify` to connect Harnest sessions to Threadify threads. The package is optional: Harnest does not install, import, or connect to Threadify unless you configure it.
+
+<Note>
+This integration is unreleased and requires the upcoming Harnest 0.23 lifecycle hooks. Its source is in `packages/harnest-threadify` in the Harnest repository; it has not been published to PyPI yet. The native SDK dependency is `threadify-sdk==0.2.10`.
+</Note>
+
+## Configure the agent
+
+For development from the Harnest checkout, install into the environment running that checkout:
+
+```bash
+uv pip install --python .venv/bin/python --no-deps ./packages/harnest-threadify
+uv pip install --python .venv/bin/python "threadify-sdk==0.2.10"
+```
+
+Copy the following into your existing agent's `lifecycle/telemetry.py`. Keep its session storage configuration. Change `service_name` to a stable application/environment identity and select your business tools and attribute names.
+
+<Accordion title="Complete lifecycle configuration">
+
+```python lifecycle/telemetry.py
+"""Copy into an agent's lifecycle/ directory to opt into Threadify."""
+
+from harnest import context, lifecycle
+from harnest_threadify import BusinessFilter, Threadify
+
+threadify = Threadify(
+    service_name="support-agent",
+    business_tools=("lookup_order", "issue_refund"),
+    filter=BusinessFilter(attributes=("order.id", "ticket.category")),
+)
+
+
+@lifecycle.telemetry_exporter
+def telemetry():
+    """Export only session-linked business spans to Threadify."""
+    return threadify.telemetry_exporter()
+
+
+@lifecycle.resource
+@context.provider("threadify")
+def connection():
+    """Own the async SDK connection and make native access explicit."""
+    return threadify
+
+
+@lifecycle.session.created
+async def session_created(info, session):
+    """Create or recover the thread after session persistence succeeds."""
+    await threadify.session_created(info, session)
+
+
+@lifecycle.agent.before
+async def invocation(active, request):
+    """Link existing sessions and all supported invocation transports."""
+    return await threadify.before_invocation(active, request)
+
+
+@lifecycle.http.scope
+def request_scope(active, request):
+    """Keep request correlation active until streaming finishes."""
+    return threadify.request_scope(active, request)
+
+
+@lifecycle.http.after
+def response(active, head):
+    """Record handled HTTP failures without response data."""
+    return threadify.after_http(active, head)
+
+
+@lifecycle.tool.after
+def tool_completed(active, result):
+    """Export selected business-tool outcomes without result payloads."""
+    return threadify.tool_completed(active, result)
+
+
+@lifecycle.tool.on_error
+def tool_failed(active, error):
+    """Export selected business-tool failures without exception text."""
+    threadify.tool_failed(active, error)
+
+```
+
+</Accordion>
+
+Provide `THREADIFY_API_KEY` through the server environment or deployment secret store, then start the agent. Compilation never reads the key or opens a connection.
+
+## Business data only
+
+| Exported | Excluded by default |
+|---|---|
+| Session-linked request outcome and timing | Health checks and requests without an agent session |
+| Decision name, version, action, outcome, and duration | Decision input, questions, scores, and raw results |
+| Outcomes of tools listed in `business_tools` | Skill discovery, model calls, and unselected tools |
+| Explicit `business.*` spans and allowed scalar attributes | Prompts, replies, tool arguments/results, nested payloads |
+| Thread ID, `sessionId`, and a scoped session reference | Raw user IDs, URLs, headers, exception messages, events, links, and framework resource metadata |
+
+ADK and LangGraph use the same filter. Exact attribute names are required; attribute wildcards are rejected. Strings are limited to 256 characters by default. Framework payload namespaces such as `gen_ai.*`, `llm.*`, and `exception.*` stay excluded even if named in the attribute allowlist. Other telemetry destinations receive their original spans.
+
+Use static business-step names and deliberately select non-sensitive attribute values:
+
+```python
+from harnest import context
+from harnest_threadify import Threadify
+
+integration = context.resource("threadify", Threadify)
+with integration.step("refund_approved", attributes={"order.id": "order-42"}):
+    pass  # Perform the authored business action here.
+```
+
+## Session ownership
+
+A committed Harnest session creates or recovers a Threadify thread. Agent invocations also recover links for sessions that predate the integration. `sessionId` is recorded as a Threadify reference; lookup uses a hash of the application identity, authenticated user, and session ID, so equal session IDs from different users do not share a thread.
+
+HTTP scopes cover the full streamed response and unwind on cancellation. Agent hooks also correlate supported non-HTTP invocations. Native framework session endpoints that bypass Harnest's session creation boundary are linked when the agent is first invoked. Request completion does not complete the Threadify thread: subsequent turns reuse it.
+
+Concurrent creation is serialized within one integration instance. Existing threads are recovered by reference after restart. A failed lookup never causes a replacement creation, and an ambiguous start is not retried in the same instance unless lookup finds its thread. Threadify's SDK does not expose atomic creation by reference; route a session to one worker and avoid overlapping workers during creation. This integration does not claim distributed exactly-once creation or recovery across an eventually consistent lookup immediately after a crash.
+
+The default capacity is 10,000 linked or unresolved sessions per instance. At capacity, new links are skipped rather than evicting live ownership. Missing credentials fail startup; remote connection/link failures log a fixed message and let the agent continue. A failed startup connection remains disabled until restart. Shutdown flushes spans while the SDK event loop is still running, then closes the connection. Export is best effort and is not a durable audit ledger.
+
+## Native SDK access
+
+```python
+integration = context.resource("threadify", Threadify)
+connection = integration.native             # Native SDK Connection
+NativeThreadify = integration.native_class  # Native SDK factory class
+thread = await integration.current_thread() # Native session ThreadInstance, or None
+```
+
+Use native async operations on the application's event loop. Native SDK operations are explicit application actions and bypass the telemetry filter. Completing a native thread ends that business workflow; the integration does not automatically start a replacement for the same session.
+
+## OTLP/HTTP Protobuf
+
+The default transport uses Threadify's native SDK. If your deployment supplies a standard OTLP/HTTP traces endpoint, select it when constructing the class:
+
+```python
+threadify = Threadify(
+    service_name="support-agent",
+    otlp_endpoint=os.environ["THREADIFY_OTLP_TRACES_ENDPOINT"],
+    otlp_headers={"Authorization": f"Bearer {os.environ['THREADIFY_OTLP_TOKEN']}"},
+    filter=BusinessFilter(attributes=("order.id",)),
+)
+```
+
+Import `os` in that module. Use your deployment's exact URL and authentication header format; the bearer header above is an example. The SDK still owns session thread creation and native access. The same business filter runs before Protobuf serialization, and exported spans carry `threadify.thread_id` and the session reference. Your receiver must honor that thread mapping. No Threadify OTLP endpoint is assumed or discovered automatically.
