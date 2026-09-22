@@ -143,6 +143,79 @@ Harnest resolves the selected environment before importing the agent or its
 Harnest Extensions. Production runtime, development, and eval use independent
 locks so compiled deployment artifacts do not inherit development-only packages.
 
+## Build native executables
+
+Build native agent executables on Linux, macOS, or Windows for the build machine's operating system and architecture. The destination needs no installed Harnest, Python, or package manager. Model endpoints, credentials, external tools, and backing services still need to be available. Native dependencies retain their operating-system compatibility requirements; build on a compatible deployment baseline.
+
+Choose how to ship the dependencies:
+
+| Mode | Build command | Deployment |
+|---|---|---|
+| Attached runtime | `harnest compile ./sales --runtime ./dist/shared-runtime --output ./dist/sales-agent` | Ship the agent and its runtime pack separately. Several agents can attach the same pack. |
+| Embedded runtime | Add `--embed-runtime` to the command above | Ship one executable containing the agent and runtime. |
+| Automatic embedded runtime | `harnest compile ./sales --format executable --output ./dist/sales-agent` | Resolve a runtime for this agent and embed it automatically. |
+
+On Windows, build on a Windows host and use an output filename ending in `.exe`. For example, in PowerShell:
+
+```powershell
+harnest runtime build --agent .\sales --agent .\support --output .\dist\shared-runtime
+harnest compile .\sales --runtime .\dist\shared-runtime --output .\dist\sales-agent.exe
+harnest compile .\support --runtime .\dist\shared-runtime --output .\dist\support-agent.exe
+.\dist\sales-agent.exe --runtime .\dist\shared-runtime run "Help with my order"
+```
+
+Runtime packs target the build host; a Linux or macOS pack cannot be attached to a Windows executable. Packaged Python console tools remain usable after moving the deployment directory.
+
+`--runtime` validates and references the pack. It does **not** copy dependencies into the agent executable unless you also pass `--embed-runtime`. Ordinary `compile` without these options still produces the existing Python artifact directory.
+
+### Share dependencies across agents
+
+Run these commands from the directory containing your agent folders:
+
+```bash
+harnest runtime build \
+  --agent ./sales \
+  --agent ./support \
+  --output ./dist/shared-runtime
+
+harnest compile ./sales \
+  --runtime ./dist/shared-runtime \
+  --output ./dist/sales-agent
+
+harnest compile ./support \
+  --runtime ./dist/shared-runtime \
+  --output ./dist/support-agent
+```
+
+The runtime builder resolves all listed agents' production dependencies together, including their Harnest Extensions, selected frameworks, and MCP adapters. Existing current `harnest-runtime.lock` files constrain the solve; stale locks require an environment sync first. Agents without a production lock resolve from their dependency declarations and framework pins. The pack retains the resulting hash-locked dependency record. Resolution conflicts fail the build: use separate packs for incompatible agents. The agents must request the same Python version.
+
+Build dependencies may need network access. Executables never download Python or install packages at startup. Installed release CLIs include the native launcher, so building an executable does not require Go. Contributor builds use Go to build the launcher and can supply a locally built Harnest wheel with `runtime build --wheel FILE`.
+
+Keep build output outside the agent source, or under its `.harnest/` directory. Runtime output directories must be new: builds do not overwrite existing packs. When dependencies change, build a new pack and recompile the agents that should use it.
+
+### Attach a runtime when launching
+
+```bash
+./dist/sales-agent --runtime ./dist/shared-runtime serve --port 8080
+./dist/support-agent --runtime ./dist/shared-runtime run "Help with my order"
+```
+
+Place launcher options before `serve` or `run`. Relative paths resolve from the working directory. Set `HARNEST_AGENT_RUNTIME` instead of passing `--runtime` to every invocation. The launcher verifies the exact runtime digest and platform before loading agent code; a different pack is rejected even if it has a similar name.
+
+The `run` command requires `spec.interfaces.cli: true` when the agent is compiled. It accepts a positional message or reads stdin when the message is omitted. Pass `run --help` or `serve --help` for command options.
+
+Provide credentials through the deployment environment. Authored `spec.environment` values act as defaults; explicitly supplied environment variables take precedence. Use `--server-config FILE` before the command to replace the packaged server settings for one process. Keep durable state and deployment configuration outside the executable and runtime cache.
+
+### Deduplicate dependency storage
+
+Dependency files are stored by content and executable classification (POSIX executable permissions or Windows program extensions). Identical files share disk storage within a pack, across packs built with the same object store, and across materialized runtime trees in the launch cache. Each agent still runs in its own process.
+
+By default, runtime builds use `.harnest-runtime-objects` beside the output directory. Use `runtime build --store DIRECTORY` to share one build store across other output locations. Packs contain their own object links and remain usable after the build store is removed; copy the complete runtime pack when deploying it. Hardlink-aware copying preserves sharing between multiple packs. Ordinary copies may duplicate their on-disk bytes until the launch cache deduplicates them.
+
+Launchers use a shared cache under the operating system's user cache directory. Set `HARNEST_AGENT_CACHE` to choose a deployment cache. Files are verified before reuse and published atomically. Hardlinks provide physical deduplication on the same filesystem; filesystems or locations that cannot share hardlinks use a verified copy fallback. Put the pack, object store, and cache on the same hardlink-capable filesystem for maximum disk sharing. On Windows, use the same NTFS volume. Windows file aliases are packaged as shared regular files, so deployment does not require permission to create symbolic links. Windows objects use ordinary writable file attributes to allow independent hardlink cleanup; their contents are still checked against the manifest before reuse.
+
+Embedding the same runtime into several executables necessarily repeats those bytes in the executable files. Use attached runtimes when distribution size matters. Embedded executables also materialize dependencies in the shared launch cache.
+
 ## CI
 
 A minimal offline CI sequence is:
