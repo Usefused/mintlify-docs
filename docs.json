@@ -47,6 +47,7 @@
                 "expanded": false,
                 "pages": [
                   "app/build-an-sdk",
+                  "app/from-a-prompt",
                   "app/use-in-your-app",
                   "app/run-an-operation",
                   "app/fused-auth-client",
