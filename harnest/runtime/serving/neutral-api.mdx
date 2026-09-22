@@ -175,6 +175,14 @@ All modes use the same portable activity contract. JSON returns these items in `
 
 `agent_activity` identifies the normalized agent or LangGraph node and lifecycle transition, such as `started`, `completed`, `handoff`, `interrupted`, or `failed`. Message and tool events can also include an `agent` field. By default Harnest does not forward provider signatures, credentials, framework objects, graph state, or native event metadata through this contract.
 
+`decision_result` is opt-in output from `context.decisions.evaluate(...)`.
+Enable it with `OutputPolicy(decision_results=True)`. Each item has an optional
+`agent` and a `value` containing `decision`, `version`, `provider`,
+`providerVersion`, `answers`, `outcome`, `durationSeconds`, and `error`.
+Streaming uses `response.decision_result` with the same `agent` and `value`.
+Decision events do not contribute to `outputText`; hiding them does not prevent
+internal routing or remove fields explicitly copied into the final result.
+
 `agent_metadata` centralizes metadata for each reported model call. `usage`
 contains exact provider counts; Harnest does not estimate missing values.
 `model`, `provider`, and `finishReason` appear only when reported, and the

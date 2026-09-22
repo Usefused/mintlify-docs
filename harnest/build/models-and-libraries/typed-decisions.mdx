@@ -1,0 +1,145 @@
+---
+title: "Typed decisions"
+sidebarTitle: "Overview"
+description: "Give agents typed judgments with custom providers, explicit routing rules, and offline tests."
+---
+
+Define what your agent needs to decide, choose a provider, and handle the result in code. The same API works in ADK and LangGraph.
+
+| Question | Returns | Use for |
+|---|---|---|
+| `Choice` | One allowed option | Routing and classification |
+| `Score` | A position on your ordered rubric | Relevance and quality |
+| `Predicate` | Probability that a statement is true | Grounding and readiness |
+
+<CardGroup cols={2}>
+  <Card title="Use Jev" icon="bolt" href="/harnest/build/models-and-libraries/typed-decisions/jev">
+    Connect a live decision model with the TypeSafe SDK.
+  </Card>
+  <Card title="Provider reference" icon="code" href="/harnest/build/models-and-libraries/typed-decisions/providers">
+    Bring your own model and configure policies or failures.
+  </Card>
+</CardGroup>
+
+## Try it offline
+
+This quickstart returns a fixed billing answer so you can test the wiring without credentials.
+
+<Steps>
+  <Step title="Define the decision and routes">
+    Keep the questions independent of the provider. Change `version` when you change the question or answer space.
+
+```python lib/triage.py
+from harnest.decisions import (
+    Choice, ChoicePolicy, DecisionAction, DecisionDefinition, DecisionOutcome,
+)
+
+TRIAGE = DecisionDefinition(
+    name="support_route",
+    version="1",
+    questions=(Choice(
+        name="department",
+        instructions="Which team should handle the customer message in `ticket`?",
+        options={
+            "billing": "Charges and invoices",
+            "support": "Product help",
+            "other": "Anything else or insufficient information",
+        },
+    ),),
+)
+
+ROUTING = ChoicePolicy(
+    question="department",
+    routes={
+        "billing": DecisionOutcome(DecisionAction.ROUTE, "billing_agent"),
+        "support": DecisionOutcome(DecisionAction.ROUTE, "support_agent"),
+        "other": DecisionOutcome(DecisionAction.REVIEW),
+    },
+    minimum_confidence=0.8,
+    uncertain=DecisionOutcome(DecisionAction.REVIEW),
+)
+```
+  </Step>
+  <Step title="Register an offline provider">
+    Lifecycle creates the registry at application startup. The fixture is keyed by decision name and version.
+
+```python lifecycle/decisions.py
+from contextlib import contextmanager
+
+from harnest import context, lifecycle
+from harnest.decisions import (
+    ChoiceResult, DecisionBinding, DecisionCapabilities, DecisionResponse,
+    Decisions, FixtureDecisionProvider, QuestionKind,
+)
+from harnest.lib.triage import TRIAGE, ROUTING
+
+@lifecycle.resource
+@context.provider("decisions")
+@contextmanager
+def decisions():
+    """Provide deterministic answers for development and offline tests."""
+    fixture = FixtureDecisionProvider(
+        {("support_route", "1"): DecisionResponse({
+            "department": ChoiceResult("billing", confidence=0.95),
+        })},
+        capabilities=DecisionCapabilities(
+            frozenset({QuestionKind.CHOICE}), confidence=True,
+        ),
+    )
+    yield Decisions(
+        providers={"fixture": fixture},
+        bindings=(DecisionBinding(TRIAGE, "fixture", ROUTING),),
+    )
+```
+  </Step>
+  <Step title="Call it from an agent tool">
+    Put this file in your agent's `tools/` directory, then run `harnest serve .` and ask the agent to triage a ticket.
+
+```python tools/triage_ticket.py
+from harnest import context
+from harnest.agent import tool
+
+@tool
+async def triage_ticket(message: str) -> dict[str, str | None]:
+    """Recommend a support destination or request manual review."""
+    evaluation = await context.decisions.evaluate(
+        "support_route", {"ticket": message},
+    )
+    return {
+        "action": evaluation.outcome.action.value,
+        "route": evaluation.outcome.route,
+    }
+```
+
+    The fixture returns `{"action": "route", "route": "billing_agent"}`. Replace the fixture with [Jev](/harnest/build/models-and-libraries/typed-decisions/jev) or your own provider to classify real messages.
+  </Step>
+</Steps>
+
+## Decide when to evaluate
+
+A decision runs only when your code calls `context.decisions.evaluate(...)`. A graph can call it at a fixed step, or an LLM can choose a tool that calls it. Registering a provider does not start a background loop. The [Jev example](/harnest/build/models-and-libraries/typed-decisions/jev) evaluates each incoming ticket before its LLM drafts a reply.
+
+## Control public output
+
+| Setting | Effect |
+|---|---|
+| `OutputPolicy(decision_results=False)` | Keep decision events private; the default |
+| `OutputPolicy(decision_results=True)` | Publish separate typed decision results |
+
+Both settings leave the result available to your code and the LLM. This policy does not redact values copied into tool results, final responses, or LLM text. The quickstart tool above returns its route as tool output; `tool_activity` controls that output separately. See [Output policy](/harnest/runtime/lifecycle/output-policy#choose-decision-results) for the lifecycle factory and transport behavior.
+
+## Choose what happens next
+
+| Need | Configure |
+|---|---|
+| Route a choice | `ChoicePolicy` with one outcome per option |
+| Handle low confidence | `minimum_confidence` and `uncertain` |
+| Gate a score or probability | `ThresholdPolicy` with lower and upper boundaries |
+| Handle evaluation failures | `DecisionBinding.on_error` or catch `DecisionError` |
+| Read answers without a policy | Omit the policy and use `evaluation.response.answers` |
+
+<Note>
+  Outcomes are recommendations for your code to handle. They do not dispatch agents, execute tools, or bypass approvals. The example's `0.8` threshold is illustrative; tune it against your provider and labeled examples.
+</Note>
+
+Use `context.decisions` inside the invocation that obtained it. For standalone code and tests, construct `Decisions` directly. See the [provider reference](/harnest/build/models-and-libraries/typed-decisions/providers) for registration, batching, failures, and telemetry.

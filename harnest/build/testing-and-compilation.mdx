@@ -27,6 +27,8 @@ If `--workspace` is omitted, Studio uses your current working directory. Select 
 harnest studio --workspace /path/to/agents --port 1940
 ```
 
+Studio discovers agent folders containing `config.yaml` recursively within the workspace. For example, `harnest studio --workspace examples` loads both standalone examples and nested agents such as `self-serve/agents/helpdesk`. The project selector shows relative folder paths, and **Refresh** picks up newly added agents. Discovery stops at each agent root and skips hidden folders, build output, dependencies, virtual environments, and symbolic links. Workspaces exceeding 10,000 scanned folders require a more specific root. Use **Open folder** to add an individual agent outside the workspace.
+
 Open the private launch URL printed in the terminal. Studio binds to `127.0.0.1` on port 1940 by default. The first launch prepares an isolated runtime from the bundled release; Python and dependency downloads may require network access. Later launches reuse that runtime. Agent builds retain their own locked dependency environments. The compiled assistant is included and does not compile on first use; configure model-provider credentials to use **Build with AI**.
 
 Keep the command running while using Studio. Ctrl+C stops its local server and supervised processes. An explicit `--python` or `HARNEST_PYTHON` uses that interpreter instead, which must already contain Studio and its matching dependencies.

@@ -179,6 +179,14 @@
                     "expanded": false,
                     "pages": [
                       "harnest/build/models-and-libraries/configure-a-model",
+                      {
+                        "group": "Typed decisions",
+                        "pages": [
+                          "harnest/build/models-and-libraries/typed-decisions",
+                          "harnest/build/models-and-libraries/typed-decisions/jev",
+                          "harnest/build/models-and-libraries/typed-decisions/providers"
+                        ]
+                      },
                       "harnest/build/data-models-and-shared-libraries",
                       "harnest/build/models-and-libraries/typed-multimodal-contracts",
                       "harnest/build/models-and-libraries/store-and-retrieve-media",

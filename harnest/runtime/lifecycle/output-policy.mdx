@@ -1,6 +1,6 @@
 ---
 title: "Output policy"
-description: "Control SubAgent narration, tool activity, provider reasoning, and metadata disclosure."
+description: "Control SubAgent narration, tool activity, decision results, provider reasoning, and metadata disclosure."
 ---
 
 Output policy changes which events and metadata Harnest publishes. It does not
@@ -53,6 +53,45 @@ The default `True` value publishes neutral `tool_call` and `tool_result`
 events. `False` removes both event types from JSON,
 SSE, WebSocket, local, and playground output. A2A already keeps tool arguments
 and results private.
+
+## Choose decision results
+
+Results from `context.decisions.evaluate(...)` are private by default. Keep
+`OutputPolicy(decision_results=False)` to hide Jev or another decision provider's
+judgments while still using them for routing, tools, and LLM input.
+
+To expose them separately from the final answer:
+
+```python lifecycle/output.py
+from harnest import lifecycle
+from harnest.output import OutputPolicy
+
+
+@lifecycle.output_policy
+def output_policy():
+    return OutputPolicy(decision_results=True)
+```
+
+Each completed evaluation adds a `decision_result` item to public `output`.
+Its `value` contains decision/provider versions, typed answers, the policy
+outcome, duration, and a safe error category when evaluation falls back.
+Request state, question instructions, and raw provider payloads are excluded.
+Private graph-to-model inputs are not presented as user turns when restoring
+conversation history in ADK or LangGraph.
+SSE and WebSocket use `response.decision_result`; streaming A2A tasks use
+`metadata.harnest.type: decision_result`. Playground displays an expandable
+Decision panel. Streamed results appear when the backend next yields an event.
+
+This controls decision events, not arbitrary data copied into a final response
+or tool result. Keep decision fields out of your final output schema if they
+should remain internal. It does not redact LLM text, remove internal graph
+state/checkpoints, or retroactively delete previously disclosed results.
+Opted-in decision events are retained in durable completion output when
+checkpoint storage is configured. Standalone `Decisions.evaluate(...)` calls
+outside the context facade do not emit public events.
+
+See the [Jev example](/harnest/build/models-and-libraries/typed-decisions/jev)
+for a decision followed by an LLM reply.
 
 ## Choose agent metadata
 
@@ -134,6 +173,7 @@ snapshot with the run; Redis applies the configured checkpoint TTL.
 | Tool calls and results | Visible | `tool_activity=False` |
 | Final answer or structured result | Visible | Always visible |
 | Intermediate SubAgent narration | Hidden | `subagent_messages=False` |
+| Decision results | Hidden | `decision_results=False` |
 | Provider-exposed reasoning | Hidden | `thinking=False` |
 | Model/provider metadata and usage | Visible, normalized | `agent_metadata=AgentMetadataMode.SUPPRESS` |
 

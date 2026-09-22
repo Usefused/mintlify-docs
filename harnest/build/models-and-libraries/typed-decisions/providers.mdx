@@ -1,0 +1,82 @@
+---
+title: "Decision provider reference"
+sidebarTitle: "Provider reference"
+description: "Implement a custom provider and configure decision validation, policies, failures, and telemetry."
+---
+
+Implement `DecisionProvider` in your application or a Harnest Extension. Register the instance in `Decisions(providers={...}, bindings=(...))`; each `DecisionBinding` selects a provider by name. For a complete adapter, see [Use Jev](/harnest/build/models-and-libraries/typed-decisions/jev).
+
+## Provider contract
+
+| Member | Required behavior |
+|---|---|
+| `version` | Stable provider/model revision used in evaluation provenance |
+| `capabilities` | A `DecisionCapabilities` value describing the guarantees below |
+| `async evaluate(request)` | Return `DecisionResponse` with exactly the requested answer names |
+
+| Capability | Meaning |
+|---|---|
+| `kinds` | Nonempty `frozenset` of supported `QuestionKind` values |
+| `batching` | Can evaluate multiple independent questions against the same state |
+| `probabilities` | Every Choice and Score result includes a complete distribution |
+| `confidence` | Every Choice and Score result includes native confidence |
+
+Capabilities apply to the whole provider. Use separate registrations for models with different guarantees. Unsupported question types, duplicate decision names, unknown providers, and incompatible policies fail when the registry is constructed.
+
+## Requests and results
+
+| Contract | Shape and validation |
+|---|---|
+| `DecisionDefinition` | Name, version, and a nonempty tuple of uniquely named questions |
+| `DecisionRequest` | Definition plus a snapshot of JSON-compatible state; nested mappings and sequences are immutable |
+| `ChoiceResult` | Allowed `value`; optional `probabilities` keyed by every option and `confidence` |
+| `ScoreResult` | Numeric `value` from `0` to `len(levels) - 1`; optional probability tuple in rubric order and `confidence` |
+| `PredicateResult` | `probability` from `0` to `1`; no separate confidence |
+| `DecisionEvaluation` | Validated response, optional policy outcome, definition/provider revisions, duration, and optional error category |
+
+Convert immutable request state into your SDK's payload format. Return probabilities and confidence exactly when declared; Harnest rejects non-finite values, invalid distributions, missing or extra answers, and out-of-domain results. A provider's score is preserved without assuming a scoring formula.
+
+Batch independent questions together when supported. If a question needs an earlier answer, make a separate evaluation with new state. Harnest does not split batches automatically.
+
+## Policies
+
+| Policy | Rules |
+|---|---|
+| `ChoicePolicy` | `routes` covers every option; an optional `minimum_confidence` requires native confidence |
+| `ThresholdPolicy` | `value <= lower` selects `below`; `value >= upper` selects `above`; values between select `uncertain` |
+
+Threshold defaults are block, proceed, and abstain. Predicate thresholds use the `0–1` probability scale; score thresholds use rubric positions. A score's middle band is an authored rule, not model uncertainty. Confidence meanings and suitable thresholds can differ between providers.
+
+`DecisionOutcome` accepts `ROUTE`, `PROCEED`, `BLOCK`, `REVIEW`, `REASON`, or `ABSTAIN`. Only `ROUTE` takes a destination. Your application performs the selected action through its usual authorization and approval boundaries.
+
+## Failures and deadlines
+
+| Failure | Default exception | Evaluation error with `on_error` |
+|---|---|---|
+| Provider fails | `DecisionProviderError` | `provider_error` |
+| Evaluation times out | `DecisionTimeoutError` | `timeout` |
+| Response violates the contract | `DecisionValidationError` | `invalid_response` |
+
+All three derive from `DecisionError`. Set `DecisionBinding.on_error` to an explicit block, review, reasoning, or abstention outcome to receive `response=None` instead. Failure policies cannot proceed or route. Caller cancellation always propagates.
+
+`Decisions(timeout_seconds=...)` uses a cooperative asynchronous deadline. Providers must propagate cancellation and set network timeouts. Harnest adds no retries or caching; configure any SDK retries explicitly.
+
+## Resource ownership
+
+Publish one registry as `@context.provider("decisions")`. Add `@lifecycle.resource` and a context manager for application-wide startup and cleanup. Create clients before yielding and close them when the context manager exits. `Decisions` does not close provider clients independently.
+
+An extension can contribute this lifecycle resource with `context.resources`, or expose a provider factory for the application to register. Keep one owner for the registry when combining providers. See [Harnest Extensions](/harnest/build/extensions).
+
+Definitions are shared application resources, including for subagents; they are not per-agent permission grants. `context.decisions` rejects retained facades used by another agent or invocation, or after the owning invocation ends.
+
+## Public decision results
+
+`context.decisions.evaluate(...)` returns the same `DecisionEvaluation` regardless of visibility. With `OutputPolicy(decision_results=True)`, it also emits a separate `decision_result` event attributed to the current agent. Direct calls to `Decisions.evaluate(...)` do not emit these events. Visibility applies to all registered providers, including Jev and your own implementations; it does not select when they run or change their outcomes.
+
+Use the [output-policy reference](/harnest/runtime/lifecycle/output-policy#choose-decision-results) to configure disclosure. Decision events are separate from the privacy-safe telemetry described below.
+
+## Offline tests and telemetry
+
+Use `FixtureDecisionProvider` as shown in the [quickstart](/harnest/build/models-and-libraries/typed-decisions). Missing fixtures or changed definition versions fail without contacting a live provider. Fixtures exercise validation and orchestration; use labeled datasets separately to measure model quality.
+
+Spans named `harnest.decision.evaluate` include authored definition/provider identities and revisions, duration, a fixed outcome category, and the policy action. They omit state, instructions, answers, destinations, and provider exception text. Existing runtime telemetry exporters receive these spans. Keep customer data and secrets out of authored identities.

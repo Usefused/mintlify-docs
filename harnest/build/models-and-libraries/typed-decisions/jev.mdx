@@ -1,0 +1,205 @@
+---
+title: "Use Jev for decisions"
+sidebarTitle: "Use Jev"
+description: "Route support tickets with Jev through Harnest's custom-provider API."
+---
+
+## Run the example agent
+
+The Harnest repository includes `examples/jev-triage`: a managed graph with three steps: **Jev classifies the ticket → an LLM drafts a reply → Harnest returns the reply**. The validated routing decision stays in internal state and supplies context to the LLM.
+
+From the repository root, with a Harnest build that includes typed decisions:
+
+```bash
+harnest env sync examples/jev-triage --profile development
+export TYPESAFE_AI_KEY="your-api-key"
+export JEV_LLM_MODEL="ollama_chat/qwen3.5:cloud"
+harnest serve examples/jev-triage
+```
+
+The default LLM is `ollama_chat/qwen3.5:cloud`; your local Ollama service must have that model available and cloud access configured. Set `JEV_LLM_MODEL` to another LiteLLM provider/model identifier, with optional `JEV_LLM_API_BASE` and `JEV_LLM_API_KEY` overrides. Ollama reasoning is disabled for this short drafting step.
+
+`TYPESAFE_API_KEY` also works and takes precedence when both are set. Ask “I was charged twice for the same order.” The public result contains the customer-facing `reply`; department, confidence, queue, and live/offline provenance remain internal. Billing and support require confidence of at least `0.8`; other categories and evaluation failures recommend manual review.
+
+For a credential-free run or tests:
+
+```bash
+JEV_TRIAGE_OFFLINE=true harnest serve examples/jev-triage
+harnest test examples/jev-triage --smoke
+```
+
+Offline mode replaces both Jev and the LLM: it uses a fixed billing decision internally and returns a draft labeled “Offline fixture”. Tests require no provider credentials. Session storage is in memory; restarting clears conversations. The agent recommends and drafts without sending tickets or changing accounts. LLM failures are reported as request errors.
+
+<Accordion title="Run unreleased changes from a source checkout">
+  Use the checkout's Python runtime when your installed CLI predates typed decisions:
+
+```bash
+uv venv .venv --python 3.12
+uv pip install --python .venv/bin/python -e ".[adk,quality]" "typesafe-sdk==0.7.1"
+.venv/bin/python -m harnest.cli compile examples/jev-triage --output .harnest/jev-triage
+.venv/bin/python .harnest/jev-triage/harnest-agent serve
+```
+
+  Export your key before serving, or prefix the last command with `JEV_TRIAGE_OFFLINE=true`.
+</Accordion>
+
+## Show or hide Jev results
+
+The example hides decision events with this factory:
+
+```python lifecycle/output.py
+from harnest import lifecycle
+from harnest.output import OutputPolicy
+
+
+@lifecycle.output_policy
+def output_policy() -> OutputPolicy:
+    """Keep Jev judgments internal while publishing the LLM reply."""
+    return OutputPolicy(decision_results=False)
+```
+
+Jev still evaluates each ticket and the LLM still receives its recommendation. Callers receive the reply without a Jev result panel. Internal state remains available in Playground's **State** inspector.
+
+Change it to `OutputPolicy(decision_results=True)` and recompile/restart to add separate `decision_result` events with the typed answers and routing outcome. The reply schema stays the same. This policy works with any registered decision provider, not just Jev. See [Output policy](/harnest/runtime/lifecycle/output-policy#choose-decision-results).
+
+## Add Jev to your own agent
+
+Replace the [quickstart's offline fixture](/harnest/build/models-and-libraries/typed-decisions) with Jev. Reuse its `lib/triage.py` and `tools/triage_ticket.py`; the adapter below supports `Choice` questions, including batches, probabilities, and confidence.
+
+This is an application-local integration using the [TypeSafe Python SDK](https://docs.typesafe.ai/sdk/python). It does not require a packaged Jev extension.
+
+<Steps>
+  <Step title="Add the SDK and credentials">
+    Add `typesafe-sdk==0.7.1` to your agent's existing `project.dependencies` in `pyproject.toml`, then run:
+
+```bash
+harnest env sync .
+export TYPESAFE_API_KEY="your-api-key"
+```
+
+    Get a key from the [TypeSafe console](https://console.typesafe.ai). The example pins `jev-1.13.0`; check the [model catalog](https://docs.typesafe.ai/models) before changing it.
+  </Step>
+  <Step title="Add the provider adapter">
+
+```python lib/jev.py
+from collections.abc import Mapping
+from typing import Any
+
+from typesafe_sdk import AsyncTypeSafeClient, Choice as JevChoice, ChoiceAnswer
+
+from harnest.decisions import (
+    Choice, ChoiceResult, DecisionCapabilities, DecisionRequest,
+    DecisionResponse, QuestionKind,
+)
+
+
+def json_value(value: Any) -> Any:
+    """Convert Harnest's immutable state snapshot into SDK JSON containers."""
+    if isinstance(value, Mapping):
+        return {key: json_value(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [json_value(item) for item in value]
+    return value
+
+
+class JevProvider:
+    """Adapt Jev Choice answers to Harnest's decision contract."""
+
+    version = "jev-1.13.0"
+    capabilities = DecisionCapabilities(
+        frozenset({QuestionKind.CHOICE}),
+        batching=True, probabilities=True, confidence=True,
+    )
+
+    def __init__(self, client: AsyncTypeSafeClient) -> None:
+        """Use a lifecycle-owned client without acquiring another connection."""
+        self.client = client
+
+    async def evaluate(self, request: DecisionRequest) -> DecisionResponse:
+        """Submit all choices together and preserve their native metadata."""
+        if any(not isinstance(q, Choice) for q in request.definition.questions):
+            raise TypeError("This adapter supports Choice questions only")
+        result = await self.client.system_one(
+            model=self.version,
+            state=json_value(request.state),
+            questions={
+                q.name: JevChoice(
+                    instructions=q.instructions, criteria=dict(q.options),
+                )
+                for q in request.definition.questions
+            },
+        )
+        if result.model != self.version:
+            raise ValueError("Jev returned a different model revision")
+        answers = {}
+        for name, answer in result.answers.items():
+            if not isinstance(answer, ChoiceAnswer):
+                raise TypeError("Expected a Jev Choice answer")
+            answers[name] = ChoiceResult(
+                value=answer.choice,
+                probabilities=answer.probabilities,
+                confidence=answer.confidence,
+            )
+        return DecisionResponse(answers)
+```
+
+    Harnest checks that every requested question is answered and each choice belongs to its declared options.
+  </Step>
+  <Step title="Replace the fixture registration">
+    Replace `lifecycle/decisions.py` with this resource. The async context manager closes the SDK client at application shutdown.
+
+```python lifecycle/decisions.py
+from contextlib import asynccontextmanager
+
+from typesafe_sdk import AsyncTypeSafeClient, RetryPolicy
+
+from harnest import context, lifecycle
+from harnest.decisions import (
+    DecisionAction, DecisionBinding, DecisionOutcome, Decisions,
+)
+from harnest.lib.jev import JevProvider
+from harnest.lib.triage import TRIAGE, ROUTING
+
+
+@lifecycle.resource
+@context.provider("decisions")
+@asynccontextmanager
+async def decisions():
+    """Own the Jev client and send evaluation failures to manual review."""
+    async with AsyncTypeSafeClient(
+        timeout=5, retry=RetryPolicy(max_retries=0),
+    ) as client:
+        yield Decisions(
+            providers={"jev": JevProvider(client)},
+            bindings=(DecisionBinding(
+                TRIAGE, "jev", ROUTING,
+                on_error=DecisionOutcome(DecisionAction.REVIEW),
+            ),),
+            timeout_seconds=6,
+        )
+```
+
+    SDK retries are disabled explicitly. See the [asynchronous client reference](https://docs.typesafe.ai/sdk/python/api/clients/async) for timeout and retry options.
+  </Step>
+  <Step title="Try a ticket">
+    Run `harnest serve .` and ask your agent:
+
+> Use triage_ticket to classify: “I was charged twice for the same order.”
+
+    The tool calls Jev through `context.decisions.evaluate(...)` and returns a route or review recommendation.
+  </Step>
+</Steps>
+
+| Result | Quickstart policy returns |
+|---|---|
+| Billing or support, confidence at least `0.8` | Corresponding agent route |
+| Another category or lower confidence | Manual review |
+| Timeout, provider error, or invalid result | Manual review |
+
+Tune the confidence threshold with your own tickets. Routing remains your application's responsibility; returning `billing_agent` does not invoke it.
+
+<Note>
+  The adapter has been checked with SDK `0.7.1` and mocked HTTP responses. Live predictions require your TypeSafe credentials. Harnest's private decision traces do not control SDK logging; avoid SDK debug logging of customer payloads.
+</Note>
+
+To support other primitives, extend the adapter using TypeSafe's [question contracts](https://docs.typesafe.ai/primitives): map Jev Score to `ScoreResult` and Jev Noul to `PredicateResult`, then declare those capabilities. The adapter above intentionally advertises only what it implements.
