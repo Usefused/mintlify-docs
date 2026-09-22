@@ -1,0 +1,90 @@
+---
+title: "Create a project pack"
+sidebarTitle: "Create a pack"
+description: "Declare a company pack with typed input options and a validated configuration file."
+---
+
+Define a pack in a Python package installed alongside your company CLI. Keep this package outside the agent repository so the deployed agent does not acquire authoring-only dependencies.
+
+## Start with a typed definition
+
+This first release accepts a team name and writes it to the company's `owner` field. The [migration example](/harnest/build/project-packs/migrations) later renames that field to `team`.
+
+```python pack.py
+from enum import Enum
+from pydantic import BaseModel, Field
+from harnest.authoring import ChangePlan, ProjectContext, ProjectPack
+
+class Environment(str, Enum):
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
+
+class Options(BaseModel):
+    team: str = Field(min_length=1, description="Team responsible for this agent")
+    environment: Environment = Environment.DEVELOPMENT
+
+class Settings(BaseModel):
+    owner: str = Field(min_length=1)
+    environment: Environment
+
+pack = ProjectPack(
+    name="acme",
+    schema_version=1,
+    options=Options,
+    config_file="acme-agent.yaml",
+    config_model=Settings,
+)
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.yaml.set(
+            "acme-agent.yaml", key=("owner",), value=context.options.team,
+        ),
+        context.yaml.set(
+            "acme-agent.yaml",
+            key=("environment",),
+            value=context.options.environment.value,
+        ),
+    )
+```
+
+`Options` validates values supplied by the caller. `Settings` validates the resulting company file after that pack's hooks finish. They serve different purposes: an upgrade can validate existing settings without asking the user to repeat their init options.
+
+## Pack properties
+
+| Property | Required | Contract |
+|---|---|---|
+| `name` | Yes | A unique kebab-case identifier beginning with a letter, up to 63 characters. `harnest` is reserved. |
+| `schema_version` | Yes | A positive integer identifying the company configuration schema. Track it separately from your package release version. |
+| `options` | No | A Pydantic model for caller-supplied inputs. |
+| `templates` | No | A directory containing inert UTF-8 [templates](/harnest/build/project-packs/changes#templates). |
+| `config_file` | With `config_model` | The project-relative company configuration path. |
+| `config_model` | With `config_file` | A Pydantic model that validates the resulting configuration mapping. |
+
+Keep company properties in a separate file such as `acme-agent.yaml`. Use existing Harnest fields when changing Harnest configuration; arbitrary company fields do not extend Harnest's configuration schema.
+
+## Package templates
+
+A pack that generates a company workflow could have this structure:
+
+```text
+acme_agent_pack/
+  __init__.py
+  pack.py
+  cli.py
+  templates/
+    ci.yml
+```
+
+Pass `templates=Path(__file__).parent / "templates"` to `ProjectPack`, and include the files in your package's build configuration. Templates are read as data; Harnest does not import or execute them.
+
+## Choose what runs
+
+Pass installed pack objects explicitly to [`ProjectCLI`](/harnest/build/project-packs/cli) or [`ProjectPlanner`](/harnest/build/project-packs/plans-and-recovery). Harnest does not discover packs from package names in a project file.
+
+<Note>
+Pack callbacks are trusted Python, not sandboxed code. Keep them deterministic and free of filesystem or network side effects. A preview can execute callbacks multiple times without applying any changes.
+</Note>
+
+Continue with the [`@pack.initialize` reference](/harnest/build/project-packs/initialize) or [build your company CLI](/harnest/build/project-packs/cli).

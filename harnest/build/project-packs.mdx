@@ -1,0 +1,42 @@
+---
+title: "Company project packs"
+sidebarTitle: "Overview"
+description: "Build an internal agent product with company scaffolds, typed settings, and versioned migrations."
+---
+
+A **project pack** teaches Harnest how your company creates and upgrades agent repositories. Package your defaults, templates, and migrations once, then expose them through your own CLI or a custom interface.
+
+Install packs in your authoring environment. Their scaffolding and migration dependencies do not need to be installed in deployed agents. Use a [Harnest Extension](/harnest/build/extensions) for capabilities that run inside the agent.
+
+<CardGroup cols={2}>
+  <Card title="Create a pack" icon="box" href="/harnest/build/project-packs/create">
+    Define pack identity, typed options, and company configuration.
+  </Card>
+  <Card title="Build a company CLI" icon="terminal" href="/harnest/build/project-packs/cli">
+    Expose init, upgrade, and your own commands.
+  </Card>
+</CardGroup>
+
+## Supported decorators
+
+Project packs support two decorators. Both register synchronous functions that return a `ChangePlan`; they propose changes during planning rather than applying them to the live project.
+
+| Decorator | Purpose | When it runs |
+|---|---|---|
+| [`@pack.initialize`](/harnest/build/project-packs/initialize) | Create company files and defaults. | When planning a new project, including a dry run. |
+| [`@pack.migration(from_version=1, to_version=2)`](/harnest/build/project-packs/migrations) | Move an existing project to the next company schema. | When planning an upgrade that crosses that version. |
+
+There are no separate before/after init, apply, or rollback decorators. Harnest owns applying and recovering the proposed changes.
+
+## How changes reach the project
+
+Harnest prepares its scaffold or core migrations in a temporary copy. Packs then propose their changes in the order you supply them. The planner validates company configuration and reports conflicts in one combined preview.
+
+<CardGroup cols={2}>
+  <Card title="Files, YAML, and templates" icon="file-code" href="/harnest/build/project-packs/changes">
+    Declare changes and choose an ownership policy.
+  </Card>
+  <Card title="Plans and recovery" icon="list-check" href="/harnest/build/project-packs/plans-and-recovery">
+    Review plans, resolve blockers, and recover interrupted changes.
+  </Card>
+</CardGroup>

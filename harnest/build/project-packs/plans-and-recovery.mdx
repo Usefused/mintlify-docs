@@ -1,0 +1,96 @@
+---
+title: "Review plans and recover changes"
+sidebarTitle: "Plans and recovery"
+description: "Use the planning API, track company schema versions, and handle conflicts or interrupted applies."
+---
+
+The planner combines core Harnest changes and company migrations before modifying a project. Use it directly when building a custom interface or automation around your packs. This API is available for integration; it does not add a project-pack screen to Harnest Studio.
+
+## Plan through Python
+
+```python
+from harnest.authoring import ProjectPlanner, apply_project_plan
+from acme_agent_pack.pack import pack
+
+planner = ProjectPlanner(packs=[pack])
+plan = planner.plan_upgrade("support-bot")
+print(plan.render())
+
+if not plan.blockers:
+    backup = apply_project_plan(plan)
+```
+
+Create a new project with `planner.plan_init("support-bot", options={"acme": {"team": "support"}})`. Options are grouped by pack name. This method also accepts `framework="adk"` or `"langgraph"` and `minimal=True`.
+
+| Plan member | Purpose |
+|---|---|
+| `root` | The resolved target directory. |
+| `changes` | Net file changes: `ChangeKind.CREATE`, `UPDATE`, or `DELETE`, with paths and owners. |
+| `blockers` | Problems that prevent the entire plan from applying. |
+| `render()` | A readable combined summary. |
+| `public()` | A JSON-compatible summary without file contents or option values. |
+
+The JSON summary is for display, not an executable plan format. Keep the original `ProjectPlan` object when applying a reviewed plan programmatically. `apply_project_plan` rejects blockers and stale inputs; it returns the backup directory or `None` when nothing changed.
+
+## Planning order
+
+<Steps>
+  <Step title="Snapshot project source">
+    Read the project's regular source files. Exclude runtime and cache directories such as `.harnest`, `.venv`, and `.git`; reject source symlinks.
+  </Step>
+  <Step title="Prepare Harnest changes">
+    Generate the scaffold or apply core migrations in a disposable copy. The live project remains unchanged.
+  </Step>
+  <Step title="Run company hooks">
+    Run packs in their supplied order and migrations in schema order. Each hook reads the current staged state and returns operations. Validate each pack's resulting company configuration.
+  </Step>
+  <Step title="Review the combined result">
+    Report final changed paths, owners, and blockers. A failure can leave partial proposals in the preview, but prevents applying the entire plan.
+  </Step>
+</Steps>
+
+Only explicitly installed pack objects execute. Project lock files cannot import packages. Callbacks are trusted Python, not a sandbox: keep them deterministic and free of external side effects, including during previews.
+
+## Track versions and ownership
+
+Commit both lock files:
+
+| File | Tracks |
+|---|---|
+| `harnest.lock` | Harnest project schema and framework metadata. |
+| `harnest-packs.lock` | Company pack schema versions and ownership hashes for generated files or fields. |
+
+Ownership hashes allow managed updates to distinguish unchanged generated content from user edits. Option values are not recorded in the pack lock. Do not advance version numbers manually to skip migrations; doing so tells future upgrades that those changes already happened.
+
+## Resolve blockers
+
+| Blocker | Next step |
+|---|---|
+| Generated content has local edits | Review and reconcile the edit with the pack's intended change. The current API has no force-overwrite switch. |
+| Two packs own overlapping fields or files | Narrow or redesign their ownership boundaries, then replan. |
+| Core migration touches pack-owned content | Review the core and company changes together and resolve ownership explicitly. |
+| Missing installed pack | Supply the installed pack recorded by the project. |
+| Missing migration step | Install a pack release that includes every required consecutive migration. |
+| Project schema is newer than the installed pack | Use a compatible newer pack. Downgrades are not supported. |
+| Pack has no version in this project | Design an explicit adoption workflow. Automatic adoption is not provided. |
+| Invalid company configuration | Correct the migration or configuration to satisfy the pack's model. |
+| Stale plan | Generate and review a fresh plan after any source edit. |
+
+## Apply and recover
+
+Applying checks the source snapshot again, obtains a lock against other project-pack applies, and backs up affected originals under `.harnest/project-backups/`. It then writes the reviewed result. A handled write failure restores source files from the captured originals.
+
+<Warning>
+Backups can contain the original configuration contents. Treat them with the same access controls as the project source.
+</Warning>
+
+A process crash or disk failure can require manual recovery:
+
+1. Ensure the original apply process is no longer running.
+2. Inspect the backup's `plan.json` and `source/` files. Restore affected originals and reconcile files that the interrupted plan created or deleted.
+3. If `.harnest/project-apply.lock` remains, remove it only after recovering the interrupted operation.
+4. Generate a fresh plan and review it before applying again.
+
+The apply lock coordinates project-pack operations; it does not stop unrelated editors from writing. Keep the project free of concurrent edits while applying.
+
+YAML operations preserve values but not comments or formatting. File/directory conversions require manual migration. Company model validation does not replace the usual Harnest compile and test checks for the complete agent.

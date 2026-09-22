@@ -1,0 +1,102 @@
+---
+title: "Build a company CLI"
+sidebarTitle: "Company CLI"
+description: "Expose typed init and upgrade commands and register additional company commands."
+---
+
+Use `ProjectCLI` to expose your installed packs through a company-owned executable. It uses the same planning API available to custom interfaces.
+
+## Register the entrypoint
+
+```python cli.py
+from harnest.authoring import ProjectCLI
+from acme_agent_pack.pack import pack
+
+cli = ProjectCLI(name="acme-agent", packs=[pack])
+
+def main() -> int:
+    return cli.run()
+```
+
+Register `main` as a console script in your company package:
+
+```toml pyproject.toml
+[project.scripts]
+acme-agent = "acme_agent_pack.cli:main"
+```
+
+The `packs` order is the execution order. Their names must be unique. Install the Harnest executable alongside the company CLI, or select it explicitly:
+
+```python
+cli = ProjectCLI(
+    name="acme-agent",
+    packs=[pack],
+    harnest_command=("/approved/path/harnest",),
+)
+```
+
+Pin that executable and the Python Harnest package to the same release. Initialization uses the executable's scaffold; upgrades use the Python migration engine.
+
+## Commands and flags
+
+| Command | Default behavior | Additional flags |
+|---|---|---|
+| `init DIRECTORY` | Plan and apply to an absent or empty directory. | `--dry-run`, `--framework adk\|langgraph`, `--minimal`, `--json`, pack options. |
+| `upgrade DIRECTORY` | Print a read-only combined plan. | `--apply`, `--json`, pack options. |
+
+```sh
+acme-agent init support-bot --team customer-success --dry-run --json
+acme-agent init support-bot --team customer-success
+acme-agent upgrade support-bot
+acme-agent upgrade support-bot --apply
+```
+
+A later `--apply` command builds a fresh plan; the CLI does not persist and replay an earlier preview. `--json` prints a plan without file contents or option values. It can be combined with application flags and does not itself make the command read-only.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | Success, including a plan with no changes. |
+| `1` | Operational error. |
+| `2` | Blocked plan or invalid command-line arguments. |
+
+## Typed pack options
+
+Declare a Pydantic options model when [creating the pack](/harnest/build/project-packs/create). String, integer, and number fields become typed flags. Enums become choices; defaults and validation remain in the Pydantic model.
+
+| Model input | CLI example |
+|---|---|
+| String | `--team customer-success` |
+| Integer | `--replicas 2` |
+| Enum | `--environment production` |
+| Boolean | `--enabled true` |
+| List or object | `--regions '["eu-west", "us-east"]'` |
+
+Use explicit JSON literals for booleans and structured inputs. Avoid field names reserved by the CLI, such as `framework`, `minimal`, `json`, and `apply`.
+
+With multiple packs, flags gain the pack name prefix: `--acme-team`, `--platform-region`. Underscores in field names become hyphens in flags.
+
+Options are validated before that pack's callbacks execute and are not stored in `harnest-packs.lock`. During upgrades, a pack receives `context.options = None` unless its options were supplied; read persisted company choices from its configuration file.
+
+## Add a company command
+
+`add_command` returns an `argparse.ArgumentParser`. Add your arguments and return an integer exit code from the handler:
+
+```python
+import argparse
+from pathlib import Path
+
+def inspect_company_file(arguments: argparse.Namespace) -> int:
+    path = arguments.directory / "acme-agent.yaml"
+    print(f"Company configuration: {path}")
+    return 0 if path.is_file() else 1
+
+parser = cli.add_command(
+    "inspect-company", inspect_company_file,
+    help="Locate this agent's company configuration",
+)
+parser.add_argument("directory", type=Path)
+```
+
+Custom handlers own their work and error handling; they do not automatically participate in the project transaction. Other Harnest commands are not automatically forwarded. To expose them, register an explicit company handler.
+
+`cli.run(arguments, stdout=..., stderr=...)` supports embedded callers and tests. It returns an exit code for normal command execution; argparse retains its usual exit behavior for help and invalid arguments.

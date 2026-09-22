@@ -221,6 +221,25 @@
                   "harnest/build/channels",
                   "harnest/build/agent-plugins",
                   {
+                    "group": "Project packs",
+                    "icon": "box",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/build/project-packs",
+                      "harnest/build/project-packs/create",
+                      {
+                        "group": "Decorators",
+                        "pages": [
+                          "harnest/build/project-packs/initialize",
+                          "harnest/build/project-packs/migrations"
+                        ]
+                      },
+                      "harnest/build/project-packs/changes",
+                      "harnest/build/project-packs/cli",
+                      "harnest/build/project-packs/plans-and-recovery"
+                    ]
+                  },
+                  {
                     "group": "Harnest Extensions",
                     "icon": "puzzle-piece",
                     "expanded": false,

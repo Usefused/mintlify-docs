@@ -1,0 +1,98 @@
+---
+title: "Migrate company configuration"
+sidebarTitle: "@pack.migration"
+description: "Use consecutive versioned migrations to evolve existing agents without rerunning initialization."
+---
+
+Use `@pack.migration` to change an existing project's company configuration. Harnest tracks the applied pack schema in `harnest-packs.lock` and runs only the migration steps needed to reach the installed pack's target version.
+
+## Decorator contract
+
+```python
+@pack.migration(from_version=1, to_version=2)
+def migrate(context: ProjectContext) -> ChangePlan:
+    ...
+```
+
+| Parameter or rule | Contract |
+|---|---|
+| `from_version` | A positive integer schema version. |
+| `to_version` | Exactly `from_version + 1`, no greater than `pack.schema_version`. |
+| Function | A synchronous callable accepting `ProjectContext` and returning `ChangePlan`. |
+| Registration | One migration per source version. Duplicate registrations are rejected. |
+| Timing | Runs during upgrade planning, including previews. |
+| New projects | Skip historical migrations; their initializer must create the current schema directly. |
+
+## Rename a company property
+
+The [first pack release](/harnest/build/project-packs/create) writes an `owner` property. Replace its definition with this second release to use `team` instead:
+
+```python pack.py
+from enum import Enum
+from pydantic import BaseModel, Field
+from harnest.authoring import ChangePlan, ProjectContext, ProjectPack
+
+class Environment(str, Enum):
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
+
+class Options(BaseModel):
+    team: str = Field(min_length=1)
+    environment: Environment = Environment.DEVELOPMENT
+
+class Settings(BaseModel):
+    team: str = Field(min_length=1)
+    environment: Environment
+
+pack = ProjectPack(
+    name="acme",
+    schema_version=2,
+    options=Options,
+    config_file="acme-agent.yaml",
+    config_model=Settings,
+)
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.yaml.set(
+            "acme-agent.yaml", key=("team",), value=context.options.team,
+        ),
+        context.yaml.set(
+            "acme-agent.yaml",
+            key=("environment",),
+            value=context.options.environment.value,
+        ),
+    )
+
+@pack.migration(from_version=1, to_version=2)
+def migrate_ownership(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.yaml.rename_key(
+            "acme-agent.yaml", source=("owner",), destination=("team",),
+        ),
+    )
+```
+
+The rename preserves the user's current value and unrelated properties. An occupied `team` destination blocks the migration rather than overwriting it. If `owner` is absent, the rename makes no change; the final `Settings` validation still requires a valid `team`.
+
+```sh
+acme-agent upgrade support-bot
+acme-agent upgrade support-bot --apply
+```
+
+After a successful apply, the lock records version `2`. A subsequent upgrade does not rerun this migration.
+
+## Keep the migration chain complete
+
+For an installed pack at schema `3`, a project at schema `1` needs both `1 → 2` and `2 → 3`. Each callback sees the earlier step's staged results. Configuration validation runs after all required steps for that pack, so intermediate schemas can differ from the final model.
+
+A missing step, a project version newer than the installed pack, or a pack recorded in the lock but absent from the CLI blocks upgrade. Retain older migrations while you support projects created by those releases.
+
+Upgrades do not automatically adopt new packs. An existing project without that pack's version requires a separately designed adoption workflow; there is no built-in adoption decorator or command.
+
+## Read existing settings
+
+During upgrades, `context.options` is `None` unless the caller supplied options for that pack. Read persisted choices through `context.yaml.read("acme-agent.yaml")` instead of requiring users to repeat init inputs. If upgrade options are supplied, the same options model validates them, including its required fields.
+
+For generated-file updates, use `WritePolicy.MANAGED` and handle local edits as blockers. See [files and YAML changes](/harnest/build/project-packs/changes) and [conflict recovery](/harnest/build/project-packs/plans-and-recovery#resolve-blockers).

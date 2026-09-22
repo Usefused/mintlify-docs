@@ -1,0 +1,70 @@
+---
+title: "Initialise a project"
+sidebarTitle: "@pack.initialize"
+description: "Use the initialize decorator to add company defaults to a new Harnest project."
+---
+
+Use `@pack.initialize` to add company files and defaults to a newly scaffolded agent. It runs after Harnest prepares its scaffold and before company configuration validation.
+
+## Decorator contract
+
+```python
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    ...
+```
+
+| Rule | Behavior |
+|---|---|
+| Registration | One initializer per pack. Registering another raises `ProjectError`. |
+| Function | A synchronous callable accepting one `ProjectContext` and returning `ChangePlan`. |
+| Timing | Runs during init planning, including `--dry-run`. It does not write to the live project. |
+| Version | New projects start at the installed pack's current `schema_version`. |
+| Upgrades | Never runs during upgrade. Use [`@pack.migration`](/harnest/build/project-packs/migrations). |
+| Optional hook | A pack can omit its initializer. Any declared configuration model must still validate. |
+
+## Add defaults and generated files
+
+The following hook assumes `pack` declares a `team` option and a `templates` directory containing `ci.yml`:
+
+```python
+from harnest.authoring import ChangePlan, ProjectContext
+from acme_agent_pack.pack import pack
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.yaml.set(
+            "acme-agent.yaml", key=("team",), value=context.options.team,
+        ),
+        context.files.from_template(
+            ".github/workflows/agent.yml", template="ci.yml",
+        ),
+    )
+```
+
+Replace your pack's existing initializer with this function; do not register both. Ensure its `config_model` matches the fields the initializer produces.
+
+Operations default to `WritePolicy.IF_MISSING`. They preserve values already provided by Harnest's scaffold or an earlier pack. The planner still blocks overlapping ownership between different packs. See [write policies](/harnest/build/project-packs/changes#write-policies).
+
+## Use the context
+
+| Member | What it provides |
+|---|---|
+| `context.name` | The requested project directory's final path component. |
+| `context.options` | Validated Pydantic options, or `None` if the pack declares none. |
+| `context.files` | Read staged UTF-8 files and propose file/template operations. |
+| `context.yaml` | Read staged mappings and propose field changes. |
+
+Reads see the current staged project. Operations returned by one hook execute in order after that hook returns; constructing an operation does not update later reads inside the same function.
+
+## Preview before creating
+
+```sh
+acme-agent init support-bot --team customer-success --dry-run --json
+acme-agent init support-bot --team customer-success
+```
+
+The first command leaves the target untouched. The second creates it using a fresh plan. Init requires an absent or empty directory; it never upgrades an existing agent.
+
+A failed hook, invalid company configuration, or ownership conflict blocks application. See [plans and recovery](/harnest/build/project-packs/plans-and-recovery) for error handling and backups.
