@@ -24,7 +24,8 @@ Register a function like this with the appropriate pack decorator. Return `Chang
 |---|---|
 | `context.files.read_text(path)` | Read an existing staged UTF-8 file. Missing files raise `ProjectError`. |
 | `context.files.write_text(path, content, policy=...)` | Propose file creation or a managed replacement. |
-| `context.files.from_template(path, template=..., values=..., policy=...)` | Read an inert template and propose its rendered content. |
+| `context.files.from_template(path, template=..., values=..., policy=...)` | Read an inert UTF-8 template and propose its rendered content. |
+| `context.files.from_file(path, source=..., policy=...)` | Copy a packaged file unchanged, including binary documents and assets. |
 | `context.files.delete(path)` | Remove an unchanged file owned by the pack. An absent file is a no-op. |
 
 Paths must be canonical project-relative paths. Absolute paths, traversal, source symlinks, and reserved state paths such as `.git/`, `.harnest/`, and `harnest-packs.lock` are rejected. File/directory conversions require manual migration.
@@ -52,7 +53,7 @@ Use the enum values from `harnest.authoring`, rather than strings:
 | `WritePolicy.IF_MISSING` | Create it and record the pack's ownership baseline. | Preserve it without adopting unowned content. |
 | `WritePolicy.MANAGED` | Create it and record ownership. | Replace it only if it matches the pack's recorded baseline. |
 
-`IF_MISSING` is the default for file writes, templates, and YAML sets. `MANAGED` is appropriate when a later pack release updates a generated workflow or an unchanged default.
+`IF_MISSING` is the default for file writes, verbatim copies, templates, and YAML sets. `MANAGED` is appropriate when a later pack release updates a generated workflow or an unchanged default.
 
 ```python
 from harnest.authoring import ChangePlan, ProjectContext, WritePolicy
@@ -68,6 +69,28 @@ def update_workflow(context: ProjectContext) -> ChangePlan:
 ```
 
 A local modification blocks replacement even if the pack intends to write the same value. YAML rename operations are different: they carry the user's current value forward instead of resetting it to a generated default.
+
+## Add team documentation to the project
+
+Teams can copy Markdown guides, API references, runbooks, PDFs, images, and other files into generated projects. Use `from_file` to preserve the original bytes without decoding text or substituting dollar expressions.
+
+Set `templates` on your `ProjectPack` to the directory containing the packaged assets:
+
+```python
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    """Give teammates reference material in each generated project."""
+    return ChangePlan(
+        context.files.from_file("docs/runbook.md", source="runbook.md"),
+        context.files.from_file("docs/handbook.pdf", source="handbook.pdf"),
+    )
+```
+
+`source` is relative to the pack's `templates` directory. The destination `path` is relative to the generated agent. The source must resolve to a regular file inside the pack's template directory; missing files and escaping paths block the operation. Include these asset files when distributing the team's Python package.
+
+Each operation copies one file. These documents remain in the generated project for teammates and are excluded from compilation. The compile manifest has no `resources` field. Use an agent template to create standard `instructions.md` or skill content when the agent itself needs guidance.
+
+Copied files use the same ownership records, conflict checks, and migration policies as text files. In a versioned migration, use `policy=WritePolicy.MANAGED` to update an unchanged pack-owned document. Local edits block replacement instead of being overwritten.
 
 ## Templates
 

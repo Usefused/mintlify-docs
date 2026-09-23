@@ -6,6 +6,53 @@ description: "Declare a company pack with typed input options and a validated co
 
 Define a pack in a Python package installed alongside your company CLI. Keep this package outside the agent repository so the deployed agent does not acquire authoring-only dependencies.
 
+## Generate a starter pack
+
+Create a Python pack and an editable compile manifest together:
+
+```bash
+harnest pack init acme --output ./acme-pack
+```
+
+Omit `--output` to use `./acme-pack`. The name must begin with a lowercase letter and contain only lowercase letters, digits, or hyphens, with a maximum of 63 characters. `harnest` is reserved. The destination must not already exist; the command never overwrites an existing team pack.
+
+```text
+acme-pack/
+  pack.py
+  harnest-compile.yaml
+  team-guide.md
+```
+
+| Generated file | What to customize |
+|---|---|
+| `pack.py` | Pack identity, initialization, migrations, and the company's CLI. |
+| `harnest-compile.yaml` | Optional dependency groups selected for compilation. |
+| `team-guide.md` | Team documentation copied unchanged to `docs/team-guide.md` in each new agent. |
+
+The generated manifest starts with:
+
+```yaml
+version: 1
+extras: []
+```
+
+Run the Python file with the Harnest SDK installed in your authoring Python environment and the Harnest CLI on `PATH`:
+
+```bash
+python ./acme-pack/pack.py init ./sales --minimal
+harnest compile ./sales --format executable --output ./dist/sales-agent
+```
+
+On Windows, use an output name ending in `.exe`. Set `HARNEST_CLI` to your Harnest executable path if it is not on `PATH`.
+
+The initializer copies the manifest and sample documentation into each new agent. The guide stays at `docs/team-guide.md` for teammates to read and is excluded from compilation. It does not become an agent instruction or skill. Use an agent template for standard `instructions.md`, skills, and other required agent structure. A team's custom CLI can also install internal-service extensions using Harnest's existing extension commands.
+
+Adding an extra requires the corresponding `[project.optional-dependencies]` entry in the generated agent's `pyproject.toml`. The compile manifest controls dependency selection only; it does not package arbitrary project files.
+
+Edit these files before creating agents. To update existing agents, increment `schema_version`, add a [migration](/harnest/build/project-packs/migrations), and run `python ./acme-pack/pack.py upgrade ./sales --apply`. Initializers do not run again during upgrade.
+
+You can later move this starter into your team's Python package and expose `main` through a [company CLI](/harnest/build/project-packs/cli) console entry point. Include both template files beside `pack.py` in the installed package. Harnest compiles agents; the pack remains authoring code.
+
 ## Start with a typed definition
 
 This first release accepts a team name and writes it to the company's `owner` field. The [migration example](/harnest/build/project-packs/migrations) later renames that field to `team`.
@@ -78,6 +125,26 @@ acme_agent_pack/
 ```
 
 Pass `templates=Path(__file__).parent / "templates"` to `ProjectPack`, and include the files in your package's build configuration. Templates are read as data; Harnest does not import or execute them.
+
+## Declare compilation dependencies
+
+Use ordinary pack operations to maintain optional dependency selections:
+
+```python
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    """Select the team's optional integration dependencies for compilation."""
+    return ChangePlan(
+        context.yaml.set("harnest-compile.yaml", key=("version",), value=1),
+        context.yaml.set("harnest-compile.yaml", key=("extras",), value=["crm"]),
+    )
+```
+
+Declare the matching `[project.optional-dependencies].crm` group in the agent's `pyproject.toml`, for example through the team's agent template. Package versions remain in Python metadata. The compile manifest does not accept `resources`.
+
+When changing existing agents, add a versioned pack migration for the declarations. Generated-file and YAML ownership rules still apply: coordinate shared lists between packs rather than having multiple packs claim the same key. Compilation reads only the resulting declarations and files; it does not import the pack or execute its migrations. Your authoring package does not need to ship with the agent.
+
+See [compilation selections and reports](/harnest/build/testing-and-compilation#select-compilation-dependencies) for dependency selection, compiled content, and shared-runtime behavior.
 
 ## Choose what runs
 

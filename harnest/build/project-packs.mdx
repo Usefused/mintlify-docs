@@ -17,6 +17,14 @@ Install packs in your authoring environment. Their scaffolding and migration dep
   </Card>
 </CardGroup>
 
+## Create a starter
+
+```bash
+harnest pack init acme --output ./acme-pack
+```
+
+This creates `pack.py`, an editable `harnest-compile.yaml`, and sample team documentation. Run `python ./acme-pack/pack.py init ./sales` to create an agent with those defaults. See [generate a starter pack](/harnest/build/project-packs/create#generate-a-starter-pack) for setup and customization.
+
 ## Supported decorators
 
 Project packs support two decorators. Both register synchronous functions that return a `ChangePlan`; they propose changes during planning rather than applying them to the live project.

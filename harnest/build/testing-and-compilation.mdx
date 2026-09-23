@@ -123,6 +123,7 @@ harnest compile AGENT_DIR --output .harnest/my-agent
 | Preserved source | Your agent code |
 | Generated adapters | Selected framework integration |
 | `harnest-manifest.json` | Versions, mode, and source identity |
+| `harnest-build-report.json` | Included files, reasons, and byte sizes |
 | `server.yaml` | Mutable runtime settings |
 | `harnest-agent` | Launcher |
 
@@ -142,6 +143,65 @@ Compiled directories are reproducible output. Do not edit or commit them.
 Harnest resolves the selected environment before importing the agent or its
 Harnest Extensions. Production runtime, development, and eval use independent
 locks so compiled deployment artifacts do not inherit development-only packages.
+
+## Select compilation dependencies
+
+Add `harnest-compile.yaml` beside your agent's `config.yaml` to select optional dependency groups:
+
+```yaml harnest-compile.yaml
+version: 1
+extras: [crm]
+```
+
+Define the selected extra in the agent's configured `pyproject.toml`. Package versions stay in ordinary Python metadata:
+
+```toml pyproject.toml
+[project]
+name = "sales-agent"
+version = "1.0.0"
+dependencies = ["httpx>=0.28,<1"]
+
+[project.optional-dependencies]
+crm = ["acme-crm-sdk>=2,<3"]
+analytics = ["acme-analytics-sdk>=1,<2"]
+```
+
+In this example, compilation selects `crm`. It does not select `analytics` unless another requirement needs it. Both `compile` and `runtime build --agent` read these declarations. Ordinary `run`, `serve`, reload, and agent tests do not apply them.
+
+| Field | Behavior |
+|---|---|
+| `version` | Required; use `1`. |
+| `extras` | Optional list of exact keys from the root project's `[project.optional-dependencies]`. Unknown extras fail the build. |
+
+Harnest retains base project requirements, Harnest Extension requirements, the selected framework, and the required transitive dependencies. It keeps complete installed packages, including their metadata, resources, and native libraries. It does not remove Python modules based on observed imports. Put optional integrations in separate extras to avoid requiring every integration in every build.
+
+### Project files and compiled content
+
+Compilation includes Python source, the standard project configuration and dependency metadata, root and nested-subagent `instructions.md`, evaluation declarations, and complete installed skills, extensions, and Agent Plugins. Installed packages retain their assets together so their runtime behavior is preserved. Exclusions for secrets, generated state, and virtual environments still apply.
+
+Other project content, such as teammate guides, runbooks, PDFs, setup notes, and company authoring configuration, stays in the generated project and does not enter the compiled agent. This applies with or without a compile manifest. Ordinary `run`, `serve`, reload, and agent tests continue using the authored project content.
+
+`harnest-compile.yaml` accepts only `version` and `extras`. A `resources` field is rejected, including an empty list. There is no general file-inclusion setting. Harnest does not infer arbitrary file reads from Python code.
+
+Use an agent template to create standard `instructions.md` or skill content when the agent needs guidance. These conventional files compile automatically; teammate documentation does not become instructions or skills simply because a pack copied it into the project.
+
+Directory compilation with selected optional requirements uses a separate compile environment and `harnest-compile.lock`. Use `harnest env sync AGENT_DIR --profile compile` to prepare or refresh that environment explicitly. It does not replace the ordinary runtime or development environment. Native runtime builds continue to honor current production locks as constraints and retain their own resolved lock in the runtime pack.
+
+[Project packs](/harnest/build/project-packs/create#declare-compilation-dependencies) can generate and migrate these declarations through their existing file and YAML operations. Pack authoring and migration tools stay in the authoring environment unless you explicitly declare them as runtime dependencies.
+
+### Inspect a build report
+
+| Output | Report location |
+|---|---|
+| Compiled directory | `OUTPUT/harnest-build-report.json` |
+| Runtime pack | `PACK/harnest-build-report.json` |
+| Native executable | `EXECUTABLE.build-report.json` beside the executable |
+
+Agent reports list selected extras, retained files, inclusion reasons, and byte sizes. Runtime reports list declared dependency roots and owners, resolved package versions, installed package sizes, declared package requirements, and the complete runtime file inventory. Packages without a direct root declaration are labeled as part of the resolved transitive closure. Declared requirements may contain inactive environment markers; they are metadata, not a separately resolved dependency graph.
+
+Runtime `logicalBytes` counts retained file bytes, while `uniqueObjectBytes` counts each stored object once within that runtime. These figures exclude the report itself and filesystem overhead; they do not measure incremental disk usage across other packs. Executable reports also show the executable's actual size and whether its runtime is embedded. Overlapping package ownership can make per-package sizes overlap.
+
+Shared runtimes resolve the combined selected requirements of all listed agents. Identical files continue sharing the existing content-addressed store and launch cache. Changing selected requirements requires rebuilding runtime coverage; changing included agent content only requires recompiling the agent.
 
 ## Build native executables
 
