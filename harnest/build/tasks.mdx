@@ -11,16 +11,19 @@ Harnest Tasks run application-owned work outside the model tool call that reques
 |---|---|
 | Retryable work that a tool or trusted service starts | `await task.defer(...)` |
 | Wait for queued work from an agent invocation | Async `@tool(durable=True)` |
-| Start work at a fixed UTC schedule | A matching declaration under `cron/` |
-| Let managed code create or control a user's recurring schedule | `harnest.cron` operations |
+| Start work at a fixed UTC schedule | A matching declaration under [`cron/`](/harnest/build/scheduled-tasks) |
+| Let managed code create or control a user's recurring schedule | [Dynamic schedules](/harnest/build/dynamic-schedules) |
 | Ordinary in-process reuse | Call the decorated task directly |
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Create a Task" icon="list-check" href="/harnest/build/queued-tasks">
     Define, defer, inspect, cancel, and await a folder-discovered Task.
   </Card>
-  <Card title="Schedule a Task" icon="calendar-clock" href="/harnest/build/scheduled-tasks">
-    Declare fixed schedules or create and control user-owned schedules at runtime.
+  <Card title="Cron schedules" icon="calendar-clock" href="/harnest/build/scheduled-tasks">
+    Declare fixed UTC schedules in `cron/`.
+  </Card>
+  <Card title="Dynamic schedules" icon="calendar-plus" href="/harnest/build/dynamic-schedules">
+    Create and control user-owned schedules from managed code.
   </Card>
 </CardGroup>
 

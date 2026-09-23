@@ -1,0 +1,84 @@
+---
+icon: "calendar-plus"
+title: "Dynamic schedules"
+sidebarTitle: "Dynamic schedules"
+description: "Create and control user-owned recurring tasks from managed code."
+---
+
+Use `harnest.cron` to create schedules for the active user. For fixed application schedules, see [Cron schedules](/harnest/build/scheduled-tasks).
+
+## Setup
+
+Register the same provider with `@lifecycle.storage.tasks` and `@lifecycle.storage.cron` ([storage setup](/harnest/runtime/task-storage)) and keep `harnest serve .` running. Expressions use five cron fields in UTC. `harnest run` does not activate schedules.
+
+## Create a schedule from a Tool
+
+For user-owned schedules created at runtime, share the task through `lib/` and re-export it from `tasks/`:
+
+<CodeGroup>
+
+```python lib/report_tasks.py
+from harnest.task import task
+
+
+@task(queue="reports", max_retries=3)
+async def build_report(account_id: str) -> dict:
+    """Build one account report on the reports queue."""
+
+    return {"account_id": account_id, "status": "ready"}
+```
+
+```python tasks/build_report.py
+from harnest.lib.report_tasks import build_report
+```
+
+```python tools/schedule_report.py
+from harnest import cron
+from harnest.agent import tool
+from harnest.lib.report_tasks import build_report
+
+
+@tool
+async def schedule_report(account_id: str, expression: str) -> dict:
+    """Schedule a recurring UTC report for the current user."""
+
+    job = await cron.create(
+        key=f"weekly-report:{account_id}",
+        expression=expression,
+        task=build_report,
+        arguments={"account_id": account_id},
+    )
+    return {
+        "id": job.id,
+        "expression": job.expression,
+        "status": job.status,
+        "timezone": job.timezone,
+    }
+```
+
+</CodeGroup>
+
+The same `key` and definition return the existing job, even if paused or cancelled. Reusing the key with different settings raises `CronConflictError`.
+
+## Inspect and control schedules
+
+Call these APIs from managed runtime code. Each operation is scoped to the active user; returned jobs also expose `update`, `pause`, `resume`, `cancel`, and `delete` methods.
+
+| Operation | Result |
+|---|---|
+| `await cron.create(...)` | Create or retrieve a job by key |
+| `await cron.get(id)` | Return an owned job, or `None` |
+| `await cron.list(after=..., limit=...)` | List owned jobs by ID; `limit` is 1–100 |
+| `await cron.update(id, ...)` | Replace the expression or full argument mapping |
+| `await cron.pause(id)` | Pause future runs |
+| `await cron.resume(id)` | Resume at the next matching UTC minute |
+| `await cron.cancel(id)` | Stop future runs; keep the record |
+| `await cron.delete(id)` | Remove the record; return whether it existed |
+
+Cancelling or deleting stops future runs, not queued or running tasks. Cancelled jobs cannot be updated or resumed.
+
+| Error | Cause |
+|---|---|
+| `CronUnavailableError` | No active user or cron runtime |
+| `CronNotFoundError` | A mutation targets a missing or unowned job |
+| `CronConflictError` | Conflicting key reuse or an invalid change to a cancelled job |

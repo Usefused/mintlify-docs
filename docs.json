@@ -270,7 +270,8 @@
                     "pages": [
                       "harnest/build/tasks",
                       "harnest/build/queued-tasks",
-                      "harnest/build/scheduled-tasks"
+                      "harnest/build/scheduled-tasks",
+                      "harnest/build/dynamic-schedules"
                     ]
                   },
                   {
