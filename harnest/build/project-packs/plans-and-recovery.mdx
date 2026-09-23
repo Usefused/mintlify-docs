@@ -20,7 +20,22 @@ if not plan.blockers:
     backup = apply_project_plan(plan)
 ```
 
-Create a new project with `planner.plan_init("support-bot", options={"acme": {"team": "support"}})`. Options are grouped by pack name. This method also accepts `framework="adk"` or `"langgraph"` and `minimal=True`.
+Create a new project with `planner.plan_init("support-bot", options={"acme": {"team": "support"}})`. Options are grouped by pack name. This method also accepts `framework="adk"` or `"langgraph"` and `minimal=True` for the built-in scaffold. If omitted, the built-in framework defaults to ADK.
+
+To initialize from your team's preferred template, pass `template` instead of scaffold options:
+
+```python
+plan = planner.plan_init(
+    "sales",
+    template="acme-sales",
+    options={"acme": {"team": "sales"}},
+)
+print(plan.render())
+if not plan.blockers:
+    apply_project_plan(plan)
+```
+
+`template` accepts a Harnest template project name, short slug, or HTTPS wheel URL. Pass `template_sha256` to pin an HTTPS wheel. A checksum requires a template; a template cannot be combined with an explicit `framework` or `minimal=True`. The template's framework and mode remain authoritative, and pack hooks see its staged files before proposing their changes. The native Harnest CLI owns downloading, verification, and template rendering.
 
 | Plan member | Purpose |
 |---|---|
@@ -39,7 +54,7 @@ The JSON summary is for display, not an executable plan format. Keep the origina
     Read the project's regular source files. Exclude runtime and cache directories such as `.harnest`, `.venv`, and `.git`; reject source symlinks.
   </Step>
   <Step title="Prepare Harnest changes">
-    Generate the scaffold or apply core migrations in a disposable copy. The live project remains unchanged.
+    Generate the built-in scaffold, render the selected template, or apply core migrations in a disposable copy. The live project remains unchanged.
   </Step>
   <Step title="Run company hooks">
     Run packs in their supplied order and migrations in schema order. Each hook reads the current staged state and returns operations. Validate each pack's resulting company configuration.

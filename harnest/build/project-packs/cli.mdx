@@ -41,7 +41,7 @@ Pin that executable and the Python Harnest package to the same release. Initiali
 
 | Command | Default behavior | Additional flags |
 |---|---|---|
-| `init DIRECTORY` | Plan and apply to an absent or empty directory. | `--dry-run`, `--framework adk\|langgraph`, `--minimal`, `--json`, pack options. |
+| `init DIRECTORY` | Plan and apply to an absent or empty directory. | `--dry-run`, `--framework adk\|langgraph`, `--minimal`, `--template`, `--template-sha256`, `--json`, pack options. |
 | `upgrade DIRECTORY` | Print a read-only combined plan. | `--apply`, `--json`, pack options. |
 
 ```sh
@@ -59,6 +59,29 @@ A later `--apply` command builds a fresh plan; the CLI does not persist and repl
 | `1` | Operational error. |
 | `2` | Blocked plan or invalid command-line arguments. |
 
+## Initialize from a template
+
+Pass a Harnest template to your team's CLI:
+
+```bash
+acme-agent init ./sales --template acme-sales --team sales
+```
+
+`--template` accepts the same template project name, short slug, or HTTPS wheel URL as `harnest init`. For an HTTPS wheel, optionally pin its contents:
+
+```bash
+acme-agent init ./sales \
+  --template https://packages.example.com/acme_sales.whl \
+  --template-sha256 "$TEMPLATE_SHA256" \
+  --team sales
+```
+
+The planner calls `harnest init` with those template options in a temporary staging directory, then runs the pack initializers against the resulting files. The template supplies the initial agent structure, instructions, skills, framework, and mode. Packs apply their project customizations afterward. Existing pack ownership and write policies still govern conflicts.
+
+`--template` cannot be combined with an explicit `--framework` or `--minimal`. `--template-sha256` requires `--template`. Without a template, the framework still defaults to ADK.
+
+Use `--dry-run` to review the combined template and pack changes before creating the project. Planning can download the template; it does not modify the requested destination. A template download or validation failure prevents pack hooks from running and leaves that destination unchanged.
+
 ## Typed pack options
 
 Declare a Pydantic options model when [creating the pack](/harnest/build/project-packs/create). String, integer, and number fields become typed flags. Enums become choices; defaults and validation remain in the Pydantic model.
@@ -71,7 +94,7 @@ Declare a Pydantic options model when [creating the pack](/harnest/build/project
 | Boolean | `--enabled true` |
 | List or object | `--regions '["eu-west", "us-east"]'` |
 
-Use explicit JSON literals for booleans and structured inputs. Avoid field names reserved by the CLI, such as `framework`, `minimal`, `json`, and `apply`.
+Use explicit JSON literals for booleans and structured inputs. Avoid field names reserved by the CLI, such as `framework`, `minimal`, `template`, `template_sha256`, `json`, and `apply`.
 
 With multiple packs, flags gain the pack name prefix: `--acme-team`, `--platform-region`. Underscores in field names become hyphens in flags.
 

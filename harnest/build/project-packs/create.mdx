@@ -43,6 +43,14 @@ python ./acme-pack/pack.py init ./sales --minimal
 harnest compile ./sales --format executable --output ./dist/sales-agent
 ```
 
+To start from your team's existing agent template, use:
+
+```bash
+python ./acme-pack/pack.py init ./sales --template acme-sales
+```
+
+The template is prepared first, then the pack initializer runs against its files. See [template initialization](/harnest/build/project-packs/cli#initialize-from-a-template) for checksum pins and option compatibility.
+
 On Windows, use an output name ending in `.exe`. Set `HARNEST_CLI` to your Harnest executable path if it is not on `PATH`.
 
 The initializer copies the manifest and sample documentation into each new agent. The guide stays at `docs/team-guide.md` for teammates to read and is excluded from compilation. It does not become an agent instruction or skill. Use an agent template for standard `instructions.md`, skills, and other required agent structure. A team's custom CLI can also install internal-service extensions using Harnest's existing extension commands.
