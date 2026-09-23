@@ -73,10 +73,23 @@ For interactive use, open [Swagger UI](http://127.0.0.1:1907/docs), expand **Sen
 | `POST /sessions/{id}/assets` | Upload a session-owned media asset |
 | `HEAD/GET/DELETE /sessions/{id}/assets/{assetId}` | Inspect, download, or delete an asset |
 | `POST /responses` | Run JSON or SSE responses |
+| `POST /agui` | Use AG-UI event encoding over the shared response pipeline |
 | `GET /responses/{id}?sessionId=...` | Read the latest response state or recover terminal output |
 | `WS /live` | Run a live WebSocket session when `server.live: true` |
 | `GET /healthz` | Check process health |
 | `GET /.well-known/agent-card.json` | Discover the Agent Card |
+
+## AG-UI clients
+
+`POST /agui` adapts [AG-UI](https://docs.ag-ui.com/concepts/events) messages to the same response pipeline as `/responses`. Authentication, session ownership, request limits, concurrency, timeouts, and cancellation follow the existing runtime policy.
+
+```bash
+curl --fail-with-body -sS -N http://127.0.0.1:1907/agui \
+  -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"Hello!"}]}'
+```
+
+The adapter uses the latest user text. Omit `threadId` for a new session, or supply an existing session ID. It streams text, tool events, and LangGraph state updates. Approval, client-tool, and external-continuation handling is not yet implemented in this adapter; use `/responses` or `/live` for those workflows. Disable the route with `agui_enabled=False` when embedding `create_neutral_app` or `create_neutral_router`.
 
 ## A2A bindings
 
