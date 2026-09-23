@@ -44,6 +44,8 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     <HarnestProjectExplorer />
 
+    Every profile generates `config.yaml` without `spec.resources` or `spec.scaling`. Existing blocks are silently ignored. Configure deployment limits and replicas separately in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning).
+
     Server defaults work without extra configuration. Add only the settings you want to change under `server:` in `config.yaml`. Set `server.live: true` to enable WebSocket connections on the same HTTP host and port; see [Server configuration](/harnest/runtime/serving/server-configuration).
 
     Files beginning with `_` are ignored guides, not enabled capabilities. Replace them with the convention shown inside each guide when you need that feature. `lifecycle/storage.py` is active and supplies the default in-memory session and checkpoint storage.

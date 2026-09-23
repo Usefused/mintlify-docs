@@ -100,7 +100,7 @@ Choose the value from load tests that use representative agents and production d
 | Playground toggle | Durable storage |
 | Local operator settings | Replicas and network policy |
 
-`spec.resources` and `spec.scaling` describe deployment intent. Their timeout and concurrency fields do not override `server.http`: the standalone process uses its own server settings.
+`spec.resources` and `spec.scaling` are silently ignored in agent configuration. They never override `server.http` and do not need to be removed for an existing project to load. See [retired settings](/harnest/build/project-configuration#retired-resource-and-scaling-fields) when cleaning up old configs. Configure deployment resource limits and replicas in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning); configure standalone HTTP limits here.
 
 <Warning>
   `allowRemote: true` only permits the bind. It does not add authentication, TLS, or network policy.

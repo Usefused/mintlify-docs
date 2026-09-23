@@ -8,7 +8,8 @@ Keep project and server settings together in `config.yaml`. The Agent Card owns 
 
 | File | Owns | Commit it? |
 |---|---|---:|
-| `config.yaml` | Framework, deployment intent, and optional `server` overrides | Yes |
+| `config.yaml` | Framework, runtime environment, and optional `server` overrides | Yes |
+| `harnest-deployment.yaml` | Deployment workloads, services, resource limits, and replicas | When deploying |
 | `agent-card.yaml` | Public agent identity and capabilities | Yes |
 | `pyproject.toml` | Agent-owned Python dependencies | Yes |
 | `harnest-runtime.lock` | Hash-verified production compilation resolution | Yes |
@@ -35,7 +36,7 @@ See [generated examples](/harnest/get-started/initialize) and [Sandboxing](/harn
 
 ## `config.yaml`
 
-`config.yaml` selects the entrypoint, framework, authoring mode, Python runtime, deployment resources, scaling, environment, secret references, and permissions:
+`config.yaml` selects the entrypoint, framework, authoring mode, Python runtime, environment, secret references, and permissions. `harnest init` never generates `spec.resources` or `spec.scaling`; existing blocks are silently ignored:
 
 ```yaml
 apiVersion: harnest.dev/v1alpha1
@@ -56,11 +57,25 @@ Use `adk` or `langgraph`. Managed mode is the portable default; advanced mode ac
 `interfaces.cli: true` explicitly enables `harnest run` and the compiled
 launcher's `run` command. Omit it for a server-only artifact.
 
-`config.yaml` describes deployment intent. The standalone development server does not provision its resources, inject secret declarations, scale replicas, or enforce network permissions.
+Configure workload CPU and memory under `resources`, and instance counts under `replicas`, in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning). Existing `spec.resources` and `spec.scaling` blocks have no effect. Harnest silently ignores their contents, including empty, null, or invalid values, and leaves the source file unchanged. The standalone development server does not provision infrastructure, inject secret declarations, scale replicas, or enforce network permissions.
 
 <Card title="Configure a model" icon="microchip" href="/harnest/build/models-and-libraries/configure-a-model">
   Choose the model and endpoint, supply local or deployment credentials, and configure eval model reuse.
 </Card>
+
+## Retired resource and scaling fields
+
+You can remove these ignored blocks from `spec` when cleaning up an existing project. Configure any limits you need explicitly:
+
+| Removed setting | Where to configure it |
+|---|---|
+| `resources.cpu`, `resources.memory` | Workload `resources.cpus` and `resources.memory` in `harnest-deployment.yaml` |
+| `resources.timeoutSeconds` | Root `server.http.requestTimeoutSeconds` in `config.yaml` |
+| `resources.maxConcurrentRequests` | Root `server.http.maxConcurrentRequests` in `config.yaml` |
+| `scaling.minReplicas`, `scaling.maxReplicas` | Workload `replicas` for a fixed instance count; configure autoscaling through your deployment platform |
+| `resources.ephemeralStorage` | Scratch-storage policy in your container or Kubernetes deployment; no replacement in agent `config.yaml` |
+
+The old timeout and concurrency hints did not override standalone server settings. Review the behavior you want instead of copying every old value. Omit HTTP settings that match the defaults. These ignored blocks do not block `harnest upgrade` and do not supply defaults to Studio deployment discovery.
 
 ## Server settings in `config.yaml`
 
@@ -74,7 +89,7 @@ server:
     port: 9090
 ```
 
-This example enables WebSockets on the HTTP listener and changes its port. Omit `live` for HTTP/SSE only. Exact `${NAME}` values are resolved and type-checked at startup. Authentication, persistence, TLS, secrets, and scaling do not belong in this section. `spec.resources` and `spec.scaling` remain deployment intent; `server` controls the standalone process. See [Server configuration](/harnest/runtime/serving/server-configuration) for defaults and legacy `server.yaml` migration.
+This example enables WebSockets on the HTTP listener and changes its port. Omit `live` for HTTP/SSE only. Exact `${NAME}` values are resolved and type-checked at startup. Authentication, persistence, TLS, secrets, and scaling do not belong in this section. Set explicit HTTP limits with `server.http.requestTimeoutSeconds` and `server.http.maxConcurrentRequests`; omit settings that match the defaults. See [Server configuration](/harnest/runtime/serving/server-configuration) for defaults and legacy `server.yaml` migration.
 
 ## `agent-card.yaml`
 
