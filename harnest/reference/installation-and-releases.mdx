@@ -6,6 +6,8 @@ description: "Install, pin, verify, upgrade, and publish Harnest releases."
 
 A Harnest release bundles three matching parts: the native CLI, the Python runtime wheel, and `uv`. The installer verifies the release checksum before it changes your machine.
 
+Harnest requires **Python 3.11 or newer**. New agents and the managed fallback runtime use Python 3.12.
+
 ## Install
 
 <CodeGroup>
@@ -66,7 +68,7 @@ With no directory argument, `doctor` detects an agent in the current folder; oth
   You run `harnest`; you do not activate the private runtime or call `python -m harnest.cli`.
 </Note>
 
-If no Python 3.10 or newer is available, embedded `uv` installs a pinned CPython 3.12 under the Harnest data directory. It does not modify the system Python.
+If no Python 3.11 or newer is available, embedded `uv` installs a pinned CPython 3.12 under the Harnest data directory. It does not modify the system Python.
 
 ## Upgrade
 
@@ -79,7 +81,7 @@ harnest upgrade path/to/agent --apply
 harnest test path/to/agent
 ```
 
-The first `upgrade` is a read-only plan. Apply verifies the planned source hashes and writes backups before changing project files.
+The first `upgrade` is a read-only plan. Apply handles supported source and Python-version migrations, verifies the planned source hashes, and writes backups before changing project files.
 
 ## Compatibility
 
