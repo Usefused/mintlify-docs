@@ -2,12 +2,74 @@
 icon: "chart-line"
 title: "Custom metric API"
 sidebarTitle: "Custom metric API"
-description: "Reference the ADK scoring function contract, result aggregation, registration, and custom metric execution behavior."
+description: "Use Harnest scoring helpers or native ADK metrics to evaluate agents with your own rules and hosted services."
 ---
 
 A custom metric lets you enforce a product rule that the built-in registry does not express. For a complete implementation, eval set, unit test, and run command, follow [Create custom evals](/harnest/build/evaluations/create-custom-evals). Use this page to look up the scorer contract and registration options.
 
 Custom metrics run for both ADK and LangGraph agents because both framework lanes produce the same ADK invocation contract before scoring.
+
+## Harnest scoring helper
+
+Use `@metric` for sync or async scoring functions. Native ADK scorers still work without the decorator and can share the same configuration.
+
+Add `httpx` to your dependencies and set `EVAL_SERVICE_URL` and `EVAL_SERVICE_TOKEN`. This example expects `{"score": 0.9, "reason": "All required facts are present"}`; adapt the payload to your service.
+
+```python lib/company_evals.py
+import os
+import httpx
+from harnest.evaluation import MetricContext, MetricScore, metric
+
+
+@metric
+async def company_quality(context: MetricContext) -> MetricScore:
+    """Ask the team's service to score this conversation."""
+    payload = {
+        "actual": [turn.model_dump(mode="json", by_alias=True)
+                   for turn in context.actual],
+        "expected": None if context.expected is None else [
+            turn.model_dump(mode="json", by_alias=True)
+            for turn in context.expected
+        ],
+    }
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            os.environ["EVAL_SERVICE_URL"],
+            headers={"Authorization": f"Bearer {os.environ['EVAL_SERVICE_TOKEN']}"},
+            json=payload,
+        )
+        response.raise_for_status()
+    verdict = response.json()
+    return MetricScore(score=verdict["score"], evidence=verdict.get("reason"))
+```
+
+```json evals/test_config.json
+{
+  "criteria": {"company_quality": 0.85},
+  "customMetrics": {
+    "company_quality": {
+      "codeConfig": {"name": "harnest.lib.company_evals.company_quality"}
+    }
+  }
+}
+```
+
+```bash
+harnest test ./my-agent --evals --eval-output artifacts/eval-results.json
+```
+
+`MetricContext` provides native ADK `metric`, `actual` and optional `expected` invocation tuples, optional `scenario`, and the configured `threshold`.
+
+| Return value | Scoring policy |
+|---|---|
+| `MetricScore(0.9, "Evidence")` | Scores the conversation once, on its final actual turn; earlier turns remain unscored |
+| A list or tuple of `MetricScore` values | Requires one value per actual turn; the overall score is the mean of scored turns |
+| `MetricScore(None, "Evidence unavailable")` | Marks the score `NOT_EVALUATED`; an entirely unscored metric cannot pass |
+| Native ADK `EvaluationResult` | Passes through unchanged for advanced result control |
+
+Scores pass at or above the threshold. Use finite numbers; declare ranges outside `0–1` with `metricInfo`. Invalid results and service errors fail the evaluation.
+
+Evidence is saved as ADK rubric rationale in the result JSON. Use the CLI for CI; the playground only scores the final turn.
 
 ## Function contract
 
