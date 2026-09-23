@@ -9,6 +9,24 @@ An eval set groups related cases. Both ADK and LangGraph projects author these f
 
 Custom questions do not require a custom Python metric. Use this page to author cases with built-in scoring, or follow [Create custom evals](/harnest/build/evaluations/create-custom-evals) when you need to implement your own scoring rule.
 
+## Add an evaluation
+
+```bash
+harnest add eval answer-quality --i
+```
+
+Choose from 13 built-in metrics or a custom scorer. The picker labels each scoring backend: local comparison, LLM judge, or Vertex evaluation service. `-i` and `--interactive` also work.
+
+```bash
+harnest add eval answer-quality                              # response text similarity
+harnest add eval tool-routing --metric tool_trajectory_avg_score
+harnest add eval company-quality --metric custom             # Python stub only
+```
+
+Built-ins create `evals/<name>.evalset.json` and add missing criteria to the shared `evals/test_config.json`. Existing criteria and settings are preserved; criteria apply to **all** eval sets. Edit the sample cases, thresholds, and rubrics before running `harnest test . --evals`. Scaffolding does not install dependencies or call a model.
+
+Custom scoring creates only `lib/<name>.py`; implement it and [register the metric](/harnest/build/evaluations/custom-metrics#harnest-scoring-helper). Names use underscores in generated files. Use `--project PATH` when running outside the agent folder.
+
 ## Directory contract
 
 ```text AGENT_DIR/evals/

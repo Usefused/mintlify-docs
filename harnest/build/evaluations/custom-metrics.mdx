@@ -11,6 +11,8 @@ Custom metrics run for both ADK and LangGraph agents because both framework lane
 
 ## Harnest scoring helper
 
+Create a bare scorer with `harnest add eval company-quality --metric custom`. It creates `lib/company_quality.py` without changing evaluation config. Implement the stub before registering it below.
+
 Use `@metric` for sync or async scoring functions. Native ADK scorers still work without the decorator and can share the same configuration.
 
 Add `httpx` to your dependencies and set `EVAL_SERVICE_URL` and `EVAL_SERVICE_TOKEN`. This example expects `{"score": 0.9, "reason": "All required facts are present"}`; adapt the payload to your service.
