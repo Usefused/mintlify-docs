@@ -182,6 +182,7 @@
                       "harnest/build/models-and-libraries/configure-a-model",
                       {
                         "group": "Typed decisions",
+                        "icon": "code-branch",
                         "pages": [
                           "harnest/build/models-and-libraries/typed-decisions",
                           "harnest/build/models-and-libraries/typed-decisions/jev",
@@ -230,6 +231,7 @@
                       "harnest/build/project-packs/create",
                       {
                         "group": "Decorators",
+                        "icon": "code",
                         "pages": [
                           "harnest/build/project-packs/initialize",
                           "harnest/build/project-packs/migrations"

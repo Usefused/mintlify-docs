@@ -2,16 +2,15 @@
 title: "Initialize a project"
 sidebarTitle: "Initialize"
 icon: "seedling"
-description: "Create and test a managed ADK or LangGraph agent project."
+description: "Create an agent, connect your model, and try it locally."
 ---
 
-import { HarnestProjectExplorer } from "/snippets/harnest-project-explorer.jsx";
-
-
-Create a managed agent, prepare its isolated environment, and run the generated tests.
+[Install Harnest](/harnest/get-started/install), then follow these three steps.
 
 <Steps>
-  <Step title="Choose a framework">
+  <Step title="Create your agent">
+    Choose a framework and a new or empty directory:
+
     <CodeGroup>
 
     ```bash ADK
@@ -24,120 +23,42 @@ Create a managed agent, prepare its isolated environment, and run the generated 
 
     </CodeGroup>
 
-    Choose how much structure to create:
-
-    | Profile | Result |
-    |---|---|
-    | Default | Runnable agent plus optional folders containing ignored `_README.md` guides |
-    | `--minimal` | Only the files required to compile and run |
-    | `--example` | Default scaffold plus ignored examples in guide-only managed folders |
-
-    `--minimal` and `--example` are mutually exclusive. Existing agent and storage code stays unchanged when you choose the example profile.
-
-    For example, create a strict minimal ADK agent with:
-
-    ```bash
-    harnest init support-agent --framework adk --minimal
-    ```
-
-    Explore the generated project below. The explorer shows the default guided profile; a minimal scaffold contains only its active root files and required lifecycle storage. Select a file or folder to preview its contents. Folders tagged **optional** can be omitted until you need that capability. Root files show generated contents; optional folders show examples you can add.
-
-    <HarnestProjectExplorer />
-
-    Every profile generates `config.yaml` without `spec.resources` or `spec.scaling`. Existing blocks are silently ignored. Configure deployment limits and replicas separately in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning).
-
-    Server defaults work without extra configuration. Add only the settings you want to change under `server:` in `config.yaml`. Set `server.live: true` to enable WebSocket connections on the same HTTP host and port; see [Server configuration](/harnest/runtime/serving/server-configuration).
-
-    Files beginning with `_` are ignored guides, not enabled capabilities. Replace them with the convention shown inside each guide when you need that feature. `lifecycle/storage.py` is active and supplies the default in-memory session and checkpoint storage.
-
-    <Note>
-      `harnest init` accepts a new directory or an existing empty directory. It refuses a non-empty directory so it cannot overwrite an existing project.
-    </Note>
-  </Step>
-  <Step title="Enter the agent folder and add capabilities">
     ```bash
     cd support-agent
     ```
 
-    A minimal agent is ready to compile immediately. Add only the resources it needs:
-
-    ```bash
-    harnest add tool customer-lookup
-    harnest add task prepare-report
-    harnest add lifecycle audit
-    harnest add context request-cache
-    ```
-
-    Managed ADK agents can also add an automatically discovered subagent:
-
-    ```bash
-    harnest add subagent researcher
-    ```
-
-    Each command creates a missing optional folder and refuses to overwrite an existing resource. LangGraph and advanced-mode topology stays explicit in `agent.py`.
-
-    When you run a command from elsewhere, add `--project <agent-root>`.
+    Edit `instructions.md` to describe what your agent should do.
   </Step>
-  <Step title="Synchronize the project environment">
-    ```bash
-    harnest env sync .
-    ```
+  <Step title="Connect your model">
+    Replace these values under `spec.environment` in `config.yaml`:
 
-    Synchronization creates the lean, hash-verified production `harnest-runtime.lock`, records the exact resolved framework version in `harnest.lock`, and creates the generated `.harnest/` environment. It also maintains an IDE-detectable `.venv` link unless that path already belongs to you. `harnest serve`, `run`, and ordinary `test` share `harnest-development.lock`; `test --evals` creates `harnest-eval.lock`. Commit the locks you use; do not edit or commit `.harnest/` or `.venv`.
+    | Setting | Value |
+    |---|---|
+    | `OPENAI_MODEL` | Your model ID |
+    | `OPENAI_BASE_URL` | Your OpenAI-compatible API URL, including its prefix (usually `/v1`) |
+
+    If your provider requires authentication, supply `OPENAI_API_KEY` through the runtime environment. Keep credentials out of `config.yaml`.
+
+    [Model configuration and examples →](/harnest/build/models-and-libraries/configure-a-model)
   </Step>
-  <Step title="Run the offline tests">
+  <Step title="Test and try it">
     ```bash
     harnest test .
+    harnest serve . --reload
     ```
 
-    A minimal project without `tests/unit/` still compiles and reports that it has no authored Python tests.
-  </Step>
-  <Step title="Configure your model for live calls">
-    Generated ADK and LangGraph agents use `LiteLLMModel.from_openai_environment()` with an OpenAI-compatible API. Replace `spec.environment.OPENAI_MODEL` and `spec.environment.OPENAI_BASE_URL` placeholders in `config.yaml` with your model ID and compatible API URL. Harnest does not select OpenAI's service, GPT, or another vendor by default.
-
-    ```bash
-    harnest serve .
-    ```
-
-    Include your server's API prefix in the URL, commonly `/v1`. Export `OPENAI_API_KEY` in the command's environment if your endpoint requires authentication. Keep credentials out of `config.yaml`.
-
-    See [Configure a model](/harnest/build/models-and-libraries/configure-a-model) for remote endpoints, optional credentials, and explicitly opting into another provider.
+    Harnest prepares the environment automatically. Open `http://127.0.0.1:1907/` to chat with your agent in the playground.
   </Step>
 </Steps>
 
-## What each generated path owns
+## Choose a starting size
 
-| Output | Purpose |
+Append one of these flags to `harnest init`, or keep the default.
+
+| Option | What you get |
 |---|---|
-| `agent.py` | Root agent or graph |
-| `instructions.md` | Agent instructions |
-| `config.yaml` | Framework, project settings, and optional `server` overrides |
-| `agent-card.yaml` | Public identity, interfaces, and advertised capabilities |
-| `pyproject.toml` | Authored dependencies; `harnest env sync` then creates `harnest-runtime.lock` |
-| `.venv` | Ignored IDE link to the current Harnest-managed environment |
-| `lib/` and `models/` | Reusable Python and Pydantic contracts |
-| `tools/`, `tasks/`, and `lifecycle/` | Folder-discovered capabilities and runtime behavior |
-| `tests/` | Offline and optional live checks |
+| Default | Agent files plus optional folder guides |
+| `--minimal` | Only the files needed to compile and run |
+| `--example` | Default scaffold plus inactive examples you can opt into |
 
-With `--example` in managed mode, Harnest adds `_example.py` templates to guide-only Python folders: `lib/`, `models/`, `tools/`, `tasks/`, `cron/`, `subagents/`, `mcp/`, `sandbox/`, `tests/unit/`, and `tests/smoke/`. It does not add another example to `lifecycle/`, which already contains working storage code, or replace `agent.py`.
-
-With `--minimal`, Harnest omits those optional folders entirely. The required lifecycle storage remains because the generated agent uses session history. Add commands recreate supported folders when you need them.
-
-Skills, extensions, plugins, and evals retain their required formats under ignored paths: `skills/_example/SKILL.md`, `extensions/_example/` for a Harnest Extension, `plugins/_example_agent/` for an Agent Plugins 1.0 package with `plugin.json`, and `evals/_example.evalset.json`. Both managed frameworks receive the templates; framework-specific samples identify their restrictions. The default `lifecycle/storage.py` already contains working code and needs no extra sample.
-
-Copy or rename only the samples you want to activate. Each Python template names its required destination and dependencies. For example, copy `tools/_example.py` to `tools/echo.py`; activate `tasks/prepare_report.py` before copying the cron sample to `cron/daily_report.py`. The native-format samples have activation instructions in their folder guides. Until then, the samples are not discovered or executed.
-
-Advanced mode keeps native framework wiring in `agent.py` and adds only the examples Harnest still owns. The surrounding folder contract stays the same.
-
-<Note>
-  `compile`, `test`, and `serve` sync the environment automatically. Add only your provider, tool, and library packages to `pyproject.toml`; Harnest owns the framework dependency.
-</Note>
-
-<CardGroup cols={2}>
-  <Card title="Configure a model" icon="microchip" href="/harnest/build/models-and-libraries/configure-a-model">
-    Choose a model and endpoint, then supply credentials for local use, CI, or deployment.
-  </Card>
-  <Card title="Understand the generated project" icon="folder-tree" href="/harnest/build/agent-concepts">
-    See how Harnest organizes agents, tools, SubAgents, MCP clients, plugins, skills, Lifecycle, and tests.
-  </Card>
-</CardGroup>
+[Explore the project structure](/harnest/build/agent-concepts) · [Add Agent Tools](/harnest/build/agent-tools) · [Configure serving](/harnest/get-started/serve)
