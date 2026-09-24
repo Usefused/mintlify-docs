@@ -346,6 +346,18 @@
                     ]
                   },
                   {
+                    "group": "AG-UI",
+                    "icon": "comments",
+                    "expanded": false,
+                    "pages": [
+                      "harnest/runtime/ag-ui",
+                      "harnest/runtime/ag-ui/connect",
+                      "harnest/runtime/ag-ui/state-and-context",
+                      "harnest/runtime/ag-ui/interactions",
+                      "harnest/runtime/ag-ui/copilotkit"
+                    ]
+                  },
+                  {
                     "group": "A2A",
                     "icon": "comments",
                     "expanded": false,

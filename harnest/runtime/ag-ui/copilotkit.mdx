@@ -1,0 +1,54 @@
+---
+icon: "laptop"
+title: "Try the CopilotKit demo"
+sidebarTitle: "CopilotKit example"
+description: "Run a React UI against Harnest agents on Google ADK and LangGraph, then verify the full interaction flow."
+---
+
+The Harnest source checkout includes `examples/copilotkit`, a React UI connected directly to compiled Harnest agents through CopilotKit's `HttpAgent`. The same page lets you select Google ADK or LangGraph. This is a deterministic compatibility demo: it needs no model API key and does not generate open-ended answers.
+
+## Prerequisites
+
+Use Python 3.11 or newer, Node.js 22 with npm, and a checkout of Harnest. Activate your Python environment before installing the dependencies. Ports 5173, 1910, and 1911 must be free.
+
+## Start the demo
+
+From the Harnest repository root, install the Python framework extras in your environment, then start the demo:
+
+```bash
+python -m pip install -e ".[all]"
+cd examples/copilotkit
+npm ci
+HARNEST_PYTHON="$(command -v python)" npm run dev
+```
+
+Open `http://127.0.0.1:5173`. The launcher keeps the UI and both local agent servers together; Ctrl+C stops them. Ports 5173, 1910 and 1911 must be available. Sessions use in-memory storage and reset when the backend restarts.
+
+## Try the flows
+
+| Try | What you can verify |
+| --- | --- |
+| **Conversation** or type a message | Progress and replies stream through CopilotKit; the shared turn count updates |
+| **Browser tool** | Harnest requests `set_accent`; CopilotKit changes the page and returns the result before the agent continues |
+| **Human approval** | Approve or decline a fictional publication through CopilotKit's standard interrupt UI |
+| **Error recovery** | A failed run appears in the UI; the next message can still succeed |
+| Type `slow`, then **Stop run** | Cancel the active request and start another turn |
+| **New conversation** | Start a fresh thread with independent state |
+
+## Run the checks
+
+To repeat the real-browser checks, run these commands from `examples/copilotkit`:
+
+```bash
+npx playwright install chromium
+HARNEST_PYTHON="$(command -v python)" npm test
+npm run build
+```
+
+The browser suite runs one complete user journey per framework. It uses a running demo when available or starts one for the test. The demo uses CopilotKit's open-source React components directly; a hosted CopilotKit account or separate CopilotKit runtime is not required.
+
+## How it connects
+
+The UI uses CopilotKit’s open-source React components and `HttpAgent` to send requests through the local Vite proxy to each backend’s `/agui` route. Harnest compiles the same authored graph for both frameworks. Browser handlers run frontend tools; approval controls return the interrupt decision.
+
+The demo validates Harnest’s AG-UI transport without model variability. Replace the deterministic agent with your own agent when integrating your application; see [Connect a client](/harnest/runtime/ag-ui/connect), [Share state and context](/harnest/runtime/ag-ui/state-and-context), and [Handle interactions](/harnest/runtime/ag-ui/interactions).

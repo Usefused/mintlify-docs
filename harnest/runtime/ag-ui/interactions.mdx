@@ -1,0 +1,69 @@
+---
+icon: "hand"
+title: "Handle AG-UI interactions"
+sidebarTitle: "Interactions"
+description: "Resume approvals and browser tools, and recover the status of external waits."
+---
+
+An agent can pause for a human decision or a frontend tool result. Harnest ends that transport run and keeps the original invocation waiting. Your client supplies the result in a new run on the same `threadId`.
+
+Pending interactions block new user input. Harnest validates the authenticated user, thread ownership, expiry, and one-time delivery before resuming. Repeated or unmatched submissions are rejected without repeating the action.
+
+## Human approval
+
+When an agent requests approval, Harnest emits state and message snapshots, then `RUN_FINISHED` with an interrupt outcome. Show the decision in your UI and send a response for every open interrupt:
+
+```json
+{
+  "threadId": "your-thread",
+  "runId": "next-run",
+  "resume": [
+    {
+      "interruptId": "approval_id_from_the_interrupt",
+      "status": "resolved",
+      "payload": {"approved": true}
+    }
+  ]
+}
+```
+
+| Decision | Response |
+| --- | --- |
+| Approve | `status: "resolved"` with `payload: {"approved": true}` |
+| Decline | `status: "resolved"` with `payload: {"approved": false}` |
+| Abandon | `status: "cancelled"`, omitting `payload` |
+
+Argument edits are not accepted. Changed arguments require a new approval. See [Human approvals](/harnest/build/agent-tools/human-approvals) for requesting a decision from agent code.
+
+## Browser tools
+
+Declare a capability with [`@client_tool`](/harnest/build/agent-tools/client-tools) in your Harnest agent and register its handler in the frontend. Harnest emits the tool call and finishes the transport run without an interrupt outcome, allowing the frontend handler to execute automatically.
+
+Append a standard AG-UI tool message to the current history and send it in a new run on the same thread. The appended message has this shape:
+
+```json
+{
+  "id": "tool-result-1",
+  "role": "tool",
+  "toolCallId": "tool_call_id_from_the_event",
+  "content": "{\"color\":\"violet\"}"
+}
+```
+
+`content` must be a string. Harnest decodes JSON strings before validating the tool's output contract and resuming the original invocation. Keep the current message history and state in the request so snapshots retain the conversation.
+
+The optional `CUSTOM` event named `harnest.client_tool` also supplies a request ID. Custom clients can submit that ID as `resume[].interruptId`, with `status: "resolved"` and the tool output in `payload`.
+
+## External waits
+
+An external wait emits `CUSTOM` named `harnest.external_wait`, then ends the transport run with `result.status: "in_progress"`. Poll the supplied response ID using the same session and authenticated user:
+
+```http
+GET /responses/{responseId}?sessionId=...
+```
+
+Continue until the response completes or fails. See [Response status and recovery](/harnest/runtime/serving/neutral-api#response-status-and-recovery) and [Durable execution](/harnest/runtime/durable-execution) for storage and recovery behavior.
+
+## Serving-process lifetime
+
+Approvals and client-tool waits retain the process-local continuation lifetime. Resume them on the serving process that owns the suspended invocation. Restarting that process does not preserve the pending exchange, even when other session or completion data uses durable storage.

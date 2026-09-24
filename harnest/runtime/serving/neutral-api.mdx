@@ -79,89 +79,13 @@ For interactive use, open [Swagger UI](http://127.0.0.1:1907/docs), expand **Sen
 | `GET /healthz` | Check process health |
 | `GET /.well-known/agent-card.json` | Discover the Agent Card |
 
-## Try the CopilotKit demo
-
-The Harnest source checkout includes `examples/copilotkit`, a React UI connected directly to compiled Harnest agents through CopilotKit's `HttpAgent`. The same page lets you select Google ADK or LangGraph. This is a deterministic compatibility demo: it needs no model API key and does not generate open-ended answers.
-
-From the Harnest repository root, install the Python framework extras in your environment, then start the demo:
-
-```bash
-python -m pip install -e ".[all]"
-cd examples/copilotkit
-npm ci
-HARNEST_PYTHON="$(command -v python)" npm run dev
-```
-
-Open `http://127.0.0.1:5173`. The launcher keeps the UI and both local agent servers together; Ctrl+C stops them. Ports 5173, 1910 and 1911 must be available. Sessions use in-memory storage and reset when the backend restarts.
-
-| Try | What you can verify |
-| --- | --- |
-| **Conversation** or type a message | Progress and replies stream through CopilotKit; the shared turn count updates |
-| **Browser tool** | Harnest requests `set_accent`; CopilotKit changes the page and returns the result before the agent continues |
-| **Human approval** | Approve or decline a fictional publication through CopilotKit's standard interrupt UI |
-| **Error recovery** | A failed run appears in the UI; the next message can still succeed |
-| Type `slow`, then **Stop run** | Cancel the active request and start another turn |
-| **New conversation** | Start a fresh thread with independent state |
-
-To repeat the real-browser checks, run these commands from `examples/copilotkit`:
-
-```bash
-npx playwright install chromium
-HARNEST_PYTHON="$(command -v python)" npm test
-npm run build
-```
-
-The browser suite runs one complete user journey per framework. It uses a running demo when available or starts one for the test. The demo uses CopilotKit's open-source React components directly; a hosted CopilotKit account or separate CopilotKit runtime is not required.
-
 ## AG-UI clients
 
-`POST /agui` adapts [AG-UI](https://docs.ag-ui.com/concepts/events) messages to the same response pipeline as `/responses`. Authentication, session ownership, request limits, concurrency, timeouts, and cancellation follow the existing runtime policy.
+Connect an agent-facing UI through `POST /agui`. Harnest supports streamed text, shared state, frontend tools, and human approval on ADK and LangGraph. See [AG-UI](/harnest/runtime/ag-ui) for supported capabilities, client integration, and interaction contracts.
 
-```bash
-curl --fail-with-body -sS -N http://127.0.0.1:1907/agui \
-  -H 'Content-Type: application/json' \
-  -d '{"messages":[{"role":"user","content":"Hello!"}]}'
-```
+## Try the CopilotKit demo
 
-Supply a client-generated `threadId` to create or reuse a session in your authenticated user's namespace. Omit it to let Harnest generate the ID. An empty `messages` array initializes the thread without invoking the agent. For a new turn, end the message history with the new user message; Harnest uses its text and retains the server-side conversation. Assistant message IDs remain unique across turns, even when you reuse a `runId`.
-
-| Capability | Behavior |
-| --- | --- |
-| Text and tools | Streams text and tool calls/results; includes structured final output in `RUN_FINISHED.result` |
-| Incoming state | Applies `state` as a shallow session-state patch when starting a new turn; omitted keys are preserved |
-| Outgoing state | Streams authored portable graph state from ADK and LangGraph; excludes ADK's native bookkeeping |
-| Application context | Makes `context`, `tools`, and `forwardedProps` available under invocation metadata `agui` for your context providers |
-| Human approval | Emits state/message snapshots, then `RUN_FINISHED` with an interrupt outcome |
-| Client tools | Hands server-declared `@client_tool` capabilities to registered frontend handlers, then accepts their results |
-| External waits | Emits `CUSTOM` named `harnest.external_wait`, then ends the transport run with `result.status: "in_progress"`; poll the supplied response ID through `GET /responses/{responseId}?sessionId=...` |
-
-Client context and tool advertisements are untrusted application data. They do not change authentication, automatically inject model instructions, or register executable tools. Declare browser capabilities in your agent with `@client_tool`. State keys starting with `_`, `app:`, `user:`, or `temp:` are reserved. Media input is not supported on this endpoint; use text strings or arrays of text parts.
-
-### Resume an interaction
-
-Send a new run on the same `threadId` with a response for every open interrupt:
-
-```json
-{
-  "threadId": "your-thread",
-  "runId": "next-run",
-  "resume": [
-    {
-      "interruptId": "approval_id_from_the_interrupt",
-      "status": "resolved",
-      "payload": { "approved": true }
-    }
-  ]
-}
-```
-
-Use `approved: false` to deny an approval. Argument edits are not accepted; changed arguments require a new approval. To abandon an interaction, use `status: "cancelled"` and omit `payload`.
-
-For an ordinary client-tool handoff, append a standard AG-UI `role: "tool"` message with the emitted `toolCallId` and a string `content` containing the result. These handoffs finish the transport run without an interrupt outcome, allowing registered frontend tool handlers to run automatically. The optional `CUSTOM` event named `harnest.client_tool` includes a request ID; custom clients can also submit that ID as `resume[].interruptId` with the tool output in `payload`. JSON strings are decoded before Harnest validates the tool's output contract. Keep the supplied message history and state when resuming so snapshots retain the UI's conversation.
-
-Pending interactions block new user input. Harnest validates user/thread ownership, expiry, and one-time delivery before resuming the original invocation. Repeated or unmatched submissions are rejected without repeating the action. Invalid HTTP envelopes fail before streaming; execution failures emit `RUN_ERROR`. Approvals and client-tool waits retain the existing process-local continuation lifetime and must resume on the serving process that owns them.
-
-Disable the route with `agui_enabled=False` when embedding `create_neutral_app` or `create_neutral_router`.
+Run the [CopilotKit example](/harnest/runtime/ag-ui/copilotkit) to test both frameworks with a local React UI, without a model API key.
 
 ## A2A bindings
 

@@ -1,0 +1,68 @@
+---
+icon: "plug"
+title: "Connect an AG-UI client"
+sidebarTitle: "Connect a client"
+description: "Serve a Harnest agent, create a thread, and stream turns through the AG-UI endpoint."
+---
+
+Use `POST /agui` to connect an AG-UI client to a running Harnest agent. The endpoint uses the same agent and runtime policy as `/responses`.
+
+## Send your first turn
+
+<Steps>
+  <Step title="Start your agent">
+    From your agent folder:
+
+    ```bash
+    harnest serve .
+    ```
+
+    The default local address is `http://127.0.0.1:1907`.
+  </Step>
+  <Step title="Send an AG-UI request">
+    In another terminal, send a user message. `-N` lets curl display events as they arrive.
+
+    ```bash
+    curl --fail-with-body -sS -N http://127.0.0.1:1907/agui \
+      -H 'Content-Type: application/json' \
+      -d '{
+        "threadId": "demo-thread",
+        "runId": "demo-run-1",
+        "messages": [
+          {"id": "user-1", "role": "user", "content": "Hello!"}
+        ]
+      }'
+    ```
+
+    These commands assume a local agent without authentication. For a protected deployment, send the authentication configured by its owner. For bearer authentication, add `-H "Authorization: Bearer $HARNEST_TOKEN"`.
+  </Step>
+  <Step title="Continue the conversation">
+    Keep the same `threadId`, choose a new `runId`, and end `messages` with the next user message. Harnest uses that message's text and retains the server-side conversation. A client can keep its message history in the request for UI snapshots.
+  </Step>
+</Steps>
+
+## Thread and run identity
+
+| Field | Behavior |
+| --- | --- |
+| `threadId` | Create or reuse a thread inside the authenticated user's namespace. Omit it to let Harnest generate the ID. |
+| `runId` | Identify the transport run. Harnest generates one when omitted; assistant message IDs remain unique across turns even if you reuse a run ID. |
+| `messages` | End a new turn with a non-empty user message. An empty array initializes the thread without invoking the agent. |
+
+Message content can be a text string or an array of text parts. Media parts are rejected. A tool result or approval response resumes an interaction instead of starting a new user turn; see [Handle interactions](/harnest/runtime/ag-ui/interactions).
+
+## Read completion and failure
+
+Text and tool activity arrive as AG-UI events. Structured final output is included in `RUN_FINISHED.result`. A finished transport run can also hand control to the UI or report an external wait, so inspect its outcome before treating the agent's work as complete.
+
+Invalid request envelopes fail before streaming. Execution failures emit `RUN_ERROR`. Use the run's error to show failure in the UI and allow the user to start another turn when no interaction is pending.
+
+## Cancel a run
+
+Abort or close the active HTTP request. Harnest cancels the managed response and awaits cleanup. Cancellation is cooperative and does not undo tool or external side effects that already completed.
+
+## Configure the endpoint
+
+Authentication, ownership, limits, timeouts, and concurrency follow the [server configuration](/harnest/runtime/serving/server-configuration). Do not use message content, `state`, or `forwardedProps` as authentication.
+
+When embedding `create_neutral_app` or `create_neutral_router`, set `agui_enabled=False` to disable the AG-UI route.

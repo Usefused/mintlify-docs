@@ -1,0 +1,45 @@
+---
+icon: "comments"
+title: "AG-UI"
+sidebarTitle: "Overview"
+description: "Connect an agent-facing UI to Harnest through streaming text, shared state, browser tools, and human approval."
+---
+
+Connect your UI to a Harnest agent through `POST /agui`. Harnest adapts the AG-UI protocol to its shared runtime, so the same integration works with Google ADK and LangGraph. You can use CopilotKit or another client that supports Harnest's AG-UI contract.
+
+Your agent stays in Harnest. Your frontend owns the conversation UI, browser tool handlers, and approval controls. Authentication, session ownership, request limits, concurrency, timeouts, and cancellation follow the same runtime policy as the [neutral API](/harnest/runtime/serving/neutral-api).
+
+## What Harnest supports
+
+| Capability | What your UI receives or sends |
+| --- | --- |
+| Conversations | Client-created threads, streamed assistant text, and tool calls/results |
+| Shared state | Session-state patches from the client and authored graph state from ADK or LangGraph |
+| Application context | Client context, tool descriptions, and forwarded properties available to your agent's context providers |
+| Browser tools | A handoff to a registered frontend handler, followed by resuming the original invocation |
+| Human approval | An interrupt that your UI can approve, decline, or cancel |
+| Structured results | Final output in `RUN_FINISHED.result` |
+| External waits | A status event and response ID for polling work that remains in progress |
+
+## Choose your next step
+
+<CardGroup cols={2}>
+  <Card title="Connect a client" icon="plug" href="/harnest/runtime/ag-ui/connect">
+    Start a thread, send a turn, handle failures, and cancel a run.
+  </Card>
+  <Card title="Share state and context" icon="arrows-rotate" href="/harnest/runtime/ag-ui/state-and-context">
+    Pass application data to your agent and keep your UI in sync.
+  </Card>
+  <Card title="Handle interactions" icon="hand" href="/harnest/runtime/ag-ui/interactions">
+    Resume human approvals, browser tools, and external waits.
+  </Card>
+  <Card title="Try CopilotKit" icon="laptop" href="/harnest/runtime/ag-ui/copilotkit">
+    Run the local React demo and test both agent frameworks.
+  </Card>
+</CardGroup>
+
+## Current boundaries
+
+The AG-UI endpoint accepts text input. For typed or media input, use the [neutral API](/harnest/runtime/serving/neutral-api) and [multimodal contracts](/harnest/build/models-and-libraries/typed-multimodal-contracts).
+
+Pending approvals and client-tool exchanges belong to the serving process holding the suspended invocation. Resume them on that process; they are not portable across restarts or replicas. Client context and advertised tools do not grant authority or register executable capabilities.

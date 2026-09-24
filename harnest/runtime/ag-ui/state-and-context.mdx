@@ -1,0 +1,48 @@
+---
+icon: "arrows-rotate"
+title: "Share state and context"
+description: "Send session-state patches and application context, and receive authored agent state through AG-UI."
+---
+
+Use `state` for session data that your agent and UI share. Use `context`, `tools`, and `forwardedProps` for application data that your agent's context providers can read.
+
+## Send application data
+
+Include these fields alongside the new user turn:
+
+```json
+{
+  "threadId": "demo-thread",
+  "runId": "demo-run-2",
+  "messages": [
+    {"id": "user-2", "role": "user", "content": "Help me review this draft."}
+  ],
+  "state": {"selectedDraft": "draft-42"},
+  "context": [
+    {"description": "Current page", "value": "Draft editor"}
+  ],
+  "tools": [],
+  "forwardedProps": {"view": "review"}
+}
+```
+
+| Field | Harnest behavior |
+| --- | --- |
+| `state` | Apply a shallow session-state patch when starting a new turn. Omitted keys remain unchanged. |
+| `context` | Expose an array of objects with string `description` and `value` fields under invocation metadata `agui.context`. |
+| `tools` | Expose frontend tool descriptions under `agui.tools`. Each entry requires a non-empty `name` and a `parameters` object. |
+| `forwardedProps` | Expose client-supplied application properties under `agui.forwardedProps`. |
+
+Harnest makes context available to your context providers; it does not automatically inject it into model instructions. Tool descriptions advertise frontend capabilities but do not register executable tools. Declare browser capabilities in your agent with [`@client_tool`](/harnest/build/agent-tools/client-tools).
+
+## Receive agent state
+
+Harnest streams authored portable graph state from both ADK and LangGraph. ADK's native bookkeeping is excluded. Your UI can use the outgoing state to update counters, selected records, or the outcome of an interaction.
+
+Treat incoming state as a shallow patch: sending a value for a key replaces that key's value, rather than recursively merging a nested object. Keep the current message history and state when [resuming an interaction](/harnest/runtime/ag-ui/interactions) so the snapshots retain the UI's conversation.
+
+## Keep authority on the server
+
+Client context, state, and tool advertisements are untrusted application data. They do not change the authenticated user or authorize an action. Validate access to any resource named by the client in your server-side logic.
+
+State keys starting with `_`, `app:`, `user:`, or `temp:` are reserved and rejected on input.
