@@ -54,6 +54,30 @@ Append a standard AG-UI tool message to the current history and send it in a new
 
 The optional `CUSTOM` event named `harnest.client_tool` also supplies a request ID. Custom clients can submit that ID as `resume[].interruptId`, with `status: "resolved"` and the tool output in `payload`.
 
+## Private client input
+
+[`@client_input`](/harnest/build/agent-tools/client-tools#private-client-input) ends the run with an interrupt whose `reason` is `private_input`. Its `responseSchema` describes the private form, and `metadata.harnest.privateInput` is `true`.
+
+Render a private form and submit its value only in `resume[].payload`:
+
+```json
+{
+  "threadId": "your-thread",
+  "runId": "private-input-resume",
+  "resume": [
+    {
+      "interruptId": "client_tool_id_from_the_interrupt",
+      "status": "resolved",
+      "payload": {"token": "value-entered-in-the-private-form"}
+    }
+  ]
+}
+```
+
+Omit `messages` and `state` from this resume. Harnest rejects private resumes containing either non-empty field, because transcript messages and state can be echoed in AG-UI snapshots. Do not append the value as a tool message or register this interaction as an automatic frontend tool result. Clear the form value after submission and exclude it from client logging and analytics.
+
+Harnest delivers the value once to the trusted application handler. The handler must return `None`; only its separately declared response can become a model tool result. Cancellation uses `status: "cancelled"` without a payload. If the serving process restarts, begin a new interaction instead of replaying private input.
+
 ## External waits
 
 An external wait emits `CUSTOM` named `harnest.external_wait`, then ends the transport run with `result.status: "in_progress"`. Poll the supplied response ID using the same session and authenticated user:

@@ -88,6 +88,8 @@ In advanced mode, Harnest provides the response receipt and WebSocket protocol o
 
 Submitted output is identity-bound, consumed once, and validated before execution resumes.
 
+For [`@client_input`](/harnest/build/agent-tools/client-tools#private-client-input), the action also includes `privateInput: true` and `inputSchema`. Send the private form through the same HTTP `output` field or WebSocket result frame. Harnest delivers it only to the application handler and returns the separately authored public response. Keep the submitted value out of client transcripts and telemetry. [AG-UI clients](/harnest/runtime/ag-ui/interactions#private-client-input) use an explicit interrupt resume.
+
 <CardGroup cols={2}>
   <Card title="Human approval authoring" icon="user-check" href="/harnest/build/agent-tools/human-approvals">
     Choose always-on or dynamic approval and bind it to the exact operation.

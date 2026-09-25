@@ -42,9 +42,53 @@ The submitted result is identity-bound, one-time, and validated against the decl
 
 When an invocation has an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals), Harnest presents the client tool only when it declares a permission carried by the principal and checks again before requesting client execution. Untagged client tools are unavailable. The client must still authorize the local action.
 
+## Private client input
+
+Use `@client_input` to collect a password, token, or other private client value for trusted application code. Harnest delivers the validated input to the handler and exposes only a separately declared response to the model.
+
+```python
+from pydantic import BaseModel
+from harnest.agent import client_input
+from my_app.accounts import connect_account
+
+
+class ConnectionInput(BaseModel):
+    token: str
+
+
+@client_input(
+    input_schema=ConnectionInput,
+    response={"status": "connected"},
+    permission="accounts.connect",
+)
+async def connect(private: ConnectionInput, service: str) -> None:
+    """Connect the requested service using credentials supplied by the client."""
+    await connect_account(service, private.token)
+```
+
+`connect_account` is your application integration. The handler runs on the server, unlike a `@client_tool` declaration body. Its first positional parameter receives the private Pydantic value; that parameter is absent from the model's tool schema. Other parameters, such as `service`, are public arguments sent to the client.
+
+| Contract | Behavior |
+|---|---|
+| Consumer | Async application handler; must return `None` |
+| Model response | Required JSON object in `response`, frozen when the decorator is applied |
+| Accidental return or exception | Fail with a generic error; no returned value or original exception chain reaches the framework |
+| Storage | Process-local, one-time delivery; no automatic asset staging, history, checkpoint, or telemetry projection of the input |
+| Lifetime | Cleared on consumption or cancellation; expired, cancelled, and consumed requests reject subsequent submissions |
+| Timeout | `timeout_seconds`, default `300` |
+| Durable tools | Rejected; private input cannot use a persisted tool continuation |
+
+Harnest does not infer a safe answer from the handler's return value. A successful handler yields a fresh copy of the authored `response`; failures do not yield the success response. Do not stack `@tool` or `@client_tool` on this decorator.
+
+The guarantee covers Harnest-managed delivery and framework projection. Trusted handler code still controls its own logging, storage, and outbound calls. Do not copy private input into model prompts, public state, or logs. The client must likewise keep the value out of chat history and client telemetry. Ephemeral delivery means Harnest releases its references; it does not promise secure erasure of Python memory or restart recovery.
+
+Private prompts use the same JSON, SSE, and WebSocket transport as client tools, with `privateInput: true` and `inputSchema` on the requested action. AG-UI uses an explicit [`private_input` interrupt](/harnest/runtime/ag-ui/interactions#private-client-input), rather than the automatic frontend tool-result loop.
+
 ## Combine with approval
 
 `@client_tool` and `@require_human_approval` can appear in either decorator order. Approval runs first. After approval, the host receives the client-tool request.
+
+`@client_input` supports the same approval decorator ordering and runtime permission checks.
 
 <CardGroup cols={2}>
   <Card title="Human approvals" icon="user-check" href="/harnest/build/agent-tools/human-approvals">
