@@ -53,10 +53,21 @@ harnest env sync .
 ```
 
 From the agent folder, the command creates or atomically updates `.venv` as a link to the
-current managed environment. VS Code, PyCharm, and other Python IDEs normally
-detect that conventional project path automatically. The editor can then
-resolve `harnest` and show completion, parameter and return types, and hover
-documentation without a separate SDK installation or manual interpreter setup.
+current managed environment. When Harnest owns that link, it also sets
+`python.defaultInterpreterPath` to `${workspaceFolder}/.venv/bin/python` in
+`.vscode/settings.json` if that setting is absent. On Windows, it uses
+`${workspaceFolder}/.venv/Scripts/python.exe`. VS Code-compatible editors such
+as Antigravity IDE and Windsurf use this shared workspace file. Python language
+tools alongside the Codex IDE extension use the interpreter selected by its host
+editor. An existing selection may need to be changed once to `.venv/bin/python`
+because the Python extension uses the default only before it selects an
+interpreter for that workspace. PyCharm and other Python
+IDEs can detect the `.venv` path or select it directly. The editor can then
+resolve `harnest` and show completion, types, and hover documentation.
+
+Codex desktop, Codex CLI, and Antigravity 2.0 are separate agent applications.
+For Python commands in these agents, use `.venv/bin/python` directly; their
+terminal commands do not inherit the VS Code Python interpreter setting.
 
 Harnest never replaces a `.venv` directory, file, or link that it does not own.
 If the path already belongs to you, synchronization still succeeds and prints

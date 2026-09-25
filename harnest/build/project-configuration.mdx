@@ -129,8 +129,11 @@ it can be reviewed and committed without recording a developer's filesystem.
 
 The environment lives under `AGENT_DIR/.harnest/environments/` and should not
 be activated. An explicit sync creates or updates `AGENT_DIR/.venv` as an
-IDE-detectable link to the current environment. Harnest preserves an existing
-`.venv` that it does not own and prints the exact managed interpreter instead.
+IDE-detectable link to the current environment. It also configures
+`.vscode/settings.json` for VS Code-compatible editors, including Antigravity IDE
+and Windsurf. The Codex IDE extension inherits its host editor's Python setting.
+Harnest preserves an existing `.venv` that it does not own and prints the exact
+managed interpreter instead.
 `compile` selects the lean production runtime; `run`, `serve`, and ordinary
 `test` select development; `test --evals` selects eval.
 Each command synchronizes its internal environment automatically without
