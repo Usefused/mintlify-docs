@@ -9,7 +9,8 @@ Fused keeps the common path short without removing any control boundary. Guided 
 
 | Situation | Use |
 |---|---|
-| Creating a new SDK, API app, or MCP server in a terminal | `fused-cli init <name>` with its services; choose the mode and operations when prompted |
+| Creating one App with SDK, MCP, and REST delivery | `fused-cli init <name>` with its services; choose operations when prompted |
+| Creating only an SDK, REST API, or MCP server | `fused-cli init <name> --sdk`, `--rest`, or `--mcp` |
 | Initializing and reviewing now, but applying later | `fused-cli init <name> ... --no-apply` |
 | Activating a service without creating an SDK | `workspace service add <service> --apply` |
 | Reviewing an existing config one boundary at a time | Explicit `<kind> plan`, then `<kind> apply` |
@@ -96,16 +97,16 @@ Only terminal SDK planning offers optional credential setup. Workspace, MCP, web
 
 Use `--no-input` for every unattended command. It turns a missing selection, confirmation, or credential into an error instead of waiting for terminal input. Add `--json` when the command exposes structured output.
 
-For app initialization, automation must declare the mode and operation boundary that the terminal selectors would normally collect:
+For App initialization, automation must declare the operation boundary that the terminal selector would normally collect. No method flag creates the combined App:
 
 ```bash
-fused-cli init support-sdk --sdk \
+fused-cli init support-app \
   --service linear \
   --operation 'linear=issueUpdate' \
   --no-input
 ```
 
-Use `--select-all linear` instead when the SDK intentionally needs the service's complete operation surface.
+Use `--select-all linear` instead when the App intentionally needs the service's complete operation surface. Add `--sdk`, `--rest`, or `--mcp` only when you want one delivery method.
 
 Top-level `extend` infers the app mode from the existing YAML and updates that same file; no parallel config is created. A real change to a stable SemVer version advances to the next minor version deterministically, including under `--no-input`:
 
@@ -188,7 +189,7 @@ Use a direct plan ID only when it came from the exact current config and Engine.
 
 ## Recover without guessing
 
-- If generated `init --sdk` receives `generation_contract_pin_unavailable`, it first resolves every selected active workspace version. It then prints `Refreshing immutable SDK generation snapshot for <service>@<version>...` as it refreshes each exact snapshot and retries the unchanged plan once. `--no-input` uses the same deterministic path without prompting. The CLI never derives a pin locally, substitutes the runtime contract hash, selects a newer version, or retries twice. API mode, MCP mode, ordinary `sdk plan`, and unrelated failures do not refresh snapshots.
+- If generated `init` (including the default combined App) receives `generation_contract_pin_unavailable`, it first resolves every selected active workspace version. It then prints `Refreshing immutable SDK generation snapshot for <service>@<version>...` as it refreshes each exact snapshot and retries the unchanged plan once. `--no-input` uses the same deterministic path without prompting. The CLI never derives a pin locally, substitutes the runtime contract hash, selects a newer version, or retries twice. REST-only mode, MCP-only mode, ordinary `sdk plan`, and unrelated failures do not refresh snapshots.
 - If exact resolution or refresh fails, init does not retry the plan or create the app config. If the one retry fails, the error reports every refresh that already completed. A repeated missing-pin response directs you to the Engine and Registry logs or another enabled version. A workspace activation may already be applied under its separate receipt. Changing credentials or operation selection does not repair this failure.
 - If SDK credential remediation is declined or unavailable, store the credential in the selected bucket and rerun `sdk plan`.
 - If package transfer fails after a successful SDK apply, rerun `sdk download`, not apply.

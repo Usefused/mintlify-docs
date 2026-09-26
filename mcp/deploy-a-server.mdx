@@ -8,7 +8,7 @@ An MCP server is an Engine-hosted runtime with its own stable URL. It never buil
 One server can span several internal and external services, so an agent needs one connection rather than one per provider.
 
 <Card title="Describe the capabilities you need" icon="wand-magic-sparkles" href="/app/from-a-prompt">
-  Use prompt to create an MCP app, update an existing local config, or draft a sequential Unified Operation for review.
+  Use `fused-cli describe` to create an MCP App, update an existing local config, or draft a sequential Unified Operation for review.
 </Card>
 
 For supported OAuth integrations, [use a Managed service](/workspace/use-managed-service) or [configure your own provider app](/bucket/connect-user-accounts). Managed auth uses the same MCP connection flow, while Fused keeps the provider client secret on its broker.
@@ -78,7 +78,7 @@ Use `fused-cli mcp list` whenever you need to recover the stable and pinned endp
 
 Init also resolves server-template variables for the operations you selected and writes the matching `server_variable` injections, reporting a count of what it generated. The behaviour is identical to the SDK side — [how init fills in routing](/app/build-an-sdk#init-fills-in-the-routing-for-you).
 
-Omit the mode flags in a terminal to choose between SDK, API, and MCP interactively. With `--no-input`, pass `--mcp`, `--description`, and an explicit `--operation` or `--select-all` for every service.
+Omit the method flags to create one App with SDK, MCP, and REST delivery. For MCP only, pass `--mcp`. With `--no-input`, also pass `--description` and an explicit `--operation` or `--select-all` for every service.
 
 ### `fused-cli extend`
 

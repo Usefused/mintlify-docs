@@ -43,7 +43,7 @@
                 ]
               },
               {
-                "group": "App (SDK)",
+                "group": "Apps",
                 "expanded": false,
                 "pages": [
                   "app/build-an-sdk",

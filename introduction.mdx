@@ -6,7 +6,7 @@ description: "One controlled path from your applications and agents to every ser
 
 Fused connects your applications and AI agents to internal and external APIs through one controlled runtime. It handles provider credentials, access control, retries, pagination, and execution records so you can focus on what your software does.
 
-Use a **typed SDK**, call the **REST API**, or connect an agent through an **MCP server**. All three use the same Engine, with provider credentials kept out of your application code and agent context.
+Create one **App** to deliver its selected operations as a typed SDK, an Engine REST API, and a hosted MCP server. The three methods share one App identity, immutable version, and execution token. Fused keeps provider credentials out of your application code and agent context.
 
 ## How it works
 
@@ -19,19 +19,19 @@ Use a **typed SDK**, call the **REST API**, or connect an agent through an **MCP
   </Card>
 </CardGroup>
 
-Your [workspace](/workspace/enable-a-service) defines which services are available. Each SDK or MCP exposes the operations its caller needs, and [buckets](/bucket/store-credentials) hold the provider credentials used for those calls.
+Your [workspace](/workspace/enable-a-service) defines which services are available. Each App exposes the operations its callers need, and [buckets](/bucket/store-credentials) hold the provider credentials used for those calls.
 
 ## Get started
 
-First, [get an Engine running](/deploy-an-engine). Then choose what you want to build:
+First, [get an Engine running](/deploy-an-engine). Then create an App with all three delivery methods, or choose one method explicitly:
 
 <CardGroup cols={2}>
-  <Card title="Build an SDK" icon="cube" href="/quickstart">
-    Install the CLI, select operations, and make your first call from a typed package.
+  <Card title="Create your first App" icon="cube" href="/quickstart">
+    Install the CLI, select operations once, and use the SDK, MCP, or REST method.
   </Card>
   <Card title="Deploy an MCP server" icon="robot" href="/mcp/deploy-a-server">
     Give an agent scoped access to operations across your services.
   </Card>
 </CardGroup>
 
-Prefer HTTP without a generated package? Follow the [direct API setup](/app/build-an-sdk#skip-the-package).
+Need only one method? Follow the [SDK-only](/app/build-an-sdk) or [MCP-only](/mcp/deploy-a-server) guide. For HTTP without a generated package, use the [REST-only setup](/app/build-an-sdk#skip-the-package).

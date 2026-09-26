@@ -1,10 +1,10 @@
 ---
 title: "Quickstart"
 sidebarTitle: "Quickstart"
-description: "Install the CLI and ship a working SDK through one guided setup."
+description: "Install the CLI and create one App with SDK, MCP, and REST delivery."
 ---
 
-From nothing to a typed package your application can call. Roughly ten minutes, most of it waiting on a browser tab.
+From nothing to one App your code and agents can use through SDK, MCP, or REST. Roughly ten minutes, most of it waiting on a browser tab.
 
 <Note>
   This assumes you already have an Engine to talk to — hosted, or one you started yourself. If not, [get one running first](/deploy-an-engine); every command below needs it.
@@ -39,49 +39,50 @@ fused-cli whoami
 
 For a supported OAuth integration, [use a Managed service](/workspace/use-managed-service) to connect users without registering your own provider app. Alternatively, [store your own credentials](/bucket/store-credentials). Managed auth is an explicit app configuration choice; init does not automatically choose it when local credentials are missing. Use `--no-apply` while preparing the managed reference, then plan and apply the completed config.
 
-## Build and configure an SDK
+## Create an App
 
 ```bash
-fused-cli init support-sdk --sdk --service linear
+fused-cli init support-app --service linear
 ```
 
-`fused-cli init` searches your workspace and then the Registry, pins a concrete service version, and asks what the SDK should expose. **All operations** is highlighted by default, so press Enter to take the complete service. Open **Choose operations…** to search by operation ID, method, path, summary, or tag and build a narrower SDK. You do not need to know operation IDs before you start.
+Without a method flag, `fused-cli init` creates one App with SDK, MCP, and REST delivery. It searches your workspace and then the Registry, pins a concrete service version, and asks which operations the App should expose. **All operations** is highlighted by default. Open **Choose operations…** to search by operation ID, method, path, summary, or tag. You do not need to know operation IDs before you start.
 
-If activation is needed, the CLI shows one combined confirmation. It keeps governance intact by writing separate workspace and SDK receipts. Missing provider credentials do not block creation: in a terminal the CLI offers to store them securely and retry planning once, while skipping that optional step still publishes the app.
+If activation is needed, the CLI shows one combined confirmation. It writes separate workspace and App receipts. Missing provider credentials do not block creation: in a terminal the CLI offers to store them securely and retry planning once, while skipping that optional step still publishes the App.
 
-When the command succeeds, the SDK is applied and its package is downloaded with generated first-call guidance. It creates only the desired state you chose: the SDK config, plus a workspace config when service activation was needed.
+When the command succeeds, Fused applies one immutable App version, downloads its typed SDK package, and reports its hosted MCP URLs. REST execution uses that same version ID and token. Init writes one `kind: sdk` config with nested `mcp` delivery, plus a workspace config if service activation was needed.
 
 If no suitable Registry service exists, [import the API yourself](/workspace/bring-your-own-api) from a spec, a GraphQL endpoint, or the provider's documentation.
 
 <Warning>
-  The first successful initialization prints the SDK execution token **once**. Capture it now — a repeat apply will not show it again.
+  The first successful initialization prints the App execution token **once**. Capture it now — a repeat apply will not show it again.
 </Warning>
 
 <Note>
-  Automating this? Run `fused-cli init support-sdk --sdk --service linear --select-all linear --no-input`; missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with `secret set --no-input --value-stdin`, or let the first affected call return the exact safe setup command. Use an explicit `--operation` instead when the app needs a narrower surface. The command fails rather than guessing its mode, an ambiguous service, or a capability boundary. For structured plan and apply output with independent retry boundaries, use the [advanced controlled workflow](/advanced/control-the-workflow).
+  Automating this? Run `fused-cli init support-app --service linear --select-all linear --no-input`. No method flag is needed for the combined App. Missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with `secret set --no-input --value-stdin`, or let the first affected call return the exact safe setup command. Use an explicit `--operation` when the App needs a narrower surface. For structured plan and apply output, use the [advanced controlled workflow](/advanced/control-the-workflow).
 </Note>
 
 ## Call it
 
-Three ways in. Same Engine execution behind all of them, and the same execution token.
+The SDK, MCP server, and REST endpoint use the same selected operations and execution token.
 
 | Way | Reach for it when | What it needs |
 |---|---|---|
-| `fused-cli sdk invoke` | Checking the path works, or poking an operation by hand | The CLI and the token |
+| `fused-cli sdk invoke` | Checking the path works, or trying an operation by hand | The CLI and the token |
 | The typed package | Your application calls this for real | The downloaded package and the Engine's **gRPC** address |
 | `POST /v1/apps/{id}/executions` | You are not in TypeScript or Python, or you would rather not ship a package | The Engine's **HTTP** address and the version ID from apply |
+| Hosted MCP | An agent discovers and executes selected operations | The stable MCP URL from apply or the App details page |
 
 <CodeGroup>
 
 ```bash CLI
 export FUSED_SDK_TOKEN='...'
 
-fused-cli sdk invoke support-sdk@1.0.0 issueUpdate \
+fused-cli sdk invoke support-app@1.0.0 issueUpdate \
   --params '{"id":"ISS-42","state":"done"}'
 ```
 
 ```typescript Typed package
-import { FusedSDK } from 'support-sdk';
+import { FusedSDK } from 'support-app';
 
 const sdk = new FusedSDK({
   grpcUrl: process.env.FUSED_ENGINE_GRPC_URL,
@@ -106,7 +107,7 @@ A call returns `{ ok, status, data, error }` rather than the payload itself, and
 Whichever one you used, the receipt is the same:
 
 ```bash
-fused-cli sdk activity support-sdk@1.0.0
+fused-cli sdk activity support-app@1.0.0
 ```
 
 It shows what ran, how long the provider took, and what came back.
@@ -116,17 +117,17 @@ It shows what ran, how long the provider took, and what came back.
 ```text
 workspace  →  approved a concrete service version when it was missing
 bucket     →  supplied a credential your code will never see
-app        →  published an immutable, typed SDK version with its own receipt
+app        →  published one immutable version for SDK, MCP, and REST delivery
 ```
 
 ## Where to go next
 
 <CardGroup cols={2}>
-  <Card title="Build an SDK properly" icon="cube" href="/app/build-an-sdk">
-    Multiple services, operation selection, and choosing an auth scheme.
+  <Card title="Choose SDK-only delivery" icon="cube" href="/app/build-an-sdk">
+    Create a package without hosted MCP when you need one method.
   </Card>
   <Card title="Deploy an MCP server" icon="robot" href="/mcp/deploy-a-server">
-    The same approved operations, shaped for an agent.
+    Choose MCP-only delivery when you need a server without a package.
   </Card>
   <Card title="Connect user accounts" icon="user-check" href="/bucket/connect-user-accounts">
     OAuth per end user, with refresh handled by the Engine.
@@ -147,6 +148,6 @@ fused-cli skill install --for claude
 
 ## Taking this further
 
-You have a working SDK on a Dev license. The tiers above it are about production licensing, SSO, and support — not about unlocking features you have just been using.
+You have a working App on a Dev license. The tiers above it are about production licensing, SSO, and support — not about unlocking features you have just been using.
 
 When you need those, [register interest](https://usefused.com/?plan=enterprise#enterprise-interest) and we'll size it with you.

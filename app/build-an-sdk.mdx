@@ -5,11 +5,38 @@ description: "Turn a set of approved operations into a typed package your produc
 
 An SDK is a typed package containing only the services and operations one product needs. Authentication, retries, pagination, and provider quirks stay in the Engine. Your application code gets methods.
 
+By default, `fused-cli init` also hosts the same App through MCP and REST. Use `--sdk` when you want the package without hosted MCP. Both choices keep one App identity and immutable version for every method they enable.
+
 <Card title="Create or update from a goal" icon="wand-magic-sparkles" href="/app/from-a-prompt">
-  Use prompt to add capabilities to an existing local SDK or draft a sequential Unified Operation, then review the proposal before apply.
+  Use `fused-cli describe` to add capabilities to an existing local App or draft a sequential Unified Operation, then review the proposal before apply.
 </Card>
 
-## Create the SDK
+## Create all three delivery methods
+
+```bash
+fused-cli init support-app --service linear --service slack
+```
+
+This creates one `kind: sdk` App with a generated package, a hosted MCP server, and REST execution. The selected scope, version, and token are shared. Its config includes a nested MCP description:
+
+```yaml
+apiVersion: fused/v1
+kind: sdk
+name: support-app
+version: "1.0.0"
+language: typescript
+generate: true
+mcp:
+  description: Search and manage support issues
+bucket: default
+services:
+  linear: {version: "v1", select_all: true}
+  slack: {version: "v1", select_all: true}
+```
+
+Use `--description` to author the MCP summary. When omitted, init derives one from the App name. The package download, hosted MCP URLs, and REST version ID all come from this single apply. The App details page shows the MCP URLs later.
+
+## Create an SDK only
 
 ```bash
 fused-cli init support-sdk --sdk \
@@ -96,7 +123,7 @@ The initializer composes the ordinary plan and apply functions; it does not bypa
 Some apps call the centralized API over REST and never import a generated package. Use API mode:
 
 ```bash
-fused-cli init support-api --api --service linear
+fused-cli init support-api --rest --service linear
 ```
 
 API mode is not another resource type. It writes the same `kind: sdk` config with package generation disabled:
@@ -150,19 +177,22 @@ Both are derived from the generated source and validated against it, so the meth
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--sdk` | Creates, applies, and downloads a typed SDK | `fused-cli init support --sdk --service linear` |
-| `--api` | Creates and applies a `kind: sdk` app with `generate: false` | `fused-cli init support-api --api --service linear` |
+| No method flag | Creates one App with SDK, MCP, and REST delivery | `fused-cli init support-app --service linear` |
+| `--sdk` | Creates, applies, and downloads a typed SDK without hosted MCP | `fused-cli init support --sdk --service linear` |
+| `--rest` (`--api` alias) | Creates a REST-only `kind: sdk` App with `generate: false` | `fused-cli init support-api --rest --service linear` |
+| `--mcp` | Creates an MCP-only App without an SDK package | `fused-cli init support-agent --mcp --service linear` |
 | `--service` | Adds services as `<service>[@<version>]`; comma-separated or repeatable, with an omitted version defaulting to an enabled or latest public version | `fused-cli init support --sdk --service linear@v1,slack` |
 | `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --sdk --service linear --operation 'linear=issueUpdate'` |
 | `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --sdk --service linear --select-all linear` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --sdk --bucket prod-credentials` |
 | `--version` | Sets the initial app version | `fused-cli init support --sdk --version 2.0.0 --service linear` |
-| `--language` | `typescript` (default) or `python`; SDK mode only | `fused-cli init support --sdk --language python` |
+| `--language` | `typescript` (default) or `python` for generated packages, including the combined App | `fused-cli init support-app --language python --service linear` |
+| `--description` | Supplies the hosted MCP summary; the combined App derives one from its name when omitted | `fused-cli init support-app --description 'Manage support issues' --service linear` |
 | `--no-apply` | Writes validated desired state, saves available plan receipts, and prints the commands to apply later | `fused-cli init support --sdk --service linear --no-apply` |
 
-Omit `--sdk`, `--api`, and `--mcp` in a terminal to choose the app mode interactively. Creating never replaces an existing file. Init writes only the chosen app config and any workspace config needed for activation; it does not create sample files for the other modes.
+Omit `--sdk`, `--rest`, and `--mcp` to create the combined App in a terminal or automation. Creating never replaces an existing file. Init writes one App config and any workspace config needed for activation; it does not create three separate Apps.
 
-In a terminal, omit `--operation` and `--select-all` to use the guided selector. With `--no-input`, declare the mode and one operation boundary for every service. Use the explicit plan/apply path when automation needs structured results.
+In a terminal, omit `--operation` and `--select-all` to use the guided selector. With `--no-input`, declare one operation boundary for every service; add a method flag only when you want a single method. Use the explicit plan/apply path when automation needs structured results.
 
 ### `fused-cli extend`
 
