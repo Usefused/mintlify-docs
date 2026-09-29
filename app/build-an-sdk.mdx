@@ -8,7 +8,7 @@ An SDK is a typed package containing only the services and operations one produc
 By default, `fused-cli init` also hosts the same App through MCP and REST. Use `--sdk` when you want the package without hosted MCP. Both choices keep one App identity and immutable version for every method they enable.
 
 <Card title="Create or update from a goal" icon="wand-magic-sparkles" href="/app/from-a-prompt">
-  Use `fused-cli describe` to add capabilities to an existing local App or draft a sequential Unified Operation, then review the proposal before apply.
+  Use `fused-cli describe --kind sdk` to draft an SDK or add capabilities to an existing local App, then review the proposal before apply.
 </Card>
 
 ## Create all three delivery methods
@@ -58,7 +58,7 @@ Press Enter to take the complete surface. **Choose operations…** opens a searc
 If activation is needed, init shows one combined confirmation and applies the workspace change under its own receipt. It then builds and validates the SDK candidate in memory and plans the SDK. Missing credentials are readiness warnings, not publication failures: a terminal securely offers to fill them and retry once, while skipping the offer still keeps the valid plan. Only a successful plan creates `.fused/sdks/support-sdk.yaml`; init then applies the SDK, downloads the package, and finishes with first-call guidance. Workspace and SDK changes retain separate receipts.
 
 <Note>
-  If an older selected snapshot lacks its retained generation contract, generated SDK init prints each exact `service@version` as it refreshes that snapshot and retries the unchanged plan once. It does this deterministically with `--no-input` too. It never invents a pin, selects another version, or bypasses Registry retention. A failed refresh or retry creates no app config or app receipt, while any completed exact refresh remains explicit. See [Recover without guessing](/advanced/control-the-workflow#recover-without-guessing) for the failure boundaries.
+  Adding a service saves its executable contract without archiving SDK generation input. SDK planning acquires that input when you select the service for a generated package, and accepts it only if the saved runtime contract and source revision still match. If they have changed, generated SDK init prints each exact `service@version` as it refreshes that snapshot and retries the unchanged plan once. It does this deterministically with `--no-input` too. It never invents a pin, selects another version, or bypasses Registry retention. A failed refresh or retry creates no app config or app receipt, while any completed exact refresh remains explicit. See [Recover without guessing](/advanced/control-the-workflow#recover-without-guessing) for the failure boundaries.
 </Note>
 
 If you press Enter for both services, the resulting config records that complete-surface intent without requiring you to type either service version or operation ID:

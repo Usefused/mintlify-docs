@@ -8,7 +8,7 @@ An MCP server is an Engine-hosted runtime with its own stable URL. It never buil
 One server can span several internal and external services, so an agent needs one connection rather than one per provider.
 
 <Card title="Describe the capabilities you need" icon="wand-magic-sparkles" href="/app/from-a-prompt">
-  Use `fused-cli describe` to create an MCP App, update an existing local config, or draft a sequential Unified Operation for review.
+  Use `fused-cli describe --kind mcp` to create an MCP App or update an existing local config for review.
 </Card>
 
 For supported OAuth integrations, [use a Managed service](/workspace/use-managed-service) or [configure your own provider app](/bucket/connect-user-accounts). Managed auth uses the same MCP connection flow, while Fused keeps the provider client secret on its broker.
@@ -112,7 +112,6 @@ MCP planning never mutates credentials. It reports missing entries as readiness 
 ## MCP-specific constraints
 
 - **Explicit webhook selection.** Set `webhook_attachment` and a per-service `webhooks` list to expose provider events as MCP resources. Event-only services are supported. `webhooks_select_all: true` is rejected. See [receive MCP events](/mcp/receive-events) for client requirements, live notifications, and retained payload reads.
-- **Unified operations require explicit targets.** A top-level `unified_operations` map uses the same bindings, dependencies, rollback, mapping, and output contract as an SDK. Each operation authorized by the execution token appears in `search_docs` and runs through the existing `execute` tool with `await call(operationId, {input, targets, selectors?, pagination?, idempotencyKey?})`. `targets` is always required, must be dependency-closed, and never defaults to every declared binding. See [declare a unified operation](/app/unified/declare) and [call a unified operation](/app/unified/call).
 - **No implicit latest app.** Init may default a provider version while writing the config, but MCP app references and runtime promotions always resolve one exact immutable app version.
 
 ## Versions

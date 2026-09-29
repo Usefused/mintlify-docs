@@ -17,6 +17,8 @@ fused-cli workspace service add stripe --apply
 
 The version is optional. The Engine resolves the latest version during the scoped activation when you omit it. `--apply` activates only the services this command added; it cannot remove an unrelated active service through a full-workspace mirror.
 
+The UI's **Add to workspace** button and the CLI activation both save the service's executable contract. They do not build an SDK or archive SDK generation input. If you later create an SDK from that service, SDK planning acquires its generation contract against the saved runtime version.
+
 If no suitable Registry service exists, [bring the API in yourself](/workspace/bring-your-own-api).
 
 <Note>

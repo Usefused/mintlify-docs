@@ -34,7 +34,7 @@ Read `_meta["com.usefused/auth"]` before resubmitting an `execute` script:
 | `execute_request: "do_not_replay"` | Complete authentication, then inspect prior work and submit only the remaining work. Do not replay the whole script. |
 | Missing or unrecognized metadata | Do not assume the original request is safe to replay. |
 
-Fused sets `automatic_replay: false`: it does not rerun the script on browser completion. An earlier call in the same script, or a sibling in a Unified Operation, may already have changed provider state. Successful authentication does not undo that work.
+Fused sets `automatic_replay: false`: it does not rerun the script on browser completion. An earlier call in the same script may already have changed provider state. Successful authentication does not undo that work.
 
 ## Resume the agent after completion
 

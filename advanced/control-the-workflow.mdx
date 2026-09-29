@@ -189,7 +189,7 @@ Use a direct plan ID only when it came from the exact current config and Engine.
 
 ## Recover without guessing
 
-- If generated `init` (including the default combined App) receives `generation_contract_pin_unavailable`, it first resolves every selected active workspace version. It then prints `Refreshing immutable SDK generation snapshot for <service>@<version>...` as it refreshes each exact snapshot and retries the unchanged plan once. `--no-input` uses the same deterministic path without prompting. The CLI never derives a pin locally, substitutes the runtime contract hash, selects a newer version, or retries twice. REST-only mode, MCP-only mode, ordinary `sdk plan`, and unrelated failures do not refresh snapshots.
+- A workspace activation saves executable contract data without SDK generation input. A generated `sdk plan` requests that input and attaches it only when its exact saved runtime contract and source revision still match Registry. If generated `init` (including the default combined App) receives `generation_contract_pin_unavailable`, it first resolves every selected active workspace version. It then prints `Refreshing immutable SDK generation snapshot for <service>@<version>...` as it refreshes each exact snapshot and retries the unchanged plan once. `--no-input` uses the same deterministic path without prompting. The CLI never derives a pin locally, substitutes the runtime contract hash, selects a newer version, or retries twice. REST-only mode, MCP-only mode, ordinary `sdk plan`, and unrelated failures do not refresh snapshots.
 - If exact resolution or refresh fails, init does not retry the plan or create the app config. If the one retry fails, the error reports every refresh that already completed. A repeated missing-pin response directs you to the Engine and Registry logs or another enabled version. A workspace activation may already be applied under its separate receipt. Changing credentials or operation selection does not repair this failure.
 - If SDK credential remediation is declined or unavailable, store the credential in the selected bucket and rerun `sdk plan`.
 - If package transfer fails after a successful SDK apply, rerun `sdk download`, not apply.
@@ -202,7 +202,7 @@ For explicit workspace maintenance, run:
 fused-cli workspace services refresh-missing-contracts --limit 100
 ```
 
-This advanced command refreshes only a bounded batch of activated versions whose runtime contract snapshot is missing or unpinned. It reacquires each exact immutable contract from Registry. It does not manufacture a generation pin, float to another version, or run automatically as a workspace-wide fallback.
+This advanced command refreshes only a bounded batch of activated versions whose runtime contract snapshot is missing or unpinned. It reacquires each exact immutable contract from Registry. Use it when the saved runtime contract has changed and SDK planning cannot attach a generation contract to that earlier snapshot. It does not manufacture a generation pin, float to another version, or run automatically as a workspace-wide fallback.
 
 <CardGroup cols={2}>
   <Card title="Build an SDK" icon="cube" href="/app/build-an-sdk">

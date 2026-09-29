@@ -1,12 +1,13 @@
 ---
 title: "Create or update from a goal"
-description: "Describe the capabilities you need, review exact operations, and publish one SDK, MCP, or REST App version."
+description: "Describe an outcome, review selected operations and source, and deploy a Unified App."
 ---
 
-Use `fused-cli describe` to create an App or add capabilities to an existing one from a natural-language goal. The CLI resolves services and operations, shows a proposal, and asks you to confirm before applying changes. It chooses one delivery method from the goal; use `--kind sdk|mcp|rest` to constrain that choice. To create one App with all three methods, use [`fused-cli init` without a method flag](/quickstart#create-an-app).
+Use `fused-cli describe` to create a hosted Unified App from a natural-language goal. The CLI resolves services and operations, drafts TypeScript, shows the proposal, and asks you to confirm before applying it. Pass `--kind sdk|mcp|rest` to create one of those outputs instead. To create one App with SDK, MCP, and REST delivery, use [`fused-cli init` without a method flag](/quickstart#create-an-app).
 
 ```bash
-fused-cli describe "Create a TypeScript SDK for Stripe customer lookup"
+fused-cli describe --name customer-onboarding --bucket default \
+  "Create a Stripe customer and a HubSpot contact, then return both IDs"
 ```
 
 Service discovery checks the workspace first, then searches Registry when needed. The proposal identifies the selected services, exact versions, and operations. Missing workspace services go through the existing activation lifecycle before the app is applied.
@@ -44,35 +45,19 @@ fused-cli describe --update billing-sdk --version 2.0.0 \
   "Add Stripe invoice lookup"
 ```
 
-`describe` updates are additive. To remove capabilities, change routing or language, upgrade service pins, or replace an existing Unified Operation, [edit and plan the config explicitly](/advanced/control-the-workflow).
+`describe` updates to SDK, MCP, and REST configs are additive. To remove capabilities, change routing or language, or upgrade service pins, [edit and plan the config explicitly](/advanced/control-the-workflow). To update a Unified App, edit its `.fused/unified_app/<app>.tsx` source and deploy a new version with `unified-app plan` and `unified-app apply`.
 
-## Describe a sequential operation
+## Review the Unified App draft
 
-When your goal requests ordered provider calls as one operation, `describe` can draft a [Unified Operation](/app/unified/declare):
+The proposal shows the exact selected provider operations and the
+`buildUnifiedApp` TypeScript source. Review its input schema, provider calls,
+and output before confirming. After apply, the CLI saves the source under
+`.fused/unified_app/` and prints the new immutable App version ID. See
+[author a Unified App](/app/unified-apps) for the file format and deployment
+commands.
 
-```bash
-fused-cli describe --update billing-sdk \
-  "Add one operation that creates a Stripe customer, then creates an invoice for that customer"
-```
-
-The same workflow supports MCP apps:
-
-```bash
-fused-cli describe --update billing-agent \
-  "Add one operation that creates a Stripe customer, then creates an invoice for that customer"
-```
-
-The CLI first selects exact provider operations, then requests a draft grounded in their pinned request and response contracts. The proposal includes the execution order, typed caller input, dependency mappings, and returned output. Review these together before confirming.
-
-| Intent | Proposed behavior |
-|---|---|
-| “Support customer creation and invoice creation” | Separate callable operations |
-| “Create a customer, then create an invoice for that customer” | A sequential Unified Operation |
-| An ambiguous mapping or a step requiring unsupported reasoning, approval, branching, or a loop | Clarification instead of a partial sequential definition |
-
-Sequential drafting supports one new Unified Operation with 2–16 steps for TypeScript or Python SDKs and MCP apps. Go SDKs and direct REST apps do not support this composition path. Drafting does not add rollback calls automatically. An existing Unified Operation with a different definition is not overwritten; request a new name or edit its config explicitly.
-
-Applying publishes the configuration. It does not run the composed provider calls. SDK users must adopt the new package version and call its new method; MCP users discover and invoke the operation through their authorized app version.
+Applying publishes the App; it does not run its provider calls. A later
+request to the deployed App starts an execution.
 
 ## What the models receive
 
@@ -82,9 +67,9 @@ The CLI shows processing disclosures before the corresponding requests:
 |---|---|---|
 | Intent parsing | Registry's configured language model | Your goal; for updates, the selected app's name, kind, and service names |
 | Operation selection | Jev through the licensed Fused Registry endpoint | Operation search intent, candidate operation names, and descriptions |
-| Sequential drafting | Registry's configured language model | Your goal and the exact selected operations' Registry contracts, including parameters and request/response schemas |
+| Unified App source drafting | Registry's configured language model | Your goal and the exact selected operations' Registry contracts, including parameters and request/response schemas |
 
-No additional user API key is required. The CLI does not send local bucket or authentication configuration, provider credentials, or execution payloads for drafting. Keep credentials out of the goal itself. The generated definition is validated against the supported authoring format and selected operations; the normal Engine plan/apply permission and version checks still apply.
+No additional user API key is required. The CLI does not send local bucket or authentication configuration, provider credentials, or execution payloads for drafting. Keep credentials out of the goal itself. The source draft is validated against selected operations; the normal Engine plan/apply permission and version checks still apply.
 
 ## Useful flags
 

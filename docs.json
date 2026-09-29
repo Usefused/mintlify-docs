@@ -61,7 +61,10 @@
                 "group": "Apps",
                 "expanded": false,
                 "pages": [
+                  "mcp/deploy-a-server",
+                  "app/unified-apps",
                   "app/build-an-sdk",
+                  "app/testing/over-rest",
                   "app/from-a-prompt",
                   "app/use-in-your-app",
                   "app/run-an-operation",
@@ -73,7 +76,6 @@
                 "group": "MCP",
                 "expanded": false,
                 "pages": [
-                  "mcp/deploy-a-server",
                   "mcp/receive-events",
                   {
                     "group": "Connect an MCP client",
@@ -121,16 +123,7 @@
                   "app/ship-a-new-version",
                   "app/receive-events",
                   "app/issue-tokens",
-                  "app/testing/from-the-cli",
-                  "app/testing/over-rest",
-                  {
-                    "group": "Unified Operations",
-                    "expanded": false,
-                    "pages": [
-                      "app/unified/declare",
-                      "app/unified/call"
-                    ]
-                  }
+                  "app/testing/from-the-cli"
                 ]
               },
               {
