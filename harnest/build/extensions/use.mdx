@@ -5,7 +5,7 @@ sidebarTitle: "Use an extension"
 description: "Discover a Harnest Extension, consume its compiler-owned namespace, and keep access invocation-scoped."
 ---
 
-A project-local Harnest Extension is discovered from `extensions/<name>/extension.yaml`. You do not add it to a central registry or manually attach it to the root agent.
+Harnest discovers extensions from `extensions/<name>/extension.yaml`.
 
 From the agent folder, install a verified public PyPI wheel by its short slug or full distribution name:
 
@@ -22,16 +22,15 @@ harnest extensions install ../harnest-extension-warehouse
 harnest env sync .
 ```
 
-For a PyPI install, Harnest accepts a universal `py3-none-any` wheel and validates the manifest, wheel metadata, digest, entry point, and package layout without importing extension code. Platform- or ABI-specific wheels are not installed. For local source, it validates the manifest and layout plus any available project identity and version metadata. Both paths materialize the complete package into `extensions/<manifest-name>` through a staged replacement and preserve its internal paths. Compilation projects only directories listed in `contributes`; it does not scatter their files into the agent root. Harnest refuses an existing extension unless you pass `--force`. Review same-process extension code and its declared capabilities before installation; installing changes dependency inputs, so refresh `harnest-runtime.lock` with `harnest env sync .`.
+The installer validates the package without importing its code. PyPI installs require a universal `py3-none-any` wheel; local installs use the source tree. Packages are copied intact to `extensions/<manifest-name>`, and only declared `contributes` directories are compiled. Use `--force` to replace an installed extension. Review its code and capabilities, then run `harnest env sync .` to refresh dependencies.
 
-Published wheels may declare dependencies on Harnest or its framework packages. During installation, Harnest omits those compiler-owned requirements from the materialized project and supplies its pinned runtime versions instead. Extension-owned dependencies remain in the root environment solve. Locally authored extensions must not redeclare compiler-owned packages.
+Published wheels can declare Harnest or framework dependencies, but the installed project uses Harnest’s pinned versions. Other extension dependencies join the root environment. Local extensions must not redeclare compiler-owned packages.
 
 After compilation, Harnest exposes the extension module as `harnest.extensions.<name>`. Import the singleton from a discovered Agent Tool and call its bounded API:
 
 ```python tools/query_warehouse.py
 from harnest.extensions.warehouse import extension as warehouse
 from harnest.agent import tool
-
 
 @tool
 async def query_warehouse(statement: str) -> list[dict]:
@@ -50,7 +49,6 @@ Trusted application code can ask Harnest for the same invocation-scoped view:
 from harnest import context
 from harnest.extensions.warehouse import WarehouseContext
 
-
 async def run_query(statement: str) -> list[dict]:
     """Resolve the warehouse capability without exposing its SDK client."""
 
@@ -68,7 +66,7 @@ Search public PyPI for compatible `harnest-extension-*` packages:
 harnest extensions search warehouse
 ```
 
-Search verifies package naming, one `harnest.extensions` entry point, the bundled `extension.yaml` and `extension.py`, release identity, and the published wheel digest without importing package code. `official` means Fused controls and explicitly recognizes that package name; `community` means only that the wheel satisfies the structural contract. Neither label is a security review.
+Search checks package identity, entry point, manifest, and wheel digest without importing code. `official` identifies Fused-maintained packages; `community` means the package meets the structural contract. Neither label is a security review.
 
 <Warning>
   Search does not install an extension, and `pip install` alone does not register one with an agent project. Use `harnest extensions install <slug-or-project>` to verify and materialize a published wheel, then run `harnest env sync` before compiling.
@@ -82,3 +80,7 @@ Search verifies package naming, one `harnest.extensions` entry point, the bundle
     Add only the hooks and factories declared by the manifest.
   </Card>
 </CardGroup>
+
+## API reference
+
+Reference: [`harnest.agent`](/harnest/reference/api/agent).

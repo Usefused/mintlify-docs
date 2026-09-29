@@ -9,13 +9,12 @@ Add custom endpoints when your application needs a business-specific HTTP contra
 
 ## Add an endpoint
 
-Create a synchronous route factory in the root agent's `lifecycle/` directory. Harnest injects an `AgentInvoker` and mounts the returned FastAPI router.
+Create a synchronous route factory in the root agent's `lifecycle/` directory. Harnest injects an [`AgentInvoker`](/harnest/reference/api/http#agentinvoker) and mounts the returned FastAPI router.
 
 ```python lifecycle/http.py
 from fastapi import APIRouter, Request
 from harnest.http import AgentInvoker
 from harnest import lifecycle
-
 
 @lifecycle.http_routes
 def http_routes(agent: AgentInvoker):
@@ -66,7 +65,6 @@ After authenticating the request, your route can derive an invocation-specific t
 ```python
 from harnest.agent import AgentRuntimePrincipal
 
-
 permissions = application_permissions_for(authenticated_user)
 response = await agent.invoke(
     connection=request,
@@ -75,7 +73,7 @@ response = await agent.invoke(
 )
 ```
 
-The principal is optional. Omitting it preserves the existing unrestricted tool surface. Supplying one activates default-deny behavior: untagged capabilities and capabilities without a matching grant are unavailable. An empty principal therefore makes every Harnest-governed capability unavailable. Do not accept permission names directly from the request body. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals) for propagation and Advanced-mode coverage.
+Omitting a principal leaves the tool surface unrestricted. Supplying one enables default-deny checks; an empty principal permits no governed capabilities. Never take permission names directly from request input. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals).
 
 For a security-sensitive deployment, require grants on every custom agent
 invocation:
@@ -119,7 +117,6 @@ from harnest import lifecycle
 from harnest.auth import principal_for
 from harnest.lib.site_sessions import site_sessions
 
-
 @lifecycle.http_routes
 def site_session_routes(_agent: AgentInvoker):
     router = APIRouter(prefix="/sites")
@@ -142,11 +139,7 @@ def site_session_routes(_agent: AgentInvoker):
     return router
 ```
 
-`site_sessions` represents your indexed projection or repository, not a
-Harnest type. Update it when a session is associated with an origin and scope
-its index by the authenticated `user_id`. This provides complete server-side
-filtering and global ordering without teaching Harnest about one application's
-domain model.
+`site_sessions` is your indexed repository. Scope it by authenticated `user_id` and update it when sessions acquire an origin.
 
 <Warning>
   Do not fetch one bounded `/sessions` page and filter it locally. Matching
@@ -161,3 +154,7 @@ Compilation rejects duplicate routes and Harnest-owned namespaces. Reserved path
 When you configure authentication, custom routes are protected by default. They also appear in `/openapi.json`. Harnest does not currently provide streaming through `AgentInvoker`; use the neutral SSE or WebSocket APIs when you need streaming.
 
 See [Neutral API](/harnest/runtime/serving/neutral-api), [Approvals and client tools](/harnest/runtime/serving/approvals-and-client-tools), and [Authentication and credentials](/harnest/runtime/authentication-and-credentials).
+
+## API reference
+
+Reference: [`harnest.agent`](/harnest/reference/api/agent), [`harnest.auth`](/harnest/reference/api/auth).

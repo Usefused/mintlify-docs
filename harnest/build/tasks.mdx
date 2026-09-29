@@ -5,13 +5,13 @@ sidebarTitle: "Overview"
 description: "Create retryable application work, defer it from tools, and run it on a schedule."
 ---
 
-Harnest Tasks run application-owned work outside the model tool call that requested it. Put each public `@task` callable under root `tasks/`; Harnest discovers it by filename and adds the queue runtime only when a task exists.
+Tasks run application work outside the requesting model tool call. Declare public tasks in `tasks/` and recurring work in `cron/`; Cron creates its queued task automatically.
 
 | Need | Use |
 |---|---|
 | Retryable work that a tool or trusted service starts | `await task.defer(...)` |
 | Wait for queued work from an agent invocation | Async `@tool(durable=True)` |
-| Start work at a fixed UTC schedule | A matching declaration under [`cron/`](/harnest/build/scheduled-tasks) |
+| Start work at a fixed UTC schedule | `@cron("...")` under [`cron/`](/harnest/build/scheduled-tasks) |
 | Let managed code create or control a user's recurring schedule | [Dynamic schedules](/harnest/build/dynamic-schedules) |
 | Ordinary in-process reuse | Call the decorated task directly |
 
@@ -30,3 +30,7 @@ Harnest Tasks run application-owned work outside the model tool call that reques
 <Card title="Durable execution" icon="rotate" href="/harnest/runtime/durable-execution">
   Understand suspension, replica recovery, and the boundary between a Task and the framework run waiting for it.
 </Card>
+
+## API reference
+
+Use the [`harnest.task` reference](/harnest/reference/api/task) for decorators, deferred calls, and [`TaskHandle`](/harnest/reference/api/task#taskhandle) methods. Use the [`harnest.cron` reference](/harnest/reference/api/cron) for fixed [`Cron`](/harnest/reference/api/cron#cron) declarations, scheduling functions, and [`CronJob`](/harnest/reference/api/cron#cronjob) methods. Browse [all public Python modules](/harnest/reference/api/overview) for the rest of Harnest's API.

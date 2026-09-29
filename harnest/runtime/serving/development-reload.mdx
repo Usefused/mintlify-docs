@@ -11,11 +11,7 @@ Use reload while editing a local agent:
 harnest serve AGENT_DIR --reload
 ```
 
-Harnest recompiles each stable source change into a fresh artifact. For a managed
-agent environment, the reload supervisor keeps its compiler process warm, so
-subsequent changes reuse imported Harnest and framework dependencies while the
-agent graph itself is still rebuilt and validated. It never modifies a running
-ADK or LangGraph graph in place.
+Reload builds and validates a fresh artifact for each stable source change. It reuses compiler dependencies, never modifies a running graph.
 
 ## Reload sequence
 
@@ -46,7 +42,7 @@ Ordinary requests drain during shutdown. A process that does not close within 10
 |---|---|
 | External session and checkpoint stores | Available to the replacement process |
 | `MemoryStore` | Process-local state is lost |
-| Dynamic `SkillSource` content | Already updates at runtime; no process reload required |
+| Dynamic [`SkillSource`](/harnest/reference/api/skills#skillsource) content | Already updates at runtime; no process reload required |
 | In-flight non-durable request | Drains during graceful shutdown or is stopped at the timeout |
 | Durable execution | Can recover from shared storage when the changed code remains compatible |
 

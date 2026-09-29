@@ -9,18 +9,18 @@ A Harnest Extension participates in three lifecycle layers:
 
 | Layer | Authoring location | Lifetime |
 |---|---|---|
-| SDK startup and shutdown | `Extension.start()` and `Extension.stop()` in `extension.py` | Application process |
-| Typed access | `Extension.create_context()` | One managed invocation |
+| SDK startup and shutdown | [`Extension.start()`](/harnest/reference/api/extensions#extension-start) and [`Extension.stop()`](/harnest/reference/api/extensions#extension-stop) in `extension.py` | Application process |
+| Typed access | [`Extension.create_context()`](/harnest/reference/api/extensions#extension-create_context) | One managed invocation |
 | Harnest hooks and factories | `extensions/<name>/lifecycle/**/*.py` | The lifecycle phase declared by each decorator |
 
-The extension manifest must project lifecycle files through `contributes.lifecycle` and declare every Harnest capability those files use. Path declaration makes content visible to the compiler; capabilities authorize what that content may do. Neither grants access to undeclared runtime internals.
+List lifecycle files in `contributes.lifecycle` and declare the capabilities they use. Both are required.
 
-Storage authorities start first. Harnest then calls `Extension.start()` in dependency order, followed by contributed `@lifecycle.resource` factories. Shutdown closes extension resources before calling `Extension.stop()` in reverse dependency order, then closes storage. `ExtensionStartContext` therefore exposes only already-live named custom storage and declared continuations, not arbitrary lifecycle resources or invocation credentials.
+Storage authorities start first. Harnest then calls `Extension.start()` in dependency order, followed by contributed [`@lifecycle.resource`](/harnest/reference/api/lifecycle#resource) factories. Shutdown closes extension resources before calling `Extension.stop()` in reverse dependency order, then closes storage. [`ExtensionStartContext`](/harnest/reference/api/extensions#extensionstartcontext) therefore exposes only already-live named custom storage and declared continuations, not arbitrary lifecycle resources or invocation credentials.
 
 ## Declare and implement a hook
 
-<CodeGroup>
-
+<Steps>
+  <Step title="Create extensions/warehouse/extension.yaml">
 ```yaml extensions/warehouse/extension.yaml
 apiVersion: harnest.dev/v1alpha1
 kind: Extension
@@ -34,10 +34,10 @@ contributes:
 capabilities:
   - lifecycle.tool
 ```
-
+  </Step>
+  <Step title="Create extensions/warehouse/lifecycle/tool_policy.py">
 ```python extensions/warehouse/lifecycle/tool_policy.py
 from harnest import lifecycle
-
 
 @lifecycle.tool.before(order=-50)
 async def restrict_warehouse_writes(context, request):
@@ -48,19 +48,19 @@ async def restrict_warehouse_writes(context, request):
         return context.finish({"error": "use_an_approved_write_tool"})
     return context.next()
 ```
+  </Step>
+</Steps>
 
-</CodeGroup>
-
-Application-owned and extension-owned lifecycle files form one globally validated lifecycle. Lower `order` values run first. Extension dependency order and source location break ties. Duplicate singleton authorities or named resources fail compilation rather than shadowing one another.
+Root and extension lifecycle files share one ordering: `order`, then dependency order, then source location. Duplicate singleton authorities or named resources fail compilation.
 
 ## Choose a declared capability
 
 | Manifest capability | Contribution from the extension |
 |---|---|
-| `lifecycle.agent`, `.model`, `.tool`, `.mcp`, `.http`, `.skills` | Portable interception and dynamic skill sources |
+| [`lifecycle.agent`](/harnest/reference/api/lifecycle#agent), `.model`, `.tool`, `.mcp`, `.http`, `.skills` | Portable interception and dynamic skill sources |
 | `context.resources`, `.credentials`, `.continuations`, `.storage`, `.assets`, `.session`, `.skills`, `.mcp` | Scoped runtime access used by the extension |
 | `content.tools`, `.mcp`, `.skills`, `.subagents` | Managed-mode content |
-| `storage.sessions`, `.checkpoints`, `.assets`, `.custom` | Storage factories |
+| [`storage.sessions`](/harnest/reference/api/lifecycle#storage-sessions), `.checkpoints`, `.assets`, `.custom` | Storage factories |
 | `http.routes` | Application HTTP routes |
 | `native.adk`, `native.langgraph` | Framework-native integration |
 | `policy.output`, `telemetry.exporter` | Output policy or telemetry destinations |
@@ -69,11 +69,10 @@ Declare only the rows the extension actually uses. Advanced mode still composes 
 
 ## Audit committed mutations
 
-Wrap committed user- or agent-triggered writes with `extension_mutation(...)`. It emits correlated, payload-free OTEL audit events without recording arguments, credentials, or results:
+Wrap committed user- or agent-triggered writes with [`extension_mutation(...)`](/harnest/reference/api/extensions#extension_mutation). It emits correlated, payload-free OTEL audit events without recording arguments, credentials, or results:
 
 ```python extensions/warehouse/extension.py
 from harnest.extensions import extension_mutation
-
 
 async def _create_export(self, query_id: str):
     """Audit the committed SDK mutation without exposing its payload."""

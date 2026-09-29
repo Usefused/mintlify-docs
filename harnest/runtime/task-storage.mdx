@@ -6,7 +6,7 @@ description: "Use PostgreSQL, Redis, or a custom database for Harnest-owned dura
 
 Use PostgreSQL, Redis, or your own storage without changing your Tasks. Harnest runs the workers, retries, and schedules; your provider persists their state.
 
-Queued tasks require `@lifecycle.storage.tasks`. Add `@lifecycle.storage.cron` to the same factory for recurring work. There is no default database.
+Queued tasks require [`@lifecycle.storage.tasks`](/harnest/reference/api/lifecycle#storage-tasks). Add [`@lifecycle.storage.cron`](/harnest/reference/api/lifecycle#storage-cron) to the same factory for recurring work. There is no default database.
 
 ## Choose and register a provider
 
@@ -40,7 +40,6 @@ import os
 from harnest import lifecycle
 from harnest_postgres import PostgresStore
 
-
 @lifecycle.storage.sessions
 @lifecycle.storage.checkpoints
 @lifecycle.storage.tasks
@@ -54,7 +53,6 @@ import os
 
 from harnest import lifecycle
 from harnest_redis import RedisStore
-
 
 @lifecycle.storage.sessions
 @lifecycle.storage.checkpoints
@@ -70,7 +68,7 @@ def storage() -> RedisStore:
 | --- | --- |
 | Tasks and cron | Must share one instance so scheduling and enqueueing are atomic. Omit the cron decorator for tasks alone. |
 | Sessions and checkpoints | Can share this provider or use a separate one. |
-| Local tests | Use `harnest.task.MemoryTaskStore`; jobs disappear on process exit. |
+| Local tests | Use [`harnest.task.MemoryTaskStore`](/harnest/reference/api/task#memorytaskstore); jobs disappear on process exit. |
 
 Harnest calls the factory, starts the provider, and closes it once. Remove unused decorators; keep any file that still provides sessions or checkpoints.
 
@@ -87,22 +85,22 @@ Start your database service before the agent. Workers run inside Harnest; no sep
 
 For reusable configuration, move the factory into `lib/`. Use this instead of the inline task/cron factory above:
 
-<CodeGroup>
+<Steps>
+  <Step title="Create lib/task_storage.py">
 ```python lib/task_storage.py
 import os
 
 from harnest_redis import RedisStore
 
-
 def create_store() -> RedisStore:
     """Read deployment configuration without opening a connection at import time."""
     return RedisStore(os.environ["TASK_STORAGE_URL"])
 ```
-
+  </Step>
+  <Step title="Create lifecycle/task_storage.py">
 ```python lifecycle/task_storage.py
 from harnest import lifecycle
 from harnest.lib.task_storage import create_store
-
 
 @lifecycle.storage.tasks
 @lifecycle.storage.cron
@@ -110,7 +108,8 @@ def task_storage():
     """Share one managed connection across tasks and recurring schedules."""
     return create_store()
 ```
-</CodeGroup>
+  </Step>
+</Steps>
 
 For PostgreSQL, substitute `harnest_postgres.PostgresStore` and a PostgreSQL URL. Declare custom adapter dependencies in your agent's `pyproject.toml`.
 
@@ -129,15 +128,7 @@ Match environment-variable names to your factory and inject production credentia
 
 Implement the public structural contracts; subclassing a Harnest store is not required:
 
-```python
-from harnest.task import TaskRecord, TaskStore, TaskStoreConflictError
-from harnest.cron import CronRecord, CronStore, CronStoreConflictError
-```
-
-| Contract | Required operations |
-|---|---|
-| `TaskStore` | `start`, `close`, `enqueue_task`, `get_task`, `claim_tasks`, `renew_task_lease`, `finish_task`, `cancel_task` |
-| `CronStore` | `start`, `close`, `create_cron`, `get_cron`, `list_crons`, `update_cron`, `delete_cron`, `list_due_crons`, `commit_cron_occurrence` |
+Follow [TaskStore](/harnest/reference/api/task#taskstore) and, for schedules, [CronStore](/harnest/reference/api/cron#cronstore). Their method references define required operations, parameters, and results.
 
 Follow the protocol signatures and method docstrings. Records use UTC epoch seconds, JSON-safe payloads, and detached snapshots.
 
@@ -162,7 +153,6 @@ import unittest
 from harnest.testing import TaskStoreConformanceMixin
 from my_storage import MyStore
 
-
 class MyStoreContractTests(TaskStoreConformanceMixin,
                            unittest.IsolatedAsyncioTestCase):
     async def make_store(self) -> MyStore:
@@ -178,9 +168,9 @@ The suite checks isolation, concurrent claims, leases, deduplication, revisions,
 
 ## Execution and recovery guarantees
 
-Delivery is **at least once**, not exactly-once external effects. A worker may crash after sending an email but before committing its result. Keep side effects idempotent. Cancellation prevents later state commits and requests cooperative execution cancellation; it cannot undo an effect or forcibly stop a synchronous function already running in a thread.
+Delivery is **at least once**: a crash after an external effect can cause a retry. Make effects idempotent. Cancellation blocks later commits but cannot undo effects or forcibly stop synchronous code.
 
-The provider runtime polls for work, renews attempt leases, and periodically reconciles retained results with durable continuation storage. Use a persistent Harnest-owned checkpointer for `handle.result()` to resume across restarts; persistent Task storage alone does not make a memory checkpointer durable. Queue ordering is best-effort, not strict FIFO across replicas and recovery.
+Durable `handle.result()` waits also require a persistent Harnest-owned checkpointer. Task storage alone is insufficient. Queue ordering is best-effort across replicas and recovery.
 
 Cron cursors survive restart. Missed occurrences catch up in bounded batches; there is no skip/coalesce misfire option in this version. Cancelling a schedule before its atomic occurrence commit prevents that enqueue; already committed jobs continue. Removed static declarations are paused at the next deployment startup, while a retargeted declaration gets a new identity. Do not run old and new conflicting static declarations concurrently during a rolling deployment.
 
@@ -199,4 +189,8 @@ The Procrastinate backend and automatic PostgreSQL fallback have been removed. I
    automatically.
 5. Verify task execution, recovery, and owner isolation before reopening traffic.
 
-There is no automatic copy of old queue rows, schedule IDs, results, or continuation references. Keep the old database until its retention and recovery needs are satisfied. Likewise, drain work before renaming/removing a Task or changing its queue: workers subscribe to currently compiled queues, not every historical queue in the database.
+Old queue data and continuation references are not migrated automatically. Keep the old database for recovery, and drain work before removing, renaming, or changing a task’s queue.
+
+## API reference
+
+Reference: [`harnest.testing`](/harnest/reference/api/testing).

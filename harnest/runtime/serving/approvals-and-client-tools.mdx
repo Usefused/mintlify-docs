@@ -64,11 +64,11 @@ Every neutral JSON, SSE, and WebSocket invocation has a response ID. Poll it wit
 GET /responses/{responseId}?sessionId={sessionId}
 ```
 
-The response reports the latest `in_progress`, `requires_action`, `completed`, `denied`, `cancelled`, or `failed` state. A `requires_action` response includes the approval or client-tool ID, so a client can recover exact task correlation without guessing from the latest chat message.
+Read the returned state and, for `requires_action`, its approval or client-tool ID. Do not infer task identity from chat messages.
 
-With a Harnest-owned checkpointer, Harnest stores the completed response envelope before marking the run terminal. Another replica can therefore return the same completion. Pending human approvals and client-tool exchanges remain process-local and must return to the process that owns the suspended execution.
+Completed responses survive restarts with a Harnest-owned checkpointer. Pending approvals and client-tool exchanges must return to their owning process.
 
-In advanced mode, Harnest provides the response receipt and WebSocket protocol on a best-effort basis. If you replace Harnest's graph, checkpointer, transport, or tool wiring, Harnest does not rewrite that boundary and cannot guarantee cross-process recovery.
+Advanced mode cannot guarantee recovery across native boundaries you replace.
 
 ## Submit a client-tool result
 

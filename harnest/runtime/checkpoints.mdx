@@ -18,14 +18,13 @@ When Harnest owns portable checkpoint storage, it keeps:
 | Wait metadata | Resume durable tools and external continuations |
 | Completion snapshot | Return final output, agent metadata, and usage consistently from any replica |
 
-Native `LangGraphStore` and `ADKStore` authorities expose their framework's narrower checkpoint contract. They do not provide every Harnest-owned capability in this table.
+Native [`LangGraphStore`](/harnest/reference/api/checkpoint#langgraphstore) and [`ADKStore`](/harnest/reference/api/checkpoint#adkstore) authorities expose their framework's narrower checkpoint contract. They do not provide every Harnest-owned capability in this table.
 
 Every application resolves exactly one checkpoint factory across its root and Harnest Extension extensions. This example assumes the shared `PostgresStore` from `lib/state.py` in the [storage overview](/harnest/runtime/checkpoints-and-storage):
 
 ```python lifecycle/checkpoints.py
 from harnest.lib.state import state
 from harnest import lifecycle
-
 
 @lifecycle.storage.checkpoints
 def checkpoints():
@@ -60,7 +59,7 @@ graph = builder.compile(
 root_agent = Agent.advanced(graph)
 ```
 
-If LangGraph owns a native saver, wrap that saver in `LangGraphStore`, use the wrapper to compile the graph, and return the same wrapper from `@lifecycle.storage.checkpoints`. Keep a separate `SessionStore` factory for committed conversation state.
+If LangGraph owns a native saver, wrap that saver in `LangGraphStore`, use the wrapper to compile the graph, and return the same wrapper from [`@lifecycle.storage.checkpoints`](/harnest/reference/api/lifecycle#storage-checkpoints). Keep a separate [`SessionStore`](/harnest/reference/api/session#sessionstore) factory for committed conversation state.
 
 For ADK-native ownership, create one `ADKStore(session_service)` in `lib/state.py`. Return that same object from the session and checkpoint factories so Harnest does not create a second session authority.
 
@@ -73,3 +72,7 @@ Harnest records privacy-safe OTEL mutation events, never checkpoint payloads, pr
 <Card title="Configure sessions separately" icon="messages" href="/harnest/runtime/session-storage">
   Persist committed conversation history and application data through the session authority.
 </Card>
+
+## API reference
+
+Reference: [`harnest.agent`](/harnest/reference/api/agent).

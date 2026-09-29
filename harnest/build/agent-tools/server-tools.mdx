@@ -4,14 +4,13 @@ title: "Server tools"
 description: "Run typed, validated capabilities inside the agent server."
 ---
 
-Use `@tool` when the capability should execute inside the agent server.
+Use [`@tool`](/harnest/reference/api/agent#tool) when the capability should execute inside the agent server.
 
-When only part of a tool needs isolated Python execution, call an assigned [Sandbox](/harnest/build/sandboxing) through `context.sandboxes["<name>"].execute(code)` or async `aexecute(code)`. The model calls your business tool, not the sandbox directly; your tool validates inputs and chooses which result to return. The surrounding tool code still runs in the agent server.
+For isolated Python execution, call an assigned [Sandbox](/harnest/build/sandboxing) through [`context.sandboxes["<name>"].execute(code)`](/harnest/reference/api/context#sandboxhandle) or async `aexecute(code)`. Your tool validates inputs and selects the result to return; its surrounding code runs on the agent server.
 
 ```python tools/lookup_order.py
 from harnest.models.orders import OrderStatus
 from harnest.agent import tool
-
 
 @tool(output_schema=OrderStatus)
 def lookup_order(order_id: str):
@@ -22,25 +21,18 @@ def lookup_order(order_id: str):
 
 ## Tool properties
 
-| Property | Rule |
-|---|---|
-| File | `tools/lookup_order.py` |
-| Export | `lookup_order` |
-| Description | Docstring or `@tool(description="...")`; distinguish similar parameters explicitly |
-| Output validation | Pydantic return annotation or `output_schema` |
-| Runtime permission | `@tool(permission="tickets.read")`; required when the tool must be available under an Agent Runtime Principal |
-| Unit testing | Call the decorated function directly |
+Export a typed function from `tools/<name>.py`, with a clear description and validated return type. See [tool declaration options](/harnest/reference/api/agent#tool-declaration) for schema and permission settings. You can call the decorated function directly in unit tests.
 
 Arguments and results must be structured. Convert unsupported custom objects to a Pydantic model or mapping at the tool boundary.
 
-Expose supported filters, pagination, and ordering as typed parameters or separate typed tools. Do not ask the model to invent undeclared options. Managed ADK and LangGraph reject unknown argument names before native framework coercion and return repair guidance without echoing argument values.
+Declare filters, pagination, and ordering as typed parameters or separate tools. Both frameworks reject unknown arguments and return repair guidance without echoing their values.
 
 ## Runtime access
 
 | Need | Use |
 |---|---|
-| Application resource | `context.resource("name")` |
-| Current user | `context.user_id` |
+| Application resource | [`context.resource("name")`](/harnest/reference/api/lifecycle#resource) |
+| Current user | [`context.user_id`](/harnest/reference/api/context#agentcontext) |
 | Current session | `context.session_id` |
 | Downstream credential | `await context.credentials.resolve(...)` |
 
@@ -55,7 +47,6 @@ Use an async durable tool when queued or external work must survive a request en
 ```python tools/request_report.py
 from harnest.lib.report_tasks import build_report
 from harnest.agent import tool
-
 
 @tool(durable=True)
 async def request_report(account_id: str):
@@ -72,7 +63,6 @@ async def request_report(account_id: str):
     ```python
     from harnest.agent.approval import require_human_approval
 
-
     @tool
     @require_human_approval(message="Approve deleting {customer_id}?")
     def delete_customer(customer_id: str):
@@ -80,7 +70,7 @@ async def request_report(account_id: str):
     ```
   </Tab>
   <Tab title="After evaluation">
-    Protect only the sensitive block with `request_human_approval(...)`.
+    Protect only the sensitive block with [`request_human_approval(...)`](/harnest/reference/api/agent-approval#request_human_approval).
 
     <Card title="Dynamic human approval" icon="user-check" href="/harnest/build/agent-tools/human-approvals">
       Evaluate risk before deciding whether the operation needs permission.

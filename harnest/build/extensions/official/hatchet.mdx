@@ -5,7 +5,7 @@ sidebarTitle: "Hatchet"
 description: "Submit and recover durable external workflows through the Fused-maintained Hatchet Harnest Extension."
 ---
 
-The official Hatchet Harnest Extension connects agent-owned tools to an independently operated Hatchet runtime. It submits, inspects, waits for, and cancels workflow runs while Harnest owns agent execution and durable continuation state. It is a Harnest Extension, not an Agent Plugin, worker supervisor, or workflow deployment system.
+Use the official Hatchet extension to submit external workflows and resume an agent when they finish. Deploy Hatchet workers and workflow definitions separately.
 
 ## Install the extension
 
@@ -34,7 +34,6 @@ Author a domain-specific asynchronous Agent Tool and call the compiler-owned ext
 from harnest.extensions.hatchet import hatchet
 from harnest.agent import tool
 
-
 @tool(durable=True)
 async def build_report(account_id: str) -> dict:
     """Build one account report in the external workflow system."""
@@ -43,23 +42,17 @@ async def build_report(account_id: str) -> dict:
     )
 ```
 
-`hatchet.status(job)` reads the current state. `hatchet.cancel(job)` requests provider cancellation. Hatchet workers and workflow definitions remain independently deployed; stopping Harnest does not stop them.
+Inspect a run with [`hatchet.status(job)`](/harnest/reference/api/extensions-hatchet#hatchet-status) or request cancellation with [`hatchet.cancel(job)`](/harnest/reference/api/extensions-hatchet#hatchet-cancel). Stopping Harnest does not stop Hatchet workers.
 
 ### Choose an operation
 
-| Operation | Result | Ownership |
-|---|---|---|
-| `run(name, input)` | `HatchetRun` | Submit and return immediately; the caller owns any later wait |
-| `status(job)` | `HatchetRunStatus` | Read `QUEUED`, `RUNNING`, `COMPLETED`, `CANCELLED`, or `FAILED` |
-| `wait(job)` | JSON mapping | Persist a continuation and resume when an existing run terminates |
-| `run_and_wait(name, input)` | JSON mapping | Prove durable suspension support before submitting and waiting |
-| `cancel(job)` | None | Request provider cancellation without claiming worker termination |
+See the [Hatchet operation reference](/harnest/reference/api/extensions-hatchet#workflow-operations) for methods, return values, and run states.
 
-Use `run_and_wait` whenever the Tool requires the result. It prevents a known continuation incompatibility from orphaning a newly submitted run. `run` remains appropriate for intentional fire-and-forget work, and `run` followed by `wait` supports an already-owned run.
+Use `run_and_wait` when the tool needs a result: it verifies suspension support before submission. Use `run` to submit without waiting, or `wait` for a run you already own.
 
 ## Configure credentials
 
-The extension declares `context.credentials` and `context.continuations`. Resolve invocation credentials with only the operations a tool needs:
+The extension declares [`context.credentials`](/harnest/reference/api/credentials#credentialcontext) and `context.continuations`. Resolve invocation credentials with only the operations a tool needs:
 
 | Operation | Required provider scope |
 |---|---|
@@ -73,23 +66,20 @@ The deployment must also provide `HATCHET_CLIENT_TOKEN` so startup recovery can 
 
 `wait` stores an opaque continuation and can resume after process or replica replacement. Recovery retains pending waits across transient Hatchet outages, applies polling backoff, and uses at most 16 concurrent provider clients. Cancellation is a provider request and does not imply immediate worker shutdown.
 
-Agent Runtime Principals can cross an external continuation. Harnest stores only a private versioned snapshot of permission names and reconstructs a fresh opaque principal when another replica resumes the wait. It does not persist principal IDs, credentials, or authentication claims.
-
-Use `run_and_wait` when the tool needs the result because it verifies durable continuation support before submission. Separate `run` and `wait` calls remain available for fire-and-forget and existing-run workflows, but the caller owns the submitted job if a later wait fails for another reason.
+Durable waits preserve permission names and rebuild a fresh Agent Runtime Principal on resume. Principal IDs, credentials, and claims are not persisted.
 
 Inputs and workflow results must be JSON mappings. The extension rejects either payload above 1 MiB before submission or durable persistence. Job data crosses the external Hatchet boundary, so send only the fields that workflow requires.
 
-The extension does not deploy Hatchet, define workflows, manage workers, expose automatic model tools, or replace Harnest session and checkpoint storage. See [Durable execution](/harnest/runtime/durable-execution) for continuation behavior and [Authentication and credentials](/harnest/runtime/authentication-and-credentials) for scoped credential providers.
+See [Durable execution](/harnest/runtime/durable-execution) for recovery behavior and [Authentication and credentials](/harnest/runtime/authentication-and-credentials) for scoped providers.
 
-## Public API and failure behavior
+## Handle failures
 
-| API | Role |
-|---|---|
-| `hatchet` / `extension` | Installed `HatchetExtension` singleton |
-| `HatchetRun` | Immutable provider run, workflow, and correlation identity |
-| `HatchetRunStatus` | Stable provider-neutral terminal and non-terminal status enum |
-| `HatchetContext` | Revocable invocation-scoped view used by the extension singleton |
+See the [Hatchet API reference](/harnest/reference/api/extensions-hatchet) for run identities, states, and invocation methods.
 
-Every invocation operation resolves only its required credential immediately before constructing the SDK client. Startup recovery instead uses the application service credential. Harnest supplies deterministic idempotency keys for native durable calls and adopts Hatchet's existing run after an idempotency collision. Provider errors are converted to stable failures without retaining raw exception messages, which may contain credentials. Cancelled and failed terminal jobs resume their Harnest continuation with stable error codes rather than provider payloads.
+Invocation calls use scoped credentials; startup recovery uses the service credential. Durable submissions use stable idempotency keys. Provider failures return safe error codes without raw messages.
 
-Workflow names and provider identities must be non-empty. Inputs and results must be finite, acyclic JSON mappings with string keys and encoded size no greater than 1 MiB. Startup recovery uses bounded pages, at most 16 concurrent clients, and exponential polling or outage backoff.
+Workflow names and provider identities must be non-empty. Payloads must be finite, acyclic JSON mappings with string keys; see the Hatchet API reference for bounds.
+
+## API reference
+
+Reference: [`harnest.agent`](/harnest/reference/api/agent).

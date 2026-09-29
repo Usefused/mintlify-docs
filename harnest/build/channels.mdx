@@ -4,9 +4,7 @@ title: "Connect a Slack channel through Fused"
 description: "Receive Slack mentions through a shared Fused connection and deliver threaded agent replies."
 ---
 
-Use a Fused-managed Slack connection to send allowlisted mentions into a Harnest
-agent. Fused owns provider credentials and verified event delivery. Harnest owns
-actor-scoped sessions, durable processing, and reply delivery intent.
+Connect allowlisted Slack mentions to a Harnest agent through Fused. Fused manages credentials and event delivery; Harnest manages scoped sessions, durable processing, and replies.
 
 <Note>
 Channel workers currently require the Harnest source checkout containing channel
@@ -129,9 +127,7 @@ HTTP success and Slack's `ok` result must pass before marking delivery complete.
 | Allowlist narrows | Recheck retained input and pending replies before their next effect |
 | Agent requires approval | Stop the job for operator attention; never approve automatically |
 
-Use one worker per binding for the initial deployment. Claims are disjoint across
-replicas, but strict ordering of simultaneous messages is not guaranteed. This
-contract does not promise exactly-once external effects across process crashes.
+Start with one worker per binding. Replicas claim separate work, but simultaneous messages may arrive out of order and crashes can cause duplicate external effects.
 
 The worker reuses `PostgresTaskStore`, with `channel.inbox` and `channel.outbox`
 queues. Scoped `get_task` reads expose status and privacy-safe failure codes.

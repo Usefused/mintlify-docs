@@ -31,7 +31,7 @@ server:
 
 This enables `WS /live` on the same host and port as HTTP, such as `ws://127.0.0.1:1907/live`. It does not open a second listener or require another port. Use `wss://` when your deployment terminates TLS.
 
-New projects default to `live: false`. HTTP requests and SSE streams remain available. When live is disabled, the server rejects all WebSocket upgrades, including native ADK and custom WebSocket routes. `/agent` omits the live endpoint, and the playground disables its **Live** transport choice.
+With `live: false`, HTTP and SSE remain available, but all WebSocket routes are disabled. The playground hides its live transport.
 
 ## Hide API documentation
 
@@ -42,31 +42,11 @@ server:
 
 This disables `/docs`, `/redoc`, `/openapi.json`, and `/openapi.yaml`, and removes their links from the playground, `/agent`, and startup output. The agent API still works. Hiding documentation is not authentication; protect the API separately for deployment.
 
-With the default `openapi: true`, both spec formats are available as HTTP resources. `harnest serve .` prints the Swagger URL and both spec URLs using the effective bind address and port. The compiled launcher uses the same policy.
+With `openapi: true`, local and compiled servers expose both schema formats. Local startup prints their URLs.
 
 ## Server properties
 
-All property paths below are relative to `server` in `config.yaml`.
-
-| Property | Controls | Default |
-|---|---|---|
-| `live` | Enable WebSocket connections | `false` |
-| `openapi` | Expose API documentation and JSON/YAML spec resources | `true` |
-| `agentPrincipal` | Require custom agent invocations to bind runtime grants | `optional` |
-| `http.host` | Bind host | `127.0.0.1` |
-| `http.port` | Bind port | `1907` |
-| `http.allowRemote` | Consent for a non-loopback bind | `false` |
-| `http.requestTimeoutSeconds` | Request timeout in seconds | `300` |
-| `http.maxConcurrentRequests` | Active in-process requests (`1`–`100000`) | `8` |
-| `limits.maxRequestBytes` | HTTP body and WebSocket frame size | `1MiB` |
-| `playground.enabled` | Allow the UI supplied by local `harnest serve`; does not add UI to deployments | `true` |
-
-Unknown fields, invalid types, and out-of-range values fail during compilation. Omit a field to inherit its default; `null` does not mean “use the default.”
-
-Set `agentPrincipal: required` when every custom HTTP route must pass an
-application-authorized `agent_principal=` to `AgentInvoker`. An omission then
-fails before Harnest creates a session. Neutral Harnest routes do not construct
-application-specific grant sets and are unaffected by this setting.
+See the [server settings reference](/harnest/reference/server-configuration) for all properties and defaults. Configure only the values your deployment needs; omitted settings retain their defaults.
 
 ## Environment references
 
@@ -87,7 +67,7 @@ Compilation preserves these references. The standalone launcher resolves and typ
 
 `server.http.maxConcurrentRequests` limits how many agent requests can execute concurrently in each server process. It is an admission limit, not a requests-per-second rate limit or a throughput promise.
 
-Actual throughput depends on model latency and quotas, Agent Tools, MCP services, storage, CPU, memory, and replica count. Increasing the value permits more active work but can reduce reliability when a downstream dependency is already saturated. Requests beyond available capacity may wait or be rejected by the serving layer.
+Tune concurrency against model quotas and downstream capacity. Raising it can worsen saturation; excess requests may wait or be rejected.
 
 Choose the value from load tests that use representative agents and production dependencies. Scale replicas separately through your deployment platform.
 
@@ -101,7 +81,7 @@ Choose the value from load tests that use representative agents and production d
 | Playground toggle | Durable storage |
 | Local operator settings | Replicas and network policy |
 
-`spec.resources` and `spec.scaling` are silently ignored in agent configuration. They never override `server.http` and do not need to be removed for an existing project to load. See [retired settings](/harnest/build/project-configuration#retired-resource-and-scaling-fields) when cleaning up old configs. Configure deployment resource limits and replicas in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning); configure standalone HTTP limits here.
+Legacy `spec.resources` and `spec.scaling` do not override HTTP settings. See [retired settings](/harnest/build/project-configuration#retired-resource-and-scaling-fields). Use [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning) for infrastructure limits and replicas.
 
 <Warning>
   `allowRemote: true` only permits the bind. It does not add authentication, TLS, or network policy.
@@ -121,7 +101,7 @@ Harnest rejects projects that declare both `config.yaml` → `server` and an aut
 
 ## Compiled artifacts
 
-Compilation writes a complete, versioned `server.yaml` beside `harnest-agent`. The launcher reads that generated operational copy. Operators can replace it and restart the server without changing the compiled agent source; the authored `config.yaml` remains part of the source digest. Normally, edit your project config and compile again.
+Compilation writes `server.yaml` beside the launcher. Operators can replace it and restart, or edit project configuration and recompile.
 
 Python applications that directly embed `create_fastapi_app` or `create_neutral_app` can pass `live_enabled=False` to disable WebSockets. These embedding APIs keep their historical `True` default; the standalone launcher always passes its resolved server setting.
 Pass `agent_principal_required=True` to apply the custom-route principal policy

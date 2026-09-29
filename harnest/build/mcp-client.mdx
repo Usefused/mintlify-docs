@@ -5,7 +5,7 @@ sidebarTitle: "MCP client"
 description: "Discover tools, resources, and prompts; subscribe to retained resource updates."
 ---
 
-`MCPClient` declares a connection to an external MCP server. Direct clients live under root `mcp/`; each public filename supplies the connection identity and exports a zero-argument `client()` factory returning `MCPClient`.
+[`MCPClient`](/harnest/reference/api/mcp#mcpclient) declares a connection to an external MCP server. Direct clients live under root `mcp/`; each public filename supplies the connection identity and exports a zero-argument `client()` factory returning `MCPClient`.
 
 ## Scaffold a connection
 
@@ -65,7 +65,7 @@ def client():
     )
 ```
 
-Use `MCPClient.sse(...)` only for a legacy SSE server. Compilation does not connect. Tool discovery is lazy; explicitly configured subscriptions start with the serving runtime.
+Use [`MCPClient.sse(...)`](/harnest/reference/api/mcp#mcpclient-sse) only for a legacy SSE server. Compilation does not connect. Tool discovery is lazy; explicitly configured subscriptions start with the serving runtime.
 
 ## Discover what a server provides
 
@@ -79,7 +79,7 @@ harnest mcp read catalog 'catalog://handbook'
 harnest mcp prompt catalog summarize --arg topic='Returns policy'
 ```
 
-Use identifiers returned by discovery; the URI and prompt above are examples. Add `--project ./my-agent` when outside the agent folder. Commands use the agent's Python environment and connection credentials without loading a model or starting subscription handlers.
+Use identifiers returned by discovery and add `--project ./my-agent` when outside the agent folder. Inspection uses the agent’s environment and credentials without starting models or subscriptions.
 
 Inspection returns capabilities, tool schemas, resources, URI templates, and prompt argument definitions. Each catalogue is one page: pass a returned `nextCursor` to `harnest mcp inspect catalog --catalog resources --cursor '…'`. The other catalogues are `tools`, `resource-templates`, and `prompts`. Servers without an optional capability return an empty catalogue.
 
@@ -103,7 +103,6 @@ Trusted code can use the same governed operations:
 from harnest import context
 from harnest.agent import tool
 
-
 @tool
 async def load_context(uri: str):
     """Read a resource selected from the MCP catalogue."""
@@ -111,7 +110,7 @@ async def load_context(uri: str):
     return await context.mcp("catalog").read_resource(uri)
 ```
 
-The facade also exposes `inspect()`, `list_tools(cursor=None)`, `list_resources(cursor=None)`, `list_resource_templates(cursor=None)`, `list_prompts(cursor=None)`, and `get_prompt(name, arguments=None)`. Inspection and tool-catalogue listing are developer operations, not additional model tools. These methods remain available regardless of model exposure and still enforce permissions, allowlists, auditing, and invocation lifetime. Unsupported optional catalogues return empty lists; unsupported reads fail explicitly. Prompt arguments are strings; returned messages remain reference data, not system instructions.
+See the [MCP discovery operation reference](/harnest/reference/api/mcp#discovery-operations). Trusted operations enforce permissions and invocation lifetime even when hidden from the model. Unsupported catalogues are empty; unsupported reads fail. Prompt arguments are strings, and returned messages are reference data.
 
 Outside an invocation, use a developer-owned connection:
 
@@ -129,7 +128,7 @@ async def inspect_catalog():
 
 `connect()` uses the LangGraph lifecycle identity by default; pass `framework="adk"` when sharing an ADK-owned lifecycle. Resource/prompt requests are independently scoped; do not rely on per-session server state shared with tool calls.
 
-Streamable HTTP clients first call `server/discover` for protocol `2026-07-28`. CLI inspection, playground discovery, agent tools, resources, and prompts use this same path. Unsupported discovery/protocol responses and older servers' HTTP 400 handshake rejections fall back to the SDK's `initialize` handshake. Authentication failures, modern header-validation errors, and transport failures do not trigger downgrade. `harnest mcp inspect CLIENT --json` reports the selected `protocolVersion`.
+Streamable HTTP tries protocol `2026-07-28` discovery, falling back to SDK initialization for unsupported or older servers. Authentication, header-validation, and transport failures do not trigger fallback. Inspect the selected `protocolVersion` with `harnest mcp inspect CLIENT --json`.
 
 Tool calls are sent once; Harnest does not automatically replay them after a disconnect or an input-required response. Interactive multi-round-trip input handling is not supported on the newer HTTP path yet. Stdio and legacy SSE continue using the installed SDK's supported protocol versions.
 
@@ -159,7 +158,6 @@ import os
 from harnest.mcp import MCPClient, MCPSubscription
 from harnest.lib.catalog_events import handle_update
 
-
 def client():
     """Subscribe to the server's retained latest-event resource."""
 
@@ -179,7 +177,6 @@ def client():
 from harnest.logging import get_logger
 from harnest.mcp import MCPResourceEvent
 
-
 async def handle_update(event: MCPResourceEvent) -> None:
     """Validate the retained value before handing it to application services."""
 
@@ -193,9 +190,9 @@ async def handle_update(event: MCPResourceEvent) -> None:
 
 `event.reason` is `start`, `update`, or `reconnect`. Handlers have no inherited user/session context: choose an application-authorized identity explicitly if your service invokes an agent or enqueues a task. The handler timeout defaults to 30 seconds (`handler_timeout_seconds`). No public subscription-management endpoint is created.
 
-The default subscription method is SDK 1.x `resources/subscribe`, supported on stdio, SSE, and Streamable HTTP. For a stateless endpoint, set `method="subscriptions/listen"` on `MCPSubscription`; this uses the shared `2026-07-28` HTTP transport used by discovery and agent tools. Subscription method selection stays explicit: Harnest does not silently change your listener's wire semantics.
+Subscriptions default to SDK 1.x `resources/subscribe`. For stateless Streamable HTTP endpoints, explicitly set `MCPSubscription(method="subscriptions/listen", ...)` to use protocol `2026-07-28`.
 
-Harnest subscribes before the initial read, requires acknowledgment, and reads again after reconnecting. Initial failure fails runtime startup; established listeners reconnect with backoff up to 30 seconds. SDK 1.x listeners also probe retained state during idle periods to detect disconnected sessions. Shutdown cancels streams before closing client lifecycle resources.
+Harnest subscribes before its initial read and rereads after reconnecting. Initial failure stops startup; established listeners retry with backoff up to 30 seconds. Shutdown cancels listeners before closing clients.
 
 <Warning>
 Latest-value recovery is not replay of every missed event. Identical content is deduplicated in process only, after successful handling. Restarts and multiple replicas can deliver again. Make handlers idempotent; use a durable queue or provider event history when every event must be processed.
@@ -225,7 +222,7 @@ return MCPClient.streamable_http(
 )
 ```
 
-When an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) is active, Harnest hides an MCP operation unless a client-wide or operation-specific permission applies and every applicable permission is present. A completely untagged MCP client has no available operations. Harnest checks the requirement again when either the model or trusted code calls the tool. The MCP server or its gateway remains responsible for authorizing the remote request.
+An active [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) must hold every permission required by the client and operation. Untagged operations are unavailable. Harnest checks exposure and execution; the remote server must still authorize requests.
 
 ## Call MCP from trusted code
 
@@ -234,7 +231,6 @@ Use the invocation-scoped facade when a tool or service chooses the remote opera
 ```python tools/search_catalog.py
 from harnest import context
 from harnest.agent import tool
-
 
 @tool
 async def search_catalog(query: str):
@@ -264,8 +260,12 @@ Customize the HTTP client only for a gateway, mTLS, or transport policy. Put sha
 
 ## Combine APIs with Fused
 
-Use the optional [`harnest_fused` package](/harnest/build/fused-mcp) to provision one Fused MCP server from multiple OpenAPI specifications. Include all operations or select operations per spec, then connect through a standard MCP Client. Provisioning is an explicit setup step.
+Use `harnest_fused` to provision one MCP server from selected operations across multiple OpenAPI specifications.
 
 ## Connect to OpenAPI at runtime
 
-Use [`MCPClient.from_openapi(...)`](/harnest/build/openapi-mcp) to load a local or remote specification when the MCP connection starts. Each spec has its own runtime FastMCP bridge, with normal MCP policies and environment credential references. No client-generation command is needed.
+Use [`MCPClient.from_openapi(...)`](/harnest/build/openapi-mcp) to load a specification at connection startup with normal MCP policies and credential references.
+
+## API reference
+
+Reference: [`harnest.agent`](/harnest/reference/api/agent), [`harnest.logging`](/harnest/reference/api/logging).

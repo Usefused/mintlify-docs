@@ -19,14 +19,9 @@ curl --fail-with-body -sS http://127.0.0.1:1907/responses \
   -d '{"input":"Hello! What can you help me with?"}'
 ```
 
-The response includes `outputText` and a `sessionId` you can reuse. See [API requests and streaming examples](/harnest/runtime/serving/neutral-api) for the request fields, typed inputs, authentication, and SSE. Startup output lists the Swagger URL and downloadable `openapi.json` / `openapi.yaml` resources. Calling agents can discover those resources through `/agent`. Set [`server.openapi: false`](/harnest/runtime/serving/server-configuration#hide-api-documentation) to hide them.
+Read `outputText` and reuse `sessionId` for follow-up turns. See [API requests and streaming examples](/harnest/runtime/serving/neutral-api). Startup prints Swagger and schema URLs; [`server.openapi: false`](/harnest/runtime/serving/server-configuration#hide-api-documentation) hides them.
 
-For a normal launch without `--output` or `--reload`, Harnest retains the
-validated compilation under `.harnest/artifacts/`. A later launch with the same
-source, configuration, locks, and managed compiler starts from that artifact
-without importing and validating the graph again. When any of those inputs
-changes, Harnest publishes a new immutable generation before it removes the
-superseded generation in the background.
+Normal launches reuse validated artifacts under `.harnest/artifacts/` when source, configuration, locks, and compiler are unchanged. Changed inputs produce a new artifact.
 
 Reload after authored file changes during local development:
 

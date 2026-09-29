@@ -5,7 +5,7 @@ sidebarTitle: "Create custom evals"
 description: "Create, unit-test, register, and run a custom Python scorer for an ADK or LangGraph agent."
 ---
 
-Turn a business rule into a repeatable evaluation by pairing an ADK eval set with a custom Python scoring function. This walkthrough checks that every answer includes two required location terms, then saves the scored result.
+Turn a business rule into a repeatable evaluation. This walkthrough checks that each answer contains two required location terms and saves the scored result.
 
 <Note>
   These are ADK-based evaluations even when your team builds agents with LangGraph. Keep your agent in its current framework. Use the same eval JSON, Python scorer, and Harnest command in either project; Harnest adapts LangGraph responses into the ADK objects the scorer receives.
@@ -20,7 +20,7 @@ Turn a business rule into a repeatable evaluation by pairing an ADK eval set wit
 | A precise product rule not covered by a built-in metric | A custom Python scorer, as shown below |
 | Private LangGraph state or framework-specific control flow | An authored unit or smoke test; portable evals inspect the public invocation contract |
 
-Start from a working Harnest agent with its dependencies installed. Live evaluation uses the agent's normal model and service configuration. The scorer below is deterministic and makes no additional model or service calls.
+Start with a working agent and installed dependencies. Evaluation calls the agent’s configured model and services; this deterministic scorer makes no additional calls.
 
 ## 1. Add the scorer
 
@@ -47,7 +47,6 @@ from google.adk.evaluation.eval_case import Invocation
 from google.adk.evaluation.eval_metrics import EvalMetric, EvalStatus
 from google.adk.evaluation.evaluator import EvaluationResult, PerInvocationResult
 
-
 def _final_text(invocation: Invocation) -> str:
     """Collect public answer text without assuming a response is present."""
 
@@ -55,7 +54,6 @@ def _final_text(invocation: Invocation) -> str:
     if content is None or not content.parts:
         return ""
     return " ".join(part.text for part in content.parts if part.text).casefold()
-
 
 def required_location_terms(
     metric: EvalMetric,
@@ -95,7 +93,7 @@ def required_location_terms(
 
 Each answer scores `1.0` when both terms are present and `0.0` otherwise. The conversation score is the mean of its turn scores. With a threshold of `1.0`, every turn must satisfy the rule. A lower threshold permits some turns to fail.
 
-This is a text-presence check, not a factuality check: an incorrect answer that mentions both terms still passes. Replace the scoring rule with your actual product contract, or combine it with a reference or judge metric. See the [custom metric API](/harnest/build/evaluations/custom-metrics) for the full input and result contract.
+This checks text presence, not accuracy: an incorrect answer mentioning both terms passes. Adapt the rule or combine it with a reference or judge metric. See the [custom metric API](/harnest/build/evaluations/custom-metrics).
 
 ## 2. Describe the test cases
 
@@ -123,7 +121,7 @@ This is a text-presence check, not a factuality check: an incorrect answer that 
 }
 ```
 
-Harnest sends `userContent` to your real agent. The authored `finalResponse` is a golden reference, not the actual output and not an answer injected into the agent. This scorer checks the actual output; reference-based metrics can also use the golden answer.
+Harnest sends `userContent` to the agent and scores its response. `finalResponse` is a golden reference for reference-based metrics; it is never injected into the agent.
 
 The filename stem must match `eval_set_id`. Add further cases to cover the behavior you care about. Put sequential turns inside one case for [multi-turn evaluation](/harnest/build/evaluations/eval-sets-and-configuration#author-a-static-case); separate cases do not stand in for a shared conversation.
 
@@ -147,7 +145,7 @@ The filename stem must match `eval_set_id`. Add further cases to cover the behav
 
 Use the same metric key in `criteria` and `customMetrics`. Harnest compiles root `lib/` modules under `harnest.lib`, so the registered path differs from the local unit-test import below.
 
-If `test_config.json` already exists, merge this criterion and registration into it. Do not create a second config or replace existing quality checks. You can use built-in and custom metrics in the same `criteria` object.
+Merge the criterion and registration into an existing `test_config.json` without replacing other checks.
 
 ## 4. Unit-test the scorer
 
@@ -160,7 +158,6 @@ from google.genai import types
 
 from lib.eval_metrics import required_location_terms
 
-
 def _invocation(text):
     """Build the same ADK evidence shape received in either framework lane."""
 
@@ -171,7 +168,6 @@ def _invocation(text):
         user_content=types.Content(role="user", parts=[types.Part(text="Where?")]),
         final_response=response,
     )
-
 
 def test_required_location_terms():
     """Check positive, negative, empty, and aggregate scoring without a model."""
@@ -211,7 +207,7 @@ Find `required_location_terms` in each case's `overallEvalMetricResults`. Inspec
 ## Extend the rule safely
 
 - Inspect `intermediate_data` when your rule needs captured tool calls or results; do not infer tool execution from answer text alone.
-- Use the full `actual` list to inspect a conversation-level rule. Keep overall and per-turn scores consistent; ADK's command gate averages the scored turn results. See [score aggregation](/harnest/build/evaluations/custom-metrics#return-scores-and-evidence) before implementing a final-turn-only metric.
+- Use the full `actual` list to inspect a conversation-level rule. Keep overall and per-turn scores consistent; ADK's command gate averages the scored turn results. See [score aggregation](/harnest/reference/api/evaluation#native-result-contract) before implementing a final-turn-only metric.
 - Handle `expected=None` for simulated conversations. Add a [conversation scenario](/harnest/build/evaluations/simulations-and-live-evaluation) when you need generated user turns.
 - For LLM judgment, prefer a built-in rubric metric where it fits. Arbitrary network or model calls inside your Python scorer do not automatically inherit Harnest's judge transport adapter; configure and clean up those clients explicitly.
 

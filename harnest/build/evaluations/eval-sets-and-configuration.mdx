@@ -5,7 +5,7 @@ sidebarTitle: "Eval sets & config"
 description: "Author validated static conversations, expected behavior, session input, rubrics, and shared evaluation criteria."
 ---
 
-An eval set groups related cases. Both ADK and LangGraph projects author these files using ADK's `EvalSet` schema. Harnest validates them during compilation and keeps them out of the deployed agent's prompts, tools, and capabilities.
+An eval set groups related cases using ADK’s `EvalSet` schema for either framework. Harnest validates these files during compilation.
 
 Custom questions do not require a custom Python metric. Use this page to author cases with built-in scoring, or follow [Create custom evals](/harnest/build/evaluations/create-custom-evals) when you need to implement your own scoring rule.
 
@@ -102,7 +102,7 @@ A static case replays each authored `userContent` and records the actual agent r
 }
 ```
 
-This is a genuine multi-turn test: the second prompt says only “it” and cannot identify Paris without the first turn. Both invocation objects belong to one case, so the evaluator sends them through the same evaluator-owned session in order. Managed agents use `history="session"` by default, which includes earlier user and assistant turns from that session. See [Agents and graphs](/harnest/build/agents-and-graphs) before selecting `history="turn"` for a context-dependent eval.
+Both turns run in one session: “it” in the second prompt refers to Paris in the first. Keep the default `history="session"` for this test. See [Agents and graphs](/harnest/build/agents-and-graphs).
 
 The expected behavior is explicit per turn:
 
@@ -111,7 +111,7 @@ The expected behavior is explicit per turn:
 | 1 | Names Paris, France, and the verified landmark | Calls `get_city_fact(city="Paris")` once |
 | 2 | Resolves “it” from history and answers France | Makes no tool call |
 
-Run the case with response and trajectory metrics, then inspect `evalMetricResultPerInvocation` to compare actual and expected content and tool events on each turn. `sessionDetails` contains the evaluator session, state, and recorded events. See [Run and inspect evaluation results](/harnest/build/evaluations/run-and-inspect-results#case-diagnostics).
+Inspect per-turn content, tool events, and session evidence in [Run and inspect evaluation results](/harnest/reference/api/evaluation#case-diagnostics).
 
 ### Case fields
 
@@ -136,7 +136,7 @@ Exactly one of `conversation` and `conversationScenario` is required.
 | `intermediateData.toolResponses` | Golden function responses when needed by a metric |
 | `rubrics` | Rubrics scoped to this invocation |
 
-For ADK agents, Harnest removes response parts marked as model thoughts before metrics inspect the actual result. This keeps hidden reasoning out of response matching while preserving visible text and tool events. LangGraph evaluation already consumes the neutral runtime's public result.
+Scoring excludes provider-marked reasoning and retains visible text and tool events.
 
 ## Configure criteria
 
@@ -178,7 +178,7 @@ If `test_config.json` is absent, ADK's default criteria are:
 
 ## Choose tool trajectory behavior
 
-Harnest names two policies and applies the selected policy to `tool_trajectory_avg_score` without changing its threshold or any other metric.
+The trajectory policy affects only `tool_trajectory_avg_score`, preserving its threshold.
 
 | Policy | Effective ADK match type | Behavior |
 |---|---|---|

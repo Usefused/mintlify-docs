@@ -5,7 +5,7 @@ sidebarTitle: "Plugins"
 description: "Add portable Agent Plugins containing skills, MCP servers, or both."
 ---
 
-Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `plugins/` to give your managed ADK or LangGraph agent reusable skills, MCP servers, or both. Harnest reads its declarations and connects them to the framework's native runtime. You do not import the plugin or register its components in Python. Advanced-mode applications retain their native composition and must wire equivalent capabilities themselves.
+Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `plugins/` to share skills and MCP servers across managed ADK and LangGraph agents. Harnest discovers its declarations automatically. Advanced applications must wire these capabilities themselves.
 
 <Note>
   Need Python APIs, SDK dependencies, typed context, or lifecycle behavior? Build a [Harnest Extension](/harnest/build/extensions) in `extensions/`. Application hooks and resource factories belong in `lifecycle/`.
@@ -19,17 +19,9 @@ From the agent folder, install a reviewed local package into the project:
 harnest plugins install ../downloads/warehouse
 ```
 
-Harnest validates the Agent Plugins 1.0 manifest without importing or executing
-package code, then copies ordinary files into
-`plugins/<manifest-name>` through same-filesystem staging. It
-rejects links, special files, and an existing destination. Pass `--force` only
-when you intend to replace that complete installed package; a failed final swap
-restores the previous package.
+Harnest validates the manifest without running package code and copies it into `plugins/<manifest-name>`. Links and special files are rejected. Use `--force` to replace an installed package; a failed replacement restores the previous version.
 
-The installer currently accepts local directories. It does not invent a
-registry or download protocol that the Agent Plugins specification does not
-define. `harnest extensions search` remains the separate discovery command for
-executable Harnest Extensions.
+The installer accepts local directories. Use `harnest extensions search` to discover executable Harnest Extensions.
 
 Place each package in its own directory. Keep the package's root `plugin.json` intact:
 
@@ -61,7 +53,7 @@ Rebuild after adding a package, or use [development reload](/harnest/runtime/ser
 
 ## Attach a plugin after compilation
 
-Agent Desktop can attach Agent Plugins when it creates a session. The desktop client owns discovery and download: it resolves the user-provided Git or marketplace URL, creates a ZIP with `plugin.json` at its root, and sends that immutable snapshot to Harnest. Harnest does not fetch a plugin URL.
+Agent Desktop can attach plugins when creating a session. The desktop downloads the package and sends Harnest a ZIP with `plugin.json` at its root.
 
 ```json POST /sessions
 {
@@ -81,9 +73,9 @@ Agent Desktop can attach Agent Plugins when it creates a session. The desktop cl
 }
 ```
 
-`sha256` is optional. When supplied, it must match the decoded ZIP. Harnest always computes its own digest and returns each plugin's `name` and `sha256` in the session `metadata.plugins` array. The archive itself stays in private session application data so a durable session can recover its exact environment after a server restart.
+An optional `sha256` must match the decoded ZIP. Harnest returns each plugin’s name and computed digest in `metadata.plugins`, and stores the archive privately with the session for restart recovery.
 
-The plugin set is fixed when the session is created. Create another session to add, remove, or update a plugin. Dynamic attachment currently requires a managed root `Agent`; managed `Graph` and advanced applications retain their compiled capability wiring.
+The plugin set is fixed when the session is created. Create another session to add, remove, or update a plugin. Dynamic attachment currently requires a managed root [`Agent`](/harnest/reference/api/agent#agent); managed [`Graph`](/harnest/reference/api/graph#graph) and advanced applications retain their compiled capability wiring.
 
 | Dynamic package content | Runtime behavior |
 |---|---|
@@ -120,7 +112,7 @@ Portable MCP declarations live in root `mcp.json`, not Python factories. Each se
 | `streamable-http` | `url` and optional `headers` |
 | `sse` | `url` and optional `headers`; for legacy HTTP+SSE servers |
 
-Harnest opens connections at runtime through the ADK or LangGraph adapter. Compilation reads configuration without starting an MCP server.
+MCP connections open at runtime; compilation does not start servers.
 
 ### Local processes and persistent data
 
@@ -141,7 +133,7 @@ For a package that includes `server.py`, a stdio declaration can use:
 }
 ```
 
-The server and its dependencies must already be available. Harnest does not turn `mcp.json` into a dependency installer. `command` is one executable name, such as `python`, or a bundled executable path beginning with `./`; it is not a shell command string.
+Install the server and its dependencies separately. `command` must be an executable name or a bundled path beginning with `./`, not a shell command.
 
 | Variable | Harnest value |
 |---|---|
@@ -160,12 +152,7 @@ Only `${PLUGIN_ROOT}` and `${PLUGIN_DATA}` expand, and only in stdio `args`, `en
 
 Remote URLs require HTTPS except for loopback hosts. URL and header values are literal: `${TOKEN}` does not read an environment variable. Do not embed secrets in plugin headers or stdio environment declarations.
 
-Harnest-owned MCP HTTP clients inherit the process's standard uppercase and
-lowercase HTTP(S) and `ALL_PROXY` variables. Released installs include SOCKS
-transport support, including `socks5h://` proxy URLs. This preserves
-operator-managed enterprise egress. Remove the relevant proxy variables from
-the Harnest process when a connection must bypass environment proxy discovery;
-proxy URLs and credentials are omitted from client-construction diagnostics.
+MCP HTTP clients use the process’s HTTP(S) and `ALL_PROXY` variables, including SOCKS proxies. Remove those variables to bypass proxy discovery. Diagnostics omit proxy URLs and credentials.
 
 Authentication is client-managed; Agent Plugins 1.0 does not define portable credential references or OAuth configuration. When your application needs custom credential resolution, configure a [direct MCP client](/harnest/build/mcp-client) with Harnest's [credential providers](/harnest/runtime/authentication-and-credentials).
 
@@ -173,7 +160,7 @@ Authentication is client-managed; Agent Plugins 1.0 does not define portable cre
 
 Harnest validates the manifest before discovering components. An invalid manifest rejects that plugin. Invalid skill entries or MCP server entries are skipped with diagnostics while valid siblings continue loading. An invalid `mcp.json` disables that plugin's MCP component without disabling its skills.
 
-Unknown client namespaces in the manifest's `extensions` field and matching client-specific directories are ignored. They do not become Harnest Extensions or lifecycle hooks. Harnest does not import arbitrary Python modules from a standard plugin.
+Unknown client namespaces and their directories are ignored. Standard plugins cannot contribute Harnest lifecycle hooks or arbitrary Python modules.
 
 <CardGroup cols={2}>
   <Card title="Author Agent Skills" icon="book" href="/harnest/build/agent-skills">

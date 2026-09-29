@@ -7,7 +7,7 @@ description: "Understand the concepts Harnest composes and where each concept is
 
 import { HarnestProjectExplorer } from "/snippets/harnest-project-explorer.jsx";
 
-A Harnest agent is an inspectable directory. Each concept has one conventional location:
+A Harnest agent is a directory with a conventional location for each capability:
 
 | Concept | Project source | Purpose |
 | --- | --- | --- |
@@ -31,21 +31,21 @@ A Harnest agent is an inspectable directory. Each concept has one conventional l
 
 ## Start with this project layout
 
-Use the generated agent folder as the root for every path in the Harnest docs. This is the same default guided scaffold shown during initialization. Select a path to see what it owns and an example of its format.
+Paths in these docs are relative to your generated agent folder. Select a path below to see its purpose and format.
 
 <HarnestProjectExplorer />
 
 You only need the active root files and the capabilities your agent uses. Optional directories contain ignored `_README.md` guides by default and may be deleted. `harnest init --example` adds ignored code samples without replacing the default agent or storage code.
 
-When a page titles a code block `tools/lookup_order.py`, create that path inside your project root. For discovered resources, the filename is also part of the contract:
+Create titled example files, such as `tools/lookup_order.py`, inside your project root. For discovered resources, filenames determine their exports:
 
 | Example path | Required public export |
 |---|---|
 | `agent.py` | `root_agent` when using the default `agent:root_agent` entrypoint |
 | `tools/lookup_order.py` | One `@tool` callable named `lookup_order` |
-| `tasks/build_report.py` | One `@task` callable named `build_report` |
-| `cron/daily_report.py` | One `Cron` named `daily_report` |
-| `subagents/billing/agent.py` | One `Agent` exported as `billing` and named `billing` |
+| `tasks/build_report.py` | One [`@task`](/harnest/reference/api/task#task) callable named `build_report` |
+| `cron/daily_report.py` | One [`Cron`](/harnest/reference/api/cron#cron) named `daily_report` |
+| `subagents/billing/agent.py` | One [`Agent`](/harnest/reference/api/agent#agent) exported as `billing` and named `billing` |
 | `mcp/catalog.py` | A zero-argument `client()` factory |
 | `skills/refund-policy/SKILL.md` | Frontmatter with `name: refund-policy` |
 | `evals/support.evalset.json` | An ADK EvalSet with `eval_set_id: support` |
@@ -63,7 +63,7 @@ Put reusable code in `lib/` and Pydantic contracts in `models/`. Those folders a
 | `.harnest/` is generated | Do not edit or commit it |
 | `harnest-runtime.lock` is project source | Commit it for repeatable, hash-verified environments |
 
-`harnest init` creates the required root files. Use `--example` for opt-in templates in guide-only managed folders. Python templates stay named `_example.py`; skill, plugin, and eval templates use ignored native-format paths. Follow each sample's activation instructions before renaming it to a public path.
+`harnest init --example` adds ignored samples. Follow each sample’s activation instructions before renaming it to a public path.
 
 ## Coding-agent guide
 

@@ -16,14 +16,9 @@ curl --fail-with-body -sS http://127.0.0.1:1907/responses \
   -d '{"input":"Hello! What can you help me with?"}'
 ```
 
-You do not need to create a session first. Read `outputText` for the answer and keep the returned `sessionId` for follow-up turns. This is Harnest's API: send `input`, not an OpenAI `messages` array, and configure the model on the agent rather than in this request.
+Read `outputText` and keep `sessionId` for follow-up turns. A session is created automatically. Send `input`; model configuration belongs on the agent.
 
-| Request field | Use |
-|---|---|
-| `input` | Required non-empty message. Agents with a typed input contract require the object shown in their OpenAPI schema instead. |
-| `sessionId` | Omit for a new conversation. To continue, use an existing session ID returned by the server. An unknown or inaccessible ID returns `404`. |
-| `stream` | Optional boolean, default `false`. Set `true` for SSE. |
-| `metadata` | Optional JSON object for caller metadata; does not set user identity or authentication. |
+See [response request fields](/harnest/reference/http-api#response-request) for session reuse, streaming, metadata, and typed input.
 
 Continue the conversation, replacing the placeholder with the returned ID:
 
@@ -55,29 +50,15 @@ curl --fail-with-body -sS http://127.0.0.1:1907/openapi.json
 curl --fail-with-body -sS http://127.0.0.1:1907/openapi.yaml
 ```
 
-Coding agents should fetch `/agent` for enabled routes and its `resources` list. Each spec resource provides a relative `uri`, `name`, and `mimeType`; resolve the URI against the server address and fetch JSON or YAML according to your client's parser. Both contain the same machine-readable request and response schemas, including custom HTTP routes. Find `POST /responses` (operation ID `createAgentResponse`) and inspect `requestBody.content.application/json`, including its `input` schema. Typed-input agents may require fields beyond a message string.
+Fetch `/agent` for enabled routes and schema resources. Resolve resource URIs against the server address. JSON and YAML describe the same API; check `POST /responses` and its input schema before generating requests for a typed agent.
 
-`harnest serve .` prints the Swagger URL and both spec URLs. To save a local copy, use `curl --fail-with-body -sS http://127.0.0.1:1907/openapi.yaml -o openapi.yaml`. Harnest does not automatically attach the spec to model prompts or create a tool for it.
+Startup prints Swagger and schema URLs. Save YAML with `curl --fail-with-body -sS http://127.0.0.1:1907/openapi.yaml -o openapi.yaml`.
 
-For interactive use, open [Swagger UI](http://127.0.0.1:1907/docs), expand **Send a message to the agent**, choose an example, then select **Try it out** and **Execute**. Swagger displays the curl request and response. These API docs remain available in compiled deployments without the playground; configured authentication still applies. Set [`server.openapi: false`](/harnest/runtime/serving/server-configuration#hide-api-documentation) to disable the documentation routes and stop advertising them.
+In [Swagger UI](http://127.0.0.1:1907/docs), open **Send a message to the agent → Try it out → Execute**. Authentication still applies. Set [`server.openapi: false`](/harnest/runtime/serving/server-configuration#hide-api-documentation) to hide documentation routes.
 
 ## Endpoints
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /agent` | Agent identity and routes |
-| `POST /sessions` | Create a session |
-| `GET /sessions` | List sessions |
-| `GET/PATCH/DELETE /sessions/{id}` | Read, update, or delete a session |
-| `GET /sessions/{id}/messages` | Read the transcript |
-| `POST /sessions/{id}/assets` | Upload a session-owned media asset |
-| `HEAD/GET/DELETE /sessions/{id}/assets/{assetId}` | Inspect, download, or delete an asset |
-| `POST /responses` | Run JSON or SSE responses |
-| `POST /agui` | Use AG-UI event encoding over the shared response pipeline |
-| `GET /responses/{id}?sessionId=...` | Read the latest response state or recover terminal output |
-| `WS /live` | Run a live WebSocket session when `server.live: true` |
-| `GET /healthz` | Check process health |
-| `GET /.well-known/agent-card.json` | Discover the Agent Card |
+See the [HTTP route reference](/harnest/reference/http-api#routes) for sessions, media, responses, discovery, and health endpoints. Availability depends on the deployed configuration.
 
 ## AG-UI clients
 
@@ -89,9 +70,9 @@ Run the [CopilotKit example](/harnest/runtime/ag-ui/copilotkit) to test both fra
 
 ## A2A bindings
 
-Declare an A2A HTTP+JSON or JSON-RPC interface in `agent-card.yaml` to mount its URL alongside the neutral API. A blocking send returns a direct A2A `Message` when execution completes without needing task semantics. Streaming, `returnImmediately`, approval, client-tool, and external durable waits use an A2A `Task`.
+Declare an A2A HTTP+JSON or JSON-RPC interface in `agent-card.yaml` to mount it beside the neutral API.
 
-The binding also supports explicit task lookup, filtered listing, cancellation, and subscriptions. With `OutputPolicy(thinking=True)`, streaming A2A tasks carry provider-exposed reasoning as working-status messages. Portable lifecycle details remain under `metadata.harnest`, and final answer text remains a response artifact. See [Agent2Agent (A2A)](/harnest/runtime/a2a) for serving, outbound clients, security, durable `@task` integration, and replica behavior.
+See [Agent2Agent (A2A)](/harnest/runtime/a2a) for discovery, Tasks, streaming, and recovery.
 
 ## Response modes
 
@@ -137,20 +118,13 @@ GET /responses/resp_...?sessionId=session_...
 
 The authenticated user and session must both match the original invocation. Harnest returns `404` for a missing or mismatched scope so callers cannot probe another user's response IDs.
 
-Process-local receipts make ordinary completions and required actions recoverable while the server process is running. With a Harnest-owned checkpointer, terminal completion envelopes are also durable across replicas and restarts. Pending human approvals and client-tool exchanges still belong to the process holding the suspended invocation.
+Ordinary receipts last for the serving process. A Harnest-owned checkpointer also preserves terminal responses across restarts; pending approvals and client tools remain process-local.
 
 Advanced mode keeps the same API where Harnest owns the neutral transport. Recovery is best effort when your application replaces the graph, checkpointer, transport, or tool wiring; Harnest leaves those user-owned boundaries alone.
 
 All modes use the same portable activity contract. JSON returns these items in `output`. SSE and WebSocket use the corresponding `response.*` frames.
 
-| Activity | JSON output item | SSE or WebSocket frame |
-|---|---|---|
-| Assistant answer text | `message` | `response.text.delta` |
-| Opted-in provider reasoning text | `thinking` | `response.thinking.delta` |
-| Agent or graph-node lifecycle | `agent_activity` | `response.agent_activity` |
-| Model/provider metadata and token usage | `agent_metadata` | `response.agent_metadata` |
-| Tool invocation | `tool_call` | `response.tool_call` |
-| Tool completion | `tool_result` | `response.tool_result` |
+JSON, SSE, and WebSocket expose the same [portable activity types](/harnest/reference/http-api#activity-frames). [Output policy](/harnest/runtime/lifecycle/output-policy) controls which optional events callers receive.
 
 <CodeGroup>
 
@@ -181,43 +155,14 @@ All modes use the same portable activity contract. JSON returns these items in `
 
 </CodeGroup>
 
-`thinking` is observable agent activity enabled by `OutputPolicy(thinking=True)`. It is suppressed by default and is never part of `outputText`, the committed conversation transcript, or evaluation answer text. Providers do not always expose readable reasoning, so a response may contain no thinking events even after opting in.
-
-`agent_activity` identifies the normalized agent or LangGraph node and lifecycle transition, such as `started`, `completed`, `handoff`, `interrupted`, or `failed`. Message and tool events can also include an `agent` field. By default Harnest does not forward provider signatures, credentials, framework objects, graph state, or native event metadata through this contract.
-
-`decision_result` is opt-in output from `context.decisions.evaluate(...)`.
-Enable it with `OutputPolicy(decision_results=True)`. Each item has an optional
-`agent` and a `value` containing `decision`, `version`, `provider`,
-`providerVersion`, `answers`, `outcome`, `durationSeconds`, and `error`.
-Streaming uses `response.decision_result` with the same `agent` and `value`.
-Decision events do not contribute to `outputText`; hiding them does not prevent
-internal routing or remove fields explicitly copied into the final result.
-
-`agent_metadata` centralizes metadata for each reported model call. `usage`
-contains exact provider counts; Harnest does not estimate missing values.
-`model`, `provider`, and `finishReason` appear only when reported, and the
-finish-reason value keeps the provider's vocabulary. A completed JSON, SSE, or
-WebSocket response also includes top-level `usage` aggregated across its
-`agent_metadata` events. This is distinct from the response's `metadata`, which
-is caller-supplied invocation metadata.
-
-Use `OutputPolicy(agent_metadata=AgentMetadataMode.SUPPRESS)` to omit every
-per-call metadata event and the top-level aggregate `usage`. Use
-`OutputPolicy(tool_activity=False)` to omit public `tool_call`
-and `tool_result` activity without disabling the underlying tool execution.
-These controls apply before JSON, SSE, WebSocket, local, playground, and
-durable result projection.
+Optional reasoning, decision, and metadata events follow [Output policy](/harnest/runtime/lifecycle/output-policy). See [activity payloads](/harnest/reference/http-api#activity-payloads) for fields and transport encoding.
 
 By default Harnest omits native metadata fields. Configure
 `OutputPolicy(agent_metadata=AgentMetadataMode.RAW)` to add a `raw` mapping to each metadata
 event. See [Output policy](/harnest/runtime/lifecycle/output-policy) for the ADK
 and LangGraph namespaces and the disclosure warning.
 
-With a Harnest-owned checkpointer, completion output and normalized agent
-metadata are stored before the run becomes terminal. Polling from another
-replica therefore returns the same per-call metadata, aggregate usage, caller
-metadata, and structured result. Raw metadata is stored only when
-`persist_raw_agent_metadata=True` is explicitly combined with raw mode.
+Checkpointed completion output includes normalized metadata. Raw metadata persists only with the explicit output-policy opt-in.
 
 Native metadata that you explicitly declare in a structured output remains namespaced under `adk` or `langgraph`. Treat that metadata as framework-specific rather than part of the portable activity contract.
 
@@ -227,21 +172,15 @@ Typed input, output, and media use the same contract in every mode. See [Accept 
 
 ## Pagination properties
 
-| Property | Value |
-|---|---|
-| Default limit | 100 |
-| Accepted limit | `1..100` |
-| Next page | Return `nextCursor` unchanged |
-| Final page | `nextCursor` is `null` |
-| Cursor scope | User; transcript cursors also bind to the session |
+Follow `nextCursor` unchanged until it is `null`. Cursors are scoped to the user and, for transcripts, the session. See [pagination limits](/harnest/reference/http-api#pagination).
 
 Malformed or cross-user cursors return `400`.
 
 ## Playground
 
-The playground uses only the neutral API. It supports sessions, state, reasoning and lifecycle activity, tools, JSON, SSE, and opt-in WebSocket conversations. Reasoning appears in a separate collapsible panel, never in the assistant answer. Its **Live** transport choice is disabled when the server does not advertise `/live`.
+The playground uses the neutral API for conversations and activity. **Live** is available only when the server advertises `/live`.
 
-Open `/?session=<id>` to select an owned session and restore its transcript. The session picker filters its bounded list by ID; enter a complete ID to load an owned session outside that page. Selecting or creating a session updates the URL.
+Open `/?session=<id>` to restore an owned session. Enter its full ID if it is outside the session picker’s current page.
 
 | Auth path | Browser behavior |
 |---|---|

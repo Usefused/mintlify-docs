@@ -5,3 +5,7 @@
 # Draft content
 drafts/
 *.draft.mdx
+
+# Python reference generation inputs
+scripts/
+harnest/reference/api-notes/

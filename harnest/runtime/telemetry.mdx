@@ -27,7 +27,6 @@ from harnest.tracing import span, traced
 
 logger = get_logger("catalog").bind(component="search")
 
-
 @traced("catalog.lookup", attributes={"catalog.kind": "products"})
 def lookup(query: str):
     with span("catalog.rank", candidate_count=12):
@@ -46,3 +45,7 @@ Logs emitted inside a span include its trace and span IDs. Structured logs are J
 | Bounded playground traces in process memory | Raw session IDs and payloads |
 
 Runtime mutations emit audit events after commit as structured logs. They reach sinks configured for logs. CLI and compiler file changes are outside this boundary.
+
+## API reference
+
+Reference: [`harnest.tracing`](/harnest/reference/api/tracing), [`harnest.logging`](/harnest/reference/api/logging).

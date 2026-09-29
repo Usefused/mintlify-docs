@@ -1,0 +1,66 @@
+---
+title: "HTTP API reference"
+sidebarTitle: "HTTP API"
+description: "Routes, request fields, activity frames, and pagination for Harnest servers."
+icon: "code"
+---
+
+Start with the [serving guide](/harnest/runtime/serving/neutral-api). Enabled `/openapi.json` and `/openapi.yaml` routes describe each agent’s exact schemas, including custom routes. [Discover that schema](/harnest/runtime/serving/neutral-api#discover-the-api) before generating a client.
+
+## Response request
+
+| Request field | Use |
+|---|---|
+| `input` | Required non-empty message. Agents with a typed input contract require the object shown in their OpenAPI schema instead. |
+| `sessionId` | Omit for a new conversation. To continue, use an existing session ID returned by the server. An unknown or inaccessible ID returns `404`. |
+| `stream` | Optional boolean, default `false`. Set `true` for SSE. |
+| `metadata` | Optional JSON object for caller metadata; does not set user identity or authentication. |
+
+## Routes
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /agent` | Agent identity and routes |
+| `POST /sessions` | Create a session |
+| `GET /sessions` | List sessions |
+| `GET/PATCH/DELETE /sessions/{id}` | Read, update, or delete a session |
+| `GET /sessions/{id}/messages` | Read the transcript |
+| `POST /sessions/{id}/assets` | Upload a session-owned media asset |
+| `HEAD/GET/DELETE /sessions/{id}/assets/{assetId}` | Inspect, download, or delete an asset |
+| `POST /responses` | Run JSON or SSE responses |
+| `POST /agui` | Use AG-UI event encoding over the shared response pipeline |
+| `GET /responses/{id}?sessionId=...` | Read the latest response state or recover terminal output |
+| `WS /live` | Run a live WebSocket session when `server.live: true` |
+| `GET /healthz` | Check process health |
+| `GET /.well-known/agent-card.json` | Discover the Agent Card |
+
+## Activity frames
+
+| Activity | JSON output item | SSE or WebSocket frame |
+|---|---|---|
+| Assistant answer text | `message` | `response.text.delta` |
+| Opted-in provider reasoning text | `thinking` | `response.thinking.delta` |
+| Agent or graph-node lifecycle | `agent_activity` | `response.agent_activity` |
+| Model/provider metadata and token usage | `agent_metadata` | `response.agent_metadata` |
+| Tool invocation | `tool_call` | `response.tool_call` |
+| Tool completion | `tool_result` | `response.tool_result` |
+
+## Pagination
+
+| Property | Value |
+|---|---|
+| Default limit | 100 |
+| Accepted limit | `1..100` |
+| Next page | Return `nextCursor` unchanged |
+| Final page | `nextCursor` is `null` |
+| Cursor scope | User; transcript cursors also bind to the session |
+
+## Activity payloads
+
+`thinking` is observable agent activity enabled by `OutputPolicy(thinking=True)`. It is suppressed by default and is never part of `outputText`, the committed conversation transcript, or evaluation answer text. Providers do not always expose readable reasoning, so a response may contain no thinking events even after opting in.
+
+`agent_activity` identifies the normalized agent or LangGraph node and lifecycle transition, such as `started`, `completed`, `handoff`, `interrupted`, or `failed`. Message and tool events can also include an `agent` field. By default Harnest does not forward provider signatures, credentials, framework objects, graph state, or native event metadata through this contract.
+
+`decision_result` is opt-in output from [`context.decisions.evaluate(...)`](/harnest/reference/api/decisions#decisioncontext-evaluate). Enable it with `OutputPolicy(decision_results=True)`. Each item has an optional `agent` and a `value` containing `decision`, `version`, `provider`, `providerVersion`, `answers`, `outcome`, `durationSeconds`, and `error`. Streaming uses `response.decision_result` with the same `agent` and `value`. Decision events do not contribute to `outputText`; hiding them does not prevent internal routing or remove fields explicitly copied into the final result.
+
+`agent_metadata` centralizes metadata for each reported model call. `usage` contains exact provider counts; Harnest does not estimate missing values. `model`, `provider`, and `finishReason` appear only when reported, and the finish-reason value keeps the provider's vocabulary. A completed JSON, SSE, or WebSocket response also includes top-level `usage` aggregated across its `agent_metadata` events. This is distinct from the response's `metadata`, which is caller-supplied invocation metadata.

@@ -5,9 +5,7 @@ sidebarTitle: "Overview"
 description: "Choose reference, judge, safety, tool, multi-turn, simulation, or custom evaluations for ADK and LangGraph agents."
 ---
 
-Harnest evaluations run your agent against versioned examples and produce a CI-ready quality gate. Google ADK is the evaluation engine for both ADK and LangGraph projects: eval sets, metric configuration, custom scorer interfaces, and captured invocation data use ADK's evaluation contract.
-
-This is shared evaluation infrastructure, not a change to your agent runtime. LangGraph execution and Docker-extension sandboxes do not run through ADK's agent or sandbox executor. Evaluation startup validates the supported ADK version, and Harnest's compatibility CI tests evaluation adapters for both frameworks against pinned, minimum, and latest-compatible dependency sets.
+Evaluate your agent against versioned examples and use the results as a CI quality gate. ADK and LangGraph agents share Google ADK’s eval sets, metric configuration, and scorer interfaces.
 
 <Note>
   Your agent framework and your evaluation engine are separate choices. A LangGraph team keeps its LangGraph agent and runs evaluations through Harnest. You do not need to rewrite the agent in ADK or create a separate ADK application.
@@ -63,7 +61,7 @@ This is shared evaluation infrastructure, not a change to your agent runtime. La
 | Eval set schema, metric registry, judges, and user simulation | Google ADK evaluation components |
 | Framework adaptation, transport sharing, CLI execution, and result export | Harnest |
 
-For a LangGraph run, Harnest starts the compiled LangGraph runtime, sends the evaluation's user turns to it, and converts public responses and tool events into ADK invocations for scoring. Custom scorers therefore receive ADK `Invocation` objects, not LangChain messages or raw graph state. The result's `framework: "langgraph"` identifies the agent runtime; it does not select a different metric engine.
+LangGraph agents still execute in LangGraph. Harnest converts their public responses and tool events into ADK `Invocation` objects for scoring.
 
 | Capability | ADK | LangGraph |
 |---|---:|---:|
@@ -74,9 +72,9 @@ For a LangGraph run, Harnest starts the compiled LangGraph runtime, sends the ev
 | Multimodal eval input or audio simulation | Yes | No |
 | `liveModelConfig` bidirectional inference | Yes | No |
 
-Keep the same text eval sets, criteria, and custom scoring functions when you switch frameworks. Actual tool trajectories can differ between runtimes, so review expectations after a switch. LangGraph non-text user content fails instead of being silently discarded. Use a [smoke test](/harnest/build/testing-and-compilation#smoke-tests) for LangGraph media or bidirectional behavior.
+Reuse text eval sets and scorers across frameworks, but review tool-trajectory expectations after switching. Use [smoke test](/harnest/build/testing-and-compilation#smoke-tests)s for LangGraph media or bidirectional behavior.
 
-ADK evaluation does not require a Google model for every metric. Deterministic metrics need no judge model; compatible LLM judges and text simulators can use your configured model and agent transport. Some service-backed metrics have their own credentials. See [model configuration](/harnest/build/models-and-libraries/configure-a-model#reuse-an-agents-model-client) and the [metric prerequisites](/harnest/build/evaluations/metrics).
+Deterministic metrics need no judge model. LLM judges and text simulators can use your configured model; service-backed metrics may need separate credentials. See [model configuration](/harnest/build/models-and-libraries/configure-a-model#reuse-an-agents-model-client) and [metric prerequisites](/harnest/build/evaluations/metrics).
 
 ## Learn each part
 

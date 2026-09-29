@@ -40,7 +40,7 @@ Choose the mode that preserves the agent's current behavior:
     Use `--framework langgraph` for an existing LangGraph agent.
   </Step>
   <Step title="Move the agent and its dependencies">
-    Move the source into `migrated-agent`, then export a managed `Agent` or `Graph`, or wrap the existing native target with `Agent.advanced(...)`. Add only agent-owned packages to `pyproject.toml`.
+    Move the source into `migrated-agent`, then export a managed [`Agent`](/harnest/reference/api/agent#agent) or [`Graph`](/harnest/reference/api/graph#graph), or wrap the existing native target with [`Agent.advanced(...)`](/harnest/reference/api/agent#agent-advanced). Add only agent-owned packages to `pyproject.toml`.
   </Step>
   <Step title="Test through the harness">
     ```bash
@@ -71,7 +71,7 @@ Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle 
 
     This splits old package-root imports into their owning feature modules,
     rewrites lifecycle and context decorators to their first-class namespaces,
-    and updates released `OutputPolicy` forms. It also migrates retired
+    and updates released [`OutputPolicy`](/harnest/reference/api/output#outputpolicy) forms. It also migrates retired
     same-process Runtime Plugin packages to Harnest Extensions:
 
     | Before | After |
@@ -80,7 +80,7 @@ Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle 
     | `plugin.py` and `plugin` | `extension.py` and `extension` |
     | `kind: RuntimePlugin` | `kind: Extension` |
     | `requires.plugins` | `requires.extensions` |
-    | `harnest.plugins` | `harnest.extensions` |
+    | `harnest.plugins` | [`harnest.extensions`](/harnest/reference/api/extensions) |
     | `<name>` distribution | `harnest-extension-<name>` distribution |
     | inferred content folders | explicit `contributes` paths |
 

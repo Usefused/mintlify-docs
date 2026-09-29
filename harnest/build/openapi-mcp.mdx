@@ -5,7 +5,7 @@ sidebarTitle: "OpenAPI to MCP"
 description: "Use MCPClient.from_openapi to turn an OpenAPI specification into a runtime MCP connection."
 ---
 
-Use `MCPClient.from_openapi(...)` to connect directly to an API described by OpenAPI. Harnest loads the spec and constructs a local FastMCP bridge when the MCP connection opens. There is no client-generation command or provisioning step.
+Use [`MCPClient.from_openapi(...)`](/harnest/reference/api/mcp#mcpclient-from_openapi) to connect directly to an API described by OpenAPI. Harnest loads the spec and constructs a local FastMCP bridge when the MCP connection opens. There is no client-generation command or provisioning step.
 
 ## Declare a client
 
@@ -15,7 +15,6 @@ Place the specification at `mcp/_specs/crm.yaml` and declare its connection:
 from pathlib import Path
 
 from harnest.mcp import MCPClient
-
 
 def client() -> MCPClient:
     """Connect to CRM through its OpenAPI specification."""
@@ -55,7 +54,7 @@ MCPClient.from_openapi(
 
 `base_url` overrides the first top-level OpenAPI server URL. Supply it when a local spec has a relative server, lacks a server, or uses server variables. A relative server in a remote spec resolves against that spec's URL.
 
-Remote specs are fetched when a connection starts, including reconnects. Source changes can therefore change the available tools. Use a bundled local file when deployments must use a fixed specification. Spec downloads do not follow redirects or receive the API headers. Download protected specs separately and pass a local path.
+Remote specs are fetched at startup and reconnection, so their tools can change. Bundle a local spec for fixed deployments. Downloads do not follow redirects or receive API headers; download protected specs separately.
 
 ## Credentials and policies
 
@@ -70,9 +69,9 @@ harnest mcp inspect crm
 harnest compile . --output .harnest/compiled
 ```
 
-Inspection opens the connection and verifies conversion. Compilation does not read or download the spec, contact the API, or start the bridge. At runtime, Harnest's Python interpreter starts the bridge as a managed stdio subprocess, and the MCP connection owns its lifetime. This uses the FastMCP Python library and requires neither `fused-cli` nor a separately installed converter CLI.
+Inspection starts the connection; compilation does not load the spec or contact services. The connection owns a FastMCP stdio subprocess using Harnest’s Python environment.
 
-For use outside a discovered agent, create the same client in Python and open it with `async with client.connect()`. The returned read client supports discovery and reads such as `list_tools()` and `read_resource(...)`. Inside a running agent, invoke tools through `context.mcp("crm").call_tool(...)`, or use the standard ADK or LangGraph tool adapter.
+Outside an agent, use `async with client.connect()` for discovery and reads. Inside an invocation, call tools through [`context.mcp("crm").call_tool(...)`](/harnest/reference/api/mcp#mcpcontext) or a native framework adapter.
 
 ## Supported specifications
 

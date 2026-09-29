@@ -13,12 +13,11 @@ From the agent root, create an invocation-scoped provider starter:
 harnest add context catalog
 ```
 
-Use `--project <agent-root>` when running the command from elsewhere. Add `@lifecycle.resource` when the value should be created once for the application instead of once per invocation.
+Use `--project <agent-root>` when running the command from elsewhere. Add [`@lifecycle.resource`](/harnest/reference/api/lifecycle#resource) when the value should be created once for the application instead of once per invocation.
 
 ```python
 from harnest import context, lifecycle
 from harnest.lib.catalog import CatalogClient
-
 
 @lifecycle.resource
 @context.provider("catalog")
@@ -36,7 +35,7 @@ async def catalog():
 |---|---|---:|
 | `@lifecycle.resource` | Application | No |
 | Both decorators | Application | Yes |
-| `@context.provider("name")` | Invocation | Yes |
+| [`@context.provider("name")`](/harnest/reference/api/context#provider) | Invocation | Yes |
 
 Harnest starts application resources by ascending `order`, then source location, and closes them in reverse order.
 
@@ -44,7 +43,6 @@ Harnest starts application resources by ascending `order`, then source location,
 
 ```python
 from harnest import context
-
 
 def search_catalog(query: str):
     catalog = context.resource("catalog")
@@ -56,7 +54,7 @@ def search_catalog(query: str):
 | Unique name | Duplicate context resources fail compilation |
 | Active invocation | Access outside an invocation fails |
 | Root ownership | SubAgents use the root binding |
-| No credentials | Resolve secrets through `context.credentials` |
+| No credentials | Resolve secrets through [`context.credentials`](/harnest/reference/api/credentials#credentialcontext) |
 
 ## Resource or tool?
 

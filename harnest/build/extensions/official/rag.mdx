@@ -5,15 +5,15 @@ sidebarTitle: "RAG"
 description: "Build tenant-scoped PostgreSQL RAG behind an extensible, typed backend contract."
 ---
 
-The official RAG Harnest Extension gives Agent Tools and Tasks one typed API for PostgreSQL retrieval-augmented generation. It also owns the `RAGBackend` contract used by additional datastore extensions, so agents do not change their document, chunk, query, or hit types when storage changes.
+Use the official RAG extension to retrieve application knowledge from PostgreSQL or a custom [`RAGBackend`](/harnest/reference/api/extensions-rag#ragbackend). Its shared document and query types let you change storage without rewriting Agent Tools.
 
-The extension chunks and embeds documents, enforces namespaces and result bounds, and delegates filtering, ranking, ordering, and limiting to the backend. Your agent decides which retrieval operations become Tools and which ingestion operations remain trusted Task code.
+The extension chunks and embeds documents, scopes access by namespace, and delegates search to the backend. Your application decides which operations to expose as tools.
 
 ## Choose RAG or long-term memory
 
-Use this extension for application knowledge: documents are chunked, optionally embedded, filtered, and ranked for grounded retrieval. Use Harnest's built-in [`context.memory`](/harnest/runtime/long-term-memory) for deliberate, user-scoped facts and preferences that Agent Tools save and retrieve across sessions. Core memory uses literal text search, while RAG supports keyword, semantic, and hybrid ranking. Neither system adds data to a model prompt automatically.
+Use RAG for ranked document retrieval. Use [`context.memory`](/harnest/runtime/long-term-memory) for user facts and preferences, searched by literal text. Neither adds retrieved data to prompts automatically.
 
-The similarly named `rag.memory(...)` factory is only the process-local test backend for this RAG API; it is unrelated to `context.memory`. One agent may use both: core memory for explicit user facts and RAG for a searchable document corpus.
+[`rag.memory(...)`](/harnest/reference/api/extensions-rag#rag-memory) is a process-local RAG test backend, separate from [`context.memory`](/harnest/reference/api/context#memorycontext).
 
 ## Install the extension
 
@@ -22,15 +22,14 @@ harnest extensions install rag --project my-agent
 harnest env sync my-agent
 ```
 
-Version `0.1.3` requires Harnest `>=1.0.0,<2`. It depends on `asyncpg` and imports it only when a PostgreSQL lifecycle resource starts. It does not install Elasticsearch, Neo4j, or a PostgreSQL server extension.
+Version `0.1.3` requires Harnest `>=1.0.0,<2` and loads `asyncpg` when the PostgreSQL resource starts.
 
 ## Supply an embedder
 
-Implement the small provider-neutral `Embedder` contract in application code:
+Implement the small provider-neutral [`Embedder`](/harnest/reference/api/extensions-rag#embedder) contract in application code:
 
 ```python lib/embeddings.py
 from collections.abc import Sequence
-
 
 class Embeddings:
     """Adapt the application's selected embedding client to RAG."""
@@ -58,14 +57,12 @@ from harnest.extensions.rag import RAGService, rag
 from lib.embeddings import Embeddings
 from lib.provider_clients import embedding_client
 
-
 knowledge = rag.postgres(
     os.environ["DATABASE_URL"],
     table="product_knowledge",
     embedder=Embeddings(embedding_client),
     namespace=lambda: context.current().user_id,
 )
-
 
 @lifecycle.resource
 @context.provider("knowledge")
@@ -74,21 +71,11 @@ async def knowledge_resource():
         yield knowledge
 ```
 
-The backend creates an extension-owned table with a tenant-qualified primary key, a document index, and a generated full-text index. Keyword ranking uses PostgreSQL text search. Semantic and hybrid ranking compute cosine similarity over portable float arrays inside PostgreSQL, so the base extension works on stock PostgreSQL without `pgvector`.
+The backend creates a tenant-scoped table and indexes. Keyword search uses PostgreSQL full-text search; semantic and hybrid search use cosine similarity over float arrays. `pgvector` is not required.
 
 Pass an existing asyncpg pool with `pool=...` when the application already owns connection lifecycle. Set `setup_schema=False` only when operators provision the same table shape before startup.
 
-| Option | Default | Purpose |
-|---|---|---|
-| `dsn` | None | asyncpg DSN; required unless `pool` is supplied |
-| `table` | `harnest_rag_chunks` | Safe extension-owned table name |
-| `pool` | None | Borrow an existing asyncpg-compatible pool without closing it |
-| `setup_schema` | `True` | Create the schema, or validate an operator-managed schema when false |
-| `pool_options` | None | Additional options for `asyncpg.create_pool` |
-| `embedder` | None | Application-owned embedding adapter |
-| `chunker` | `FixedSizeChunker()` | Application chunking policy |
-| `namespace` | `default` | Fixed or per-operation tenant namespace |
-| `batch_size` | 100 | Chunk texts sent to the embedder per request |
+See [rag.postgres configuration](/harnest/reference/api/extensions-rag#postgresql-configuration) for connection, embedding, chunking, and namespace options.
 
 ## Retrieve from an Agent Tool
 
@@ -96,7 +83,6 @@ Pass an existing asyncpg pool with `pool=...` when the application already owns 
 from harnest import context
 from harnest.agent import tool
 from harnest.extensions.rag import RAGService, SearchMode
-
 
 @tool
 async def search_knowledge(query: str, limit: int = 6) -> list[dict]:
@@ -138,7 +124,6 @@ Use `await knowledge.fetch(("manual-2026:0", "manual-2026:3"))` when application
 ```python
 from harnest.extensions.rag import RAGDocument, RAGService
 
-
 async def index_manuals(knowledge: RAGService) -> int:
     return await knowledge.ingest(
         (
@@ -154,61 +139,31 @@ async def index_manuals(knowledge: RAGService) -> int:
     )
 ```
 
-Ingestion atomically replaces every supplied document in its namespace, including removal of obsolete chunks when content becomes shorter. Harnest emits payload-free extension mutation audit events after committed writes and on failures. Do not expose `ingest` or `delete` directly to the model without explicit permission and approval policy.
+Ingestion atomically replaces supplied documents and removes obsolete chunks. Writes emit payload-free audit events. Require explicit permission and approval before exposing ingestion or deletion to a model.
 
 Delete complete documents with `await knowledge.delete(("manual-2025",), trigger="user")`. The active namespace applies to the complete mutation.
 
 ## Customize chunking
 
-The default `FixedSizeChunker(size=2000, overlap=200)` creates overlapping passages at nearby whitespace and stable IDs from document identity and source order. Supply a synchronous `Chunker` implementation when Markdown, source code, or another structured format needs application-specific boundaries. A custom chunker must return a non-empty sequence of non-empty strings, and shared ingestion bounds still apply.
+The default [`FixedSizeChunker(size=2000, overlap=200)`](/harnest/reference/api/extensions-rag#fixedsizechunker) splits near whitespace with stable IDs. Supply a synchronous [`Chunker`](/harnest/reference/api/extensions-rag#chunker) for format-specific boundaries. It must return non-empty strings within ingestion bounds.
 
-Use `rag.memory(max_chunks=...)` for deterministic unit tests and small local demonstrations. It implements the same replacement, filtering, scoring, and result validation contracts, but it is process-local, non-durable, and not intended for production knowledge.
+Use `rag.memory(max_chunks=...)` for unit tests and small demos. Its data is lost on exit.
 
 ## Add another datastore extension
 
-A provider extension depends on `rag` instead of redefining its public API:
+A provider extension depends on [`rag`](/harnest/reference/api/extensions-rag) instead of redefining its public API:
 
 ```yaml extensions/company-search/extension.yaml
 requires:
   extensions: [rag]
 ```
 
-It then implements the shared contract:
+Implement [RAGBackend](/harnest/reference/api/extensions-rag#ragbackend), then wrap it with [rag.service](/harnest/reference/api/extensions-rag#rag-service). The reference documents each required method and its result type.
 
-```python
-from collections.abc import Sequence
-from harnest.extensions.rag import RAGChunk, RAGHit, RAGQuery
+Backends must filter, rank, order, and limit results in the datastore. [`RAGService`](/harnest/reference/api/extensions-rag#ragservice) validates returned hits and namespace isolation. Declare `harnest-extension-rag` as a distribution dependency; Harnest starts it before dependent extensions.
 
+See the [RAG API reference](/harnest/reference/api/extensions-rag) for service methods, data contracts, provider protocols, and ingestion bounds. Validate workload sizes against those bounds before sending large batches.
 
-class CompanySearchBackend:
-    async def start(self) -> None: ...
-    async def close(self) -> None: ...
-    async def replace(
-        self,
-        namespace: str,
-        document_ids: Sequence[str],
-        chunks: Sequence[RAGChunk],
-    ) -> None: ...
-    async def delete(self, namespace: str, document_ids: Sequence[str]) -> None: ...
-    async def fetch(
-        self, namespace: str, chunk_ids: Sequence[str]
-    ) -> Sequence[RAGChunk]: ...
-    async def search(self, query: RAGQuery) -> Sequence[RAGHit]: ...
-```
+## API reference
 
-The provider backend must apply predicates, projection, ranking, ordering, and `query.limit` in its datastore. `RAGService` validates returned types, namespace isolation, score threshold, ordering, and result count before exposing hits to agent code. Harnest rejects missing or cyclic extension dependencies, starts dependencies first, and stops them last. A published provider also declares `harnest-extension-rag` as a Python distribution dependency.
-
-## Public API and bounds
-
-| API | Role |
-|---|---|
-| `rag.postgres(...)` | Create the stock-PostgreSQL service |
-| `rag.memory(...)` | Create the bounded in-memory service |
-| `rag.service(...)` | Wrap a custom `RAGBackend` |
-| `RAGService` | Lifecycle-owned ingestion, deletion, fetch, and search API |
-| `RAGDocument`, `RAGChunk`, `RAGQuery`, `RAGHit` | Immutable provider-neutral data contracts |
-| `SearchMode` | Keyword, semantic, or hybrid selection |
-| `Embedder`, `Chunker`, `RAGBackend` | Replaceable provider protocols |
-| `FixedSizeChunker`, `PostgresBackend`, `MemoryBackend` | Built-in implementations |
-
-The shared boundary permits at most 1,000 documents, 50 million source characters, and 10,000 generated chunks per ingestion request. Documents may contain up to 10 million characters, individual chunks up to 1 million, queries up to 16,384, and embeddings up to 65,536 dimensions. Metadata and filters allow 64 fields, with up to 100 scalar values in one membership filter. Empty text, duplicate identities, nested metadata, boolean vector values, and non-finite numbers fail before model or datastore I/O.
+Reference: [`harnest.agent`](/harnest/reference/api/agent).

@@ -2,43 +2,43 @@
 icon: "clock"
 title: "Cron schedules"
 sidebarTitle: "Cron schedules"
-description: "Declare fixed UTC task schedules in the cron folder."
+description: "Run recurring application work on a fixed UTC schedule."
 ---
 
-Put fixed schedules in `cron/`. Harnest discovers them automatically in both ADK and LangGraph projects.
+Use fixed Cron schedules for application-owned recurring work, such as nightly cleanup. Schedules ship with your code and work in both frameworks.
 
-## Folder layout
+Use [Dynamic schedules](/harnest/build/dynamic-schedules) when a user chooses the timing or needs to pause and change a schedule at runtime. Use a [delayed Task](/harnest/build/queued-tasks#make-retries-safe) for a one-time run.
 
-```text
-my-agent/
-├── tasks/build_report.py
-├── cron/daily_report.py
-└── lifecycle/storage.py
-```
+## Declare a schedule
 
-Use one schedule per Python file, with a matching export: `daily_report.py` defines `daily_report`. Nested folders are unsupported; names beginning with `_` or `.` are ignored. No import in `agent.py` is needed.
+Define a function with [`@cron`](/harnest/reference/api/cron#cron-decorator) in `cron/`. Harnest creates its queued task; you do not need a separate `tasks/` file. This example runs at **09:00 UTC, Monday–Friday**:
 
-## Declare an application-owned schedule
+```python cron/daily_report.py
+from harnest.cron import cron
 
-This example queues a report at **09:00 UTC, Monday–Friday**:
-
-<CodeGroup>
-
-```python tasks/build_report.py
-from harnest.task import task
-
-
-@task(queue="reports", max_retries=3)
-async def build_report(account_id: str) -> dict:
+@cron(
+    "0 9 * * 1-5",
+    arguments={"account_id": "acct_123"},
+    queue="reports",
+    max_retries=3,
+)
+async def daily_report(account_id: str) -> dict:
     """Build one account report on the reports queue."""
 
     return {"account_id": account_id, "status": "ready"}
 ```
 
+Use a synchronous or asynchronous function with a docstring. Arguments must match its signature and contain only JSON-safe values. A direct call to the decorated function runs inline. For a function scheduled only by users at runtime, omit the fixed expression and use [Dynamic schedules](/harnest/build/dynamic-schedules).
+
+Put one schedule in each root `cron/<name>.py` file and match the export to the filename: `daily_report.py` defines `daily_report`. Nested folders are unsupported; names beginning with `_` or `.` are ignored. You do not need to import schedules in `agent.py`.
+
+## Reuse an existing Task
+
+Use [`Cron`](/harnest/reference/api/cron#cron) when you already have a Task or want multiple fixed schedules for the same work. With the shared `build_report` task from [Create and run Tasks](/harnest/build/queued-tasks#define-and-call-a-task), a declaration looks like this:
+
 ```python cron/daily_report.py
 from harnest import cron
-from tasks.build_report import build_report
-
+from harnest.lib.report_tasks import build_report
 
 daily_report = cron.Cron(
     "0 9 * * 1-5",
@@ -47,29 +47,26 @@ daily_report = cron.Cron(
 )
 ```
 
-</CodeGroup>
+Choose either this declaration or the decorated function for `daily_report.py`. See the [Cron API reference](/harnest/reference/api/cron) for constructor fields, decorator parameters, and expression constraints.
 
-Target a root `@task` and pass JSON-safe arguments matching its signature.
+## Run the scheduler
 
-## Start the scheduler
-
-Register the **same storage instance** with `@lifecycle.storage.tasks` and `@lifecycle.storage.cron` ([setup](/harnest/runtime/task-storage)), then run:
+Register the **same durable storage instance** with [`@lifecycle.storage.tasks`](/harnest/reference/api/lifecycle#storage-tasks) and [`@lifecycle.storage.cron`](/harnest/reference/api/lifecycle#storage-cron) using [Task and cron storage](/harnest/runtime/task-storage), then run:
 
 ```bash
 harnest serve .
 ```
 
-Keep this process running. `harnest run` does not activate schedules.
+Keep the serving process running. `harnest run` does not activate schedules. Replicas sharing the provider coordinate occurrence submission through storage.
 
-## Schedule contract
+## Plan for retries and permissions
 
-| Rule | Supported value |
-|---|---|
-| Fields | Minute, hour, day of month, month, day of week |
-| Timezone | `UTC` only |
-| Syntax | `*`, ASCII numbers, comma lists, ascending ranges, `/step` |
-| Replicas | Shared task/cron provider atomically commits each occurrence |
+Schedules use five cron fields and **UTC only**. Account for daylight-saving changes if your users expect a fixed local time.
 
-Tasks may retry; make their side effects idempotent. See [task execution](/harnest/build/queued-tasks). Scheduled tasks that invoke an agent need an explicit [service principal](/harnest/runtime/agent-runtime-principals) to access governed tools and MCP operations.
+A scheduled occurrence queues a Task, and workers may retry it. Make the task's effects idempotent even though the shared provider atomically commits each occurrence. See [Make retries safe](/harnest/build/queued-tasks#make-retries-safe).
 
-For schedules created by tools at runtime, see [Dynamic schedules](/harnest/build/dynamic-schedules).
+Fixed schedules run with Harnest's automation identity. If a scheduled task invokes an agent that needs governed tools or MCP operations, supply an explicit [service principal](/harnest/runtime/agent-runtime-principals).
+
+## Change a schedule
+
+Edit the application declaration and deploy it through your normal workflow. A fixed [`Cron`](/harnest/reference/api/cron#cron) declaration has no runtime pause or cancel methods. For user-controlled schedules, create a [`CronJob`](/harnest/reference/api/cron#cronjob) through the [dynamic schedule API](/harnest/build/dynamic-schedules).

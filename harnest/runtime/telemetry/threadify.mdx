@@ -2,13 +2,13 @@
 icon: "chart-line"
 title: "Threadify"
 sidebarTitle: "Threadify"
-description: "Opt into session-linked business telemetry without exporting framework noise."
+description: "Link agent sessions to Threadify and check shared workflow contracts before important actions."
 ---
 
-Use `harnest-threadify` to connect Harnest sessions to Threadify threads. The package is optional: Harnest does not install, import, or connect to Threadify unless you configure it.
+Use the optional `harnest-threadify` package to link sessions to Threadify and coordinate shared business workflows.
 
 <Note>
-This integration is unreleased and requires the upcoming Harnest 0.23 lifecycle hooks. Its source is in `packages/harnest-threadify` in the Harnest repository; it has not been published to PyPI yet. The native SDK dependency is `threadify-sdk==0.2.10`.
+The optional integration is maintained in `packages/harnest-threadify` in the Harnest repository. Contract permission waits require `threadify-sdk>=0.4.0,<0.5`.
 </Note>
 
 ## Configure the agent
@@ -17,7 +17,7 @@ For development from the Harnest checkout, install into the environment running 
 
 ```bash
 uv pip install --python .venv/bin/python --no-deps ./packages/harnest-threadify
-uv pip install --python .venv/bin/python "threadify-sdk==0.2.10"
+uv pip install --python .venv/bin/python "threadify-sdk>=0.4.0,<0.5"
 ```
 
 Copy the following into your existing agent's `lifecycle/telemetry.py`. Keep its session storage configuration. Change `service_name` to a stable application/environment identity and select your business tools and attribute names.
@@ -36,12 +36,10 @@ threadify = Threadify(
     filter=BusinessFilter(attributes=("order.id", "ticket.category")),
 )
 
-
 @lifecycle.telemetry_exporter
 def telemetry():
     """Export only session-linked business spans to Threadify."""
     return threadify.telemetry_exporter()
-
 
 @lifecycle.resource
 @context.provider("threadify")
@@ -49,36 +47,30 @@ def connection():
     """Own the async SDK connection and make native access explicit."""
     return threadify
 
-
 @lifecycle.session.created
 async def session_created(info, session):
     """Create or recover the thread after session persistence succeeds."""
     await threadify.session_created(info, session)
-
 
 @lifecycle.agent.before
 async def invocation(active, request):
     """Link existing sessions and all supported invocation transports."""
     return await threadify.before_invocation(active, request)
 
-
 @lifecycle.http.scope
 def request_scope(active, request):
     """Keep request correlation active until streaming finishes."""
     return threadify.request_scope(active, request)
-
 
 @lifecycle.http.after
 def response(active, head):
     """Record handled HTTP failures without response data."""
     return threadify.after_http(active, head)
 
-
 @lifecycle.tool.after
 def tool_completed(active, result):
     """Export selected business-tool outcomes without result payloads."""
     return threadify.tool_completed(active, result)
-
 
 @lifecycle.tool.on_error
 def tool_failed(active, error):
@@ -116,13 +108,13 @@ with integration.step("refund_approved", attributes={"order.id": "order-42"}):
 
 ## Session ownership
 
-A committed Harnest session creates or recovers a Threadify thread. Agent invocations also recover links for sessions that predate the integration. `sessionId` is recorded as a Threadify reference; lookup uses a hash of the application identity, authenticated user, and session ID, so equal session IDs from different users do not share a thread.
+Session links use a hash of application, user, and session identity. `sessionId` is a Threadify reference; equal IDs from different users remain separate.
 
-HTTP scopes cover the full streamed response and unwind on cancellation. Agent hooks also correlate supported non-HTTP invocations. Native framework session endpoints that bypass Harnest's session creation boundary are linked when the agent is first invoked. Request completion does not complete the Threadify thread: subsequent turns reuse it.
+HTTP scopes cover streaming and cancellation; agent hooks cover other supported invocations. Native sessions are linked on first invocation. Later turns reuse the same Threadify thread.
 
-Concurrent creation is serialized within one integration instance. Existing threads are recovered by reference after restart. A failed lookup never causes a replacement creation, and an ambiguous start is not retried in the same instance unless lookup finds its thread. Threadify's SDK does not expose atomic creation by reference; route a session to one worker and avoid overlapping workers during creation. This integration does not claim distributed exactly-once creation or recovery across an eventually consistent lookup immediately after a crash.
+Route a session to one worker during thread creation. Creation is serialized within one integration instance, and ambiguous results require lookup before retry. Shared contract workflows instead use Threadify’s atomic application-owned key.
 
-The default capacity is 10,000 linked or unresolved sessions per instance. At capacity, new links are skipped rather than evicting live ownership. Missing credentials fail startup; remote connection/link failures log a fixed message and let the agent continue. A failed startup connection remains disabled until restart. Shutdown flushes spans while the SDK event loop is still running, then closes the connection. Export is best effort and is not a durable audit ledger.
+Each instance tracks up to 10,000 linked or unresolved sessions. At capacity, new links are skipped. Missing credentials fail startup; remote failures let the agent continue. A failed startup connection requires restart. Export is best effort, not a durable audit ledger.
 
 ## Native SDK access
 
@@ -134,6 +126,55 @@ thread = await integration.current_thread() # Native session ThreadInstance, or 
 ```
 
 Use native async operations on the application's event loop. Native SDK operations are explicit application actions and bypass the telemetry filter. Completing a native thread ends that business workflow; the integration does not automatically start a replacement for the same session.
+
+## Check a shared workflow before a tool call
+
+The workflow owner opens a versioned contract with `workflow(key, contract=..., role=...)` and returns the thread ID after authorizing the user. The agent joins with `join_workflow(thread_id, role=...)`. Both require a working Threadify connection.
+
+For an action with a side effect, use `wait_for` before calling the backend. Threadify's `can` query previews eligibility; it does not claim an invocation. Pass a persisted invocation ID to `WaitOptions` and use that ID as the backend's idempotency key.
+
+```python
+from threadify import WaitOptions
+from harnest import context
+from harnest_threadify import Threadify
+
+async def issue_refund(order, invocation_id, payments):
+    integration = context.resource("threadify", Threadify)
+    workflow = await integration.join_workflow(order.thread_id, role="processor")
+    grant = await workflow.wait_for(
+        "refund_issued", WaitOptions(timeout=10, invocation_id=invocation_id)
+    )
+    receipt = await payments.refund(order, idempotency_key=grant.invocation_id)
+    await workflow.step("refund_issued").idempotency_key(
+        grant.invocation_id
+    ).add_context({"receipt": receipt.reference}).success(wait_for=True)
+    return receipt
+```
+
+Report the backend’s actual outcome after the claimed action. Reconcile ambiguous responses by idempotency key before retrying. Recover a timed-out report validation with `wait_for_validation` and its step ID.
+
+Try `examples/threadify-refund` for an order-service prerequisite, human approval, a claimed refund invocation, and an idempotent backend. It uses synthetic in-memory orders; replace the demo backend with authorized services for real refunds.
+
+To try the project from the Harnest checkout, create its contract in Threadify and supply API keys allowed to report as `orders` and `processor`. The development Harnest principal is `_harnest_neutral`; use that value when preparing the synthetic order unless you configure authentication.
+
+```bash
+threadify-cli contracts preview --file examples/threadify-refund/contracts/refund.feature
+threadify-cli contracts create --file examples/threadify-refund/contracts/refund.feature
+
+export THREADIFY_ENGINE_URL=http://127.0.0.1:8081
+export REFUND_API_URL=http://127.0.0.1:8091
+export REFUND_API_TOKEN=local-demo-key
+export THREADIFY_ORDERS_API_KEY=your-orders-key
+export THREADIFY_API_KEY=your-processor-key
+
+.venv/bin/python -m uvicorn backend:app --app-dir examples/threadify-refund --host 127.0.0.1 --port 8091
+# In another terminal with the same environment:
+.venv/bin/python examples/threadify-refund/prepare.py O-42 _harnest_neutral
+harnest env sync examples/threadify-refund
+harnest serve examples/threadify-refund
+```
+
+Set `OPENAI_MODEL`, `OPENAI_BASE_URL`, and any required model key before serving. The example reads these values from the environment. Complete the Harnest approval request when the agent calls `issue_refund`.
 
 ## OTLP/HTTP Protobuf
 
@@ -148,4 +189,8 @@ threadify = Threadify(
 )
 ```
 
-Import `os` in that module. Use your deployment's exact URL and authentication header format; the bearer header above is an example. The SDK still owns session thread creation and native access. The same business filter runs before Protobuf serialization, and exported spans carry `threadify.thread_id` and the session reference. Your receiver must honor that thread mapping. No Threadify OTLP endpoint is assumed or discovered automatically.
+Import `os` and configure your receiver’s exact URL and headers. Filtering runs before serialization; the receiver must honor `threadify.thread_id` and session references. The SDK still manages session links and native access.
+
+## API reference
+
+Reference: [`harnest_threadify`](/harnest/reference/api/harnest_threadify).

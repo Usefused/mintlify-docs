@@ -5,7 +5,7 @@ sidebarTitle: "Multiple sinks"
 description: "Fan out Harnest traces and logs to multiple OTLP destinations."
 ---
 
-Create one `@lifecycle.telemetry_exporter` factory for each destination:
+Create one [`@lifecycle.telemetry_exporter`](/harnest/reference/api/lifecycle#telemetry_exporter) factory for each destination:
 
 ```python lifecycle/telemetry.py
 import os
@@ -14,7 +14,6 @@ from harnest.telemetry import TelemetryExporter
 from harnest import lifecycle
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-
 
 @lifecycle.telemetry_exporter(order=10)
 def primary_observability():
@@ -32,7 +31,6 @@ def primary_observability():
             headers=headers,
         ),
     )
-
 
 @lifecycle.telemetry_exporter(order=20)
 def compliance_logs():
@@ -62,13 +60,7 @@ harnest serve .
 
 ## Factory contract
 
-| Requirement | Behavior |
-|---|---|
-| Unique `TelemetryExporter.name` | Duplicate names stop runtime startup |
-| Synchronous, zero-argument factory | Runs once during runtime bootstrap |
-| `traces`, `logs`, or both | Metrics exporters are not supported |
-| `order=` | Resolves factories in ascending lifecycle order |
-| Startup failure | Already-created exporters are shut down |
+Give each [TelemetryExporter](/harnest/reference/api/telemetry#telemetryexporter) a unique name and define a synchronous, zero-argument factory. See the [factory contract](/harnest/reference/api/telemetry#exporter-factory-contract) for ordering, supported signals, and startup failures.
 
 Harnest batches each configured signal, flushes one-shot runs, and shuts exporters down with the server.
 

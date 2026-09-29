@@ -22,16 +22,16 @@ Keep project and server settings together in `config.yaml`. The Agent Card owns 
 
 Managed feature folders are configuration, not general storage. Harnest checks the files it finds there so that a misplaced file or unfinished declaration does not silently disappear from your agent.
 
-Messages for misplaced files and missing declarations name the problem file, then explain **What Harnest expects** and **How to fix** it. Keep an active feature in its required format. For a note, backup, or unused example in a discovery folder, add `_` to the filename or move it outside that folder.
+Validation errors identify the file and required repair. Prefix notes, backups, and unused examples with `_`, or move them outside discovery folders.
 
 | Problem | Repair |
 |---|---|
-| `sandbox/notes.txt` is treated as a sandbox resource | Rename the note to `_notes.txt` or move it elsewhere. Put each active sandbox in `sandbox/<name>.py`, define a matching variable, and assign the name with `Agent(sandboxes=["<name>"])`. |
+| `sandbox/notes.txt` is treated as a sandbox resource | Rename the note to `_notes.txt` or move it elsewhere. Put each active sandbox in `sandbox/<name>.py`, define a matching variable, and assign the name with [`Agent(sandboxes=["<name>"])`](/harnest/reference/api/agent#agent). |
 | `tools/search.py` “must export 'search'” | Define the intended tool as a top-level function or variable named `search`. “Export” means the named Python declaration Harnest looks for, not another file. |
 | A skill folder has no `SKILL.md` | Create the skill's instruction file with that exact uppercase filename. |
 | A Python file is named `search-customer.py` | Use a Python-compatible name such as `search_customer.py`, then update its matching declaration and imports. |
 
-An underscore prefix leaves an unused entry out of automatic feature discovery; it does not repair or activate its code. Follow each generated example's destination and declaration instructions when enabling it. Put reusable Python helpers in `lib/`. The importable `lib/` and `models/` namespaces are different from feature discovery: underscore-prefixed Python modules can still be imported. Links to files or folders are still subject to Harnest's symlink restrictions.
+An underscore prefix excludes entries from discovery but does not make invalid code usable. Follow each sample’s activation instructions. Shared Python belongs in `lib/`; underscore-prefixed modules in `lib/` or `models/` remain importable. Symlink restrictions still apply.
 
 See [generated examples](/harnest/get-started/initialize) and [Sandboxing](/harnest/build/sandboxing) for feature setup.
 
@@ -58,7 +58,7 @@ Use `adk` or `langgraph`. Managed mode is the portable default; advanced mode ac
 `interfaces.cli: true` explicitly enables `harnest run` and the compiled
 launcher's `run` command. Omit it for a server-only artifact.
 
-Configure workload CPU and memory under `resources`, and instance counts under `replicas`, in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning). Existing `spec.resources` and `spec.scaling` blocks have no effect. Harnest silently ignores their contents, including empty, null, or invalid values, and leaves the source file unchanged. The standalone development server does not provision infrastructure, inject secret declarations, scale replicas, or enforce network permissions.
+Set CPU, memory, and `replicas` in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning). Legacy `spec.resources` and `spec.scaling` are ignored. The development server does not provision infrastructure, scale replicas, resolve deployment secrets, or enforce network permissions.
 
 <Card title="Configure a model" icon="microchip" href="/harnest/build/models-and-libraries/configure-a-model">
   Choose the model and endpoint, supply local or deployment credentials, and configure eval model reuse.
@@ -76,7 +76,7 @@ You can remove these ignored blocks from `spec` when cleaning up an existing pro
 | `scaling.minReplicas`, `scaling.maxReplicas` | Workload `replicas` for a fixed instance count; configure autoscaling through your deployment platform |
 | `resources.ephemeralStorage` | Scratch-storage policy in your container or Kubernetes deployment; no replacement in agent `config.yaml` |
 
-The old timeout and concurrency hints did not override standalone server settings. Review the behavior you want instead of copying every old value. Omit HTTP settings that match the defaults. These ignored blocks do not block `harnest upgrade` and do not supply defaults to Studio deployment discovery.
+Remove ignored settings and configure only the limits you need. They neither block upgrades nor supply deployment defaults.
 
 ## Server settings in `config.yaml`
 
@@ -90,7 +90,7 @@ server:
     port: 9090
 ```
 
-This example enables WebSockets on the HTTP listener and changes its port. Omit `live` for HTTP/SSE only. Exact `${NAME}` values are resolved and type-checked at startup. Authentication, persistence, TLS, secrets, and scaling do not belong in this section. Set explicit HTTP limits with `server.http.requestTimeoutSeconds` and `server.http.maxConcurrentRequests`; omit settings that match the defaults. See [Server configuration](/harnest/runtime/serving/server-configuration) for defaults and legacy `server.yaml` migration.
+This enables WebSockets and changes the port. `${NAME}` values resolve and undergo type checks at startup. See [Server configuration](/harnest/runtime/serving/server-configuration) for HTTP limits, defaults, and legacy `server.yaml` migration.
 
 ## `agent-card.yaml`
 
@@ -106,11 +106,7 @@ Synchronize the project environment and commit the resulting lock:
 harnest env sync AGENT_DIR
 ```
 
-The default `runtime` profile resolves the embedded release wheel, selected
-framework, project and Harnest Extension dependencies, optional task runtime,
-and every transitive dependency into `harnest-runtime.lock`. Every distribution
-is hash verified. It does not install evaluation packages. ADK or LangGraph MCP
-adapters join the solve only when an active `mcp/*.py` exists in the agent tree.
+The runtime profile writes hash-verified framework, project, extension, and transitive dependencies to `harnest-runtime.lock`. It excludes evaluation packages and adds MCP adapters only for active `mcp/*.py` files.
 
 Development tools use independent profiles and locks:
 
@@ -119,29 +115,9 @@ harnest env sync AGENT_DIR --profile development
 harnest env sync AGENT_DIR --profile eval
 ```
 
-The development profile adds pytest and writes `harnest-development.lock`. The eval profile
-adds pytest plus Google ADK's evaluation dependencies and writes
-`harnest-eval.lock`. `harnest serve`, `harnest run`, and ordinary `harnest test`
-share development; `harnest test --evals` selects eval. Commit each lock used by CI. Development/eval locks are not
-copied into deployable artifacts and do not change the deployable source digest.
-The generated lock replaces machine-local wheel paths with a release marker, so
-it can be reviewed and committed without recording a developer's filesystem.
+Development adds pytest; eval adds pytest and ADK evaluation dependencies. Commit the corresponding locks used by CI. These locks are portable and excluded from deployment artifacts.
 
-The environment lives under `AGENT_DIR/.harnest/environments/` and should not
-be activated. An explicit sync creates or updates `AGENT_DIR/.venv` as an
-IDE-detectable link to the current environment. It also configures
-`.vscode/settings.json` for VS Code-compatible editors, including Antigravity IDE
-and Windsurf. The Codex IDE extension inherits its host editor's Python setting.
-Harnest preserves an existing `.venv` that it does not own and prints the exact
-managed interpreter instead.
-`compile` selects the lean production runtime; `run`, `serve`, and ordinary
-`test` select development; `test --evals` selects eval.
-Each command synchronizes its internal environment automatically without
-changing the IDE link and leases the selected
-environment for its complete lifetime. After a replacement is published,
-Harnest removes older unleased fingerprints asynchronously; overlapping tests,
-compiles, and servers retain their environment until they finish. CI can
-require a current committed lock without resolving or changing it:
+Harnest manages environments under `.harnest/environments/`; do not activate them manually. Commands select and synchronize their required profile. `harnest env sync` also updates the IDE environment link when Harnest owns it; see [editor setup](/harnest/build/python-imports#ide-autocomplete-and-hover-help). CI can require an unchanged committed lock:
 
 ```bash
 harnest env sync AGENT_DIR --frozen
@@ -166,5 +142,3 @@ framework:
 Commit this file alongside the profile locks used by the project. Later environment syncs install the exact resolution, and compilation rejects a different installed framework version before loading agent code. A frozen profile sync requires matching framework and profile locks and leaves them unchanged. It rejects changed dependency inputs before installation.
 
 To deliberately resolve a newer supported framework release, remove only the `framework` entry and run environment sync again, then review and commit the new pin. Changing the selected framework in `config.yaml` followed by normal sync records the new framework; frozen sync rejects that change. Project schema migrations use `harnest upgrade` and preserve the framework pin.
-
-Harnest's CI exercises both framework adapters and the shared evaluation engine against pinned, minimum-supported, and latest-compatible dependencies on Python 3.11 and 3.12, on pull requests and daily. `harnest.lock` records the selected framework; `harnest-runtime.lock` remains the lean deployment resolution, while development and eval tooling stays in its own locks.

@@ -7,6 +7,8 @@ description: "Control SubAgent narration, tool activity, decision results, provi
 Output policy changes which events and metadata Harnest publishes. It does not
 change prompts or model responses.
 
+Define one policy in `lifecycle/output.py`. See [OutputPolicy](/harnest/reference/api/output#outputpolicy) for every option and default.
+
 ## Choose SubAgent narration
 
 | Value | Behavior |
@@ -18,120 +20,48 @@ change prompts or model responses.
 from harnest import lifecycle
 from harnest.output import AgentMetadataMode, OutputPolicy
 
-
 @lifecycle.output_policy
 def output_policy():
-    return OutputPolicy(subagent_messages=True)
+    return OutputPolicy(
+        subagent_messages=True,
+        tool_activity=True,
+        agent_metadata=AgentMetadataMode.NORMALIZED,
+    )
 ```
 
 ## Choose provider reasoning
 
-Provider-exposed reasoning is private by default. Opt in only when every caller
-may receive prompt-derived details and provisional internal narration:
-
-```python
-@lifecycle.output_policy
-def output_policy():
-    return OutputPolicy(thinking=True)
-```
+Set `thinking=True` only when callers may receive provider-exposed reasoning and provisional narration.
 
 This controls readable ADK thought parts and LangGraph reasoning content. It
 does not enable model reasoning or expose provider signatures.
 
 ## Choose tool activity
 
-Tool execution remains enabled even when its public progress is hidden. Use a
-suppressed tool-activity policy when callers should receive only agent
-lifecycle updates and the canonical answer or structured result:
+Set `tool_activity=False` to hide tool progress while keeping execution enabled.
 
-```python
-@lifecycle.output_policy
-def output_policy():
-    return OutputPolicy(tool_activity=False)
-```
-
-The default `True` value publishes neutral `tool_call` and `tool_result`
-events. `False` removes both event types from JSON,
-SSE, WebSocket, local, and playground output. A2A already keeps tool arguments
-and results private.
+The default publishes `tool_call` and `tool_result` events. A2A always keeps tool arguments and results private.
 
 ## Choose decision results
 
-Results from `context.decisions.evaluate(...)` are private by default. Keep
-`OutputPolicy(decision_results=False)` to hide Jev or another decision provider's
-judgments while still using them for routing, tools, and LLM input.
+Decision results stay private by default. Set `decision_results=True` to publish results from [`context.decisions.evaluate(...)`](/harnest/reference/api/decisions#decisioncontext-evaluate) separately from the final answer.
 
-To expose them separately from the final answer:
+Published events include typed answers, policy outcomes, and timing, excluding request state and raw provider payloads. See [decision event details](/harnest/reference/api/output#decision-events).
 
-```python lifecycle/output.py
-from harnest import lifecycle
-from harnest.output import OutputPolicy
-
-
-@lifecycle.output_policy
-def output_policy():
-    return OutputPolicy(decision_results=True)
-```
-
-Each completed evaluation adds a `decision_result` item to public `output`.
-Its `value` contains decision/provider versions, typed answers, the policy
-outcome, duration, and a safe error category when evaluation falls back.
-Request state, question instructions, and raw provider payloads are excluded.
-Private graph-to-model inputs are not presented as user turns when restoring
-conversation history in ADK or LangGraph.
-SSE and WebSocket use `response.decision_result`; streaming A2A tasks use
-`metadata.harnest.type: decision_result`. Playground displays an expandable
-Decision panel. Streamed results appear when the backend next yields an event.
-
-This controls decision events, not arbitrary data copied into a final response
-or tool result. Keep decision fields out of your final output schema if they
-should remain internal. It does not redact LLM text, remove internal graph
-state/checkpoints, or retroactively delete previously disclosed results.
-Opted-in decision events are retained in durable completion output when
-checkpoint storage is configured. Standalone `Decisions.evaluate(...)` calls
-outside the context facade do not emit public events.
+Visibility does not redact values copied into tool results, final responses, or model text, or delete earlier disclosures. Opted-in events can persist in durable output. Direct [`Decisions.evaluate(...)`](/harnest/reference/api/decisions#decisions-evaluate) calls do not publish events.
 
 See the [Jev example](/harnest/build/models-and-libraries/typed-decisions/jev)
 for a decision followed by an LLM reply.
 
 ## Choose agent metadata
 
-Harnest emits one centralized `agent_metadata` event for metadata reported by
-ADK or LangGraph. The default `AgentMetadataMode.NORMALIZED` mode exposes the
-portable fields that are present: model, provider, finish reason, and exact
-input, output, and total token counts. Counts are never estimated.
+The default `AgentMetadataMode.NORMALIZED` exposes reported model, provider, finish reason, and exact token counts. Missing values are not estimated.
 
-Use `AgentMetadataMode.SUPPRESS` when callers must not receive any
-model/provider metadata:
+Set `agent_metadata=AgentMetadataMode.SUPPRESS` to hide model/provider metadata and aggregate usage, including durable snapshots.
 
-```python
-@lifecycle.output_policy
-def output_policy():
-    return OutputPolicy(agent_metadata=AgentMetadataMode.SUPPRESS)
-```
+Set `agent_metadata=AgentMetadataMode.RAW` when authorized callers need native framework metadata.
 
-Suppression removes per-call `agent_metadata` events and the aggregate `usage`
-derived from them. Suppressed metadata is not added to durable completion
-snapshots.
-
-Use raw mode when an authorized caller needs the native framework payload:
-
-```python
-from harnest import lifecycle
-from harnest.output import AgentMetadataMode, OutputPolicy
-
-
-@lifecycle.output_policy
-def output_policy():
-    return OutputPolicy(agent_metadata=AgentMetadataMode.RAW)
-```
-
-Raw mode keeps the normalized fields and adds `raw`. ADK uses its native
-`LlmResponse` metadata field names. LangGraph namespaces `stream_metadata`,
-`response_metadata`, `usage_metadata`, and `additional_kwargs` so fields do not
-collide. The primary message content and Harnest-owned event state are not
-copied. Native metadata can still contain provider-defined content-like values,
-including reasoning annotations in `additional_kwargs`.
+Raw mode adds the native payload to normalized fields. It may include provider content and reasoning annotations; see [raw metadata fields](/harnest/reference/api/output#raw-metadata).
 
 <Warning>
   Native metadata can contain provider identifiers, diagnostic details, and
@@ -141,24 +71,11 @@ including reasoning annotations in `additional_kwargs`.
   never copies raw metadata into its playground trace history.
 </Warning>
 
-When Harnest owns checkpoint storage, it durably retains the normalized
-completion snapshot so another replica can return the same per-call metadata,
-aggregate usage, caller metadata, and structured result. Raw metadata remains
-ephemeral by default, even when it is exposed live. Persist it only with the
-separate opt-in:
+Normalized completion metadata is durable with Harnest-owned checkpoint storage. Raw metadata is ephemeral unless explicitly persisted:
 
-```python
-@lifecycle.output_policy
-def output_policy():
-    return OutputPolicy(
-        agent_metadata=AgentMetadataMode.RAW,
-        persist_raw_agent_metadata=True,
-    )
-```
+Set `persist_raw_agent_metadata=True` together with `agent_metadata=AgentMetadataMode.RAW`.
 
-Durable completion snapshots are JSON-validated and limited to 4 MiB. They use
-the configured checkpoint backend's retention behavior. PostgreSQL retains the
-snapshot with the run; Redis applies the configured checkpoint TTL.
+Snapshots are limited to 4 MiB and follow checkpoint retention: the run’s lifetime in PostgreSQL or the configured Redis TTL.
 
 <Warning>
   Persisted raw metadata remains available for the lifetime of the durable run.
@@ -183,11 +100,7 @@ snapshot with the run; Redis applies the configured checkpoint TTL.
   `True` only when your product deliberately presents progress.
 </Warning>
 
-All arguments are keyword-only. Binary controls require `True` or `False`, and
-`agent_metadata` requires `AgentMetadataMode`; string policy values are not
-accepted. When moving an older project to this contract, run
-`harnest upgrade AGENT_DIR --apply` to rewrite released string and positional
-forms.
+Use keyword arguments, booleans, and [`AgentMetadataMode`](/harnest/reference/api/output#agentmetadatamode) values. For older positional or string forms, run `harnest upgrade AGENT_DIR --apply`.
 
 ## Scope
 

@@ -19,13 +19,13 @@ The unit lane runs first. Add `--smoke` to run smoke tests before evaluation:
 harnest test AGENT_DIR --smoke --evals
 ```
 
-If a Python test lane fails, later lanes do not start. During evaluation, a scored failure in one eval set does not prevent independent later sets from running. The final result therefore covers every suite reached by the eval lane.
+A failed Python lane stops later lanes. Scored failures do not stop other eval sets from running.
 
-Harnest runs each suite once and processes suite files in deterministic filename order. Judge metrics can still make multiple calls according to their `numSamples` setting.
+Suites run once, in filename order. Judge metrics may make multiple calls according to `numSamples`.
 
-Native ADK evaluations run with Harnest's managed invocation context: session identity, built-in Agent Skills tools such as `list_skills`, explicitly assigned sandboxes, and configured context resources and credentials are available. ADK still owns the evaluation runner; this does not promise identical lifecycle or plugin behavior to normal serving. Context is available only while that invocation is active; do not retain it for background work after the invocation finishes.
+ADK evaluations have Harnest invocation identity, skills, assigned sandboxes, resources, and credentials. ADK owns the evaluation runner, so lifecycle and plugin behavior can differ from serving. Context expires when the invocation ends.
 
-Evaluation session data stays in memory, separate from your deployed session backend. The CLI starts and closes its evaluation resources; the playground reuses the running application's resources. The isolated CLI ADK evaluation runtime does not start task workers or cron schedules, so it does not consume unrelated production queue rows; test queued workflows with an appropriate smoke or integration runtime instead. This session isolation does not make evaluation a dry run: tools, sandboxes, and external services can still have real side effects.
+Evaluation sessions are in-memory and separate from deployed sessions. The CLI owns its evaluation resources; the playground reuses serving resources. The CLI ADK runtime does not start task workers or cron schedules—use smoke or integration tests for queued workflows. Tools and external services can still have real side effects.
 
 <Note>
   For native ADK workflow roots that use its legacy runner, such as `SequentialAgent` or a non-`LlmAgent` `BaseAgent`, Harnest rejects a plugin's `before_run_callback` that returns replacement `Content`. Interrupting that response stream can skip invocation cleanup. Return `None` from the callback and produce the response from the agent or a tool instead. This restriction does not apply to the normal `LlmAgent`/node execution path.
@@ -52,7 +52,7 @@ harnest test AGENT_DIR --evals \
   --eval-output artifacts/eval-result.json
 ```
 
-Harnest creates missing parent directories and atomically replaces the selected file. It does not append to an existing file or create an implicit result history.
+Harnest creates parent directories and atomically replaces the result file.
 
 For quiet CI output, combine the explicit file with `--no-output`:
 
@@ -65,119 +65,15 @@ harnest test AGENT_DIR --evals --no-output \
 
 ## Understand `EvalRunResult`
 
-The current contract is identified by:
+Check `apiVersion`, overall status, and scored-turn evidence. `error` indicates execution or scoring failure; an entirely unscored metric does not pass. See the [EvalRunResult envelope reference](/harnest/reference/api/evaluation#evalrunresult-envelope).
 
-```json
-{
-  "apiVersion": "harnest.dev/v1alpha1",
-  "kind": "EvalRunResult"
-}
-```
-
-Branch consumers on `apiVersion`. The result schema is versioned independently from the installed ADK's nested case models.
-
-```json
-{
-  "apiVersion": "harnest.dev/v1alpha1",
-  "kind": "EvalRunResult",
-  "createdAt": "2026-09-03T10:30:00+00:00",
-  "framework": "adk",
-  "trajectory": "business",
-  "status": "failed",
-  "summary": {
-    "suiteCount": 1,
-    "caseCount": 1,
-    "passedCases": 0,
-    "failedCases": 1,
-    "notEvaluatedCases": 0
-  },
-  "evalSetResults": [
-    {
-      "appName": "harnest_eval",
-      "evalSetId": "city-facts",
-      "status": "failed",
-      "evalCaseResults": [
-        {
-          "evalSetId": "city-facts",
-          "evalId": "verify_paris",
-          "finalEvalStatus": "failed",
-          "overallEvalMetricResults": [
-            {
-              "metricName": "response_match_score",
-              "threshold": 0.8,
-              "score": 0.6,
-              "evalStatus": "failed",
-              "details": {"rubricScores": null}
-            }
-          ],
-          "evalMetricResultPerInvocation": [
-            {
-              "actualInvocation": {},
-              "expectedInvocation": {},
-              "evalMetricResults": []
-            }
-          ],
-          "sessionId": "___eval___session___...",
-          "sessionDetails": {},
-          "userId": "eval-user"
-        }
-      ]
-    }
-  ]
-}
-```
-
-The abbreviated empty invocation and session objects above stand in for complete ADK-shaped data in a real result.
-
-### Top-level fields
-
-| Field | Meaning |
-|---|---|
-| `createdAt` | UTC creation time |
-| `framework` | Agent runtime: `adk` or `langgraph`. Both use ADK's evaluation contract. |
-| `trajectory` | Effective `business` or `strict` policy |
-| `status` | `passed`, `failed`, `not_evaluated`, or `error` |
-| `summary` | Suite and case counts by status |
-| `evalSetResults` | Ordered suite results and their complete case results |
-| `error` | Infrastructure exception type and a fixed privacy-safe message; present when `status` is `error` |
-
-### Case diagnostics
-
-Each `evalCaseResults` item preserves:
-
-- Overall result, score, criterion, and details for every metric.
-- Per-invocation metric results.
-- Complete actual invocations and optional expected invocations.
-- User content, final responses, intermediate events, tool evidence, and applicable rubrics carried by those invocations.
-- Evaluator session ID, user ID, and session details, including state and recorded events.
-- Rubric scores and rationales in each metric's `details.rubricScores` when the evaluator supplies them.
-
-Statuses are lowercase names rather than ADK enum ordinals. `not_evaluated` means the row has no score. Earlier turns of a final-turn-only metric can have this status without failing the CLI gate: ADK averages the available scored turns. A metric with no scored turns does not pass. Inspect the overall result together with the scored turn evidence.
-
-### Infrastructure errors
-
-If evaluation has started and a provider, adapter, or evaluator raises an infrastructure error, Harnest emits or writes the partial result before reporting the original command failure. Its top-level error excerpt looks like this:
-
-```json
-{
-  "status": "error",
-  "error": {
-    "type": "RuntimeError",
-    "message": "evaluation infrastructure failed"
-  },
-  "evalSetResults": []
-}
-```
-
-Harnest omits the original exception message, traceback, and internals from this field because provider errors can contain credentials or request content. Failures before the eval lane starts, such as compilation, unit tests, or invalid configuration, may produce no result file.
-
-If native ADK cannot complete execution or scoring and produces no metric results, Harnest reports `EvaluationExecutionError`, not a task-quality failure. Its `error.message` gives a privacy-safe explanation and a next step. Check the local traceback for the failing tool, callback, model provider, or runtime configuration, fix the underlying issue, and rerun. A missing Harnest invocation context during managed evaluation is an integration error; do not weaken context checks or lower metric thresholds to work around it.
+Infrastructure failures may leave partial results. Failures before evaluation starts may leave no file. Fix the runtime issue before assessing task quality.
 
 ## Inspect in the playground
 
 Run `harnest serve AGENT_DIR`, open `/`, and select **Evals**. The workspace lists root suites, configured and supported metrics, and the `business` and `strict` policies. You can run one suite and inspect case, metric, response, and tool-call evidence.
 
-The playground response is optimized for interactive inspection. Use the CLI's `EvalRunResult` file when you need the complete retention contract.
+Use the CLI result file for complete results; the playground is designed for interactive inspection.
 
 <Note>
   For final-turn-only multi-turn metrics, the playground can currently mark a run as failed when earlier rows are `not_evaluated`, even if the CLI's scored-turn gate passes. Use the CLI quality gate for CI and inspect the final scored turn when diagnosing this difference.

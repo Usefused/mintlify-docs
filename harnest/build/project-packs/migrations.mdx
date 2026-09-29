@@ -7,22 +7,7 @@ description: "Use consecutive versioned migrations to evolve existing agents wit
 
 Use `@pack.migration` to change an existing project's company configuration. Harnest tracks the applied pack schema in `harnest-packs.lock` and runs only the migration steps needed to reach the installed pack's target version.
 
-## Decorator contract
-
-```python
-@pack.migration(from_version=1, to_version=2)
-def migrate(context: ProjectContext) -> ChangePlan:
-    ...
-```
-
-| Parameter or rule | Contract |
-|---|---|
-| `from_version` | A positive integer schema version. |
-| `to_version` | Exactly `from_version + 1`, no greater than `pack.schema_version`. |
-| Function | A synchronous callable accepting `ProjectContext` and returning `ChangePlan`. |
-| Registration | One migration per source version. Duplicate registrations are rejected. |
-| Timing | Runs during upgrade planning, including previews. |
-| New projects | Skip historical migrations; their initializer must create the current schema directly. |
+A migration advances one consecutive schema version and returns proposed changes. See [ProjectPack.migration](/harnest/reference/api/authoring#projectpack-migration) and the [migration contract](/harnest/reference/api/authoring#migration-contract) for registration rules.
 
 ## Rename a company property
 
@@ -94,6 +79,6 @@ Upgrades do not automatically adopt new packs. An existing project without that 
 
 ## Read existing settings
 
-During upgrades, `context.options` is `None` unless the caller supplied options for that pack. Read persisted choices through `context.yaml.read("acme-agent.yaml")` instead of requiring users to repeat init inputs. If upgrade options are supplied, the same options model validates them, including its required fields.
+During upgrades, `context.options` is `None` unless the caller supplied options for that pack. Read persisted choices through [`context.yaml.read("acme-agent.yaml")`](/harnest/reference/api/authoring#projectcontext-yaml-read) instead of requiring users to repeat init inputs. If upgrade options are supplied, the same options model validates them, including its required fields.
 
 For generated-file updates, use `WritePolicy.MANAGED` and handle local edits as blockers. See [files and YAML changes](/harnest/build/project-packs/changes) and [conflict recovery](/harnest/build/project-packs/plans-and-recovery#resolve-blockers).

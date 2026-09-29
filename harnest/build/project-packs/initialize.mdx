@@ -7,22 +7,7 @@ description: "Use the initialize decorator to add company defaults to a new Harn
 
 Use `@pack.initialize` to add company files and defaults to a newly scaffolded agent. It runs after Harnest prepares its scaffold and before company configuration validation.
 
-## Decorator contract
-
-```python
-@pack.initialize
-def initialize(context: ProjectContext) -> ChangePlan:
-    ...
-```
-
-| Rule | Behavior |
-|---|---|
-| Registration | One initializer per pack. Registering another raises `ProjectError`. |
-| Function | A synchronous callable accepting one `ProjectContext` and returning `ChangePlan`. |
-| Timing | Runs during init planning, including `--dry-run`. It does not write to the live project. |
-| Version | New projects start at the installed pack's current `schema_version`. |
-| Upgrades | Never runs during upgrade. Use [`@pack.migration`](/harnest/build/project-packs/migrations). |
-| Optional hook | A pack can omit its initializer. Any declared configuration model must still validate. |
+Register one synchronous initializer per pack. It proposes changes during planning, including dry runs; it never runs during upgrades. See the [initializer contract](/harnest/reference/api/authoring#initializer-contract) for registration and validation rules.
 
 ## Add defaults and generated files
 
@@ -50,12 +35,7 @@ Operations default to `WritePolicy.IF_MISSING`. They preserve values already pro
 
 ## Use the context
 
-| Member | What it provides |
-|---|---|
-| `context.name` | The requested project directory's final path component. |
-| `context.options` | Validated Pydantic options, or `None` if the pack declares none. |
-| `context.files` | Read staged UTF-8 files and propose file/template operations. |
-| `context.yaml` | Read staged mappings and propose field changes. |
+[ProjectContext](/harnest/reference/api/authoring#projectcontext) provides the project name, validated options, staged files, and YAML helpers.
 
 Reads see the current staged project. Operations returned by one hook execute in order after that hook returns; constructing an operation does not update later reads inside the same function.
 

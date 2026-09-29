@@ -5,22 +5,22 @@ sidebarTitle: "Storage overview"
 description: "Choose storage authorities for committed sessions, in-progress checkpoints, media, and application data."
 ---
 
-Harnest keeps committed session state separate from private in-progress execution state. It discovers storage factories across root and Harnest Extension extension files, then assembles one typed registry. Every application resolves exactly one session store and one checkpointer, even when both roles share the same backend object.
+Each application needs one session store for committed data and one checkpointer for in-progress execution. Both roles can share a backend.
 
 | Role | Holds | Agent access | Guide |
 |---|---|---|---|
-| Sessions | Committed conversation history and application session data | `context.session` | [Sessions and application storage](/harnest/runtime/session-storage) |
+| Sessions | Committed conversation history and application session data | [`context.session`](/harnest/reference/api/context#sessioncontext) | [Sessions and application storage](/harnest/runtime/session-storage) |
 | Checkpoints | Active run state, framework snapshots, pending writes, and resumable waits | Framework-owned | [Checkpoints](/harnest/runtime/checkpoints) |
-| Tasks and cron | Queued work, results, leases, and recurring schedules | `harnest.task` / `harnest.cron` | [Task and cron storage](/harnest/runtime/task-storage) |
-| Named assets | Session-owned media bytes | `context.assets("name")` | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
-| Named custom storage | Domain repositories | `context.storage("name")` | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
+| Tasks and cron | Queued work, results, leases, and recurring schedules | [`harnest.task`](/harnest/reference/api/task) / [`harnest.cron`](/harnest/reference/api/cron) | [Task and cron storage](/harnest/runtime/task-storage) |
+| Named assets | Session-owned media bytes | [`context.assets("name")`](/harnest/reference/api/context#scopedassets) | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
+| Named custom storage | Domain repositories | [`context.storage("name")`](/harnest/reference/api/context#storagecontext) | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
 
 ## Reuse a backend without merging roles
 
 Put a shared connection in `lib/`, then declare each responsibility in its own extension file:
 
-<Tabs>
-  <Tab title="lib/state.py">
+<Steps>
+  <Step title="lib/state.py">
     ```python
     import os
 
@@ -28,12 +28,11 @@ Put a shared connection in `lib/`, then declare each responsibility in its own e
 
     state = PostgresStore(os.environ["DATABASE_URL"])
     ```
-  </Tab>
-  <Tab title="lifecycle/sessions.py">
+  </Step>
+  <Step title="lifecycle/sessions.py">
     ```python
     from harnest.lib.state import state
     from harnest import lifecycle
-
 
     @lifecycle.storage.sessions
     def sessions():
@@ -41,12 +40,11 @@ Put a shared connection in `lib/`, then declare each responsibility in its own e
 
         return state
     ```
-  </Tab>
-  <Tab title="lifecycle/checkpoints.py">
+  </Step>
+  <Step title="lifecycle/checkpoints.py">
     ```python
     from harnest.lib.state import state
     from harnest import lifecycle
-
 
     @lifecycle.storage.checkpoints
     def checkpoints():
@@ -54,8 +52,8 @@ Put a shared connection in `lib/`, then declare each responsibility in its own e
 
         return state
     ```
-  </Tab>
-</Tabs>
+  </Step>
+</Steps>
 
 Harnest starts the shared object once and closes it once. Separate factories make ownership visible even when the physical backend is the same. If one small factory intentionally owns both roles, you can stack the two decorators.
 
@@ -63,9 +61,9 @@ Harnest starts the shared object once and closes it once. Separate factories mak
 
 | Store | Best for | Limitation |
 |---|---|---|
-| `MemoryStore` | Local development and tests | Process-local and lost on restart |
-| `PostgresStore` | Durable sessions, checkpoints, and continuations | Requires PostgreSQL |
-| `RedisStore` | Distributed sessions and expiring checkpoints | Durability depends on Redis configuration |
+| [`MemoryStore`](/harnest/reference/api/store#memorystore) | Local development and tests | Process-local and lost on restart |
+| [`PostgresStore`](/harnest/reference/api/store#postgresstore) | Durable sessions, checkpoints, and continuations | Requires PostgreSQL |
+| [`RedisStore`](/harnest/reference/api/store#redisstore) | Distributed sessions and expiring checkpoints | Durability depends on Redis configuration |
 | Custom store | Existing infrastructure | You own schema, migration, and durability |
 
 <CardGroup cols={2}>

@@ -18,7 +18,7 @@ Use `--project <agent-root>` when running the command from elsewhere.
 | Tool type | Runs in | Best for |
 |---|---|---|
 | `@tool` | Agent server | Business logic and provider calls |
-| `@client_tool` | Browser, desktop, or mobile host | UI and device capabilities |
+| [`@client_tool`](/harnest/reference/api/agent#client_tool) | Browser, desktop, or mobile host | UI and device capabilities |
 | MCP tool | Remote MCP server | External capability servers |
 
 ## Discovery properties
@@ -30,7 +30,7 @@ Use `--project <agent-root>` when running the command from elsewhere.
 | Description | Docstring or decorator description |
 | Arguments | Structured values |
 | Results | Structured values, optionally validated by Pydantic |
-| Credentials | Resolve through `context.credentials`, never tool arguments |
+| Credentials | Resolve through [`context.credentials`](/harnest/reference/api/credentials#credentialcontext), never tool arguments |
 
 <CardGroup cols={2}>
   <Card title="Server tools" icon="server" href="/harnest/build/agent-tools/server-tools">
@@ -51,8 +51,8 @@ Use `--project <agent-root>` when running the command from elsewhere.
 
 | Need | Use |
 |---|---|
-| Every call requires permission | `@require_human_approval` |
-| Evaluation finds one risky operation | `request_human_approval(...)` |
+| Every call requires permission | [`@require_human_approval`](/harnest/reference/api/agent-approval#require_human_approval) |
+| Evaluation finds one risky operation | [`request_human_approval(...)`](/harnest/reference/api/agent-approval#request_human_approval) |
 | Remote operation requires permission | Approval policy on the MCP client |
 
 Approval resumes the exact suspended task without replaying earlier work.

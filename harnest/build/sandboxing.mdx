@@ -5,13 +5,13 @@ sidebarTitle: "Sandboxing"
 description: "Assign named Python execution providers to agents, then call them from your authored tools on ADK or LangGraph."
 ---
 
-Use a sandbox when your authored Agent Tool needs to run Python outside the agent server. Define the provider, assign it to the agents that need it, and call it from the tool through `context.sandboxes`. The same API works with managed ADK and LangGraph.
+Run Python outside the agent server by defining a sandbox, assigning it to an agent, and calling it through `context.sandboxes`. Both managed frameworks use the same API.
 
 ```text
 Model → your business tool → assigned sandbox → result your tool returns
 ```
 
-An assignment does not create a model-callable execution tool. You choose the business tool's inputs, the code it submits, and the result it returns. Only that submitted code runs in the sandbox; the surrounding tool function and the agent server do not.
+Your Agent Tool chooses the code and returned result. Only submitted code runs in the sandbox; the tool itself runs on the server.
 
 ## Enable container execution
 
@@ -28,7 +28,6 @@ Create one file per sandbox, then choose which sandboxes each agent can use. For
 from harnest.extensions.docker import docker
 from harnest.sandbox import SandboxNetworkPolicy
 
-
 calculations = docker.sandbox(
     image="python:3.12-slim@sha256:<approved-digest>",
     network_policy=SandboxNetworkPolicy.none(),
@@ -37,11 +36,11 @@ calculations = docker.sandbox(
 )
 ```
 
-Docker must be available when code executes. The extension owns the Docker SDK and provider implementation; Harnest core supplies the framework-neutral sandbox contract. Compilation and agent startup do not start a container, and there is no fallback to executing submitted code in the agent server. The extension declares `sandbox.provider`, creates no browser or model tool, and works for ordinary Python workloads on managed ADK and LangGraph.
+Docker is required at execution time. Compilation and startup do not create containers, and execution never falls back to the host.
 
 ### Assign it to your agent
 
-Add `sandboxes=["calculations"]` to the existing `Agent(...)` declaration in `agent.py`. Keep its other settings, such as the model, unchanged. A minimal complete example is:
+Add `sandboxes=["calculations"]` to the existing [`Agent(...)`](/harnest/reference/api/agent#agent) declaration in `agent.py`. Keep its other settings, such as the model, unchanged. A minimal complete example is:
 
 ```python agent.py
 from harnest.agent import Agent
@@ -67,7 +66,6 @@ from harnest import context
 from harnest.sandbox import SandboxStatus
 from harnest.agent import tool
 
-
 @tool
 async def total_values(values: list[int]) -> dict:
     """Add up to 1,000 whole numbers and return their total."""
@@ -83,7 +81,7 @@ async def total_values(values: list[int]) -> dict:
     return {"total": int(result.stdout.strip())}
 ```
 
-Use `execute(code)` in a synchronous tool or `await aexecute(code)` in an asynchronous tool. Both return `SandboxResult` with `stdout`, `stderr`, `output_files`, and `metadata`. Your tool chooses what to return to the model; the example returns only the total, not the provider response.
+Use `execute(code)` in a synchronous tool or `await aexecute(code)` in an asynchronous tool. Both return [`SandboxResult`](/harnest/reference/api/sandbox#sandboxresult) with `stdout`, `stderr`, `output_files`, and `metadata`. Your tool chooses what to return to the model; the example returns only the total, not the provider response.
 
 The API also accepts keyword-only `input_files=()` for providers that support file transfer. The Docker extension rejects input files and does not mount host files. The example passes serialized values in the code instead.
 
@@ -109,11 +107,11 @@ Add another declaration such as `sandbox/research.py`, defining `research = Sand
 
 | Agent assignment | Available to that agent's authored tools |
 |---|---|
-| `sandboxes=["calculations"]` | `context.sandboxes["calculations"]` |
+| `sandboxes=["calculations"]` | [`context.sandboxes["calculations"]`](/harnest/reference/api/context#sandboxhandle) |
 | `sandboxes=["calculations", "research"]` | `context.sandboxes["calculations"]` and `context.sandboxes["research"]` |
 | No assignment, or `sandboxes=[]` | None |
 
-The model chooses among your business tools, not among automatic sandbox tools. Your tool chooses an assigned sandbox in its implementation. Do not add a model-controlled provider name or arbitrary code parameter unless that broad execution capability is intentional. Provider configuration and invocation identity remain outside the model's control.
+Keep sandbox selection inside your business tool. Expose arbitrary code or provider selection to the model only if that broader authority is intentional.
 
 Names must be Python-style ASCII identifiers, at most 47 characters: start with a letter, then use letters, digits, or underscores. Names beginning with `_` are ignored examples, not active sandboxes. The filename and variable name must match. Put helpers in `lib/`, not in extra public files inside `sandbox/`.
 
@@ -125,54 +123,11 @@ The root `sandbox/` catalog is available to all agents in the same project, incl
 
 ### Docker scopes and budgets
 
-The Docker extension works with both frameworks and does not use ADK's sandbox executor. Defaults provide a fresh container per execution, disabled networking, a non-root user, a read-only root filesystem, and bounded writable `/tmp` scratch space.
+The default Docker sandbox starts a fresh container for each execution with networking disabled and bounded CPU, memory, processes, output, and scratch space. Choose [reuse scope and networking](/harnest/build/extensions/official/docker) only when your workload needs them; see [execution budgets](/harnest/reference/api/extensions-docker#execution-budgets) for defaults and image requirements.
 
-```python sandbox/calculations.py
-from harnest.extensions.docker import docker, DockerScope
-from harnest.sandbox import SandboxBudget, SandboxNetworkPolicy
+Retained topologies are scoped caches, not durable storage. They may be evicted, and a session ID never grants reuse across users or agents. Use application storage for persistence. Timeouts, cancellation, and output overflow discard the container; replacement waits for confirmed cleanup. An unavailable Docker daemon cannot prove that a container stopped.
 
-calculations = docker.sandbox(
-    image="python:3.12-slim@sha256:<approved-digest>",
-    scope=DockerScope.EXECUTION,
-    budget=SandboxBudget(
-        cpu=1.0,
-        memory_bytes=512 * 1024 * 1024,
-        pids=64,
-        scratch_bytes=64 * 1024 * 1024,
-    ),
-    network_policy=SandboxNetworkPolicy.none(),
-    timeout_seconds=300,
-    max_output_bytes=1_048_576,
-)
-```
-
-| Setting | Default and behavior |
-|---|---|
-| `scope` | `DockerScope.EXECUTION`: remove the topology after every call |
-| `DockerScope.INVOCATION` | Reuse only for the same agent, user, session, and invocation |
-| `DockerScope.SESSION` | Reuse only for the same agent, user, and session |
-| `max_scopes` | `8`: evict the least recently used retained container before exceeding this cap |
-| `budget.cpu` | `1.0` CPU, enforced by Docker |
-| `budget.memory_bytes` | `512 MiB`, with no additional swap allowance |
-| `budget.pids` | `64` processes |
-| `budget.scratch_bytes` | `64 MiB` for writable `/tmp`; the root filesystem is read-only |
-| `timeout_seconds` | `300`; includes queue waiting and active execution |
-| `max_output_bytes` | `1 MiB` combined stdout/stderr, bounded while streaming |
-| `network_policy` | `SandboxNetworkPolicy.none()`; uses Docker's `none` network without services or an internal topology bridge with services |
-| `image` / `docker_path` | Supply exactly one; custom images must provide `python3` and must not declare volumes |
-| `base_url` | Optional Docker daemon URL |
-
-Retained scopes reuse the primary container and its `/tmp` scratch files while that identity remains cached, but not live Python processes or durable storage. Every successful call stops primary-container processes, including detached children. Declared service containers remain running for the retained topology. Topologies are scoped caches and may be evicted; use application storage for persistence. Invocation/session scopes reject requests without the full required identity. A session ID alone never permits reuse across users or agents.
-
-The Docker extension can also create an extension-owned bridge with bounded service containers, internal DNS aliases, readiness checks, and independent budgets. It never publishes declared service ports on the host. See [Docker extension](/harnest/build/extensions/official/docker#add-service-containers) for the topology API and cleanup contract.
-
-The extension starts Docker only on execution. Timeouts, cancellation, and output overflow remove the owned container. Replacement waits for confirmed cleanup; ambiguous creation or failed cleanup blocks further admission until ownership is reconciled. Application shutdown closes created providers and removes all retained containers.
-
-Initial image preparation and Docker control-plane calls use SDK transport timeouts. Harnest checks admission and the execution deadline again when those calls return. An unavailable Docker daemon cannot prove that a container stopped.
-
-The Docker extension does not support input-file transfer or output artifacts. Use stdout or a custom provider with an explicit file contract. Docker shares its host kernel; use a stronger isolation provider if that boundary is insufficient for your workload.
-
-`options` retains the allowlisted parsing/retry fields only for callers explicitly constructing a native ADK adapter with `to_adk_executor()`. Those fields do not change Docker limits or add model tools to named sandbox assignments. Your authored tool decides whether to retry.
+The Docker provider does not transfer input or output files. Use stdout or a provider with an explicit file contract. Docker shares the host kernel, so choose stronger isolation when your workload requires it. See [Docker cleanup and security](/harnest/build/extensions/official/docker#understand-deadlines-and-cleanup) before deployment.
 
 ## Framework behavior
 
@@ -181,15 +136,15 @@ The Docker extension does not support input-file transfer or output artifacts. U
 | ADK | Your authored Agent Tool uses ADK's native tool loop | `SandboxResult` returned to your tool |
 | LangGraph | Your authored Agent Tool uses LangGraph's native tool loop | `SandboxResult` returned to your tool |
 
-The Docker extension uses Harnest's shared provider contract underneath either integration. Queued calls are checked again before execution, so cancelled, expired, or revoked requests cannot start later merely because the queue advances. You keep one authoring API; Harnest adapts it to the selected framework's execution loop.
+Queued calls recheck invocation authority before execution, so cancelled, expired, or revoked requests cannot start.
 
 Named assignments do not populate ADK's `code_executor` field or create an automatic LangGraph execution tool. Both frameworks access the same sandbox contract through authored tools.
 
-`context.sandboxes` is available only during a managed invocation. Looking up an unassigned name raises `ContextResourceError`. Using a handle from a different or ended invocation raises `ContextUnavailableError`; do not cache handles or pass them between agents.
+`context.sandboxes` is available only during a managed invocation. Looking up an unassigned name raises [`ContextResourceError`](/harnest/reference/api/context#contextresourceerror). Using a handle from a different or ended invocation raises [`ContextUnavailableError`](/harnest/reference/api/context#contextunavailableerror); do not cache handles or pass them between agents.
 
 ## Bring your own provider
 
-A portable provider implements `SandboxBackend`: its `execute(request: SandboxRequest)` method returns `SandboxResult`. Pass a lazy factory to `Sandbox.provider(...)`:
+A portable provider implements [`SandboxBackend`](/harnest/reference/api/sandbox#sandboxbackend): its `execute(request: SandboxRequest)` method returns `SandboxResult`. Pass a lazy factory to [`Sandbox.provider(...)`](/harnest/reference/api/sandbox#sandbox-provider):
 
 ```python sandbox/research.py
 from harnest.sandbox import Sandbox
@@ -203,16 +158,11 @@ research = Sandbox.provider(
 )
 ```
 
-Assign this provider with `sandboxes=["research"]`. `CompanyBackend` represents your adapter around a provider SDK, not a Harnest built-in. Put SDK-specific connection settings and credentials in that factory. Harnest calls it when execution first needs the backend, not during compilation.
+Assign the provider with `sandboxes=["research"]`. `CompanyBackend` is your SDK adapter. Put connection settings and credentials in its factory, which runs on first use.
 
-| Contract | Properties |
-|---|---|
-| `SandboxRequest` | `code`, `timeout_seconds`, `context`, `input_files`, `execution_id`, `metadata`, `network_policy` |
-| `SandboxContext` | Optional `agent_name`, `invocation_id`, `user_id`, and `session_id` |
-| `SandboxResult` | `status`, `exit_code`, `stdout`, `stderr`, `output_files`, `metadata` |
-| `SandboxFile` | `name`, `content` as bytes or base64 text, and `mime_type` |
+Implement [SandboxBackend](/harnest/reference/api/sandbox#sandboxbackend) using the [request, context, result, and file contracts](/harnest/reference/api/sandbox#provider-data-contracts). Keep provider-specific settings inside the factory.
 
-Import these types from `harnest.sandbox`. Your provider must enforce the requested timeout and its own isolation policy. Invocation identity can be absent when an adapter is called outside the runtime; reject such requests if your provider requires a user or session identity. A revoked managed context fails closed rather than becoming anonymous. File names are transport values, not permission to access host paths.
+Providers enforce timeout and isolation. Reject missing identity if your provider requires it; revoked managed contexts never become anonymous. File names do not authorize host-path access.
 
 The Docker extension's guard cannot terminate arbitrary third-party SDK calls. Custom providers remain responsible for stopping active work, bounded output collection, and resource cleanup. Harnest checks invocation validity before admitting their calls.
 
@@ -231,7 +181,6 @@ from harnest.sandbox import (
 )
 from company_sandbox import CompanyBackend
 
-
 class PolicyBackend(CompanyBackend):
     sandbox_capabilities = SandboxProviderCapabilities(
         network_modes=frozenset({
@@ -242,7 +191,6 @@ class PolicyBackend(CompanyBackend):
         port_allowlist=True,
         private_network_blocking=True,
     )
-
 
 research = Sandbox.provider(
     PolicyBackend,
@@ -273,11 +221,11 @@ provider declare the `sandbox.provider` extension capability.
 
 ### Provider metadata
 
-`metadata` accepts arbitrary JSON properties separately from native SDK configuration. Harnest copies and deeply freezes these properties, preserves JSON value types, and omits them from declaration, request, and result representations. Unsupported objects, non-string object keys, nonfinite numbers, and cycles are rejected rather than converted to strings.
+`metadata` contains immutable JSON properties, separate from SDK configuration and omitted from object representations. Invalid JSON values are rejected.
 
-Declaration metadata reaches `request.metadata`; the named capability API does not let the model override it. Your provider can return separate `SandboxResult(metadata=...)` properties, such as execution status or usage figures. These reach your authored tool unchanged; return only the fields the model needs.
+Declaration metadata reaches `request.metadata`. Provider result metadata reaches your tool; return only fields the model needs.
 
-The Docker extension does not automatically echo declaration metadata into results. Use a provider wrapper when you want to return measured or provider-supplied details. For a remote provider, translate the SDK response into `SandboxResult`. Keep secrets in provider configuration, not returned metadata. Add the provider package to your project's `pyproject.toml`. Do not implement `execute()` with host-side `exec()`, `eval()`, or an unisolated subprocess.
+Wrap the provider to return measured details as `SandboxResult` metadata. Keep secrets in configuration and declare SDK dependencies in `pyproject.toml`. Never implement isolation with host-side `exec()`, `eval()`, or an unisolated subprocess.
 
 <Warning>
   Your authored tool controls whether provider metadata becomes model-visible. Do not return credentials, secrets, or private identifiers. Legacy model execution adapters expose result metadata automatically. In the legacy ADK code-execution loop, nonempty metadata wraps stdout as JSON with `stdout` and `metadata` keys because that native result has no metadata field. Empty metadata leaves stdout unchanged; stderr keeps ADK's native error behavior.
@@ -287,16 +235,9 @@ The Docker extension does not automatically echo declaration metadata into resul
 
 Check `result.status`, not whether stderr is empty. A program can write warnings to stderr and still succeed, or exit nonzero without an error message.
 
-| Status | Meaning |
-|---|---|
-| `succeeded` | Execution completed successfully |
-| `failed` | Nonzero exit or provider-reported failure |
-| `timed_out` | Execution deadline expired |
-| `output_limit_exceeded` | Combined output exceeded its budget |
-| `cancelled` | Provider-reported cancellation; managed caller cancellation also propagates as an exception |
+Use [SandboxStatus](/harnest/reference/api/sandbox#sandboxstatus) to distinguish program failure, timeouts, cancellation, and output-budget exhaustion. The [execution status reference](/harnest/reference/api/sandbox#execution-statuses) explains each result.
 
-`exit_code` is the process exit code when available. Custom providers must set failure status explicitly: `SandboxResult(status="failed", exit_code=1, stderr="...")`. The default status is `succeeded`; a nonzero exit code cannot claim success. Sanitized `SandboxExecutionError` also exposes a `status` field.
-
+`exit_code` is the process exit code when available. Custom providers must set failure status explicitly: `SandboxResult(status="failed", exit_code=1, stderr="...")`. The default status is `succeeded`; a nonzero exit code cannot claim success. Sanitized [`SandboxExecutionError`](/harnest/reference/api/sandbox#sandboxexecutionerror) also exposes a `status` field.
 
 | Failure | Expected behavior and next step |
 |---|---|
@@ -312,9 +253,9 @@ Provider exceptions are exposed as sanitized `SandboxExecutionError`. Diagnose i
 
 ## Failure recovery and cleanup
 
-An ordinary exception escaping a nested execution scope fails that scope and blocks its retained workers. It does not cancel the parent operation. Your provider can catch a recoverable error, such as a missing container, and retry within the remaining parent budget. A shorter helper deadline also stays local. Explicit cancellation and invocation revocation still block further execution.
+Nested execution failures and shorter deadlines affect only their scope. Recoverable errors can be retried within the parent budget; cancellation and revocation block further execution.
 
-Import provider controls with `from harnest.sandbox import control`. Use `control.execute(timeout_seconds=...)` for nested execution scopes and `control.current()` to inspect the active control. Use `control.cleanup(...)` to release resources after cancellation or invocation revocation:
+Import provider controls with `from harnest.sandbox import control`. Use [`control.execute(timeout_seconds=...)`](/harnest/reference/api/sandbox#control-execute) for nested execution scopes and [`control.current()`](/harnest/reference/api/sandbox#control-current) to inspect the active control. Use [`control.cleanup(...)`](/harnest/reference/api/sandbox#control-cleanup) to release resources after cancellation or invocation revocation:
 
 ```python
 from harnest.sandbox import control
@@ -325,12 +266,12 @@ with control.cleanup(timeout_seconds=5) as cleanup:
     client.remove(container_id, timeout=cleanup.remaining())
 ```
 
-`client.remove` represents your provider SDK's resource-removal call; use its actual timeout parameter. Cleanup has its own finite deadline, and nested cleanup cannot extend it. New sandbox execution is forbidden inside cleanup. Returning restores the original execution control without clearing its cancellation; retained cleanup contexts are then revoked.
+Use your SDK’s removal call and timeout parameter in place of `client.remove`. Cleanup has a finite deadline that nested scopes cannot extend. It forbids new execution and preserves the original cancellation state.
 
-This is a cooperative deadline, not a mechanism for killing Python threads. Check before each cleanup operation and apply the remaining budget to SDK I/O and lock acquisition (`cleanup.acquire(lock)`). A blocking SDK that ignores timeouts can still overrun the budget. Treat timeout or uncertain removal as incomplete cleanup, retain the owned resource handle, and prevent replacement until cleanup is confirmed.
+Cleanup deadlines are cooperative. Apply the remaining budget to SDK calls and `cleanup.acquire(lock)`. If removal is uncertain, retain the resource handle and block replacement until confirmed.
 
 ## Security ownership
 
 Harnest enforces named agent grants, revocable invocation handles, request validation, and deadline propagation. The Docker extension enforces identity-scoped containers, kernel CPU/memory/process/scratch budgets, host deadlines, bounded output, and failure-safe cleanup. It does not mount host paths and rejects image-declared volumes.
 
-Custom providers remain responsible for their own tenant separation, filesystem/network policy, resource limits, output bounds, cancellation, and cleanup. Harnest validates their requests and results and checks admission; it cannot enforce Docker limits on an arbitrary remote SDK. Deployment permissions do not replace an enforcing provider.
+Custom providers own tenant isolation, resource and output limits, networking, cancellation, and cleanup. Harnest validates inputs and admission but cannot enforce isolation inside an arbitrary SDK.

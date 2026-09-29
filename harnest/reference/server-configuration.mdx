@@ -1,0 +1,32 @@
+---
+title: "Server configuration reference"
+sidebarTitle: "Server settings"
+description: "Server defaults and configuration properties."
+icon: "sliders"
+---
+
+Use the [server configuration guide](/harnest/runtime/serving/server-configuration) to change defaults, enable WebSockets, and configure limits. Author these settings under `server:` in project `config.yaml`; compiled launchers read their generated `server.yaml`.
+
+## Server properties
+
+All property paths below are relative to `server` in `config.yaml`.
+
+| Property | Controls | Default |
+|---|---|---|
+| `live` | Enable WebSocket connections | `false` |
+| `openapi` | Expose API documentation and JSON/YAML spec resources | `true` |
+| `agentPrincipal` | Require custom agent invocations to bind runtime grants | `optional` |
+| `http.host` | Bind host | `127.0.0.1` |
+| `http.port` | Bind port | `1907` |
+| `http.allowRemote` | Consent for a non-loopback bind | `false` |
+| `http.requestTimeoutSeconds` | Request timeout in seconds | `300` |
+| `http.maxConcurrentRequests` | Active in-process requests (`1`–`100000`) | `8` |
+| `limits.maxRequestBytes` | HTTP body and WebSocket frame size | `1MiB` |
+| `playground.enabled` | Allow the UI supplied by local `harnest serve`; does not add UI to deployments | `true` |
+
+Unknown fields, invalid types, and out-of-range values fail during compilation. Omit a field to inherit its default; `null` does not mean “use the default.”
+
+Set `agentPrincipal: required` when every custom HTTP route must pass an
+application-authorized `agent_principal=` to [`AgentInvoker`](/harnest/reference/api/http#agentinvoker). An omission then
+fails before Harnest creates a session. Neutral Harnest routes do not construct
+application-specific grant sets and are unaffected by this setting.

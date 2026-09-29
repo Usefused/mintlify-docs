@@ -5,7 +5,7 @@ sidebarTitle: "Store media"
 description: "Select a named asset store, persist media, and retrieve it through the invocation context."
 ---
 
-Use `Stored(...)` when media must remain available after its current model turn.
+Use [`Stored(...)`](/harnest/reference/api/assets#stored) when media must remain available after its current model turn.
 
 ## Choose a lifetime
 
@@ -26,7 +26,6 @@ from pydantic import BaseModel
 from harnest.assets import Stored
 from harnest.content import Image, ImageConstraints
 
-
 class CaptureResult(BaseModel):
     screenshot: Annotated[
         Image,
@@ -42,7 +41,7 @@ class CaptureResult(BaseModel):
 
 | Property | Controls |
 |---|---|
-| `store` | Named `AssetStorage` selected for this field |
+| `store` | Named [`AssetStorage`](/harnest/reference/api/assets#assetstorage) selected for this field |
 | `path` | Storage-specific path hint |
 | `expires_in` | Lifetime of each model-facing signed URL |
 | `retention` | Requested lifetime of the stored bytes |
@@ -53,7 +52,6 @@ class CaptureResult(BaseModel):
 from harnest.assets import AssetStorage
 from harnest import lifecycle
 from harnest.lib.assets import S3AssetStorage
-
 
 @lifecycle.storage.assets("media")
 def media_assets() -> AssetStorage:
@@ -66,11 +64,10 @@ Store names are explicit. Harnest does not choose another backend or storage pol
 
 <Tabs>
   <Tab title="Inside an invocation">
-    `context.assets` supplies the current authenticated user and session and routes the reference to its named store.
+    [`context.assets`](/harnest/reference/api/context#scopedassets) supplies the current authenticated user and session and routes the reference to its named store.
 
     ```python
     from harnest import context
-
 
     record = await context.assets.stat(result.screenshot)
     payload = await context.assets.get(
@@ -106,7 +103,7 @@ Store names are explicit. Harnest does not choose another backend or storage pol
 |---|---|
 | Tool or agent produces valid inline media | Saves it before framework persistence |
 | Framework stores the value | Persists only `assetId` and store name |
-| Model needs the media | Requests a fresh URL from `AssetURLStorage` |
+| Model needs the media | Requests a fresh URL from [`AssetURLStorage`](/harnest/reference/api/assets#asseturlstorage) |
 | Provider call completes | Discards the signed URL instead of adding it to history |
 
 The field's `expires_in` applies when the model URL is generated, not when media is captured.
@@ -116,3 +113,7 @@ The field's `expires_in` applies when the model URL is generated, not when media
 </Warning>
 
 See [Accept multimodal data](/harnest/build/models-and-libraries/typed-multimodal-contracts), [Runtime storage](/harnest/runtime/checkpoints-and-storage), and [Neutral API](/harnest/runtime/serving/neutral-api).
+
+## API reference
+
+Reference: [`harnest.content`](/harnest/reference/api/content).

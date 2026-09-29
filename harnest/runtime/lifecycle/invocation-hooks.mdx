@@ -16,15 +16,14 @@ Use `--project <agent-root>` when running the command from elsewhere, then choos
 
 | Boundary | Decorators | Typical use |
 |---|---|---|
-| Agent | `lifecycle.agent.before/after/on_error` | Request policy and accounting |
-| Model | `lifecycle.model.before/after/on_error` | Input and output policy |
-| Tool | `lifecycle.tool.before/after/on_error` | Tool guardrails and results |
-| MCP | `lifecycle.mcp.before/after/on_error` | Governed remote-tool policy |
-| HTTP | `lifecycle.http.before/after/on_error` | Routing and response-head policy |
+| Agent | [`lifecycle.agent.before/after/on_error`](/harnest/reference/api/lifecycle#agent) | Request policy and accounting |
+| Model | [`lifecycle.model.before/after/on_error`](/harnest/reference/api/lifecycle#model) | Input and output policy |
+| Tool | [`lifecycle.tool.before/after/on_error`](/harnest/reference/api/lifecycle#tool) | Tool guardrails and results |
+| MCP | [`lifecycle.mcp.before/after/on_error`](/harnest/reference/api/lifecycle#mcp) | Governed remote-tool policy |
+| HTTP | [`lifecycle.http.before/after/on_error`](/harnest/reference/api/lifecycle#http) | Routing and response-head policy |
 
 ```python
 from harnest import lifecycle
-
 
 @lifecycle.tool.before(order=-100)
 async def check_tool(context, request):
@@ -35,11 +34,7 @@ async def check_tool(context, request):
 
 ## Control flow
 
-| Return | Effect |
-|---|---|
-| `context.next()` | Continue unchanged |
-| `context.next(replacement)` | Pass a replacement to the next stage |
-| `context.finish(result)` | Stop the chain with a final result |
+Return [context.next()](/harnest/reference/api/lifecycle#lifecyclecontext-next) to continue, optionally with a replacement value. Return [context.finish(result)](/harnest/reference/api/lifecycle#lifecyclecontext-finish) to end the chain with a final result.
 
 Tool, MCP, and HTTP `before` and `after` interceptors require explicit control flow. Agent and model hooks accept legacy return values, but explicit transitions keep policy readable and portable.
 
@@ -57,10 +52,7 @@ Error hooks normally return `context.next()`. An MCP error hook can use `finish(
 | Error observer | Cannot hide the original failure |
 | Agent identity | Model hooks receive the managed agent or SubAgent performing that model call |
 
-The `agent_name` on a model lifecycle context is call-specific. When a managed
-SubAgent calls a model, it contains that SubAgent's name rather than the root
-agent's name. The authenticated user, session, and invocation IDs remain those
-of the root request, including when sibling SubAgents run concurrently.
+Model hooks identify the calling agent in `agent_name`. User, session, and invocation IDs remain shared with the root request, including concurrent SubAgents.
 
 Keep business operations in Agent Tools. Hooks should apply policy, observation, or transformation around those operations.
 

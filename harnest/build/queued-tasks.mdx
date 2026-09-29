@@ -5,12 +5,14 @@ sidebarTitle: "Create a Task"
 description: "Define, defer, inspect, cancel, and await retryable application work."
 ---
 
-Use `@task` for application-owned queue work. A task is not model-visible; an Agent Tool decides when to defer it.
+Use Tasks for work that should run independently of a model call, such as generating a report, processing an upload, or calling a slow service with retries. An Agent Tool decides when to queue the work. The task itself is not model-visible.
+
+Use an ordinary function call when the caller can do the work immediately and does not need queueing or recovery. See the [`harnest.task` API reference](/harnest/reference/api/task) for parameters, return types, and methods.
 
 | Call | Behavior |
 |---|---|
 | `await build_report(...)` | Runs an async task body as an ordinary local Python call |
-| `await build_report.defer(...)` | Commits queue work and returns `TaskHandle` |
+| `await build_report.defer(...)` | Commits queue work and returns [`TaskHandle`](/harnest/reference/api/task#taskhandle) |
 | `await handle.result()` | Returns a terminal result or suspends a durable tool |
 
 ## Define and call a task
@@ -23,13 +25,13 @@ harnest add task build-report
 
 Use `--project <agent-root>` when running the command from elsewhere. The generated file is suitable when no other module imports the task; use the shared-library pattern below when tools also import it.
 
-When a tool needs the task callable, define it once in `lib/` and re-export it from `tasks/`:
+When a tool needs the task callable, define it once in `lib/` and re-export it from `tasks/`. The following three files work together:
 
-<CodeGroup>
+<Steps>
+<Step title="Define the shared task">
 
 ```python lib/report_tasks.py
 from harnest.task import task
-
 
 @task(queue="reports", max_retries=3)
 async def build_report(account_id: str) -> dict:
@@ -38,14 +40,19 @@ async def build_report(account_id: str) -> dict:
     return {"account_id": account_id, "status": "ready"}
 ```
 
+</Step>
+<Step title="Make the task discoverable">
+
 ```python tasks/build_report.py
 from harnest.lib.report_tasks import build_report
 ```
 
+</Step>
+<Step title="Queue work from an Agent Tool">
+
 ```python tools/request_report.py
 from harnest.lib.report_tasks import build_report
 from harnest.agent import tool
-
 
 @tool(durable=True)
 async def request_report(account_id: str) -> dict:
@@ -55,39 +62,30 @@ async def request_report(account_id: str) -> dict:
     return await handle.result()
 ```
 
-</CodeGroup>
+</Step>
+</Steps>
 
-If nothing imports the task, you can define it directly in `tasks/<name>.py`. The file must export exactly one same-named `@task` callable.
+If nothing imports the task, you can define it directly in `tasks/<name>.py`. The file must export exactly one same-named [`@task`](/harnest/reference/api/task#task) callable.
 
-| Authoring rule | Contract |
-|---|---|
-| Location | Flat root `tasks/<name>.py` |
-| Export | Exactly one same-named `@task` callable |
-| Documentation | A docstring is required |
-| Body | Synchronous or asynchronous |
-| Arguments and result | Strict JSON values only |
-| Deferred signature | No positional-only parameters or `*args` |
+Tasks can be synchronous or asynchronous. Give each task a docstring and accept JSON-safe arguments; its result must also be JSON-safe. See the [task parameter contracts](/harnest/reference/api/task#task-parameters) for signature restrictions.
 
-## Control a job
+## Decide whether to wait
 
-The returned `TaskHandle` supports `await handle.status()`, `await handle.cancel()`, and `await handle.result()`. A handle belongs to the active compiled runtime; there is no public API to reconstruct or list handles by ID.
+For fire-and-forget work, defer the task and return its ID to the caller. Wait for its result when the agent needs the output to continue. An unfinished result requires an async [`@tool(durable=True)`](/harnest/reference/api/agent#tool) and a Harnest-owned checkpointer.
 
-| Option | Purpose |
-|---|---|
-| `queue=` | Select a worker queue |
-| `max_retries=` | Set queue retry policy |
-| `schedule_in=` | Delay submission by seconds |
-| `idempotency_key=` | Deduplicate a logical submission |
+The returned [`TaskHandle`](/harnest/reference/api/task#taskhandle) lets managed code inspect status, cancel work, and access its result. It belongs to the active compiled runtime; there is no public API to reconstruct or list handles by ID.
 
-Inside `@tool(durable=True)`, Harnest derives a replay-stable idempotency key when you omit one. Keep task effects idempotent because workers can retry.
+## Make retries safe
 
-Use `await task.defer(...)` without `handle.result()` for fire-and-forget work. Await a result only from an async `@tool(durable=True)` when the agent must resume after the Task finishes. An unfinished result requires a Harnest-owned checkpointer.
+Workers can retry a task. Make side effects idempotent, such as recording a report under a stable business key before notifying another service. An idempotency key deduplicates submission; it does not make every external effect happen exactly once.
+
+Inside a durable tool, Harnest derives a replay-stable submission key when you omit one. Use [`defer(schedule_in=...)`](/harnest/reference/api/task#taskcallable-defer) for a one-time delay. For recurring work, use [Cron schedules](/harnest/build/scheduled-tasks).
 
 ## Runtime requirements
 
 | Requirement | Behavior |
 |---|---|
-| Queue backend | Harnest workers with an explicit `lifecycle.storage.tasks` provider; no fallback |
+| Queue backend | Harnest workers with an explicit [`lifecycle.storage.tasks`](/harnest/reference/api/lifecycle#storage-tasks) provider; no fallback |
 | Installation | `harnest_postgres` and `harnest_redis` are bundled with Harnest; declare custom adapter dependencies in your project |
 | Database | PostgreSQL, Redis, or a custom provider selected by your Lifecycle factory |
 | Payloads and results | JSON-safe values only |
@@ -95,7 +93,7 @@ Use `await task.defer(...)` without `handle.result()` for fire-and-forget work. 
 | Runtime principal | Permission names and invocation identity are persisted separately; the principal object and credentials are not |
 | Defer boundary | Available only while the compiled Harnest runtime is active |
 
-Configure [Task and cron storage](/harnest/runtime/task-storage) before serving queued work. That guide shows how to set up a database connection in a shared factory and provide its configuration through the environment. Every replica can run a worker against the same provider. Run these commands from your agent folder after configuring storage:
+Configure [Task and cron storage](/harnest/runtime/task-storage), then run from your agent folder. Replicas can share the same persistent provider:
 
 ```bash
 harnest env sync .
@@ -103,41 +101,17 @@ harnest test .
 harnest serve .
 ```
 
-The selected provider initializes its storage during runtime startup. Compiling a task definition or calling its body directly does not require task storage; starting queued execution does. Missing storage produces an actionable setup error. Calling `.defer()` from an ordinary imported module without an active compiled runtime raises `TaskUnavailableError`; call the task body directly for isolated unit tests.
+Queued execution requires configured storage and an active compiled runtime. Calling `.defer()` outside it raises [`TaskUnavailableError`](/harnest/reference/api/task#taskunavailableerror). Call the task body directly for database-free unit tests.
 
 ## Start a fresh agent session
 
-A task can invoke the compiled root agent without an HTTP call:
+A task can invoke the compiled root agent without an HTTP call through [`context.agent.create_session()`](/harnest/reference/api/context#localagentruntime-create_session) and [`AgentSession.invoke()`](/harnest/reference/api/context#agentsession-invoke). Pass a stable session `key` when retries should derive the same child session and invocation identities.
 
-```python tasks/review_report.py
-from harnest import context
-from harnest.task import task
-
-
-@task(max_retries=3)
-async def review_report(report_id: str) -> dict:
-    """Start a fresh agent session to review one completed report."""
-
-    session = await context.agent.create_session(
-        state={"report_id": report_id},
-        key=report_id,
-    )
-    response = await session.invoke("Review the completed report")
-    return response.as_dict()
-```
-
-`key` is optional. When supplied, Harnest derives the same opaque child session
-and invocation identities on a task retry. User-deferred tasks inherit the
-calling user and public metadata. Static schedules use Harnest's automation
-identity; dynamic schedules run as their creating user with fresh context and
-empty grants. Calls still pass through storage, plugins, lifecycle, tools, and the
-selected framework runtime.
+Deferred tasks inherit user identity and public metadata. Fixed schedules use the automation identity; dynamic schedules use their creator with fresh context and empty grants.
 
 When `.defer()` runs under an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals), Harnest stores only its permission names and reconstructs a fresh principal for each worker attempt. Agent calls made by the Task inherit that restriction unless trusted task code passes a narrower principal. A Task deferred without an active principal preserves compatibility behavior.
 
-Durable external waits return a typed `in_progress` response. Human approvals
-and client tools fail closed because their continuation is process-local after
-the task returns.
+Durable external waits return a typed `in_progress` response. Human approvals and client tools fail closed because their continuation is process-local after the task returns.
 
 <Warning>
   An unfinished `handle.result()` requires an async `@tool(durable=True)` and a Harnest-owned checkpointer. Harnest resumes framework execution; it does not restore a Python stack.

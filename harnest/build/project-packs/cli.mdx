@@ -5,7 +5,7 @@ sidebarTitle: "Company CLI"
 description: "Expose typed init and upgrade commands and register additional company commands."
 ---
 
-Use `ProjectCLI` to expose your installed packs through a company-owned executable. It uses the same planning API available to custom interfaces.
+Use [`ProjectCLI`](/harnest/reference/api/authoring#projectcli) to expose your installed packs through a company-owned executable. It uses the same planning API available to custom interfaces.
 
 ## Register the entrypoint
 
@@ -77,11 +77,11 @@ acme-agent init ./sales \
   --team sales
 ```
 
-The planner calls `harnest init` with those template options in a temporary staging directory, then runs the pack initializers against the resulting files. The template supplies the initial agent structure, instructions, skills, framework, and mode. Packs apply their project customizations afterward. Existing pack ownership and write policies still govern conflicts.
+Harnest renders the template in staging, then runs pack initializers. The template determines framework, mode, and initial files; pack ownership rules govern later changes.
 
 `--template` cannot be combined with an explicit `--framework` or `--minimal`. `--template-sha256` requires `--template`. Without a template, the framework still defaults to ADK.
 
-Use `--dry-run` to review the combined template and pack changes before creating the project. Planning can download the template; it does not modify the requested destination. A template download or validation failure prevents pack hooks from running and leaves that destination unchanged.
+Use `--dry-run` to review changes without creating the destination. Planning may download the template; download or validation failures stop before pack hooks run.
 
 ## Typed pack options
 

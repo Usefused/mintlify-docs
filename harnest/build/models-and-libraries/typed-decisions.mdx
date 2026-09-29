@@ -9,9 +9,9 @@ Define what your agent needs to decide, choose a provider, and handle the result
 
 | Question | Returns | Use for |
 |---|---|---|
-| `Choice` | One allowed option | Routing and classification |
-| `Score` | A position on your ordered rubric | Relevance and quality |
-| `Predicate` | Probability that a statement is true | Grounding and readiness |
+| [`Choice`](/harnest/reference/api/decisions#choice) | One allowed option | Routing and classification |
+| [`Score`](/harnest/reference/api/decisions#score) | A position on your ordered rubric | Relevance and quality |
+| [`Predicate`](/harnest/reference/api/decisions#predicate) | Probability that a statement is true | Grounding and readiness |
 
 <CardGroup cols={2}>
   <Card title="Use Jev" icon="bolt" href="/harnest/build/models-and-libraries/typed-decisions/jev">
@@ -118,13 +118,13 @@ async def triage_ticket(message: str) -> dict[str, str | None]:
 
 ## Decide when to evaluate
 
-A decision runs only when your code calls `context.decisions.evaluate(...)`. A graph can call it at a fixed step, or an LLM can choose a tool that calls it. Registering a provider does not start a background loop. The [Jev example](/harnest/build/models-and-libraries/typed-decisions/jev) evaluates each incoming ticket before its LLM drafts a reply.
+Call [`context.decisions.evaluate(...)`](/harnest/reference/api/decisions#decisioncontext-evaluate) from a graph step or tool. Registration alone does not evaluate anything. The [Jev example](/harnest/build/models-and-libraries/typed-decisions/jev) evaluates each ticket before drafting a reply.
 
 ## Control public output
 
 | Setting | Effect |
 |---|---|
-| `OutputPolicy(decision_results=False)` | Keep decision events private; the default |
+| [`OutputPolicy(decision_results=False)`](/harnest/reference/api/output#outputpolicy) | Keep decision events private; the default |
 | `OutputPolicy(decision_results=True)` | Publish separate typed decision results |
 
 Both settings leave the result available to your code and the LLM. This policy does not redact values copied into tool results, final responses, or LLM text. The quickstart tool above returns its route as tool output; `tool_activity` controls that output separately. See [Output policy](/harnest/runtime/lifecycle/output-policy#choose-decision-results) for the lifecycle factory and transport behavior.
@@ -133,14 +133,18 @@ Both settings leave the result available to your code and the LLM. This policy d
 
 | Need | Configure |
 |---|---|
-| Route a choice | `ChoicePolicy` with one outcome per option |
+| Route a choice | [`ChoicePolicy`](/harnest/reference/api/decisions#choicepolicy) with one outcome per option |
 | Handle low confidence | `minimum_confidence` and `uncertain` |
-| Gate a score or probability | `ThresholdPolicy` with lower and upper boundaries |
-| Handle evaluation failures | `DecisionBinding.on_error` or catch `DecisionError` |
+| Gate a score or probability | [`ThresholdPolicy`](/harnest/reference/api/decisions#thresholdpolicy) with lower and upper boundaries |
+| Handle evaluation failures | `DecisionBinding.on_error` or catch [`DecisionError`](/harnest/reference/api/decisions#decisionerror) |
 | Read answers without a policy | Omit the policy and use `evaluation.response.answers` |
 
 <Note>
   Outcomes are recommendations for your code to handle. They do not dispatch agents, execute tools, or bypass approvals. The example's `0.8` threshold is illustrative; tune it against your provider and labeled examples.
 </Note>
 
-Use `context.decisions` inside the invocation that obtained it. For standalone code and tests, construct `Decisions` directly. See the [provider reference](/harnest/build/models-and-libraries/typed-decisions/providers) for registration, batching, failures, and telemetry.
+Use [`context.decisions`](/harnest/reference/api/decisions#decisioncontext) inside the invocation that obtained it. For standalone code and tests, construct [`Decisions`](/harnest/reference/api/decisions#decisions) directly. See the [provider reference](/harnest/build/models-and-libraries/typed-decisions/providers) for registration, batching, failures, and telemetry.
+
+## API reference
+
+Reference: [`harnest.agent`](/harnest/reference/api/agent).

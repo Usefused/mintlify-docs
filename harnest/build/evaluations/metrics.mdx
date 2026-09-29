@@ -5,9 +5,9 @@ sidebarTitle: "Metrics reference"
 description: "Compare every built-in evaluation metric, its score range, required evidence, criterion shape, and service dependency."
 ---
 
-Harnest delegates metric computation to the Google ADK 2.x evaluator for both ADK and LangGraph agents. It reflects the installed ADK registry rather than freezing a second allowlist.
+Both frameworks use Google ADK 2.x for scoring. Available metrics come from the installed ADK registry.
 
-The registry shipped at Harnest's Google ADK 2.8 dependency floor contains the 13 metrics below. A compatible later ADK 2.x release can add registry entries without a Harnest code change. Use the playground's **Evals** catalog to inspect the exact installed list.
+The 13 metrics below ship with ADK 2.8, Harnest’s minimum version. Later compatible releases may add metrics; check the playground’s **Evals** catalog for your installed list.
 
 ## Built-in metrics
 
@@ -61,18 +61,11 @@ Scores equal to the threshold pass. Choose a threshold inside the metric's docum
 
 ## Configure model-judged metrics
 
-Judge-backed criteria use the properties below. The final-output option applies only where the evaluator consumes final answer text.
+Configure model-judged metrics through their criteria:
 
-Harnest passes only the judge's final response to verdict parsing. Provider-marked reasoning and partial response chunks are excluded; a rationale written in the final response is retained. Missing final answers do not become passing verdicts. This is separate from `includeIntermediateResponsesInFinal`, which controls evidence from the agent under test, not the judge.
+Verdict parsing uses the judge’s final response, including any rationale. Reasoning and partial chunks are excluded; a missing final answer cannot pass. `includeIntermediateResponsesInFinal` instead controls evidence from the agent under test.
 
-| Property | Default | Applies to | Purpose |
-|---|---:|---|---|
-| `threshold` | Required | Every metric | Pass boundary |
-| `judgeModelOptions.judgeModel` | Configured `OPENAI_MODEL` | Model-judged metrics | Omit to use the shared compatible API; explicit IDs select an ADK model provider |
-| `judgeModelOptions.judgeModelConfig` | None | Model-judged metrics | Google GenAI generation options for judge calls |
-| `judgeModelOptions.numSamples` | `5` | Final-response match, rubric metrics, and simulator-quality metrics | Judge calls per invocation before aggregation |
-| `judgeModelOptions.parallelismLimit` | `1` | Final-response match and rubric metrics | Maximum concurrent judge calls |
-| `includeIntermediateResponsesInFinal` | `false` | `final_response_match_v2` and rubric-based final response quality | Include visible text emitted before tool calls with the final output |
+See the [judge configuration reference](/harnest/reference/api/evaluation#judge-configuration) for thresholds, model overrides, sampling, concurrency, and intermediate-response settings. Higher sample counts increase judge calls and cost.
 
 ```json evals/test_config.json
 {
@@ -112,7 +105,7 @@ Model precedence is an explicit `judgeModel`, then the required `OPENAI_MODEL`. 
 }
 ```
 
-Replace `my-judge-model` with a model served by your configured endpoint. This explicit ID overrides `OPENAI_MODEL`. The judge [reuses a compatible agent model transport](/harnest/build/models-and-libraries/configure-a-model#reuse-an-agents-model-client) when one is available, including a lifecycle-owned client, custom gateway, and headers. The shared compatible API uses `OPENAI_BASE_URL` and optional `OPENAI_API_KEY`; other native providers use their own model IDs and credentials through the same [model environment](/harnest/build/models-and-libraries/configure-a-model).
+Replace `my-judge-model` with a model served by your endpoint. The judge reuses a compatible agent transport when available. See [model environment](/harnest/build/models-and-libraries/configure-a-model) for endpoint and credential setup.
 
 <Warning>
   Harnest runs each eval set once. That `num_runs=1` safeguard does not replace `judgeModelOptions.numSamples`: a judge-backed metric can still call its judge several times for one invocation. Lower the sample count deliberately when cost matters, and raise it when judge stability matters more.

@@ -27,8 +27,8 @@ extensions/warehouse/
 
 ## Declare the extension
 
-<CodeGroup>
-
+<Steps>
+  <Step title="Create extensions/warehouse/extension.yaml">
 ```yaml extensions/warehouse/extension.yaml
 apiVersion: harnest.dev/v1alpha1
 kind: Extension
@@ -49,7 +49,8 @@ capabilities:
   - content.subagents
   - content.tools
 ```
-
+  </Step>
+  <Step title="Create extensions/warehouse/pyproject.toml">
 ```toml extensions/warehouse/pyproject.toml
 [project]
 name = "harnest-extension-warehouse"
@@ -57,8 +58,8 @@ version = "1.0.0"
 requires-python = ">=3.11,<3.14"
 dependencies = ["warehouse-sdk>=2,<3"]
 ```
-
-</CodeGroup>
+  </Step>
+</Steps>
 
 `metadata.name` must match the folder. The optional PEP 621 distribution name must be `harnest-extension-<name>` and its version must match `extension.yaml`. The prefix prevents an extension from colliding with an SDK distribution that uses the provider name. Static dependencies join the root environment solve.
 
@@ -70,14 +71,13 @@ A distributable extension may include one regular root `README.md` and reference
 
 ## Export the application-owned singleton
 
-`extension.py` exports one public `Extension` subclass and the singleton named `extension`. Keep SDK clients on that singleton, and expose a bounded invocation view through `ExtensionContext`:
+`extension.py` exports one public [`Extension`](/harnest/reference/api/extensions#extension) subclass and the singleton named `extension`. Keep SDK clients on that singleton, and expose a bounded invocation view through [`ExtensionContext`](/harnest/reference/api/extensions#extensioncontext):
 
 ```python extensions/warehouse/extension.py
 import os
 
 from harnest.extensions import Extension, ExtensionContext
 from warehouse_sdk import WarehouseClient
-
 
 class WarehouseContext(ExtensionContext):
     """Expose bounded warehouse operations during one invocation."""
@@ -95,7 +95,6 @@ class WarehouseContext(ExtensionContext):
 
         self._require_active()
         return await self._owner._query(statement)
-
 
 class Warehouse(Extension[WarehouseContext]):
     """Own one warehouse SDK client for the application lifetime."""
@@ -138,17 +137,16 @@ class Warehouse(Extension[WarehouseContext]):
             raise RuntimeError("Warehouse extension is not started")
         return await self._client.query(statement)
 
-
 extension = Warehouse()
 ```
 
-Harnest imports extension modules during compilation but does not call `start()` or connect to services. Runtime startup activates extensions in dependency order and calls `stop()` in reverse order.
+Compilation imports extension modules without starting services. Runtime startup calls `start()` in dependency order; shutdown calls `stop()` in reverse order.
 
 ## Add optional extension content
 
 | Contribution key | Purpose | Required manifest capability |
 |---|---|---|
-| `lifecycle` | Lifecycle hooks and factories | The capability matching each decorator |
+| [`lifecycle`](/harnest/reference/api/lifecycle) | Lifecycle hooks and factories | The capability matching each decorator |
 | `tools` | Managed Agent Tools | `content.tools` |
 | `mcp` | Managed MCP clients | `content.mcp` |
 | `skills` | Managed Agent Skills | `content.skills` |

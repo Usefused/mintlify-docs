@@ -15,65 +15,50 @@ from harnest.sandbox import Sandbox, control
 
 The package root exposes feature namespaces only. Classes, decorators, functions, errors, and types stay in the feature module that owns them.
 
+Find signatures, fields, and methods in the [Python API reference](/harnest/reference/api/overview). Each public module has its own page, including [Tasks](/harnest/reference/api/task) and [Cron](/harnest/reference/api/cron).
+
 ## Domain imports
 
 | Capability | Public module | Examples |
 |---|---|---|
-| Agents and graphs | `harnest.agent`, `harnest.graph` | `Agent`, `tool`, `client_tool`, `AgentRuntimePrincipal`, `Graph`, `Edge` |
-| Authentication | `harnest.auth` | `AuthPrincipal`, `Authenticator`, `AuthenticationError`, `principal_for` |
-| HTTP endpoints and hooks | `harnest.http` | `AgentInvoker`, `AgentResponse`, `HTTPCallRequest`, `HTTPLifecycleContext` |
-| Server configuration | `harnest.server` | `ServerConfig`, `ServerLimits`, `load_server_config` |
-| Agent tools | `harnest.agent` | `tool`, `client_tool`, `ClientToolError`, `ToolCallRequest`, `ToolLifecycleContext` |
-| MCP | `harnest.mcp` | `MCPClient`, `MCPContext`, `MCPToolCallRequest`, `MCPToolCallError` |
-| Models | `harnest.model` | `LiteLLMModel`, `LiteLLMContext`, `ModelCallRequest`, `ModelLifecycleError` |
-| Lifecycle | `from harnest import lifecycle` | `agent`, `model`, `tool`, `mcp`, `http`, `storage`, `resource`, `coverage` |
-| Invocation context | `from harnest import context` | `provider`, `resource`, `SessionContext`, `StorageContext`, `ScopedAssets`, `AgentSession` |
-| Recurring Tasks | `from harnest import cron` | `Cron`, `CronJob`, `create`, `get`, `list`, `update`, `pause`, `resume`, `cancel`, `delete` |
-| Sandbox providers | `harnest.sandbox` | `Sandbox`, `SandboxNetworkPolicy`, `SandboxProviderCapabilities`, `SandboxResult`, `control` |
-| Runtime adapters | `harnest.runtime` | `ResponseRequest`, `InvocationRequest`, `RuntimeDriver`, `RuntimeEvent` |
-| Assets | `harnest.assets` | `AssetStorage`, `AssetScope`, `Stored` |
-| Storage | `harnest.store` | `MemoryStore`, `PostgresStore`, `RedisStore`, `CustomStorage`, `StorageRegistry` |
-| Long-term memory | `harnest.memory` | `MemoryStore`, `MemoryRecord`, `MemoryScope`, `MemoryPage` |
+| Agents and graphs | [`harnest.agent`](/harnest/reference/api/agent), [`harnest.graph`](/harnest/reference/api/graph) | [`Agent`](/harnest/reference/api/agent#agent), [`tool`](/harnest/reference/api/agent#tool), [`client_tool`](/harnest/reference/api/agent#client_tool), [`AgentRuntimePrincipal`](/harnest/reference/api/agent#agentruntimeprincipal), [`Graph`](/harnest/reference/api/graph#graph), [`Edge`](/harnest/reference/api/graph#edge) |
+| Authentication | [`harnest.auth`](/harnest/reference/api/auth) | [`AuthPrincipal`](/harnest/reference/api/auth#authprincipal), [`Authenticator`](/harnest/reference/api/auth#authenticator), [`AuthenticationError`](/harnest/reference/api/auth#authenticationerror), `principal_for` |
+| HTTP endpoints and hooks | [`harnest.http`](/harnest/reference/api/http) | [`AgentInvoker`](/harnest/reference/api/http#agentinvoker), `AgentResponse`, [`HTTPCallRequest`](/harnest/reference/api/http#httpcallrequest), [`HTTPLifecycleContext`](/harnest/reference/api/http#httplifecyclecontext) |
+| Server configuration | [`harnest.server`](/harnest/reference/api/server) | [`ServerConfig`](/harnest/reference/api/server#serverconfig), [`ServerLimits`](/harnest/reference/api/server#serverlimits), `load_server_config` |
+| Agent tools | `harnest.agent` | `tool`, `client_tool`, [`ClientToolError`](/harnest/reference/api/agent#clienttoolerror), [`ToolCallRequest`](/harnest/reference/api/agent#toolcallrequest), [`ToolLifecycleContext`](/harnest/reference/api/agent#toollifecyclecontext) |
+| MCP | [`harnest.mcp`](/harnest/reference/api/mcp) | [`MCPClient`](/harnest/reference/api/mcp#mcpclient), [`MCPContext`](/harnest/reference/api/mcp#mcpcontext), [`MCPToolCallRequest`](/harnest/reference/api/mcp#mcptoolcallrequest), [`MCPToolCallError`](/harnest/reference/api/mcp#mcptoolcallerror) |
+| Models | [`harnest.model`](/harnest/reference/api/model) | [`LiteLLMModel`](/harnest/reference/api/model#litellmmodel), [`LiteLLMContext`](/harnest/reference/api/model#litellmcontext), `ModelCallRequest`, [`ModelLifecycleError`](/harnest/reference/api/model#modellifecycleerror) |
+| Lifecycle | `from harnest import lifecycle` | [`agent`](/harnest/reference/api/lifecycle#agent), [`model`](/harnest/reference/api/lifecycle#model), `tool`, [`mcp`](/harnest/reference/api/lifecycle#mcp), [`http`](/harnest/reference/api/lifecycle#http), [`storage`](/harnest/reference/api/lifecycle#storage), `resource`, [`coverage`](/harnest/reference/api/lifecycle#coverage) |
+| Invocation context | `from harnest import context` | [`provider`](/harnest/reference/api/context#provider), `resource`, [`SessionContext`](/harnest/reference/api/context#sessioncontext), [`StorageContext`](/harnest/reference/api/context#storagecontext), [`ScopedAssets`](/harnest/reference/api/context#scopedassets), [`AgentSession`](/harnest/reference/api/context#agentsession) |
+| Recurring Tasks | `from harnest import cron` | `cron`, [`Cron`](/harnest/reference/api/cron#cron), [`CronJob`](/harnest/reference/api/cron#cronjob), [`create`](/harnest/reference/api/cron#create), [`get`](/harnest/reference/api/cron#get), [`list`](/harnest/reference/api/cron#list), [`update`](/harnest/reference/api/cron#update), [`pause`](/harnest/reference/api/cron#pause), [`resume`](/harnest/reference/api/cron#resume), [`cancel`](/harnest/reference/api/cron#cancel), [`delete`](/harnest/reference/api/cron#delete) |
+| Sandbox providers | [`harnest.sandbox`](/harnest/reference/api/sandbox) | [`Sandbox`](/harnest/reference/api/sandbox#sandbox), [`SandboxNetworkPolicy`](/harnest/reference/api/sandbox#sandboxnetworkpolicy), [`SandboxProviderCapabilities`](/harnest/reference/api/sandbox#sandboxprovidercapabilities), [`SandboxResult`](/harnest/reference/api/sandbox#sandboxresult), [`control`](/harnest/reference/api/sandbox#control) |
+| Runtime adapters | [`harnest.runtime`](/harnest/reference/api/runtime) | [`ResponseRequest`](/harnest/reference/api/runtime#responserequest), [`InvocationRequest`](/harnest/reference/api/runtime#invocationrequest), [`RuntimeDriver`](/harnest/reference/api/runtime#runtimedriver), [`RuntimeEvent`](/harnest/reference/api/runtime#runtimeevent) |
+| Assets | [`harnest.assets`](/harnest/reference/api/assets) | [`AssetStorage`](/harnest/reference/api/assets#assetstorage), [`AssetScope`](/harnest/reference/api/assets#assetscope), [`Stored`](/harnest/reference/api/assets#stored) |
+| Storage | [`harnest.store`](/harnest/reference/api/store) | `MemoryStore`, `PostgresStore`, `RedisStore`, [`CustomStorage`](/harnest/reference/api/store#customstorage), [`StorageRegistry`](/harnest/reference/api/store#storageregistry) |
+| Long-term memory | [`harnest.memory`](/harnest/reference/api/memory) | `MemoryStore`, [`MemoryRecord`](/harnest/reference/api/memory#memoryrecord), [`MemoryScope`](/harnest/reference/api/memory#memoryscope), [`MemoryPage`](/harnest/reference/api/memory#memorypage) |
 
-Agent-owned approval contracts live in `harnest.agent.approval`. Other existing
-domain modules include `harnest.content`, `harnest.credentials`,
-`harnest.continuation`, `harnest.extensions`, `harnest.skills`, `harnest.task`,
-`harnest.logging`, and `harnest.tracing`.
+Agent-owned approval contracts live in [`harnest.agent.approval`](/harnest/reference/api/agent#approval). Other existing
+domain modules include [`harnest.content`](/harnest/reference/api/content), [`harnest.credentials`](/harnest/reference/api/credentials),
+[`harnest.continuation`](/harnest/reference/api/continuation), [`harnest.extensions`](/harnest/reference/api/extensions), [`harnest.skills`](/harnest/reference/api/skills), [`harnest.task`](/harnest/reference/api/task),
+[`harnest.logging`](/harnest/reference/api/logging), and [`harnest.tracing`](/harnest/reference/api/tracing).
 
-`AgentResponse` from `harnest.http` represents an HTTP route response. `AgentResponse` from `harnest.context` represents a local agent invocation response; select the contract for your integration.
+`AgentResponse` from `harnest.http` represents an HTTP route response. `AgentResponse` from [`harnest.context`](/harnest/reference/api/context) represents a local agent invocation response; select the contract for your integration.
 
 ## IDE autocomplete and hover help
 
-Harnest ships as a typed Python package with inline signatures, API docstrings,
-and a PEP 561 `py.typed` marker. Because each agent uses an isolated managed
-environment, synchronize it before opening the project in your editor.
+Synchronize the managed environment to enable typed completion and hover documentation:
 
 ```bash
 harnest env sync .
 ```
 
-From the agent folder, the command creates or atomically updates `.venv` as a link to the
-current managed environment. When Harnest owns that link, it also sets
-`python.defaultInterpreterPath` to `${workspaceFolder}/.venv/bin/python` in
-`.vscode/settings.json` if that setting is absent. On Windows, it uses
-`${workspaceFolder}/.venv/Scripts/python.exe`. VS Code-compatible editors such
-as Antigravity IDE and Windsurf use this shared workspace file. Python language
-tools alongside the Codex IDE extension use the interpreter selected by its host
-editor. An existing selection may need to be changed once to `.venv/bin/python`
-because the Python extension uses the default only before it selects an
-interpreter for that workspace. PyCharm and other Python
-IDEs can detect the `.venv` path or select it directly. The editor can then
-resolve `harnest` and show completion, types, and hover documentation.
+Sync creates `.venv` and configures the default interpreter in `.vscode/settings.json` for compatible editors. If your editor already selected another interpreter, select `.venv/bin/python` manually (`.venv/Scripts/python.exe` on Windows). Other IDEs can use the same environment.
 
 Codex desktop, Codex CLI, and Antigravity 2.0 are separate agent applications.
 For Python commands in these agents, use `.venv/bin/python` directly; their
 terminal commands do not inherit the VS Code Python interpreter setting.
 
-Harnest never replaces a `.venv` directory, file, or link that it does not own.
-If the path already belongs to you, synchronization still succeeds and prints
-`IDE environment unchanged:` with the exact managed Python executable to select
-manually. Add `.venv` to version-control ignores when working in a project that
-was not created by `harnest init`.
+Harnest preserves any `.venv` it does not own and prints the managed interpreter for manual selection. Keep `.venv` out of version control.
 
 The managed wheel also includes editor-only definitions for
 `harnest.extensions.docker` and `harnest.extensions.hatchet`. Those imports get
@@ -100,7 +85,7 @@ with control.cleanup(timeout_seconds=5) as cleanup:
     # Release owned resources using cleanup.remaining() as the I/O budget.
 ```
 
-`control.current()` returns the active scope. See [sandbox failure recovery and cleanup](/harnest/build/sandboxing#failure-recovery-and-cleanup) for cancellation and deadline guarantees.
+[`control.current()`](/harnest/reference/api/sandbox#control-current) returns the active scope. See [sandbox failure recovery and cleanup](/harnest/build/sandboxing#failure-recovery-and-cleanup) for cancellation and deadline guarantees.
 
 Query lifecycle coverage with the same domain pattern:
 
@@ -112,11 +97,7 @@ coverage = lifecycle.coverage("langgraph", "managed")
 
 ## Public API stability
 
-The modules in the table above are Harnest's supported Python authoring
-surface. Their declared exports are snapshot-tested so an accidental removal or
-move fails the release gate. Public callable annotations and hover docstrings
-are checked by the same gate. Re-exports preserve object identity, including
-exception classes used by existing handlers.
+Public module exports, annotations, and docstrings are checked by the release gate. Re-exports preserve object identity, including exception classes.
 
 During `0.x`, Harnest may make a breaking public Python API change only in a
 minor release. Public names and signatures are otherwise backward compatible;
@@ -124,7 +105,4 @@ deprecated APIs remain available for at least one minor release before removal,
 except when retaining them would preserve a security defect. Patch releases do
 not intentionally break these contracts.
 
-Serialized plans, locks, manifests, and request/response documents use their own
-schema or format versions. A Python re-export does not change those formats, and
-a schema migration does not imply that exception identity or Python signatures
-may change silently.
+Serialized plans, locks, manifests, and HTTP documents have independent format versions.

@@ -1,0 +1,21 @@
+---
+title: "Deployment configuration reference"
+sidebarTitle: "Deployment settings"
+description: "Component fields for Harnest deployment workloads and services."
+icon: "sliders"
+---
+
+Use the [provisioning guide](/harnest/runtime/serving/provisioning) for a complete deployment, environment overrides, external services, and recovery. Declare component fields in `harnest-deployment.yaml`.
+
+## Component fields
+
+| Field | Behavior |
+|---|---|
+| `environment` | Container variables as strings or `{secret: VARIABLE}` references |
+| `ports` | Named container TCP ports |
+| `publish` | Named ports mapped to fixed loopback host ports locally |
+| `depends_on` | Provisioned readiness dependencies and connected-service bindings |
+| `healthcheck` | Required exec command; optional interval, timeout, and retries in seconds/count |
+| `persistence` | One retained volume with `mount`, Kubernetes `size`, and optional `storage_class` |
+| `resources` | CPU and memory limits; defaults to 1 CPU and 512 MiB |
+| `replicas` | Agent instances; defaults to one |

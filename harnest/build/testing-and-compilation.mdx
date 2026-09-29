@@ -30,17 +30,17 @@ If `--workspace` is omitted, Studio uses your current working directory. Select 
 harnest studio --workspace /path/to/agents --port 1940
 ```
 
-Studio discovers agent folders containing `config.yaml` recursively within the workspace. For example, `harnest studio --workspace examples` loads both standalone examples and nested agents such as `self-serve/agents/helpdesk`. The project selector shows relative folder paths, and **Refresh** picks up newly added agents. Discovery stops at each agent root and skips hidden folders, build output, dependencies, virtual environments, and symbolic links. Workspaces exceeding 10,000 scanned folders require a more specific root. Use **Open folder** to add an individual agent outside the workspace.
+Studio finds agent folders recursively under the workspace and displays relative paths. **Refresh** finds new agents; **Open folder** adds one elsewhere. Discovery skips generated, hidden, dependency, and symlinked directories. Choose a narrower workspace if it exceeds 10,000 scanned folders.
 
-Open the private launch URL printed in the terminal. Studio binds to `127.0.0.1` on port 1940 by default. The first launch prepares an isolated runtime from the bundled release; Python and dependency downloads may require network access. Later launches reuse that runtime. Agent builds retain their own locked dependency environments. The compiled assistant is included and does not compile on first use; configure model-provider credentials to use **Build with AI**.
+Open the private launch URL printed in the terminal. Studio defaults to `127.0.0.1:1940`. First launch may download runtime dependencies; later launches reuse them. Configure model credentials for **Build with AI**.
 
 Keep the command running while using Studio. Ctrl+C stops its local server and supervised processes. An explicit `--python` or `HARNEST_PYTHON` uses that interpreter instead, which must already contain Studio and its matching dependencies.
 
 In the standalone Agent Builder, **Build with AI** creates a source proposal for review. The **Source context** selector chooses the initial files shared with your configured model provider. **Allow AI to read related project source** is enabled by default in the UI; turn it off to share only selected files.
 
-With related source access enabled, the assistant can request additional files from the current project's source inventory. It reads the actual contents and regenerates the proposal before review. Hidden files, environment files, generated directories, and symbolic links are excluded. Each proposal lists the source files read, with a limit of 24 files and 160 KiB of context across at most two additional reading rounds.
+Related-source access lets the assistant read up to 24 files and 160 KiB across two additional rounds. Proposals list files read; hidden files, secrets files, generated content, and symlinks are excluded.
 
-Choose **Review changes**, inspect the before and after contents, then **Apply to project**. Studio checks source revisions before writing, so concurrent edits are preserved. A proposal does not execute commands or connect to a database. Use **Build agent** and the **Run & test** menu to validate changes after applying them.
+Review the diff, then choose **Apply to project**. Revision checks protect concurrent edits. Apply changes source only; use **Build agent** and **Run & test** to validate it.
 
 ### Connect and create MCP servers
 
@@ -52,13 +52,13 @@ After connecting, choose **Add existing Fused MCP** to select an active server v
 
 Runtime credentials are stored outside project source in owner-only files under `~/.harnest/studio-credentials`. Set `HARNEST_BUILDER_CREDENTIALS_DIR` before starting Studio to choose another private directory. Studio supplies these bindings only to commands for that project and redacts execution tokens from command output. Restart an already-running agent after applying a connection. For commands launched outside Studio or deployments managed elsewhere, provide the variables shown in the review through your own secret manager. Disconnecting Fused clears management access and pending reviews; it does not revoke existing MCP execution tokens.
 
-**Build with AI** uses the same discovery and review backend. Enable **Allow Fused service and operation metadata to be shared with the model** to let it inspect connected workspace capabilities. This is separate from source-sharing permission and is off by default. The model receives discovered metadata and proposes an MCP plan; it never receives OAuth grants or execution credentials and cannot apply the plan itself.
+To let **Build with AI** discover Fused operations, enable **Allow Fused service and operation metadata to be shared with the model**. This separate permission is off by default. The model can propose a plan but cannot access credentials or apply it.
 
 ### Delete and restore capabilities
 
-Select a capability on the Agent Builder canvas, then choose **Delete capability…** in the inspector. Expand a category to select an individual tool, agent, skill, or other source capability. The preview lists the affected files and possible code references. Deleting a package entrypoint, such as a skill's `SKILL.md` or a subagent's `agent.py`, removes the complete package and its supporting assets from discovery. Root project files and category folders cannot be deleted this way.
+Select a capability and choose **Delete capability…**. Review affected files and references first. Deleting a package entrypoint removes the whole package from discovery; root files and category folders are protected.
 
-Deletion moves source into `.harnest/builder-deleted/` inside the project. **Deleted capabilities** above the canvas lists recoverable items after refresh or restart. Choose **Restore** to return an item to its original location; Studio refuses to overwrite a new file or folder there. Stop running builds and previews before deleting or restoring a capability.
+Deleted files remain recoverable under `.harnest/builder-deleted/`. Use **Deleted capabilities → Restore**; restoration refuses to overwrite existing paths. Stop builds and previews first.
 
 Explicit imports, graph node references, schedules, and other authored wiring are not rewritten. Review the possible references and build the agent after updating them. Deleting source does not remove a deployed container, an external service, or its database data.
 
@@ -89,10 +89,7 @@ harnest test AGENT_DIR --smoke
 
 The unit lane runs first. Smoke tests add a FastAPI `client` and a `smoke` fixture.
 
-| Method | Returns |
-|---|---|
-| `smoke.respond(...)` | One neutral JSON response |
-| `smoke.stream(...)` | Ordered SSE event objects |
+Use [SmokeClient.respond](/harnest/reference/api/testing#smokeclient-respond) for one JSON response or [SmokeClient.stream](/harnest/reference/api/testing#smokeclient-stream) to collect ordered SSE events.
 
 Smoke tests may spend time or money and use real credentials. Run them deliberately.
 
@@ -105,7 +102,7 @@ harnest test AGENT_DIR --evals
 harnest test AGENT_DIR --smoke --evals
 ```
 
-ADK and LangGraph projects share official ADK `EvalSet` assets and metrics. Harnest prints a complete structured JSON `EvalRunResult` by default, and `--eval-output FILE` writes the same payload for retention. An explicit result file is still written with `--no-output`.
+Both frameworks use ADK evaluation assets. Save the complete `EvalRunResult` with `--eval-output FILE`, including when using `--no-output`.
 
 <Card title="Build evaluations" icon="flask" href="/harnest/build/evaluations">
   Choose metrics, author eval sets and simulations, configure services, and inspect complete results.
@@ -136,7 +133,7 @@ Compiled directories are reproducible output. Do not edit or commit them.
 |---|---|
 | Root `pyproject.toml` | Resolves application dependencies |
 | Harnest Extension `pyproject.toml` | Joins the same dependency solve and lock |
-| Public `@task` | Uses built-in Harnest workers; provider dependencies come from project metadata |
+| Public [`@task`](/harnest/reference/api/task#task) | Uses built-in Harnest workers; provider dependencies come from project metadata |
 | Active `mcp/*.py` | Adds the selected framework's MCP adapter |
 | `serve`, `run`, or `test` | Selects the shared development profile |
 | `test --evals` | Selects the Google ADK evaluation profile |
@@ -167,26 +164,26 @@ crm = ["acme-crm-sdk>=2,<3"]
 analytics = ["acme-analytics-sdk>=1,<2"]
 ```
 
-In this example, compilation selects `crm`. It does not select `analytics` unless another requirement needs it. Both `compile` and `runtime build --agent` read these declarations. Ordinary `run`, `serve`, reload, and agent tests do not apply them.
+Here, compilation selects `crm`; `analytics` is included only if another dependency requires it. These declarations affect `compile` and `runtime build --agent`, not development commands.
 
 | Field | Behavior |
 |---|---|
 | `version` | Required; use `1`. |
 | `extras` | Optional list of exact keys from the root project's `[project.optional-dependencies]`. Unknown extras fail the build. |
 
-Harnest retains base project requirements, Harnest Extension requirements, the selected framework, and the required transitive dependencies. It keeps complete installed packages, including their metadata, resources, and native libraries. It does not remove Python modules based on observed imports. Put optional integrations in separate extras to avoid requiring every integration in every build.
+Compilation retains complete selected packages and their transitive dependencies. Use separate extras for optional integrations; Harnest does not trim packages based on observed imports.
 
 ### Project files and compiled content
 
-Compilation includes Python source, the standard project configuration and dependency metadata, root and nested-subagent `instructions.md`, evaluation declarations, and complete installed skills, extensions, and Agent Plugins. Installed packages retain their assets together so their runtime behavior is preserved. Exclusions for secrets, generated state, and virtual environments still apply.
+Compilation includes Python, project configuration, dependencies, instructions, eval declarations, and complete installed skills, extensions, and plugins. Secrets, generated state, and virtual environments are excluded.
 
-Other project content, such as teammate guides, runbooks, PDFs, setup notes, and company authoring configuration, stays in the generated project and does not enter the compiled agent. This applies with or without a compile manifest. Ordinary `run`, `serve`, reload, and agent tests continue using the authored project content.
+Teammate documentation and company authoring configuration stay in the project. Development commands still use the authored tree.
 
 `harnest-compile.yaml` accepts only `version` and `extras`. A `resources` field is rejected, including an empty list. There is no general file-inclusion setting. Harnest does not infer arbitrary file reads from Python code.
 
-Use an agent template to create standard `instructions.md` or skill content when the agent needs guidance. These conventional files compile automatically; teammate documentation does not become instructions or skills simply because a pack copied it into the project.
+Use agent templates for model-facing instructions and skills; copying a team guide into a project does not make it model-facing.
 
-Directory compilation with selected optional requirements uses a separate compile environment and `harnest-compile.lock`. Use `harnest env sync AGENT_DIR --profile compile` to prepare or refresh that environment explicitly. It does not replace the ordinary runtime or development environment. Native runtime builds continue to honor current production locks as constraints and retain their own resolved lock in the runtime pack.
+Selected optional dependencies use a separate `harnest-compile.lock` and environment. Refresh it with `harnest env sync AGENT_DIR --profile compile`. Native runtime packs retain their own resolution constrained by production locks.
 
 [Project packs](/harnest/build/project-packs/create#declare-compilation-dependencies) can generate and migrate these declarations through their existing file and YAML operations. Pack authoring and migration tools stay in the authoring environment unless you explicitly declare them as runtime dependencies.
 
@@ -198,15 +195,15 @@ Directory compilation with selected optional requirements uses a separate compil
 | Runtime pack | `PACK/harnest-build-report.json` |
 | Native executable | `EXECUTABLE.build-report.json` beside the executable |
 
-Agent reports list selected extras, retained files, inclusion reasons, and byte sizes. Runtime reports list declared dependency roots and owners, resolved package versions, installed package sizes, declared package requirements, and the complete runtime file inventory. Packages without a direct root declaration are labeled as part of the resolved transitive closure. Declared requirements may contain inactive environment markers; they are metadata, not a separately resolved dependency graph.
+Build reports list selected dependencies, retained files, inclusion reasons, and sizes. Runtime reports add package versions, owners, and declared requirements; inactive markers remain metadata.
 
-Runtime `logicalBytes` counts retained file bytes, while `uniqueObjectBytes` counts each stored object once within that runtime. These figures exclude the report itself and filesystem overhead; they do not measure incremental disk usage across other packs. Executable reports also show the executable's actual size and whether its runtime is embedded. Overlapping package ownership can make per-package sizes overlap.
+`logicalBytes` counts retained file bytes; `uniqueObjectBytes` counts distinct objects in that runtime. Neither includes filesystem overhead or measures savings across other packs. Package sizes can overlap.
 
 Shared runtimes resolve the combined selected requirements of all listed agents. Identical files continue sharing the existing content-addressed store and launch cache. Changing selected requirements requires rebuilding runtime coverage; changing included agent content only requires recompiling the agent.
 
 ## Build native executables
 
-Build native agent executables on Linux, macOS, or Windows for the build machine's operating system and architecture. The destination needs no installed Harnest, Python, or package manager. Model endpoints, credentials, external tools, and backing services still need to be available. Native dependencies retain their operating-system compatibility requirements; build on a compatible deployment baseline.
+Build executables for the deployment OS and architecture on a compatible baseline. The destination needs no Harnest or Python installation, but still needs your external services and credentials.
 
 Choose how to ship the dependencies:
 
@@ -248,9 +245,9 @@ harnest compile ./support \
   --output ./dist/support-agent
 ```
 
-The runtime builder resolves all listed agents' production dependencies together, including their Harnest Extensions, selected frameworks, and MCP adapters. Existing current `harnest-runtime.lock` files constrain the solve; stale locks require an environment sync first. Agents without a production lock resolve from their dependency declarations and framework pins. The pack retains the resulting hash-locked dependency record. Resolution conflicts fail the build: use separate packs for incompatible agents. The agents must request the same Python version.
+A shared pack resolves all agents’ dependencies together using current production locks as constraints. Sync stale locks first. Agents must use the same Python version; incompatible dependencies require separate packs.
 
-Build dependencies may need network access. Executables never download Python or install packages at startup. Installed release CLIs include the native launcher, so building an executable does not require Go. Contributor builds use Go to build the launcher and can supply a locally built Harnest wheel with `runtime build --wheel FILE`.
+Builds may download dependencies; launchers do not. Release CLIs include the launcher. Contributor builds require Go and can select a local wheel with `runtime build --wheel FILE`.
 
 Keep build output outside the agent source, or under its `.harnest/` directory. Runtime output directories must be new: builds do not overwrite existing packs. When dependencies change, build a new pack and recompile the agents that should use it.
 
@@ -269,11 +266,11 @@ Provide credentials through the deployment environment. Authored `spec.environme
 
 ### Deduplicate dependency storage
 
-Dependency files are stored by content and executable classification (POSIX executable permissions or Windows program extensions). Identical files share disk storage within a pack, across packs built with the same object store, and across materialized runtime trees in the launch cache. Each agent still runs in its own process.
+Identical dependency files share storage across packs and the launch cache. Agents still run in separate processes.
 
 By default, runtime builds use `.harnest-runtime-objects` beside the output directory. Use `runtime build --store DIRECTORY` to share one build store across other output locations. Packs contain their own object links and remain usable after the build store is removed; copy the complete runtime pack when deploying it. Hardlink-aware copying preserves sharing between multiple packs. Ordinary copies may duplicate their on-disk bytes until the launch cache deduplicates them.
 
-Launchers use a shared cache under the operating system's user cache directory. Set `HARNEST_AGENT_CACHE` to choose a deployment cache. Files are verified before reuse and published atomically. Hardlinks provide physical deduplication on the same filesystem; filesystems or locations that cannot share hardlinks use a verified copy fallback. Put the pack, object store, and cache on the same hardlink-capable filesystem for maximum disk sharing. On Windows, use the same NTFS volume. Windows file aliases are packaged as shared regular files, so deployment does not require permission to create symbolic links. Windows objects use ordinary writable file attributes to allow independent hardlink cleanup; their contents are still checked against the manifest before reuse.
+Set `HARNEST_AGENT_CACHE` to override the user cache directory. Reused files are verified. Keep packs, object storage, and cache on one hardlink-capable filesystem for maximum sharing (one NTFS volume on Windows); otherwise Harnest copies files.
 
 Embedding the same runtime into several executables necessarily repeats those bytes in the executable files. Use attached runtimes when distribution size matters. Embedded executables also materialize dependencies in the shared launch cache.
 

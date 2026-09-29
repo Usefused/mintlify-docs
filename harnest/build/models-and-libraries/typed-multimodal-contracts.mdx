@@ -11,13 +11,13 @@ Define a Pydantic contract once. Harnest applies it to agents, tools, JSON, SSE,
 
 | Content | Type | Configure with |
 |---|---|---|
-| Text | `Text` | Pydantic field rules |
-| Images | `Image` | `ImageConstraints` |
-| Audio | `Audio` | `AudioConstraints` |
-| Video | `Video` | `VideoConstraints` |
-| Files | `File` | `FileConstraints` |
-| Custom JSON | `Data[T]` | `DataConstraints` |
-| Generic stored media | `AssetRef` | Pydantic field rules |
+| Text | [`Text`](/harnest/reference/api/content#text) | Pydantic field rules |
+| Images | [`Image`](/harnest/reference/api/content#image) | [`ImageConstraints`](/harnest/reference/api/content#imageconstraints) |
+| Audio | [`Audio`](/harnest/reference/api/content#audio) | [`AudioConstraints`](/harnest/reference/api/content#audioconstraints) |
+| Video | [`Video`](/harnest/reference/api/content#video) | [`VideoConstraints`](/harnest/reference/api/content#videoconstraints) |
+| Files | [`File`](/harnest/reference/api/content#file) | [`FileConstraints`](/harnest/reference/api/content#fileconstraints) |
+| Custom JSON | `Data[T]` | [`DataConstraints`](/harnest/reference/api/content#dataconstraints) |
+| Generic stored media | [`AssetRef`](/harnest/reference/api/content#assetref) | Pydantic field rules |
 
 Media constraints can limit MIME type, decoded byte size, dimensions, pixels, duration, pages, frame rate, sample rate, channels, animation, and archive expansion.
 
@@ -32,7 +32,6 @@ from pydantic import BaseModel
 
 from harnest.content import Image, ImageConstraints
 
-
 Screenshot = Annotated[
     Image,
     ImageConstraints(
@@ -45,11 +44,9 @@ Screenshot = Annotated[
     ),
 ]
 
-
 class VisionInput(BaseModel):
     question: str
     screenshot: Screenshot
-
 
 class VisionOutput(BaseModel):
     answer: str
@@ -66,7 +63,6 @@ Harnest inspects decoded bytes. Client-supplied metadata does not bypass the con
     from harnest.model import LiteLLMModel
     from harnest.models.vision import VisionInput, VisionOutput
 
-
     root_agent = Agent(
         name="vision",
         model=LiteLLMModel("provider/vision-model"),
@@ -80,7 +76,6 @@ Harnest inspects decoded bytes. Client-supplied metadata does not bypass the con
     from harnest.models.vision import VisionOutput
     from harnest.agent import tool
 
-
     @tool(output_schema=VisionOutput)
     async def analyze() -> VisionOutput:
         return VisionOutput(answer="Ready")
@@ -93,10 +88,8 @@ Harnest inspects decoded bytes. Client-supplied metadata does not bypass the con
     from harnest.agent import client_tool
     from harnest.models.vision import Screenshot
 
-
     class CaptureResult(BaseModel):
         screenshot: Screenshot
-
 
     @client_tool(output_schema=CaptureResult)
     async def capture_viewport() -> CaptureResult:
@@ -153,3 +146,7 @@ Without a storage annotation, media is available only to the current model turn.
     Resume an agent with browser or device data.
   </Card>
 </CardGroup>
+
+## API reference
+
+Reference: [`harnest.agent`](/harnest/reference/api/agent), [`harnest.model`](/harnest/reference/api/model).

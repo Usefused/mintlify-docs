@@ -5,7 +5,7 @@ sidebarTitle: "CopilotKit example"
 description: "Run a React UI against Harnest agents on Google ADK and LangGraph, then verify the full interaction flow."
 ---
 
-The Harnest source checkout includes `examples/copilotkit`, a React UI connected directly to compiled Harnest agents through CopilotKit's `HttpAgent`. The same page lets you select Google ADK or LangGraph. This is a deterministic compatibility demo: it needs no model API key and does not generate open-ended answers.
+Try `examples/copilotkit` for a React UI using the same Harnest graph on ADK and LangGraph. This deterministic demo needs no model key.
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ HARNEST_PYTHON="$(command -v python)" npm test
 npm run build
 ```
 
-The browser suite runs one complete user journey per framework. It uses a running demo when available or starts one for the test. The demo uses CopilotKit's open-source React components directly; a hosted CopilotKit account or separate CopilotKit runtime is not required.
+The browser suite tests one complete journey per framework and starts the demo if needed. No hosted CopilotKit account or separate runtime is required.
 
 ## How it connects
 

@@ -8,15 +8,14 @@ Choose the approval boundary that matches the risk.
 
 | Approval API | Use it when |
 |---|---|
-| `@require_human_approval` | Every invocation is sensitive |
-| `request_human_approval(...)` | Evaluation finds one sensitive operation |
+| [`@require_human_approval`](/harnest/reference/api/agent-approval#require_human_approval) | Every invocation is sensitive |
+| [`request_human_approval(...)`](/harnest/reference/api/agent-approval#request_human_approval) | Evaluation finds one sensitive operation |
 
 <Tabs>
   <Tab title="Approve every invocation">
     ```python
     from harnest.agent.approval import require_human_approval
     from harnest.agent import tool
-
 
     @tool
     @require_human_approval(message="Approve deleting {customer_id}?")
@@ -28,7 +27,6 @@ Choose the approval boundary that matches the risk.
     ```python
     from harnest.agent.approval import request_human_approval
     from harnest.agent import tool
-
 
     @tool
     async def execute_typescript(source: str) -> str:
@@ -72,11 +70,7 @@ Each later protected block creates a separate request.
 | `action` | Identify the protected operation |
 | Canonical argument hash | Detect changed operation inputs |
 
-| Input | Rule | Example |
-|---|---|---|
-| `action` | Stable and non-sensitive | `typescript.execute` |
-| `arguments` | Serializable values identifying the operation | Source hash and capabilities |
-| `message` | Public text shown to the approver | `Execute TypeScript with network access?` |
+Choose a stable, non-sensitive action name and serializable arguments that identify exactly what the approver is authorizing. See [approval request inputs](/harnest/reference/api/agent-approval#approval-request-inputs) for the public message and argument contract.
 
 Harnest retains the argument hash, not the arguments, in approval audit logs.
 

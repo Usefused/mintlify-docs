@@ -5,7 +5,7 @@ sidebarTitle: "Fused MCP"
 description: "Combine multiple OpenAPI specifications into one Fused MCP server and connect through a standard Harnest MCP Client."
 ---
 
-Use the optional `harnest_fused` package to describe several OpenAPI services, provision one Fused MCP server, and connect your agent to that server. Each spec includes all operations unless you provide an explicit selection.
+Use the optional [`harnest_fused`](/harnest/reference/api/harnest_fused) package to describe several OpenAPI services, provision one Fused MCP server, and connect your agent to that server. Each spec includes all operations unless you provide an explicit selection.
 
 ## Install the package
 
@@ -15,13 +15,12 @@ Until the first package release is published, install from the Harnest checkout:
 python -m pip install ./packages/harnest-fused
 ```
 
-Install the appropriate Harnest MCP adapter for your framework: `harnest[adk-mcp]` or `harnest[langgraph-mcp]`. Setup also requires `fused-cli` installed on your system and configured for your Fused Engine. The CLI uses its existing login and credential precedence. Your chosen bucket and any provider credentials must already exist in Fused.
+Install `harnest[adk-mcp]` or `harnest[langgraph-mcp]` and configure `fused-cli` for your Engine. Create the bucket and provider credentials in Fused before setup.
 
 ## Declare the services
 
 ```python mcp/business.py
 from harnest_fused import FusedMCPClient, OpenAPISpec
-
 
 def client() -> FusedMCPClient:
     """Connect to the combined customer and billing service."""
@@ -36,7 +35,7 @@ def client() -> FusedMCPClient:
     )
 ```
 
-This declaration is a Harnest `MCPClient`. Creating it does not read the specs, start processes, contact Fused, or resolve environment variables. Harnest can discover and compile it through the normal [MCP Client](/harnest/build/mcp-client) workflow.
+This declaration is a Harnest [`MCPClient`](/harnest/reference/api/mcp#mcpclient). Creating it does not read the specs, start processes, contact Fused, or resolve environment variables. Harnest can discover and compile it through the normal [MCP Client](/harnest/build/mcp-client) workflow.
 
 | Property | Behavior |
 |---|---|
@@ -93,7 +92,7 @@ print(result.token_env)
   </Step>
 </Steps>
 
-The current CLI displays the first MCP execution token directly in its apply output. Capture it in your secret manager and supply it through the variable named by `result.token_env`. The package does not scrape human output, save a token to source files, or generate replacement tokens automatically. An idempotent apply does not reveal the original token again; retain your existing token.
+Capture the first execution token from the CLI apply output and store it in your secret manager under `result.token_env`. An idempotent apply does not reveal that token again.
 
 For the authored `mcp/business.py` declaration, supply:
 
@@ -112,14 +111,14 @@ For a project without an existing `mcp/business.py`, setup can write a standard 
 result.write_client("mcp/business.py")
 ```
 
-The file contains the pinned server URL and token environment reference. It imports only `harnest.mcp`, so this runtime path needs neither `harnest_fused` nor `fused-cli`. The method refuses to overwrite an existing file.
+The file contains the pinned server URL and token environment reference. It imports only [`harnest.mcp`](/harnest/reference/api/mcp), so this runtime path needs neither `harnest_fused` nor `fused-cli`. The method refuses to overwrite an existing file.
 
 Standard client options such as `prefix`, `permission`, `tool_permissions`, and `timeout_seconds` can be passed to `from_openapi()` and are preserved. Use environment references for any additional connection headers. Lifecycle and other executable Python objects cannot be emitted into a generated file; use `result.client` or your authored factory when supplying those options.
 
 ## Handle setup failures
 
-Setup never retries a failed mutation automatically and does not claim to roll back imported services. A later MCP plan failure can leave earlier imports committed. Receipts and the MCP configuration remain available for inspection and recovery. For an uncertain import outcome, use `fused-cli import status <plan-id>` with the ID in that source's receipt before deciding whether to retry.
+Failed setup is not retried or rolled back automatically; earlier service imports may remain committed. Check receipts and `fused-cli import status <plan-id>` before retrying an uncertain outcome.
 
-`FusedCLIError` reports the failed phase without copying captured provider output or credentials into the exception. Human MCP apply output remains under the CLI's control. The configurable `timeout_seconds` bounds each subprocess and defaults to 1,260 seconds to accommodate Fused's import timeout.
+[`FusedCLIError`](/harnest/reference/api/harnest_fused#fusedclierror) identifies the failed phase without provider output or credentials. CLI apply output is separate. `timeout_seconds` bounds each subprocess and defaults to 1,260 seconds.
 
 An existing Fused MCP server needs no OpenAPI setup. Connect to it directly with the regular [MCP Client](/harnest/build/mcp-client).

@@ -5,7 +5,7 @@ sidebarTitle: "Plans and recovery"
 description: "Use the planning API, track company schema versions, and handle conflicts or interrupted applies."
 ---
 
-The planner combines core Harnest changes and company migrations before modifying a project. Use it directly when building a custom interface or automation around your packs. This API is available for integration; it does not add a project-pack screen to Harnest Studio.
+Use the planner to review core and company changes together before modifying a project, or integrate it into your own CLI or automation.
 
 ## Plan through Python
 
@@ -36,17 +36,11 @@ if not plan.blockers:
     apply_project_plan(plan)
 ```
 
-`template` accepts a Harnest template project name, short slug, or HTTPS wheel URL. Pass `template_sha256` to pin an HTTPS wheel. A checksum requires a template; a template cannot be combined with an explicit `framework` or `minimal=True`. The template's framework and mode remain authoritative, and pack hooks see its staged files before proposing their changes. The native Harnest CLI owns downloading, verification, and template rendering.
+Templates accept a project name, slug, or HTTPS wheel URL; use `template_sha256` to pin a wheel. Template framework and mode take precedence, so do not combine a template with `framework` or `minimal=True`. Pack hooks run against the rendered files.
 
-| Plan member | Purpose |
-|---|---|
-| `root` | The resolved target directory. |
-| `changes` | Net file changes: `ChangeKind.CREATE`, `UPDATE`, or `DELETE`, with paths and owners. |
-| `blockers` | Problems that prevent the entire plan from applying. |
-| `render()` | A readable combined summary. |
-| `public()` | A JSON-compatible summary without file contents or option values. |
+Inspect [ProjectPlan](/harnest/reference/api/authoring#projectplan) before applying. It exposes proposed changes and blockers, plus readable and JSON-safe summaries; see [plan results](/harnest/reference/api/authoring#plan-results).
 
-The JSON summary is for display, not an executable plan format. Keep the original `ProjectPlan` object when applying a reviewed plan programmatically. `apply_project_plan` rejects blockers and stale inputs; it returns the backup directory or `None` when nothing changed.
+The JSON summary is for display, not an executable plan format. Keep the original [`ProjectPlan`](/harnest/reference/api/authoring#projectplan) object when applying a reviewed plan programmatically. [`apply_project_plan`](/harnest/reference/api/authoring#apply_project_plan) rejects blockers and stale inputs; it returns the backup directory or `None` when nothing changed.
 
 ## Planning order
 
@@ -94,7 +88,7 @@ Ownership hashes allow managed updates to distinguish unchanged generated conten
 
 ## Apply and recover
 
-Applying checks the source snapshot again, obtains a lock against other project-pack applies, and backs up affected originals under `.harnest/project-backups/`. It then writes the reviewed result. A handled write failure restores source files from the captured originals.
+Apply rechecks the source, locks against other pack applies, and backs up changed files under `.harnest/project-backups/`. Handled write failures restore those originals.
 
 <Warning>
 Backups can contain the original configuration contents. Treat them with the same access controls as the project source.

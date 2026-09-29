@@ -1,0 +1,74 @@
+---
+title: "Python API reference"
+sidebarTitle: "Overview"
+description: "Find Harnest classes, functions, decorators, fields, and methods by public module."
+icon: "code"
+---
+
+Use this reference for signatures, defaults, fields, and methods. Start with the [guides](/harnest/overview) for when to use a feature, setup, and operational caveats.
+
+Import contracts from their public domain modules. Harnest is built and maintained by [Fused](https://usefused.com).
+
+<CardGroup cols={2}>
+  <Card title="Tasks" icon="list-check" href="/harnest/reference/api/task">The task decorator, deferred calls, TaskHandle methods, and storage contracts.</Card>
+  <Card title="Cron" icon="clock" href="/harnest/reference/api/cron">Fixed Cron declarations, dynamic scheduling functions, and CronJob methods.</Card>
+</CardGroup>
+
+## Public modules
+
+The module pages are generated from the public export snapshot and Python source. They include Harnest-defined inherited methods; methods inherited from third-party libraries belong to those libraries. Async signatures must be awaited. An ellipsis in a default represents an internal sentinel or factory, not a value to pass.
+
+| Module | Exports |
+|---|---|
+| [`harnest.a2a`](/harnest/reference/api/a2a) | 6 |
+| [`harnest.agent`](/harnest/reference/api/agent) | 18 |
+| [`harnest.agent.approval`](/harnest/reference/api/agent-approval) | 19 |
+| [`harnest.application`](/harnest/reference/api/application) | 1 |
+| [`harnest.assets`](/harnest/reference/api/assets) | 14 |
+| [`harnest.auth`](/harnest/reference/api/auth) | 8 |
+| [`harnest.authoring`](/harnest/reference/api/authoring) | 11 |
+| [`harnest.bundle`](/harnest/reference/api/bundle) | 14 |
+| [`harnest.channels`](/harnest/reference/api/channels) | 17 |
+| [`harnest.checkpoint`](/harnest/reference/api/checkpoint) | 20 |
+| [`harnest.compatibility`](/harnest/reference/api/compatibility) | 6 |
+| [`harnest.content`](/harnest/reference/api/content) | 17 |
+| [`harnest.context`](/harnest/reference/api/context) | 23 |
+| [`harnest.continuation`](/harnest/reference/api/continuation) | 12 |
+| [`harnest.credentials`](/harnest/reference/api/credentials) | 8 |
+| [`harnest.cron`](/harnest/reference/api/cron) | 19 |
+| [`harnest.decisions`](/harnest/reference/api/decisions) | 27 |
+| [`harnest.durable`](/harnest/reference/api/durable) | 9 |
+| [`harnest.evaluation`](/harnest/reference/api/evaluation) | 10 |
+| [`harnest.extensions`](/harnest/reference/api/extensions) | 11 |
+| [`harnest.extensions.docker`](/harnest/reference/api/extensions-docker) | 10 |
+| [`harnest.extensions.hatchet`](/harnest/reference/api/extensions-hatchet) | 6 |
+| [`harnest.extensions.rag`](/harnest/reference/api/extensions-rag) | 17 |
+| [`harnest.graph`](/harnest/reference/api/graph) | 6 |
+| [`harnest.http`](/harnest/reference/api/http) | 7 |
+| [`harnest.lifecycle`](/harnest/reference/api/lifecycle) | 32 |
+| [`harnest.logging`](/harnest/reference/api/logging) | 2 |
+| [`harnest.mcp`](/harnest/reference/api/mcp) | 18 |
+| [`harnest.memory`](/harnest/reference/api/memory) | 8 |
+| [`harnest.model`](/harnest/reference/api/model) | 11 |
+| [`harnest.orchestrator`](/harnest/reference/api/orchestrator) | 3 |
+| [`harnest.output`](/harnest/reference/api/output) | 4 |
+| [`harnest.runtime`](/harnest/reference/api/runtime) | 18 |
+| [`harnest.sandbox`](/harnest/reference/api/sandbox) | 18 |
+| [`harnest.server`](/harnest/reference/api/server) | 6 |
+| [`harnest.session`](/harnest/reference/api/session) | 4 |
+| [`harnest.skills`](/harnest/reference/api/skills) | 20 |
+| [`harnest.store`](/harnest/reference/api/store) | 5 |
+| [`harnest.structured`](/harnest/reference/api/structured) | 9 |
+| [`harnest.task`](/harnest/reference/api/task) | 12 |
+| [`harnest.telemetry`](/harnest/reference/api/telemetry) | 7 |
+| [`harnest.testing`](/harnest/reference/api/testing) | 6 |
+| [`harnest.tokens`](/harnest/reference/api/tokens) | 7 |
+| [`harnest.tracing`](/harnest/reference/api/tracing) | 5 |
+| [`harnest_fused`](/harnest/reference/api/harnest_fused) | 10 |
+| [`harnest_postgres`](/harnest/reference/api/harnest_postgres) | 3 |
+| [`harnest_redis`](/harnest/reference/api/harnest_redis) | 2 |
+| [`harnest_threadify`](/harnest/reference/api/harnest_threadify) | 2 |
+
+`harnest.bundle` and `harnest.orchestrator` list compiler and orchestration entry points separately from the snapshot-tested authoring modules. `harnest_postgres`, `harnest_redis`, `harnest_fused`, and `harnest_threadify` document companion package exports. The `harnest.extensions.*` pages describe official extensions after installation into an agent project.
+
+See [Python imports and compatibility](/harnest/build/python-imports#public-api-stability) for API stability and editor setup.

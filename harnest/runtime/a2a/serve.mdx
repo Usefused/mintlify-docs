@@ -36,7 +36,7 @@ The URL path, `/support/a2a` in this example, becomes the mounted route. Use the
 harnest serve .
 ```
 
-Clients discover the same compiled card at `GET /.well-known/agent-card.json`. Use `JSONRPC` instead of `HTTP+JSON` when that binding fits the client ecosystem better. Author A2A 1.0 for new integrations; Harnest also accepts protocol version 0.3 for compatibility on these two HTTP bindings.
+Discover the card at `GET /.well-known/agent-card.json`. Use A2A 1.0 with `HTTP+JSON` or `JSONRPC`; version 0.3 remains supported on both.
 
 Test the HTTP+JSON binding at the exact path declared by the card:
 
@@ -63,14 +63,14 @@ Harnest supplies `GetTask`, filtered `ListTasks`, `CancelTask`, and explicit Tas
 
 | Checkpoint authority | A2A Task behavior |
 |---|---|
-| `MemoryStore` | Task snapshots survive within one process only |
-| `PostgresStore` or `RedisStore` | Lookup, artifacts, subscriptions, and terminal state survive restarts and replicas |
-| Native `LangGraphStore` or `ADKStore` | A2A snapshots remain process-local because the native wrapper does not implement Harnest A2A persistence |
+| [`MemoryStore`](/harnest/reference/api/store#memorystore) | Task snapshots survive within one process only |
+| [`PostgresStore`](/harnest/reference/api/store#postgresstore) or [`RedisStore`](/harnest/reference/api/store#redisstore) | Lookup, artifacts, subscriptions, and terminal state survive restarts and replicas |
+| Native [`LangGraphStore`](/harnest/reference/api/checkpoint#langgraphstore) or [`ADKStore`](/harnest/reference/api/checkpoint#adkstore) | A2A snapshots remain process-local because the native wrapper does not implement Harnest A2A persistence |
 
 Register a built-in Harnest store for both session and checkpoint responsibilities when A2A Tasks must survive a restart:
 
-<CodeGroup>
-
+<Steps>
+  <Step title="Create lib/state.py">
 ```python lib/state.py
 import os
 
@@ -78,11 +78,11 @@ from harnest.store import PostgresStore
 
 state = PostgresStore(os.environ["DATABASE_URL"])
 ```
-
+  </Step>
+  <Step title="Create lifecycle/storage.py">
 ```python lifecycle/storage.py
 from harnest import lifecycle
 from harnest.lib.state import state
-
 
 @lifecycle.storage.sessions
 @lifecycle.storage.checkpoints
@@ -91,21 +91,21 @@ def state_storage():
 
     return state
 ```
+  </Step>
+</Steps>
 
-</CodeGroup>
-
-When a compiled project also contains `@task` work, register an explicit `@lifecycle.storage.tasks` provider. Sessions and checkpoints do not implicitly configure queued work. PostgreSQL, Redis, and custom providers can persist the queue; see [Task and cron storage](/harnest/runtime/task-storage). Recurring work also requires the same provider under `@lifecycle.storage.cron`.
+Queued work also needs [`@lifecycle.storage.tasks`](/harnest/reference/api/lifecycle#storage-tasks); recurring work needs the same provider under [`@lifecycle.storage.cron`](/harnest/reference/api/lifecycle#storage-cron). See [Task and cron storage](/harnest/runtime/task-storage).
 
 An unfinished `@task` awaited inside `@tool(durable=True)` shares the Harnest run and continuation represented by its A2A Task. On `GetTask` or subscription, Harnest reconciles a durable result without replaying the original tool call.
 
-The A2A `contextId` maps to the Harnest session ID. A text-input root accepts A2A text parts; a typed-input root requires exactly one structured data part. Harnest projects customer-visible text and structured results back to A2A parts while keeping tool arguments and results inside the executing agent boundary regardless of `tool_activity`. With `OutputPolicy(thinking=True)`, a streaming Task emits provider-exposed reasoning as a working-status message whose `metadata.harnest.type` is `thinking`; reasoning is otherwise suppressed. Agent and graph-node lifecycle updates use the same working status with `metadata.harnest.type: agent_activity`; model metadata uses `metadata.harnest.type: agent_metadata`. Set `agent_metadata=AgentMetadataMode.SUPPRESS` to omit those updates and aggregate token counts from the final Message or Task artifact. Answer artifacts can carry `metadata.harnest.agent` attribution. With `OutputPolicy(decision_results=True)`, streaming tasks also publish working-status metadata with `metadata.harnest.type: decision_result` and the typed decision in `metadata.harnest.value`. Decision results are hidden by default.
+A2A `contextId` maps to the Harnest session. Text agents accept text parts; typed-input agents require one structured data part. Tool arguments and results stay private. Configure optional reasoning, decision, and metadata events through [Output policy](/harnest/runtime/lifecycle/output-policy); see [A2A event fields](/harnest/reference/api/a2a#a2a-event-fields).
 
 When `OutputPolicy(agent_metadata=AgentMetadataMode.RAW)` is enabled, streaming metadata updates
 also carry the native ADK or LangGraph `raw` mapping. A remote A2A task store or
 consumer may retain those values. Keep the normalized default unless every A2A
 caller is authorized to receive provider metadata.
 
-`CancelTask` reports success only after Harnest has made the owned run and continuation terminal. For a queued `@task`, cancellation also invalidates its execution lease and removes its private payload in task storage before committing the A2A `CANCELED` snapshot. Cancellation cannot undo external side effects already performed by the task.
+`CancelTask` succeeds after the owned run becomes terminal and any queued-task lease is invalidated. It cannot undo external side effects.
 
 <Warning>
   Human approvals and client-tool requests are process-local. If a durable run resumes into one of those interactions on a replica that does not own it, Harnest fails the A2A Task rather than advertising input that replica cannot accept.
@@ -113,7 +113,7 @@ caller is authorized to receive provider metadata.
 
 ## Apply security and protocol limits
 
-A2A routes use the root [authentication pipeline](/harnest/runtime/authentication-and-credentials). Security requirements in `agent-card.yaml` advertise the contract; an `@lifecycle.authenticate` extension enforces it. Agent Card discovery remains public. Task IDs are scoped to the compiled application and authenticated user; another user receives `404` rather than task-existence information.
+A2A routes use the root [authentication pipeline](/harnest/runtime/authentication-and-credentials). Security requirements in `agent-card.yaml` advertise the contract; an [`@lifecycle.authenticate`](/harnest/reference/api/lifecycle#authenticate) extension enforces it. Agent Card discovery remains public. Task IDs are scoped to the compiled application and authenticated user; another user receives `404` rather than task-existence information.
 
 Harnest does not currently serve gRPC bindings, push notifications, extended Agent Cards, or A2A extensions. Server startup rejects a card that asks the runtime to claim unsupported behavior.
 

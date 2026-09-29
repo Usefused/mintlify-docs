@@ -33,7 +33,7 @@ subagents/researcher/
 
 The child's private capabilities are not exposed to the parent merely because the directory is nested.
 
-Every SubAgent must explicitly assign its allowed sandbox names with `Agent(sandboxes=[...])`, even when a parent already uses those names. Its authored tools then call `context.sandboxes["<name>"].execute(code)` or async `aexecute(code)`. Assignments do not create model tools. Child-local sandbox names cannot duplicate an ancestor's names. Adding files alone does not enable sandbox execution.
+Each SubAgent must declare its own [`Agent(sandboxes=[...])`](/harnest/reference/api/agent#agent) assignments. Its tools can then call [`context.sandboxes["<name>"].execute(code)`](/harnest/reference/api/context#sandboxhandle) or `aexecute(code)`. Child-local names cannot duplicate ancestor names.
 
 ## Discovery rules
 

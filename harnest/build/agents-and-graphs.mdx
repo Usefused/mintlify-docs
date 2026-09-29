@@ -5,7 +5,7 @@ sidebarTitle: "Agents & graphs"
 description: "Author managed agents, portable graphs, structured results, and native targets."
 ---
 
-`agent.py` exports the configured `root_agent`. In managed mode this is an `Agent` or portable `Graph`; in advanced mode it wraps a native ADK or LangGraph target with `Agent.advanced(...)`.
+`agent.py` exports the configured `root_agent`. In managed mode this is an [`Agent`](/harnest/reference/api/agent#agent) or portable [`Graph`](/harnest/reference/api/graph#graph); in advanced mode it wraps a native ADK or LangGraph target with [`Agent.advanced(...)`](/harnest/reference/api/agent#agent-advanced).
 
 | Root type | Choose it for |
 |---|---|
@@ -32,11 +32,11 @@ root_agent = Agent(
 
 `instructions.md` beside `agent.py` is required. It is the default managed prompt and remains bundle metadata for graphs and advanced targets.
 
-The model uses the shared `OPENAI_MODEL`, `OPENAI_BASE_URL`, and optional `OPENAI_API_KEY` process environment. Configure your server's model ID and compatible API URL; no vendor or model is selected by default. Follow [Configure a model](/harnest/build/models-and-libraries/configure-a-model) for local, CI, and deployment setup.
+Set `OPENAI_MODEL`, `OPENAI_BASE_URL`, and, if required, `OPENAI_API_KEY`. No model or endpoint is selected by default. See [Configure a model](/harnest/build/models-and-libraries/configure-a-model).
 
 `history="session"` is the default and includes earlier user and assistant turns from the same Harnest session. Use `history="turn"` for an isolated model call. Do not duplicate the conversation transcript in graph state.
 
-Use an optional `token_policy` to observe usage, enforce budgets, or choose context reductions per agent. Policies are absent by default and can be disabled or overridden in trusted invocation code. See [Token utilisation](/harnest/build/models-and-libraries/token-utilisation).
+Use `token_policy` to observe usage, enforce budgets, or reduce context per agent. See [Token utilisation](/harnest/build/models-and-libraries/token-utilisation).
 
 ## Portable graph
 
@@ -63,12 +63,7 @@ root_agent = Graph(
 )
 ```
 
-| `Event` property | Purpose |
-|---|---|
-| `output` | Pass a value to the next node |
-| `route` | Select a conditional edge |
-| `message` | Emit assistant text |
-| `state_delta` | Update managed session state |
+Return an [Event](/harnest/reference/api/graph#event) to pass output, route execution, emit text, or update session state. See [node event fields](/harnest/reference/api/graph#node-event-fields).
 
 Nodes can be callables, agents, nested graphs, joins, discovered resources, or supported native nodes. Harnest rejects unknown edges, duplicates, and unreachable nodes before execution.
 
@@ -87,3 +82,7 @@ root_agent = Agent.advanced(target=compiled_graph, name="support")
 ```
 
 Your code then owns native routing, state, checkpoints, middleware or plugins, and capability wiring. Harnest keeps the neutral server, sessions, auth, approvals, and telemetry.
+
+## API reference
+
+Reference: [`harnest.model`](/harnest/reference/api/model).

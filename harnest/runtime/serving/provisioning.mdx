@@ -5,7 +5,7 @@ sidebarTitle: "Provisioning"
 description: "Deploy agent images and their dependencies locally or to K3s, and connect externally managed databases."
 ---
 
-Use the Harnest provisioner to run agent images and backing services together. Each service can run from a container image or connect to an existing endpoint, including a database hosted by Aiven or another provider. An environment override lets you provision Redis locally and connect to hosted Redis in production.
+Deploy agent images with backing services, or connect them to existing endpoints. Environment overrides let you use different service arrangements locally and in production.
 
 | Service mode | Harnest owns |
 |---|---|
@@ -23,9 +23,9 @@ export HARNEST_ENABLE_DEPLOYMENT=true
 harnest studio
 ```
 
-Without this opt-in, Studio hides deployment controls and guidance, deployment API requests are rejected, and the CLI hides `provision` from its normal help. All provision operations, including initialization, previews, status, history, and rollback, require the flag. Direct Python provisioning and the Go deployment pipeline require it too, including `harnest-runtime` dry runs. Only `true` enables the feature, ignoring case and surrounding whitespace; missing, false, and other values keep it off.
+The flag gates every provisioning interface, including previews, status, and rollback. Only `true` enables it; case and surrounding whitespace are ignored.
 
-Restart Studio after changing the environment. Unset the flag or set it to `false` to disable deployment again. This does not stop existing workloads or delete deployment history. Building, testing, and serving agents locally remain available.
+Restart Studio after changing the flag. Disabling it leaves existing workloads and history intact. Local build, test, and serve commands remain available.
 
 ## Configure a deployment
 
@@ -35,7 +35,7 @@ Create a starter from your project folder:
 harnest provision init
 ```
 
-Edit `harnest-deployment.yaml`. This file is separate from the agent's `config.yaml` and any template-generated `docker-compose.yml`. Existing template service declarations continue to generate Compose files without starting services. Provisioner declarations retain the `provides` environment-binding convention and explicitly declare lifecycle behavior.
+Edit `harnest-deployment.yaml`. It is separate from agent configuration and template-generated Compose files.
 
 ```yaml harnest-deployment.yaml
 version: 1
@@ -79,7 +79,7 @@ agents:
       memory: 512Mi
 ```
 
-Replace the example agent image with an image you have built. Its entrypoint must start the agent and listen on the declared container port. The provisioner deploys supplied images; it does not build or publish them. Apply freezes image identities before creating a revision. Local tags resolve to the current local image ID; an absent image is pulled first. Kubernetes tags resolve to registry digests through Docker Buildx (`docker buildx imagetools inspect`), which requires registry access but not a running Docker daemon. An explicit `image@sha256:<digest>` needs no registry lookup by the provisioner. Pull or rebuild a local tag before Apply when you want to deploy its updated contents.
+Supply built images; the provisioner does not build or publish them. Apply pins local tags to image IDs and Kubernetes tags to registry digests. Kubernetes resolution needs Docker Buildx and registry access, but no daemon. Digest-pinned images skip lookup. Pull or rebuild a local tag before applying an update.
 
 Set secret values in the provisioner's environment, or in the environment of the Builder process when launching from Studio. `{secret: DATABASE_URL}` resolves that variable only when applying. A literal URL also works for non-sensitive endpoints. Use `provides: {DATABASE_URL: {secret: DATABASE_URL}}` instead of `url` and `variable` when a service supplies multiple bindings.
 
@@ -138,7 +138,7 @@ harnest provision apply --environment production
 
 Switching a service's mode replaces its entire declaration. Image, storage, and health-check settings from the provisioned service do not carry over into connect mode. Other overlay mappings merge recursively; lists replace their previous values. The default environment is `local`; other environment names must be declared.
 
-Kubernetes `ports` create internal ClusterIP Services. `publish` applies only to local Compose and binds to loopback. Use your cluster's ingress, gateway, or port forwarding to expose agent endpoints. External endpoints must already be reachable from the pods. `connect` does not create a managed-provider account, database, or firewall rule and does not run an external service health check.
+Kubernetes ports are internal ClusterIP Services; use ingress or a gateway for public access. Local `publish` binds to loopback. Connected services must already be reachable; Harnest neither provisions nor health-checks them.
 
 ## Multi-agent applications and custom images
 
@@ -148,25 +148,15 @@ Each agent image receives its own Deployment on Kubernetes. In-process SubAgents
 
 Use `mode: provision` with any suitable image for a custom service. `type` is a descriptive label; Harnest does not infer an image's ports, credentials, initialization, or storage settings. Declare an exec `healthcheck.command` for every provisioned component. The probe executable must exist in its image. Optional `command` replaces the image's default arguments on both backends.
 
-| Field | Behavior |
-|---|---|
-| `environment` | Container variables as strings or `{secret: VARIABLE}` references |
-| `ports` | Named container TCP ports |
-| `publish` | Named ports mapped to fixed loopback host ports locally |
-| `depends_on` | Provisioned readiness dependencies and connected-service bindings |
-| `healthcheck` | Required exec command; optional interval, timeout, and retries in seconds/count |
-| `persistence` | One retained volume with `mount`, Kubernetes `size`, and optional `storage_class` |
-| `resources` | CPU and memory limits; defaults to 1 CPU and 512 MiB |
-| `replicas` | Agent instances; defaults to one |
+See the [deployment component reference](/harnest/reference/deployment-configuration#component-fields) for environment bindings, ports, probes, persistence, resources, and replicas.
 
 ## Ownership and recovery
 
-Harnest stores current ownership and revision history in a private `revisions.sqlite3` database under `.harnest/provisioner/<environment>/`. Keep it with the project while a deployment is active. Earlier `state.json` ownership journals are imported automatically; they cannot provide rollback snapshots for deployments made before revision tracking. Resource names include a project-specific identity. Moving the project changes that identity, so remove its existing deployment before moving it or manage migration explicitly.
+Keep `.harnest/provisioner/<environment>/revisions.sqlite3` with an active deployment. Moving the project changes its resource identity, so remove the deployment first or plan a migration. Imported legacy journals do not provide historical rollback snapshots.
 
 Apply can be retried after a partial failure. A failed readiness check leaves resources in place for inspection. Stop and Remove use the recorded target and inventory even if the manifest changes or is deleted. Remove the existing deployment before changing its name, Kubernetes context, namespace, or backend within the same environment.
 
 **Remove preserves database data.** Local named volumes and Kubernetes PVCs remain, along with all externally managed services and the namespace. Switching a provisioned service to `connect` removes its old workloads after a successful apply but retains its volume. Delete retained data through the backend explicitly when it is no longer needed. Retained volumes are not backups; configure backup and recovery separately for databases you operate.
-
 
 ## Deployment versions and rollback
 
@@ -179,11 +169,11 @@ harnest provision plan --environment production --revision 12
 harnest provision rollback --environment production --revision 12
 ```
 
-History records creation and completion times, outcome, configuration fingerprint, requested and resolved image identities, release label, and the source revision of a rollback. It returns the newest revisions first and a `next_before` cursor for the next page. The status response distinguishes the active successful revision from the most recent attempted revision. A failed attempt never advances the active pointer; partially applied workloads remain visible through live status.
+History lists revisions newest first, with outcomes, configuration and image identities, and a pagination cursor. Status separates the active successful revision from the latest attempt; failures do not advance the active revision.
 
-Rollback deploys the saved configuration and image identities as a **new revision** linked to the selected successful revision. It restores the full agent group and reconciles non-persistent dependencies, including removal of workloads added since that revision. Editing or deleting the current manifest does not change a recorded snapshot. Plan with `--revision` previews the same rollback checks without changing infrastructure. Rollback does not rewrite your current manifest; a later Apply deploys that manifest again.
+Rollback creates a new revision from a successful saved configuration and image set, reconciling the full agent group. It does not edit your manifest; a later Apply uses that manifest again. Preview with `--revision`.
 
-In **Deploy**, expand **Deployment history** and choose **Review rollback** beside a successful revision. Review its saved configuration, then select **Roll back to revision** to apply it. Older revisions are loaded in pages. Revision identity is also recorded in Docker container labels and Kubernetes resource annotations. Agent pods carry their deployment revision; an unchanged persistent database is not restarted merely to change this marker.
+In **Deploy → Deployment history**, choose **Review rollback**, inspect the configuration, then **Roll back to revision**. Container labels and Kubernetes annotations identify revisions.
 
 <Note>
 Snapshots retain authored configuration, including literal values, but never resolved values from `{secret: VARIABLE}` references. Use secret references for credentials. Rollback resolves those references from the current provisioner environment, so credential rotation is preserved. History responses expose metadata rather than snapshot contents. Retain local image IDs or registry digests for as long as you need to roll back to them.
@@ -191,4 +181,4 @@ Snapshots retain authored configuration, including literal values, but never res
 
 Rollback does **not** restore database contents, revert migrations, or downgrade a persistent backing service. It rejects changes to a persistent service's image, mount, or other declaration; reconcile database compatibility explicitly before rolling back across such a change. Volumes remain retained. Use backward-compatible database migrations when deploying agents that may need to roll back.
 
-Successful, failed, and interrupted attempts stay in history across restarts and deployment removal. Stop retains the active revision. Remove clears the active pointer and retains history and volumes. Rollback requires an existing deployment in the same target and a successful recorded revision. If an apply is interrupted, retry Apply or roll back to a compatible successful revision after inspecting the live state.
+History survives restarts and removal. Stop retains the active revision; Remove clears it but preserves history and volumes. After interruption, inspect live state before retrying or rolling back.

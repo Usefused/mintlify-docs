@@ -5,7 +5,7 @@ sidebarTitle: "Overview"
 description: "Expose a Harnest agent through A2A and call remote A2A agents through a bounded client."
 ---
 
-Harnest supports both sides of the A2A 1.0 protocol. An authored Agent Card can expose the compiled agent, while `A2AClient` and `RemoteAgent` let trusted application code call another agent.
+Harnest supports both sides of the A2A 1.0 protocol. An authored Agent Card can expose the compiled agent, while [`A2AClient`](/harnest/reference/api/a2a#a2aclient) and [`RemoteAgent`](/harnest/reference/api/a2a#remoteagent) let trusted application code call another agent.
 
 | Goal | Harnest boundary |
 |---|---|
@@ -14,7 +14,7 @@ Harnest supports both sides of the A2A 1.0 protocol. An authored Agent Card can 
 | Add a remote agent to a portable graph | Use `RemoteAgent` as a graph node |
 | Expose a remote agent as a model-selected capability | Convert `RemoteAgent` to an Agent Tool |
 
-Harnest keeps the default path small. A completed blocking interaction returns an A2A `Message`; it does not create a Task merely because the protocol supports Tasks. Streaming, asynchronous execution, approvals, client tools, and durable external waits use an A2A `Task` when task identity is required.
+Completed blocking requests return a `Message`. Streaming, asynchronous execution, and suspended interactions use an A2A `Task`.
 
 Task lookup, listing, cancellation, and subscription happen only when the client asks for them. The outbound client does not list or monitor unrelated Tasks in the background.
 

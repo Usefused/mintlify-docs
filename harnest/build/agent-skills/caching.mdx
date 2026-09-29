@@ -5,7 +5,7 @@ sidebarTitle: "Caching"
 description: "Cache dynamic skill catalogs and content while preserving authorization and version consistency."
 ---
 
-Cache inside your `SkillSource` when the remote catalog needs it. Harnest does not impose a TTL, backend, or invalidation policy.
+Cache inside your [`SkillSource`](/harnest/reference/api/skills#skillsource) when the remote catalog needs it. Harnest does not impose a TTL, backend, or invalidation policy.
 
 ## Ownership
 
@@ -52,7 +52,7 @@ Authorize before reading from a cache. Never use credentials or raw claims as ca
     Expire or invalidate catalog pages so new invocations can discover the new version.
   </Step>
   <Step title="Retain in-flight versions">
-    Continue serving an older requested version while active invocations may still reference it. Return `SkillNotFoundError` if it is unavailable; never substitute newer instructions.
+    Continue serving an older requested version while active invocations may still reference it. Return [`SkillNotFoundError`](/harnest/reference/api/skills#skillnotfounderror) if it is unavailable; never substitute newer instructions.
   </Step>
 </Steps>
 

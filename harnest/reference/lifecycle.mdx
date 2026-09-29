@@ -11,33 +11,33 @@ Root files under `lifecycle/**/*.py` add behavior around the agent. Harnest disc
 
 | Decorator | Allowed | Purpose | Guide |
 |---|---:|---|---|
-| `@lifecycle.resource` | Many | Application dependency | [Application resources](/harnest/runtime/lifecycle/application-resources) |
-| `@lifecycle.skills.source("name")` | Many, with unique names | Dynamic skill catalog | [Agent Skills](/harnest/build/agent-skills) |
-| `@context.provider("name")` | Many | Publish a resource | [Application resources](/harnest/runtime/lifecycle/application-resources) |
+| [`@lifecycle.resource`](/harnest/reference/api/lifecycle#resource) | Many | Application dependency | [Application resources](/harnest/runtime/lifecycle/application-resources) |
+| [`@lifecycle.skills.source("name")`](/harnest/reference/api/lifecycle#skills-source) | Many, with unique names | Dynamic skill catalog | [Agent Skills](/harnest/build/agent-skills) |
+| [`@context.provider("name")`](/harnest/reference/api/context#provider) | Many | Publish a resource | [Application resources](/harnest/runtime/lifecycle/application-resources) |
 | `@lifecycle.agent.before/after/on_error` | Many | Agent policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.model.before/after/on_error` | Many | Model policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.tool.before/after/on_error` | Many | Tool policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.mcp.before/after/on_error` | Many | Governed remote-tool policy | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.http.before/after/on_error` | Many | HTTP request and response policy | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
-| `@lifecycle.output_policy` | Zero or one | Public narration, tool activity, reasoning, and metadata | [Output policy](/harnest/runtime/lifecycle/output-policy) |
-| `@lifecycle.adk_plugin` | Many | ADK-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
-| `@lifecycle.langgraph_middleware` | Many | LangGraph-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
-| `@lifecycle.http_routes` | Many | Application HTTP routes | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
-| `@lifecycle.storage.sessions` | Exactly one | Sessions and transcripts | [Sessions](/harnest/runtime/session-storage) |
-| `@lifecycle.storage.checkpoints` | Exactly one | In-progress execution | [Checkpoints](/harnest/runtime/checkpoints) |
-| `@lifecycle.storage.tasks` | Zero or one | Durable task queue and results | [Task and cron storage](/harnest/runtime/task-storage) |
-| `@lifecycle.storage.cron` | Zero or one | Schedules and atomic occurrence handoff; shares the task provider instance | [Task and cron storage](/harnest/runtime/task-storage) |
-| `@lifecycle.storage.assets("name")` | Many, with unique names | Multimodal asset storage | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
-| `@lifecycle.storage.custom("name")` | Many, with unique names | Domain repositories | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
-| `@lifecycle.authenticate` | Zero or more | Request identity | [Authentication](/harnest/runtime/authentication-and-credentials) |
-| `@lifecycle.credential_provider` | Zero or one | Downstream credentials | [Authentication](/harnest/runtime/authentication-and-credentials) |
-| `@lifecycle.telemetry_exporter` | Many | Trace and log destination | [Telemetry](/harnest/runtime/telemetry) |
+| [`@lifecycle.output_policy`](/harnest/reference/api/lifecycle#output_policy) | Zero or one | Public narration, tool activity, reasoning, and metadata | [Output policy](/harnest/runtime/lifecycle/output-policy) |
+| [`@lifecycle.adk_plugin`](/harnest/reference/api/lifecycle#adk_plugin) | Many | ADK-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
+| [`@lifecycle.langgraph_middleware`](/harnest/reference/api/lifecycle#langgraph_middleware) | Many | LangGraph-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
+| [`@lifecycle.http_routes`](/harnest/reference/api/lifecycle#http_routes) | Many | Application HTTP routes | [Custom HTTP endpoints](/harnest/runtime/custom-http-endpoints) |
+| [`@lifecycle.storage.sessions`](/harnest/reference/api/lifecycle#storage-sessions) | Exactly one | Sessions and transcripts | [Sessions](/harnest/runtime/session-storage) |
+| [`@lifecycle.storage.checkpoints`](/harnest/reference/api/lifecycle#storage-checkpoints) | Exactly one | In-progress execution | [Checkpoints](/harnest/runtime/checkpoints) |
+| [`@lifecycle.storage.tasks`](/harnest/reference/api/lifecycle#storage-tasks) | Zero or one | Durable task queue and results | [Task and cron storage](/harnest/runtime/task-storage) |
+| [`@lifecycle.storage.cron`](/harnest/reference/api/lifecycle#storage-cron) | Zero or one | Schedules and atomic occurrence handoff; shares the task provider instance | [Task and cron storage](/harnest/runtime/task-storage) |
+| [`@lifecycle.storage.assets("name")`](/harnest/reference/api/lifecycle#storage-assets) | Many, with unique names | Multimodal asset storage | [Store and retrieve media](/harnest/build/models-and-libraries/store-and-retrieve-media) |
+| [`@lifecycle.storage.custom("name")`](/harnest/reference/api/lifecycle#storage-custom) | Many, with unique names | Domain repositories | [Sessions and application storage](/harnest/runtime/session-storage#register-a-domain-repository) |
+| [`@lifecycle.authenticate`](/harnest/reference/api/lifecycle#authenticate) | Zero or more | Request identity | [Authentication](/harnest/runtime/authentication-and-credentials) |
+| [`@lifecycle.credential_provider`](/harnest/reference/api/lifecycle#credential_provider) | Zero or one | Downstream credentials | [Authentication](/harnest/runtime/authentication-and-credentials) |
+| [`@lifecycle.telemetry_exporter`](/harnest/reference/api/lifecycle#telemetry_exporter) | Many | Trace and log destination | [Telemetry](/harnest/runtime/telemetry) |
 
 ## Factory rules
 
 | Rule | Behavior |
 |---|---|
-| Signature | Synchronous and zero-argument unless it is a callback; `http_routes` receives one `AgentInvoker` |
+| Signature | Synchronous and zero-argument unless it is a callback; `http_routes` receives one [`AgentInvoker`](/harnest/reference/api/http#agentinvoker) |
 | Return type | Must match the decorator's resource or policy type |
 | Duplicates | Single-owner factories reject duplicates |
 | Ordering | Lower `order`, plugin dependency/source order, then source location |
