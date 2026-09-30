@@ -194,3 +194,14 @@ Old queue data and continuation references are not migrated automatically. Keep 
 ## API reference
 
 Reference: [`harnest.testing`](/harnest/reference/api/testing).
+
+
+## Optional development inspection
+
+The Playground **Work** view uses optional `list_task_metadata` and `list_cron_metadata` methods. Existing `TaskStore` and `CronStore` implementations remain compatible without them: users can look up work by ID, cancel tasks, and manage known dynamic schedules.
+
+Both methods are async and accept keyword-only `application_id`, `user_id`, `after=None`, and `limit=100` (1–100). Apply owner and cursor predicates, ordering, projection, and limit inside the datastore. Task IDs and schedule IDs are exclusive cursors sorted lexicographically. Return `{"items": [...], "after": next_id_or_none}`; task pages also include `"indexing": false`. A provider rebuilding an index can return an empty task page with `"indexing": true` until it can produce a complete listing.
+
+Task items contain only `job_id`, `task_name`, `queue`, `status`, `scheduled_at`, `attempt`, `max_retries`, `created_at`, `updated_at`, and `failure_code`. Cron items contain only `schedule_id`, `key`, `expression`, `task_name`, `status`, `timezone`, `next_run_at`, `revision`, and `read_only`. Set `read_only` for keys beginning with `static:`. Never return task arguments, results, invocation snapshots, credentials, permissions, or lease tokens in metadata listings.
+
+Built-in memory, PostgreSQL, and Redis providers implement these queries. PostgreSQL adds owner indexes during schema setup; deployments using `setup_schema=False` should provision matching `(application_id, user_id, job_id)` and `(application_id, user_id, schedule_id)` indexes. Redis maintains the task index in the enqueue transaction and incrementally indexes older records when the Work view first lists them.

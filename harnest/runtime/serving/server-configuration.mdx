@@ -22,6 +22,8 @@ This changes the port and request-size limit. Every other server setting retains
 
 ## Enable WebSockets
 
+AG-UI is enabled by default. Set `server.agui: false` to disable `POST /agui` and remove its discovery entry. It accepts a boolean or an exact environment reference such as `${AGUI_ENABLED}`. Embedding applications can pass `agui_enabled=False` to `create_fastapi_app` or `create_neutral_app`. Rebuild and restart after changing authored settings.
+
 Set `live: true` under `server` to enable live WebSocket connections:
 
 ```yaml config.yaml

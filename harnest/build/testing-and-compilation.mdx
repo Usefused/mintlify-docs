@@ -42,6 +42,52 @@ Related-source access lets the assistant read up to 24 files and 160 KiB across 
 
 Review the diff, then choose **Apply to project**. Revision checks protect concurrent edits. Apply changes source only; use **Build agent** and **Run & test** to validate it.
 
+### Add runtime and evaluation capabilities
+
+Use the component palette to create current Harnest authoring contracts:
+
+| Component | Choices and next step |
+| --- | --- |
+| **Cron schedule** | Create a fixed UTC `@cron` function, a dynamic target, or a schedule for an existing task. Set arguments, queue, and retry policy; existing tasks retain their own policy. |
+| **Task and cron storage** | Choose memory for local development, Postgres, or Redis. The generated factory shares one provider across both roles. Replace existing providers for those roles before compiling. |
+| **Private client input** | Create a typed private schema and handler. Implement the consuming operation before serving; only the fixed authored response reaches the model. |
+| **Evaluation** | Choose a preset from the installed CLI, including custom metrics. ADK and LangGraph share the evaluation lane. Existing criteria are preserved; judge, simulator, and Vertex presets need their scoring backend configured. |
+| **AG-UI transport** | Review an explicit `server.agui` setting, apply it, then rebuild and restart. It defaults to enabled; environment references remain unchanged until you apply a choice. |
+| **Custom UI event** | Scaffold an async tool using `await ui.emit("app.event", payload)`. Your frontend owns the widget; Playground shows the event as inert JSON. |
+| **AG-UI smoke test** | Add a test of the `/agui` SSE initialization handshake. The empty run creates a thread without invoking a model. Run it with **Run & test → Run smoke tests** against a running agent. |
+
+Dynamic cron targets have no schedule until runtime code calls `harnest.cron.create` or you create one in the serving agent's **Work** view. Start **Run & test → Serve**, then use **Tasks & schedules** beside the command output to open that view. Learn more about [scheduled tasks](/harnest/build/scheduled-tasks) and [task storage](/harnest/runtime/task-storage).
+
+Managed environments include Postgres and Redis drivers. Use **Run & test → Sync dependency environment**, then supply the selected provider's `DATABASE_URL` or `REDIS_URL` at runtime. Memory task storage loses jobs and schedules when the process exits. Configure Redis persistence for durable use.
+
+Evaluation creation runs `harnest add eval` and shares its current presets. `custom` creates a scorer stub to implement and register in `evals/test_config.json`. Criteria apply across the project's evaluation sets. Run **Build agent** after adding components, then use **Run & test** for the appropriate checks. Live evaluations invoke the agent's configured models and tools.
+
+**Run & test → Run evaluations** lets you choose **Business** matching (required tool calls in order, with extra calls allowed) or **Strict** matching (the exact authored call sequence). **Sync dependency environment** lets you select the runtime, compile, development, or evaluation profile; Studio forwards that choice to `harnest env sync --profile`. Keep the resulting lock files with your project.
+
+Playground labels private input separately, displays the input schema, and clears submitted values from its form on both success and failure. Pending private input requires the same serving process. Select **AG-UI** in Playground for streaming conversation testing. Its continuation form submits every pending approval or client input together; private values are excluded from messages and state.
+
+### Manage running work
+
+The serving agent's **Work** view lists task metadata and dynamic schedules for the authenticated owner. Look up a task by ID, inspect its status, and cancel pending or running work. Create schedules against deployed cron functions, edit their UTC expression and arguments, pause or resume them, cancel them permanently, or delete their definition. Edits reject stale revisions. Cancelling or deleting a schedule does not cancel task occurrences already enqueued; cancel those tasks separately.
+
+Fixed schedules remain source-controlled: edit `cron/`, rebuild, and restart. Application automation is a separate owner. A trusted authenticator must issue the claim `harnest:work:automation` with boolean value `True` to enable that scope; browser headers or an ordinary user identity do not grant it. Work routes exist only with the development Playground enabled.
+
+Memory, PostgreSQL, and Redis support bounded listings without task payloads. Redis upgrades its existing task index incrementally; **Continue indexing existing tasks** completes the scan before listing. Existing custom providers keep lookup and cancellation support; add the optional metadata queries described in [task storage](/harnest/runtime/task-storage) to enable browsing.
+
+### Set Studio AI budgets
+
+Click **Configure** in **Build with AI** to choose a model timeout of 1–1800 seconds and a maximum output budget of 1–131072 tokens. Defaults are 120 seconds and 12000 tokens. These settings apply to subsequent requests; your provider can impose a lower output limit. The timeout applies to each provider call, and a proposal may involve multiple calls or source-reading rounds.
+
+Set host defaults before starting Studio:
+
+```bash
+export HARNEST_BUILDER_TIMEOUT_SECONDS=240
+export HARNEST_BUILDER_MAX_TOKENS=16000
+harnest studio
+```
+
+Saved browser choices override these defaults. Studio restarts its private assistant when the model or budgets change and derives longer runtime and HTTP deadlines from the selected timeout. Provider credentials remain server-side.
+
 ### Connect and create MCP servers
 
 Open **MCP connections** in the workspace sidebar. Choose **Add HTTP MCP endpoint** to connect an existing Streamable HTTP server, or enter your Fused Engine URL and choose **Connect Fused**. Complete sign-in in the same browser, then reopen the dialog. Management credentials remain in Studio's server memory; restarting Studio requires reconnecting.

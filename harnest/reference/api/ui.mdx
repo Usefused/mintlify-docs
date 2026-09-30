@@ -1,0 +1,25 @@
+---
+icon: "display"
+title: "UI events"
+description: "Emit bounded application-owned display events from tools and graph nodes."
+---
+
+## `ui.emit`
+
+```python
+from harnest import ui
+
+await ui.emit("app.progress", {"percent": 50})
+```
+
+Call `async ui.emit(name: str, value: Any) -> None` inside an active Harnest invocation, such as an async tool or graph node. ADK and LangGraph use the same contract. Child agent scopes share the invocation's event budget and retain agent attribution in native output.
+
+- `name`: 1–128 characters, starting with a letter and then letters, digits, dots, underscores, or hyphens. `harnest.*`, `thinking`, `agent_activity`, `agent_metadata`, and `decision_result` are reserved.
+- `value`: finite JSON data, at most 64 KiB when encoded as UTF-8. Non-JSON objects, NaN, infinities, and cyclic values are rejected with `ValueError`.
+- Budget: at most 128 events and 512 KiB of values per invocation. Exceeding either limit raises `ValueError`. Values are detached when emitted, so later mutations cannot alter an already submitted event.
+
+Only emit data intended for the caller's UI. Events are transient and do not enter model history or change session state. They are not replayed after restart. Using the API outside an active invocation raises `ContextUnavailableError`.
+
+AG-UI streams each event as `CUSTOM` with the exact `name` and `value`. Native SSE and WebSocket transports send `response.ui_event`; JSON responses include `ui_event` items in `output`. Streaming uses backpressure and can deliver a UI event while a tool is still working. Disconnecting closes the owning execution and event producer.
+
+Studio's **Custom UI event** component generates a tool using this API. Playground renders the event as inert JSON; your frontend decides which widgets to update. For persistent shared state, use authored graph `Event(state_delta=...)` instead. See [AG-UI](/harnest/runtime/ag-ui).

@@ -435,6 +435,7 @@
                   "harnest/reference/api/model",
                   "harnest/reference/api/content",
                   "harnest/reference/api/output",
+                  "harnest/reference/api/ui",
                   "harnest/reference/api/structured",
                   "harnest/reference/api/decisions",
                   "harnest/reference/api/tokens",

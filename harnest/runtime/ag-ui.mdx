@@ -14,12 +14,38 @@ Your agent stays in Harnest. Your frontend owns the conversation UI, browser too
 | Capability | What your UI receives or sends |
 | --- | --- |
 | Conversations | Client-created threads, streamed assistant text, and tool calls/results |
+| Custom UI events | Application-named `CUSTOM` events from `await ui.emit(name, value)` |
 | Shared state | Session-state patches from the client and authored graph state from ADK or LangGraph |
 | Application context | Client context, tool descriptions, and forwarded properties available to your agent's context providers |
 | Browser tools | A handoff to a registered frontend handler, followed by resuming the original invocation |
 | Human approval | An interrupt that your UI can approve, decline, or cancel |
 | Structured results | Final output in `RUN_FINISHED.result` |
 | External waits | A status event and response ID for polling work that remains in progress |
+
+## Configure and author events
+
+AG-UI is enabled by default. Set `server.agui: false` in `config.yaml` to remove `POST /agui` and its entry in `/agent`. Use `true` or an exact environment reference such as `${AGUI_ENABLED}` to enable it at startup. Studio's **AG-UI transport** component previews this source change; rebuild and restart after applying it.
+
+Author display events inside async tools or graph nodes:
+
+```python
+from harnest import ui
+from harnest.agent import tool
+
+@tool
+async def show_status(message: str) -> dict:
+    """Show a public progress message in the caller's interface.
+
+    Args:
+        message: Public display text, excluding credentials and private input.
+    """
+    await ui.emit("app.progress", {"message": message, "percent": 50})
+    return {"status": "displayed"}
+```
+
+The frontend receives `{"type":"CUSTOM","name":"app.progress","value":{"message":"...","percent":50}}`. Register a handler for that name in your client to update a widget. Harnest sends JSON data; it does not execute HTML, JavaScript, or an arbitrary frontend component supplied by the agent. Playground displays named events as expandable JSON.
+
+UI events are separate from model history and session state. For durable shared state in a graph, return `Event(state_delta={"progress": 50})` from a node; Harnest emits the corresponding `STATE_DELTA`. See [the UI API](/harnest/reference/api/ui) for payload limits, lifetime, and native transport behavior.
 
 ## Choose your next step
 
