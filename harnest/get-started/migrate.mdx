@@ -105,6 +105,10 @@ Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle 
 
 Harnest checks that reviewed files have not changed and creates backups under `.harnest/upgrade-backups/`. It stops when a change needs your judgment.
 
+### Existing Cron declarations
+
+`harnest upgrade` reports recognized `Cron(...)` calls under **Optional migrations**. The class remains supported; these notices do not block other upgrades and `--apply` leaves the declarations intact. Converting to `@cron(...)` changes the underlying Task identity, so review shared callers, queued work, and stored schedules before moving the implementation. Follow the [Cron migration checklist](/harnest/build/scheduled-tasks#migrate-an-existing-cron-declaration).
+
 ## Switch between ADK and LangGraph
 
 For a managed agent, change `spec.framework.name` in `config.yaml`:

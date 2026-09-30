@@ -49,6 +49,31 @@ daily_report = cron.Cron(
 
 Choose either this declaration or the decorated function for `daily_report.py`. See the [Cron API reference](/harnest/reference/api/cron) for constructor fields, decorator parameters, and expression constraints.
 
+## Migrate an existing Cron declaration
+
+`Cron(...)` remains supported for backward compatibility and for scheduling an existing reusable Task. It is not deprecated. Use `@cron(...)` when you want the scheduled function and its task policy in one file.
+
+Run `harnest upgrade .` to find existing Harnest `Cron(...)` calls. The plan lists their source locations under **Optional migrations** and links to this checklist. `--apply` performs required upgrades but does not convert these declarations or move their Tasks automatically.
+
+<Steps>
+  <Step title="Review callers and retained work">
+    Check whether the existing Task is used by `.defer()`, other fixed schedules, or stored dynamic jobs. Keep `Cron(..., task=...)` if the Task is shared. Inspect pending and retrying work before removing any old task definition.
+  </Step>
+  <Step title="Move dedicated work into the cron function">
+    Replace the declaration with a function whose name matches its `cron/<name>.py` filename, using the [decorator example above](#declare-a-schedule). Move the dedicated implementation and its imports, preserving synchronous or asynchronous behavior and its docstring. Copy the expression, arguments, queue, and retry policy. The defaults apply if you omit those options; they are not inherited from the old Task. Use only `@cron`, without stacking `@task`.
+
+    For work scheduled dynamically only, use `@cron()` and update new `cron.create(...)` calls to select the function by name, as shown in [Dynamic schedules](/harnest/build/dynamic-schedules).
+  </Step>
+  <Step title="Plan the schedule transition">
+    The generated Task has a new identity, even when the cron filename stays the same. At startup, Harnest pauses the old fixed schedule and registers a replacement whose next occurrence starts from deployment time. The old next-run cursor is not transferred. Avoid running conflicting old and new deployments together, and keep the old Task available until queued or retrying occurrences have finished.
+
+    Existing dynamic jobs retain their original Task target. Editing a job does not retarget it. If you choose to move those jobs, pause or cancel each old schedule and create a replacement with a new key and the intended arguments. Already queued work continues. Keep the old Task while any retained jobs still need it.
+  </Step>
+  <Step title="Verify before removing the old Task">
+    Run `harnest test .`, check your storage configuration, and review the next scheduled run. Remove the old Task only when no callers or unfinished jobs depend on it. Keeping the supported `Cron(...)` declaration avoids this identity transition entirely.
+  </Step>
+</Steps>
+
 ## Run the scheduler
 
 Register the **same durable storage instance** with [`@lifecycle.storage.tasks`](/harnest/reference/api/lifecycle#storage-tasks) and [`@lifecycle.storage.cron`](/harnest/reference/api/lifecycle#storage-cron) using [Task and cron storage](/harnest/runtime/task-storage), then run:
