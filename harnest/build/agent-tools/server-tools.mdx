@@ -12,12 +12,20 @@ For isolated Python execution, call an assigned [Sandbox](/harnest/build/sandbox
 from harnest.models.orders import OrderStatus
 from harnest.agent import tool
 
-@tool(output_schema=OrderStatus)
-def lookup_order(order_id: str):
-    """Load one order status."""
+@tool(
+    output_schema=OrderStatus,
+    description="""Look up an existing order when the user asks for its status.
+    Ask for the order ID if missing; never guess it.
 
+    Args:
+        order_id: The exact order ID supplied by the user.
+    """,
+)
+def lookup_order(order_id: str):
     return {"order_id": order_id, "status": "processing"}
 ```
+
+`description` tells the model what the tool does and when to call it. It replaces the function docstring; omit it to use the docstring instead. Include argument descriptions in whichever you use. This works with ADK and LangGraph.
 
 ## Tool properties
 
