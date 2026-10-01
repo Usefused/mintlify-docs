@@ -178,6 +178,7 @@
                 "icon": "robot",
                 "expanded": false,
                 "pages": [
+                  "harnest/build/studio-packs",
                   "harnest/build/agent-concepts",
                   "harnest/build/agents-and-graphs",
                   "harnest/build/models-and-libraries/configure-a-model",

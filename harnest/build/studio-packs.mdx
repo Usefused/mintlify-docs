@@ -1,0 +1,175 @@
+---
+title: "Distribute company Studio Packs"
+description: "Bundle company components, templates, skills, and service connections into a local Harnest Studio distribution."
+---
+
+Studio Packs give teams a shared catalog while their agents and editing sessions remain on their devices. You can load a pack directory during development, then package that catalog in a company launcher wheel. No organization server is required.
+
+## Choose a resource type
+
+| Kind | Contribution |
+| --- | --- |
+| `component` | Native tools, subagents, workflows, or other source files |
+| `extension` | A complete native Harnest Extension directory |
+| `template` | A starting agent containing `agent.py` and `config.yaml` |
+| `agent-skill` | Agent Skills copied into the agent project |
+| `builder-skill` | Markdown guidance supplied to Studio's builder, without copying it into the agent |
+| `service` | Internal MCP or Fused connection source using credential references |
+| `profile` | A reviewed configuration overlay, optionally accompanied by source files |
+| `bundle` | An ordered collection of resources, including resources from other loaded packs |
+
+The component library and AI builder use the same catalog. The builder can select an exact resource by ID; Studio prepares its source diff instead of asking the model to reproduce the component.
+
+## Author a pack
+
+Create a `studio-pack.yaml` manifest and the text files it references:
+
+```text
+company-pack/
+├── studio-pack.yaml
+├── components/
+│   └── ticket_reference.py
+└── skills/
+    └── builder.md
+```
+
+```yaml studio-pack.yaml
+apiVersion: harnest.dev/studio-pack/v1
+name: acme-support
+version: 1.0.0
+title: Acme support
+requires:
+  studio: ">=0.1,<0.2"
+  harnest: ">=1.5,<2"
+resources:
+  - id: ticket-reference
+    kind: component
+    title: Ticket reference
+    description: Format an internal support ticket reference.
+    files:
+      tools/ticket_reference.py: components/ticket_reference.py
+  - id: builder-conventions
+    kind: builder-skill
+    title: Acme builder conventions
+    files:
+      skills/acme-builder/SKILL.md: skills/builder.md
+  - id: team-profile
+    kind: profile
+    title: Team configuration
+    config:
+      server:
+        agui: true
+  - id: support-tools
+    kind: bundle
+    title: Support tools
+    includes:
+      - ticket-reference
+      - team-profile
+```
+
+Each `files` key is a destination inside the agent project. Its value is a path inside the pack. Paths must refer to supported UTF-8 source files; linked files, path traversal, hidden files, and environment directories are excluded. Packs do not run installation scripts or substitute template expressions.
+
+```python components/ticket_reference.py
+from harnest.agent import tool
+
+
+@tool
+def ticket_reference(ticket_id: str) -> str:
+    """Format an internal support ticket reference."""
+    return "SUP-" + ticket_id.strip().upper()
+```
+
+```markdown skills/builder.md
+Prefer Acme support components for internal ticket handling.
+Use environment references for credentials.
+Review source changes before applying them.
+```
+
+Profiles merge their keys into the existing `config.yaml`; the complete resulting diff is reviewed before application. Put a template before its profile in a bundle to compose a new agent with team defaults. Conflicting file contributions are rejected. Template resources must include `agent.py` and `config.yaml`; add dependency and instruction files as needed.
+
+Use `pack-name/resource-id` to reference another loaded pack. Unqualified bundle members refer to resources in the same pack. Unknown references and cycles fail validation.
+
+For extensions, include the native manifest, implementation, and any supporting files under `extensions/<name>/`. Use the normal [Harnest Extension contract](/harnest/build/extensions/create). Declare agent dependencies in its dependency file and synchronize the environment before running it; a Studio Pack does not install arbitrary packages while loading the catalog.
+
+## Configure the Studio builder for your team
+
+One company pack can contain every component, template, and skill alongside the settings for Studio's own builder agent. Add any subset of these fields to the top level of `studio-pack.yaml`:
+
+```yaml
+builder:
+  model: openai/company-coding-model
+  api_base: https://ai.company.example/v1
+  api_key_env: COMPANY_AI_KEY
+  ca_bundle: certificates/company-ca.pem
+  timeout: 240
+  max_tokens: 12000
+```
+
+`model` is a LiteLLM provider/model identifier. `api_base` is the model service's base URL, without embedded credentials or query parameters. `api_key_env` names an environment variable resolved on the employee's device; its value is never included in the company wheel. Standard provider credential variables still work when no builder-specific key is supplied.
+
+`ca_bundle` points to a PEM certificate bundle relative to the pack directory. Put your organization's trusted CA certificates there. Studio validates and snapshots the file, includes it in the company wheel, and passes its trust configuration to the builder's provider client while retaining certificate and hostname verification. Linked files, paths outside the pack, invalid certificates, and private keys are rejected. A CA bundle configures server trust; it does not configure an mTLS client certificate or private key.
+
+`timeout` is the per-call limit in seconds (1–1800); `max_tokens` is the output token budget (1–131072). Omitted fields retain Studio's defaults: 120 seconds and 12000 tokens. A settings-only pack can omit `resources`.
+
+These defaults apply automatically when launching with `--pack` or the packaged company launcher. They configure the **Studio builder**, independently of the model settings inside the agents it creates. Teams do not need to re-enter company defaults. Credentials must be available through the device's launch environment.
+
+Local settings take precedence:
+
+| Pack field | Local override |
+| --- | --- |
+| `model` | `HARNEST_BUILDER_MODEL` |
+| `api_base` | `HARNEST_BUILDER_API_BASE` |
+| `api_key_env` lookup | `HARNEST_BUILDER_API_KEY` (the actual key) |
+| `ca_bundle` | `HARNEST_BUILDER_CA_BUNDLE` (a local PEM path) |
+| `timeout` | `HARNEST_BUILDER_TIMEOUT_SECONDS` |
+| `max_tokens` | `HARNEST_BUILDER_MAX_TOKENS` |
+
+Model and budget choices saved in the Studio UI override launch defaults for subsequent requests. Restart Studio after changing its launch environment or pack contents. A local CA override replaces the bundled trust file; include every required CA in the selected bundle.
+
+Most companies need one pack containing many components. Optional additional team packs overlay only the fields they specify, in launch order; command-line packs follow embedded packs. Loading two packs with the same name is rejected, including two versions of the same pack. Distribute a new company-wheel version to replace an older pack version.
+
+## Validate and try locally
+
+```bash
+harnest studio pack validate ./company-pack
+harnest studio --workspace ./agents --pack ./company-pack
+```
+
+Repeat `--pack` to load multiple catalogs. You can also use the standalone `harnest-studio` command from the `harnest-agent-builder` Python package. Both launchers require the Harnest CLI on the device.
+
+In Studio, open **Studio Packs** or choose a company resource in the component library. Templates and bundles containing templates offer **Create agent**. Other installable resources offer a reviewed change to the selected agent. Builder skills are active authoring guidance and do not grant permission to execute commands or expose credentials.
+
+Loading a pack freezes its referenced content for that Studio session. Restart Studio to load publisher changes. Catalog discovery and preview do not execute contribution code; installed Python components execute through the agent's normal runtime when used.
+
+## Package for your team
+
+```bash
+harnest studio pack package \
+  --pack ./company-pack \
+  --name acme-studio \
+  --version 1.0.0 \
+  --output ./dist
+```
+
+This produces `acme_studio-1.0.0-py3-none-any.whl`, containing the referenced pack files and an `acme-studio` launcher. Unreferenced files are excluded. The wheel declares an exact dependency on the Studio package version used to build it.
+
+Distribute the wheel through your internal package repository or deliver it directly:
+
+```bash
+python -m pip install ./dist/acme_studio-1.0.0-py3-none-any.whl
+acme-studio --workspace ./agents
+```
+
+<Note>
+The company wheel embeds catalogs, not Python, the Harnest CLI, or all runtime dependencies. Make the matching Studio package and its dependencies available through your package repository. For offline installation, deliver a complete wheelhouse for the team's operating system and Python version, then install with `--no-index --find-links`.
+</Note>
+
+Keep credentials out of packs. Internal service definitions should reference values such as `${COMPANY_MCP_URL}` and `${COMPANY_MCP_TOKEN}`, supplied through the employee's trusted launch environment or connection system. Shipping a service definition does not grant access to that service.
+
+## Update agents without replacing team edits
+
+Installing a resource records its pack version, content digest, and installed file hashes in `studio-packs.lock`. Publish a new pack and company-package version to make updates available; existing agents do not change automatically.
+
+Studio checks every reviewed source revision again when applying. If a previously installed file has local edits that differ from the new resource, the upgrade is blocked so those edits can be merged explicitly. Files removed from a later resource are retained; this first version does not automatically delete source. Keep the receipt in version control alongside the agent.
+
+Studio Packs configure the local authoring experience. They do not enforce service permissions or prevent a developer from editing local files. Enforce mandatory organization checks in your service and CI boundaries. Executable UI plugins and organization-server synchronization are outside this pack format.
