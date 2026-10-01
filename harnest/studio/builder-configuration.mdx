@@ -1,0 +1,53 @@
+---
+title: "Configure the builder"
+description: "Choose the Studio builder model, endpoint, credentials, certificate trust, and budgets."
+---
+
+Studio's builder model creates and edits agent source. Its settings are independent of the model configured inside each agent you build.
+
+## Choose a model and endpoint
+
+Set builder defaults in the environment before launching Studio:
+
+```bash
+export HARNEST_BUILDER_MODEL=openai/your-model
+export HARNEST_BUILDER_API_BASE=https://ai.company.example/v1
+harnest studio --workspace /path/to/agents
+```
+
+Use a provider/model identifier supported by your model service. Set the service's base URL when using a company gateway or custom endpoint. Supply credentials through the launch environment, using the provider's credential variable or `HARNEST_BUILDER_API_KEY`. Provider credentials remain server-side.
+
+| Environment variable | Purpose |
+| --- | --- |
+| `HARNEST_BUILDER_MODEL` | Default builder model, with provider prefix |
+| `HARNEST_BUILDER_API_BASE` | Model service base URL |
+| `HARNEST_BUILDER_API_KEY` | Builder-specific API key |
+| `HARNEST_BUILDER_CA_BUNDLE` | Path to a PEM file containing trusted CA certificates |
+| `HARNEST_BUILDER_TIMEOUT_SECONDS` | Per-call timeout in seconds |
+| `HARNEST_BUILDER_MAX_TOKENS` | Maximum output tokens per call |
+
+Restart Studio after changing its launch environment.
+
+## Trust a company certificate authority
+
+Set `HARNEST_BUILDER_CA_BUNDLE` to your organization's PEM CA bundle when the model service uses a private certificate authority. Certificate and hostname verification remain enabled. This configures server trust; it does not configure an mTLS client certificate or private key.
+
+## Set request budgets
+
+Click **Configure** in **Build agent** to choose a model timeout of 1–1800 seconds and a maximum output budget of 1–131072 tokens. Defaults are 120 seconds and 12000 tokens. These settings apply to subsequent requests; your provider can impose a lower output limit. The timeout applies to each provider call, and a proposal may involve multiple calls or source-reading rounds.
+
+Set host defaults before starting Studio:
+
+```bash
+export HARNEST_BUILDER_TIMEOUT_SECONDS=240
+export HARNEST_BUILDER_MAX_TOKENS=16000
+harnest studio
+```
+
+Saved browser choices override these defaults. Studio restarts its private assistant when the model or budgets change and derives longer runtime and HTTP deadlines from the selected timeout. Provider credentials remain server-side.
+
+## Supply defaults through a company pack
+
+A [company Studio Pack](/harnest/studio/packs#configure-the-studio-builder-for-your-team) can supply some or all builder settings, including the model, base URL, API-key environment variable name, bundled CA certificates, and budgets. Teams receive these defaults when they launch your packaged Studio.
+
+Local environment settings override pack defaults. Model and budget choices saved in Studio override launch defaults for subsequent requests. Keep actual credentials on each device or in your organization's credential system.

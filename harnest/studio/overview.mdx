@@ -1,0 +1,52 @@
+---
+title: "Harnest Studio"
+sidebarTitle: "Overview"
+description: "Create, edit, and run agents in a local visual workspace."
+---
+
+Harnest Studio is your local workspace for creating, editing, and running agents. Build from a prompt, review proposed source changes, connect tools, and test the result on your device.
+
+Studio launches through the Harnest CLI. The separate [Playground](/harnest/get-started/serve) provides conversation testing, traces, and evaluation suites for a running agent.
+
+## Start Studio
+
+Harnest Studio is bundled with the release CLI, including its web server, browser assets, and compiled AI authoring assistant. Start it from the folder you want to use as your workspace:
+
+```bash
+harnest studio
+```
+
+If `--workspace` is omitted, Studio uses your current working directory. Select a different existing folder or port explicitly:
+
+```bash
+harnest studio --workspace /path/to/agents --port 1940
+```
+
+Studio finds agent folders recursively under the workspace and displays relative paths. **Refresh** finds new agents; **Open folder** adds one elsewhere. Discovery skips generated, hidden, dependency, and symlinked directories. Choose a narrower workspace if it exceeds 10,000 scanned folders.
+
+Open the private launch URL printed in the terminal. Studio defaults to `127.0.0.1:1940`. First launch may download runtime dependencies; later launches reuse them. Configure [builder credentials](/harnest/studio/builder-configuration) for **Build agent**.
+
+Keep the command running while using Studio. Ctrl+C stops its local server and supervised processes. An explicit `--python` or `HARNEST_PYTHON` uses that interpreter instead, which must already contain Studio and its matching dependencies.
+
+## Work in Studio
+
+<CardGroup cols={2}>
+  <Card title="Build and edit agents" icon="robot" href="/harnest/studio/build-agents">
+    Describe an agent, refine its source, and review changes before applying them.
+  </Card>
+  <Card title="Run and test agents" icon="play" href="/harnest/studio/run-and-test">
+    Start a local agent, try conversations, and inspect runtime behavior.
+  </Card>
+  <Card title="Add components" icon="puzzle-piece" href="/harnest/studio/components">
+    Add capabilities, configure storage and evaluations, and restore removed files.
+  </Card>
+  <Card title="Connect MCP servers" icon="plug" href="/harnest/studio/mcp-connections">
+    Connect existing endpoints or create MCP servers with Fused.
+  </Card>
+  <Card title="Configure the builder" icon="sliders" href="/harnest/studio/builder-configuration">
+    Set the model, service URL, credentials, CA trust, and request budgets.
+  </Card>
+  <Card title="Company Studio Packs" icon="box" href="/harnest/studio/packs">
+    Distribute your team's components, templates, skills, and builder defaults.
+  </Card>
+</CardGroup>

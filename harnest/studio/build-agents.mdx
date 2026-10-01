@@ -1,0 +1,16 @@
+---
+title: "Build and edit agents"
+description: "Create agents from prompts, control source context, and review proposed changes."
+---
+
+Enter what your agent should do and choose **Build my agent**. In the creation dialog, choose a **Builder model** and **Agent name**. Expand **Project settings** to change the save folder, framework, authoring mode, or starting point. Studio defaults to a minimal project. Leave the description blank to create source without asking the model for changes.
+
+After creating a project from a description, Studio sends that description and the initial source to your configured builder model. For existing projects, use **Build agent** to request changes or ask questions. The assistant can ask for clarification before proposing files; reply in the same conversation.
+
+Open **Context & permissions** to choose the initial files shared with your model provider. **Allow AI to read related project source** is enabled by default; turn it off to share only selected files. Related-source access lets the assistant read up to 24 files and 160 KiB across two additional rounds. Proposals list files read; hidden files, secrets files, generated content, and symlinks are excluded.
+
+Studio shows live builder activity and elapsed time. Choose **Stop** to cancel the current request. A cancelled or incomplete response does not apply source changes. If a proposal fails path, revision, or source-syntax checks, Studio attempts one repair against the same authorized source snapshot before offering it for review. These checks do not replace compilation or tests.
+
+Choose **Review changes**, inspect the diff, then choose **Apply to project**. Save editor changes first; revision checks protect concurrent edits. Applied proposals leave a confirmation and file list in the conversation. Recent conversation context helps with follow-up requests, while the current source remains authoritative. Use **Compile** and **Checks** to validate the result.
+
+After applying changes, [run and test your agent](/harnest/studio/run-and-test). Use [components](/harnest/studio/components) or [MCP connections](/harnest/studio/mcp-connections) to add capabilities.

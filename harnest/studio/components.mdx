@@ -1,0 +1,36 @@
+---
+title: "Add and manage components"
+description: "Add runtime capabilities, evaluation assets, and company resources to your agent."
+---
+
+Use the component palette to create current Harnest authoring contracts:
+
+| Component | Choices and next step |
+| --- | --- |
+| **Cron schedule** | Create a fixed UTC `@cron` function, a dynamic target, or a schedule for an existing task. Set arguments, queue, and retry policy; existing tasks retain their own policy. |
+| **Task and cron storage** | Choose memory for local development, Postgres, or Redis. The generated factory shares one provider across both roles. Replace existing providers for those roles before compiling. |
+| **Private client input** | Create a typed private schema and handler. Implement the consuming operation before serving; only the fixed authored response reaches the model. |
+| **Evaluation** | Choose a preset from the installed CLI, including custom metrics. ADK and LangGraph share the evaluation lane. Existing criteria are preserved; judge, simulator, and Vertex presets need their scoring backend configured. |
+| **AG-UI transport** | Review an explicit `server.agui` setting, apply it, then rebuild and restart. It defaults to enabled; environment references remain unchanged until you apply a choice. |
+| **Custom UI event** | Scaffold an async tool using `await ui.emit("app.event", payload)`. Your frontend owns the widget; Playground shows the event as inert JSON. |
+| **AG-UI smoke test** | Add a test of the `/agui` SSE initialization handshake. The empty run creates a thread without invoking a model. Run it with **Checks → Run smoke tests** against a running agent. |
+
+Dynamic cron targets have no schedule until runtime code calls `harnest.cron.create` or you create one in the serving agent's **Work** view. Choose **Run agent**, then use **Tasks & schedules** beside the command output to open that view. Learn more about [scheduled tasks](/harnest/build/scheduled-tasks) and [task storage](/harnest/runtime/task-storage).
+
+Managed environments include Postgres and Redis drivers. Use **Checks → Sync dependency environment**, then supply the selected provider's `DATABASE_URL` or `REDIS_URL` at runtime. Memory task storage loses jobs and schedules when the process exits. Configure Redis persistence for durable use.
+
+Evaluation creation runs `harnest add eval` and shares its current presets. `custom` creates a scorer stub to implement and register in `evals/test_config.json`. Criteria apply across the project's evaluation sets. Run **Compile** after adding components, then use **Checks** for the appropriate checks. Live evaluations invoke the agent's configured models and tools.
+
+**Checks → Run evaluations** lets you choose **Business** matching (required tool calls in order, with extra calls allowed) or **Strict** matching (the exact authored call sequence). **Sync dependency environment** lets you select the runtime, compile, development, or evaluation profile; Studio forwards that choice to `harnest env sync --profile`. Keep the resulting lock files with your project.
+
+Playground labels private input separately, displays the input schema, and clears submitted values from its form on both success and failure. Pending private input requires the same serving process. Select **AG-UI** in Playground for streaming conversation testing. Its continuation form submits every pending approval or client input together; private values are excluded from messages and state.
+
+For company components, templates, and skills, load a [Studio Pack](/harnest/studio/packs).
+
+## Delete and restore capabilities
+
+Select a capability and choose **Delete capability…**. Review affected files and references first. Deleting a package entrypoint removes the whole package from discovery; root files and category folders are protected.
+
+Deleted files remain recoverable under `.harnest/builder-deleted/`. Use **Recently deleted → Restore**; restoration refuses to overwrite existing paths. Stop builds and previews first.
+
+Explicit imports, graph node references, schedules, and other authored wiring are not rewritten. Review the possible references and build the agent after updating them. Deleting source does not remove a deployed container, an external service, or its database data.

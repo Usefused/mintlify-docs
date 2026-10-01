@@ -1,0 +1,28 @@
+---
+title: "Run and test agents"
+description: "Try your agent locally, inspect results, and manage its running tasks and schedules."
+---
+
+Follow **Build agent → Connect tools → Try agent** to test the agent you authored:
+
+1. Save source changes, then choose **Run agent**. Studio prepares the environment and starts a supervised local development server. Wait for the ready status; open **Server output** if startup fails.
+2. In **Try agent**, enter a message and choose **Send message**. These messages go to your running agent and can invoke its connected tools. Studio does not automatically retry failed messages, because a tool action may already have completed.
+3. Expand **Run details** to inspect the response, tool evidence, and duration. Choose **Refine this response** or **Create a test** to prepare a request in **Build agent**. Review and send that request, then review any proposed source changes before applying them. When creating a test, specify the expected behavior if the observed response was wrong.
+
+Builder conversations and test conversations remain separate. Studio retains each project's conversations and drafts while you switch projects in the same browser session. **New conversation** starts a fresh agent session. A server restart also starts a fresh session for the next message.
+
+Use **Continue in Playground** for an interaction that needs approval or private client input, or **Open Playground** for the full runtime interface. Agents that require sign-in must be tested in Playground. To test streaming AG-UI behavior, select **AG-UI** there; Studio's **Try agent** uses the native response API.
+
+Studio supervises one preview server at a time. Choose **Stop server** before starting another project's agent. Closing Studio with Ctrl+C stops its supervised server.
+
+## Run checks
+
+Save source changes, then use **Compile** to validate the agent. Open **Checks** to run unit tests, smoke tests, or evaluations. Live checks use the agent's configured models and tools. See [testing and compilation](/harnest/build/testing-and-compilation) for test conventions, fixtures, and CLI commands.
+
+## Manage running work
+
+The serving agent's **Work** view lists task metadata and dynamic schedules for the authenticated owner. Look up a task by ID, inspect its status, and cancel pending or running work. Create schedules against deployed cron functions, edit their UTC expression and arguments, pause or resume them, cancel them permanently, or delete their definition. Edits reject stale revisions. Cancelling or deleting a schedule does not cancel task occurrences already enqueued; cancel those tasks separately.
+
+Fixed schedules remain source-controlled: edit `cron/`, rebuild, and restart. Application automation is a separate owner. A trusted authenticator must issue the claim `harnest:work:automation` with boolean value `True` to enable that scope; browser headers or an ordinary user identity do not grant it. Work routes exist only with the development Playground enabled.
+
+Memory, PostgreSQL, and Redis support bounded listings without task payloads. Redis upgrades its existing task index incrementally; **Continue indexing existing tasks** completes the scan before listing. Existing custom providers keep lookup and cancellation support; add the optional metadata queries described in [task storage](/harnest/runtime/task-storage) to enable browsing.

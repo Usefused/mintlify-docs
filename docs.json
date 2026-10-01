@@ -29,6 +29,10 @@
     {
       "source": "/harnest",
       "destination": "/harnest/overview"
+    },
+    {
+      "source": "/harnest/build/studio-packs",
+      "destination": "/harnest/studio/packs"
     }
   ],
   "favicon": "https://media.brand.dev/1bebb410-f7fb-43b3-b789-6dd6c0d59d42.svg",
@@ -171,6 +175,18 @@
             ]
           },
           {
+            "group": "Harnest Studio",
+            "pages": [
+              "harnest/studio/overview",
+              "harnest/studio/build-agents",
+              "harnest/studio/run-and-test",
+              "harnest/studio/components",
+              "harnest/studio/mcp-connections",
+              "harnest/studio/builder-configuration",
+              "harnest/studio/packs"
+            ]
+          },
+          {
             "group": "Guides",
             "pages": [
               {
@@ -178,7 +194,6 @@
                 "icon": "robot",
                 "expanded": false,
                 "pages": [
-                  "harnest/build/studio-packs",
                   "harnest/build/agent-concepts",
                   "harnest/build/agents-and-graphs",
                   "harnest/build/models-and-libraries/configure-a-model",
