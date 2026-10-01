@@ -114,8 +114,8 @@ export const HarnestProjectExplorer = () => {
   {
     "label": "cron/",
     "path": "cron/daily_report.py",
-    "description": "Optional UTC schedules. This example also needs tasks/prepare_report.py and the task runtime and store.",
-    "code": "from harnest.cron import Cron\nfrom tasks.prepare_report import prepare_report\n\n\n# Use UTC so the schedule does not depend on the host timezone.\ndaily_report = Cron(\n    \"0 9 * * 1-5\",\n    task=prepare_report,\n    arguments={\"subject\": \"daily\"},\n)",
+    "description": "Optional UTC schedules with their own queued tasks. Configure shared task and cron storage before serving; no separate tasks/ file is needed.",
+    "code": "from harnest.cron import cron\n\n\n@cron(\n    \"0 9 * * 1-5\",\n    queue=\"reports\",\n    max_retries=3,\n    arguments={\"subject\": \"daily\"},\n)\nasync def daily_report(subject: str) -> dict[str, str]:\n    \"\"\"Prepare a report on weekday mornings at 09:00 UTC.\"\"\"\n    return {\"subject\": subject, \"status\": \"ready\"}",
     "language": "python",
     "optional": true,
     "href": "/harnest/build/scheduled-tasks",

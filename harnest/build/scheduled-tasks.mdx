@@ -11,6 +11,16 @@ Use [Dynamic schedules](/harnest/build/dynamic-schedules) when a user chooses th
 
 ## Declare a schedule
 
+Create a scheduled function from the agent root:
+
+```bash
+harnest add cron daily-report --schedule "0 9 * * 1-5"
+```
+
+This writes `cron/daily_report.py` with a same-named `@cron` function and its own queued task. It works in managed and advanced mode for ADK and LangGraph. Use `--project AGENT_DIR` from another directory. Existing files are never overwritten. Without `--schedule`, the default is daily at 09:00 UTC. Edit the generated function, queue, retry policy, and arguments as needed.
+
+New projects include this pattern in `cron/_README.md`. With `harnest init --example`, copy `cron/_example.py` to `cron/daily_report.py` to register the sample schedule. It creates its own queued task; leave the independent `tasks/_example.py` untouched unless you also need that task. Configure [task and cron storage](/harnest/runtime/task-storage) before serving.
+
 Define a function with [`@cron`](/harnest/reference/api/cron#cron-decorator) in `cron/`. Harnest creates its queued task; you do not need a separate `tasks/` file. This example runs at **09:00 UTC, Monday–Friday**:
 
 ```python cron/daily_report.py

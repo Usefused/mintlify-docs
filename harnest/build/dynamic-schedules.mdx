@@ -9,6 +9,8 @@ Use dynamic schedules when users choose recurring work, such as a weekly report 
 
 See the [`harnest.cron` API reference](/harnest/reference/api/cron) for scheduling functions and [`CronJob`](/harnest/reference/api/cron#cronjob) methods.
 
+Scaffold a dynamic target with `harnest add cron reminder --dynamic`. It creates `cron/reminder.py` without a fixed schedule. `--dynamic` and `--schedule` are mutually exclusive. Configure shared task/cron storage, then create the user-owned schedule at runtime as shown below.
+
 ## Setup
 
 Register the same provider with [`@lifecycle.storage.tasks`](/harnest/reference/api/lifecycle#storage-tasks) and [`@lifecycle.storage.cron`](/harnest/reference/api/lifecycle#storage-cron) ([storage setup](/harnest/runtime/task-storage)) and keep `harnest serve .` running. Expressions use five cron fields in UTC. `harnest run` does not activate schedules.

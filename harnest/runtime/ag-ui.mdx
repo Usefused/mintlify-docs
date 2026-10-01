@@ -26,6 +26,8 @@ Your agent stays in Harnest. Your frontend owns the conversation UI, browser too
 
 AG-UI is enabled by default. Set `server.agui: false` in `config.yaml` to remove `POST /agui` and its entry in `/agent`. Use `true` or an exact environment reference such as `${AGUI_ENABLED}` to enable it at startup. Studio's **AG-UI transport** component previews this source change; rebuild and restart after applying it.
 
+Studio also uses AG-UI internally to stream its builder's progress. That authoring connection is independent of your agent's `server.agui` setting. Disabling the agent endpoint does not disable Studio's builder.
+
 Author display events inside async tools or graph nodes:
 
 ```python

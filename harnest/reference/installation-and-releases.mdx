@@ -96,6 +96,17 @@ Each release supports specified ADK and LangGraph versions. Sync resolves projec
 | Source works with the selected framework | `harnest test <project>` |
 | Artifact is reproducible | `harnest compile <project>` |
 
+### Run examples from a source checkout
+
+Keep the installed framework aligned with each example's committed `harnest.lock`. For the desktop MCP example, run this from the repository root after creating a Python 3.12 `.venv`:
+
+```bash
+uv pip install --python .venv/bin/python \
+  --constraint examples/desktop-mcp-agent/framework-constraints.txt -e '.[adk]'
+```
+
+The example's provisioner uses the same pin when installing its extra dependencies, including when reusing an existing environment. Update the constraint and framework lock together when deliberately changing ADK versions.
+
 ## Publish a release
 
 Release publishing is a maintainer workflow:

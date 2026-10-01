@@ -17,7 +17,7 @@ A Harnest agent is a directory with a conventional location for each capability:
 | [Data Models and Shared Libraries](/harnest/build/data-models-and-shared-libraries) | `models/`, `lib/` | Shared contracts and ordinary reusable Python |
 | [Agent Tools](/harnest/build/agent-tools) | `tools/` | Server tools and client-hosted tool declarations |
 | [Tasks](/harnest/build/tasks) | `tasks/` | Retryable application work |
-| [Cron schedules](/harnest/build/scheduled-tasks) | `cron/` | Fixed UTC schedules for tasks |
+| [Cron schedules](/harnest/build/scheduled-tasks) | `cron/` | Fixed UTC schedules and dynamic targets with their own queued tasks |
 | [SubAgents](/harnest/build/subagents) | `subagents/` | Flat definitions and separately owned agent bundles |
 | [MCP Client](/harnest/build/mcp-client) | `mcp/` | Direct MCP server connections |
 | [Agent Plugins](/harnest/build/agent-plugins) | `plugins/<folder>/plugin.json` | Portable packages of skills, MCP servers, or both |
@@ -44,7 +44,7 @@ Create titled example files, such as `tools/lookup_order.py`, inside your projec
 | `agent.py` | `root_agent` when using the default `agent:root_agent` entrypoint |
 | `tools/lookup_order.py` | One `@tool` callable named `lookup_order` |
 | `tasks/build_report.py` | One [`@task`](/harnest/reference/api/task#task) callable named `build_report` |
-| `cron/daily_report.py` | One [`Cron`](/harnest/reference/api/cron#cron) named `daily_report` |
+| `cron/daily_report.py` | One [`@cron`](/harnest/reference/api/cron#cron-decorator) callable or [`Cron`](/harnest/reference/api/cron#cron) object named `daily_report` |
 | `subagents/billing/agent.py` | One [`Agent`](/harnest/reference/api/agent#agent) exported as `billing` and named `billing` |
 | `mcp/catalog.py` | A zero-argument `client()` factory |
 | `skills/refund-policy/SKILL.md` | Frontmatter with `name: refund-policy` |

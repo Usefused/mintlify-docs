@@ -18,7 +18,7 @@ Harnest owns the environment and compiled application used by every test lane. A
 
 Playground provides conversation testing, traces, and evaluation suites. Agent authoring, visual editing, and MCP setup live in the standalone Harnest Studio; Playground no longer includes an embedded Studio tab.
 
-Harnest Studio is bundled with the release CLI, including its web server, browser assets, and compiled Build with AI assistant. Start it from the folder you want to use as your workspace:
+Harnest Studio is bundled with the release CLI, including its web server, browser assets, and compiled AI authoring assistant. Start it from the folder you want to use as your workspace:
 
 ```bash
 harnest studio
@@ -32,15 +32,35 @@ harnest studio --workspace /path/to/agents --port 1940
 
 Studio finds agent folders recursively under the workspace and displays relative paths. **Refresh** finds new agents; **Open folder** adds one elsewhere. Discovery skips generated, hidden, dependency, and symlinked directories. Choose a narrower workspace if it exceeds 10,000 scanned folders.
 
-Open the private launch URL printed in the terminal. Studio defaults to `127.0.0.1:1940`. First launch may download runtime dependencies; later launches reuse them. Configure model credentials for **Build with AI**.
+Open the private launch URL printed in the terminal. Studio defaults to `127.0.0.1:1940`. First launch may download runtime dependencies; later launches reuse them. Configure model credentials for **Build agent**.
 
 Keep the command running while using Studio. Ctrl+C stops its local server and supervised processes. An explicit `--python` or `HARNEST_PYTHON` uses that interpreter instead, which must already contain Studio and its matching dependencies.
 
-In the standalone Agent Builder, **Build with AI** creates a source proposal for review. The **Source context** selector chooses the initial files shared with your configured model provider. **Allow AI to read related project source** is enabled by default in the UI; turn it off to share only selected files.
+### Describe and build your agent
 
-Related-source access lets the assistant read up to 24 files and 160 KiB across two additional rounds. Proposals list files read; hidden files, secrets files, generated content, and symlinks are excluded.
+Enter what your agent should do and choose **Build my agent**. In the creation dialog, choose a **Builder model** and **Agent name**. Expand **Project settings** to change the save folder, framework, authoring mode, or starting point. Studio defaults to a minimal project. Leave the description blank to create source without asking the model for changes.
 
-Review the diff, then choose **Apply to project**. Revision checks protect concurrent edits. Apply changes source only; use **Build agent** and **Run & test** to validate it.
+After creating a project from a description, Studio sends that description and the initial source to your configured builder model. For existing projects, use **Build agent** to request changes or ask questions. The assistant can ask for clarification before proposing files; reply in the same conversation.
+
+Open **Context & permissions** to choose the initial files shared with your model provider. **Allow AI to read related project source** is enabled by default; turn it off to share only selected files. Related-source access lets the assistant read up to 24 files and 160 KiB across two additional rounds. Proposals list files read; hidden files, secrets files, generated content, and symlinks are excluded.
+
+Studio shows live builder activity and elapsed time. Choose **Stop** to cancel the current request. A cancelled or incomplete response does not apply source changes. If a proposal fails path, revision, or source-syntax checks, Studio attempts one repair against the same authorized source snapshot before offering it for review. These checks do not replace compilation or tests.
+
+Choose **Review changes**, inspect the diff, then choose **Apply to project**. Save editor changes first; revision checks protect concurrent edits. Applied proposals leave a confirmation and file list in the conversation. Recent conversation context helps with follow-up requests, while the current source remains authoritative. Use **Compile** and **Commands** to validate the result.
+
+### Run, try, and refine
+
+Follow **Build agent → Connect tools → Try agent** to test the agent you authored:
+
+1. Save source changes, then choose **Run agent**. Studio prepares the environment and starts a supervised local development server. Wait for the ready status; open **Server output** if startup fails.
+2. In **Try agent**, enter a message and choose **Send message**. These messages go to your running agent and can invoke its connected tools. Studio does not automatically retry failed messages, because a tool action may already have completed.
+3. Expand **Run details** to inspect the response, tool evidence, and duration. Choose **Refine this response** or **Create a test** to prepare a request in **Build agent**. Review and send that request, then review any proposed source changes before applying them. When creating a test, specify the expected behavior if the observed response was wrong.
+
+Builder conversations and test conversations remain separate. Studio retains each project's conversations and drafts while you switch projects in the same browser session. **New conversation** starts a fresh agent session. A server restart also starts a fresh session for the next message.
+
+Use **Continue in Playground** for an interaction that needs approval or private client input, or **Open Playground** for the full runtime interface. Agents that require sign-in must be tested in Playground. To test streaming AG-UI behavior, select **AG-UI** there; Studio's **Try agent** uses the native response API.
+
+Studio supervises one preview server at a time. Choose **Stop server** before starting another project's agent. Closing Studio with Ctrl+C stops its supervised server.
 
 ### Add runtime and evaluation capabilities
 
@@ -54,15 +74,15 @@ Use the component palette to create current Harnest authoring contracts:
 | **Evaluation** | Choose a preset from the installed CLI, including custom metrics. ADK and LangGraph share the evaluation lane. Existing criteria are preserved; judge, simulator, and Vertex presets need their scoring backend configured. |
 | **AG-UI transport** | Review an explicit `server.agui` setting, apply it, then rebuild and restart. It defaults to enabled; environment references remain unchanged until you apply a choice. |
 | **Custom UI event** | Scaffold an async tool using `await ui.emit("app.event", payload)`. Your frontend owns the widget; Playground shows the event as inert JSON. |
-| **AG-UI smoke test** | Add a test of the `/agui` SSE initialization handshake. The empty run creates a thread without invoking a model. Run it with **Run & test → Run smoke tests** against a running agent. |
+| **AG-UI smoke test** | Add a test of the `/agui` SSE initialization handshake. The empty run creates a thread without invoking a model. Run it with **Commands → Run smoke tests** against a running agent. |
 
-Dynamic cron targets have no schedule until runtime code calls `harnest.cron.create` or you create one in the serving agent's **Work** view. Start **Run & test → Serve**, then use **Tasks & schedules** beside the command output to open that view. Learn more about [scheduled tasks](/harnest/build/scheduled-tasks) and [task storage](/harnest/runtime/task-storage).
+Dynamic cron targets have no schedule until runtime code calls `harnest.cron.create` or you create one in the serving agent's **Work** view. Choose **Commands → Start development server**, then use **Tasks & schedules** beside the command output to open that view. Learn more about [scheduled tasks](/harnest/build/scheduled-tasks) and [task storage](/harnest/runtime/task-storage).
 
-Managed environments include Postgres and Redis drivers. Use **Run & test → Sync dependency environment**, then supply the selected provider's `DATABASE_URL` or `REDIS_URL` at runtime. Memory task storage loses jobs and schedules when the process exits. Configure Redis persistence for durable use.
+Managed environments include Postgres and Redis drivers. Use **Commands → Sync dependency environment**, then supply the selected provider's `DATABASE_URL` or `REDIS_URL` at runtime. Memory task storage loses jobs and schedules when the process exits. Configure Redis persistence for durable use.
 
-Evaluation creation runs `harnest add eval` and shares its current presets. `custom` creates a scorer stub to implement and register in `evals/test_config.json`. Criteria apply across the project's evaluation sets. Run **Build agent** after adding components, then use **Run & test** for the appropriate checks. Live evaluations invoke the agent's configured models and tools.
+Evaluation creation runs `harnest add eval` and shares its current presets. `custom` creates a scorer stub to implement and register in `evals/test_config.json`. Criteria apply across the project's evaluation sets. Run **Compile** after adding components, then use **Commands** for the appropriate checks. Live evaluations invoke the agent's configured models and tools.
 
-**Run & test → Run evaluations** lets you choose **Business** matching (required tool calls in order, with extra calls allowed) or **Strict** matching (the exact authored call sequence). **Sync dependency environment** lets you select the runtime, compile, development, or evaluation profile; Studio forwards that choice to `harnest env sync --profile`. Keep the resulting lock files with your project.
+**Commands → Run evaluations** lets you choose **Business** matching (required tool calls in order, with extra calls allowed) or **Strict** matching (the exact authored call sequence). **Sync dependency environment** lets you select the runtime, compile, development, or evaluation profile; Studio forwards that choice to `harnest env sync --profile`. Keep the resulting lock files with your project.
 
 Playground labels private input separately, displays the input schema, and clears submitted values from its form on both success and failure. Pending private input requires the same serving process. Select **AG-UI** in Playground for streaming conversation testing. Its continuation form submits every pending approval or client input together; private values are excluded from messages and state.
 
@@ -76,7 +96,7 @@ Memory, PostgreSQL, and Redis support bounded listings without task payloads. Re
 
 ### Set Studio AI budgets
 
-Click **Configure** in **Build with AI** to choose a model timeout of 1–1800 seconds and a maximum output budget of 1–131072 tokens. Defaults are 120 seconds and 12000 tokens. These settings apply to subsequent requests; your provider can impose a lower output limit. The timeout applies to each provider call, and a proposal may involve multiple calls or source-reading rounds.
+Click **Configure** in **Build agent** to choose a model timeout of 1–1800 seconds and a maximum output budget of 1–131072 tokens. Defaults are 120 seconds and 12000 tokens. These settings apply to subsequent requests; your provider can impose a lower output limit. The timeout applies to each provider call, and a proposal may involve multiple calls or source-reading rounds.
 
 Set host defaults before starting Studio:
 
@@ -90,7 +110,7 @@ Saved browser choices override these defaults. Studio restarts its private assis
 
 ### Connect and create MCP servers
 
-Open **MCP connections** in the workspace sidebar. Choose **Add HTTP MCP endpoint** to connect an existing Streamable HTTP server, or enter your Fused Engine URL and choose **Connect Fused**. Complete sign-in in the same browser, then reopen the dialog. Management credentials remain in Studio's server memory; restarting Studio requires reconnecting.
+Choose **Connect tools** or open **MCP connections** in the workspace sidebar. Choose **Add HTTP MCP endpoint** to connect an existing Streamable HTTP server, or enter your Fused Engine URL and choose **Connect Fused**. Complete sign-in in the same browser, then reopen the dialog. Management credentials remain in Studio's server memory; restarting Studio requires reconnecting.
 
 After connecting, choose **Add existing Fused MCP** to select an active server version, or **Create MCP with Fused** to select workspace services and their operations. Choose the owning agent, the Fused bucket, and an optional owner team. An empty operation selection is rejected; **All operations** must be selected explicitly. Provider connections and bucket permissions must already be configured in Fused.
 
@@ -98,7 +118,7 @@ After connecting, choose **Add existing Fused MCP** to select an active server v
 
 Runtime credentials are stored outside project source in owner-only files under `~/.harnest/studio-credentials`. Set `HARNEST_BUILDER_CREDENTIALS_DIR` before starting Studio to choose another private directory. Studio supplies these bindings only to commands for that project and redacts execution tokens from command output. Restart an already-running agent after applying a connection. For commands launched outside Studio or deployments managed elsewhere, provide the variables shown in the review through your own secret manager. Disconnecting Fused clears management access and pending reviews; it does not revoke existing MCP execution tokens.
 
-To let **Build with AI** discover Fused operations, enable **Allow Fused service and operation metadata to be shared with the model**. This separate permission is off by default. The model can propose a plan but cannot access credentials or apply it.
+To let **Build agent** discover Fused operations, enable **Allow Fused service and operation metadata to be shared with the model**. This separate permission is off by default. The model can propose a plan but cannot access credentials or apply it.
 
 ### Delete and restore capabilities
 

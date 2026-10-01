@@ -61,4 +61,14 @@ Append one of these flags to `harnest init`, or keep the default.
 | `--minimal` | Only the files needed to compile and run |
 | `--example` | Default scaffold plus inactive examples you can opt into |
 
+## Add a scheduled function
+
+From the project directory, create a cron function with its own queued task:
+
+```bash
+harnest add cron daily-report --schedule "0 9 * * 1-5"
+```
+
+Implement the generated `cron/daily_report.py` and configure shared task and cron storage before serving. For a target whose schedule is created at runtime, use `harnest add cron reminder --dynamic`. See [scheduled tasks](/harnest/build/scheduled-tasks) for setup and [dynamic schedules](/harnest/build/dynamic-schedules) for runtime control.
+
 [Explore the project structure](/harnest/build/agent-concepts) · [Add Agent Tools](/harnest/build/agent-tools) · [Configure serving](/harnest/get-started/serve)
