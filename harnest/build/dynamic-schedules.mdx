@@ -68,6 +68,54 @@ Names resolve to deployed `@cron` functions in the current application, includin
 
 Choose a stable `key` for the user's logical schedule. Repeating the same key and definition returns the existing job, even if paused or cancelled. Reusing the key with different settings conflicts; use [`update`](/harnest/reference/api/cron#update) when the user intends to change that schedule.
 
+## Limit runs and failures
+
+Pass `max_runs` to stop after that many occurrences have been queued. Pass `max_consecutive_failures` to stop after that many occurrences finish in failure. A successful occurrence resets the failure count. These are optional positive integers and are part of the schedule's definition. The returned job exposes `run_count` and `consecutive_failures`.
+
+```python
+job = await cron.create(
+    key="weekly-report:acct-123",
+    expression="0 9 * * 1",
+    task="build_report",
+    arguments={"account_id": "acct-123"},
+    max_runs=8,
+    max_consecutive_failures=2,
+)
+```
+
+The decorator's `max_retries` controls retries of one occurrence. The schedule failure limit counts only its final failed outcome, after those retries. Reaching either schedule limit cancels future occurrences. Already queued or running work remains independent.
+
+## Continue an existing conversation
+
+A dynamic cron job can carry an existing session ID in its arguments. Inside the scheduled task, call [`context.agent.open_session(session_id)`](/harnest/reference/api/context#contextagent-open_session) and invoke the agent to add a later turn to that same conversation. The session must still exist and belong to the schedule's user.
+
+```python
+from harnest import context, cron
+
+# In the tool that creates the schedule:
+await cron.create(
+    key="daily-reminder",
+    expression="0 9 * * *",
+    task="reminder",
+    arguments={"session_id": context.session_id, "text": "Take a break"},
+)
+
+```
+
+```python cron/reminder.py
+from harnest import context
+from harnest.cron import cron
+
+@cron()
+async def reminder(session_id: str, text: str) -> None:
+    """Continue the selected conversation with a scheduled reminder."""
+
+    session = await context.agent.open_session(session_id)
+    await session.invoke(f"Remind the user: {text}")
+```
+
+The new turn is saved in that session's transcript. A chat client must watch the session or deliver the resulting message through its own transport to alert the user immediately.
+
 ## Reuse an existing Task
 
 Use `cron.create(task=existing_task, ...)` for registered [`@task`](/harnest/reference/api/task#task) work. Follow the [shared-library pattern](/harnest/build/queued-tasks#define-and-call-a-task) so the tool and task export share the same callable; separately imported or redecorated copies are rejected.

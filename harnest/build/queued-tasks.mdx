@@ -107,6 +107,23 @@ Queued execution requires configured storage and an active compiled runtime. Cal
 
 A task can invoke the compiled root agent without an HTTP call through [`context.agent.create_session()`](/harnest/reference/api/context#localagentruntime-create_session) and [`AgentSession.invoke()`](/harnest/reference/api/context#agentsession-invoke). Pass a stable session `key` when retries should derive the same child session and invocation identities.
 
+To continue an existing conversation, use [`context.agent.open_session(session_id)`](/harnest/reference/api/context#contextagent-open_session) inside the task. It opens only sessions owned by the task's user, including the session that queued the task. Choose the destination explicitly; `defer()` does not select one. For example, a one-time reminder can carry the current session ID into a delayed task:
+
+```python
+# In a tool that queues the reminder:
+handle = await send_reminder.defer(
+    session_id=context.session_id,
+    text="Take a break",
+    schedule_in=60,
+)
+
+# In the compiled @task function:
+session = await context.agent.open_session(session_id)
+await session.invoke(f"Remind the user: {text}")
+```
+
+The later agent turn is saved in that session's transcript. A client that needs an immediate alert must watch that session or deliver the resulting message through its own chat transport. If the session was deleted before the task runs, opening it fails instead of creating a replacement.
+
 Deferred tasks inherit user identity and public metadata. Fixed schedules use the automation identity; dynamic schedules use their creator with fresh context and empty grants.
 
 When `.defer()` runs under an [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals), Harnest stores only its permission names and reconstructs a fresh principal for each worker attempt. Agent calls made by the Task inherit that restriction unless trusted task code passes a narrower principal. A Task deferred without an active principal preserves compatibility behavior.

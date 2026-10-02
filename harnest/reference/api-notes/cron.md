@@ -18,6 +18,8 @@ For setup and usage, see [Cron schedules](/harnest/build/scheduled-tasks), [Dyna
 | `create(task=...)` | A discovered `@task` or `@cron` callable, or the name of a deployed `@cron` function. A string does not import or register code. |
 | `arguments` | Strict JSON-safe keyword arguments matching the target signature. An update replaces the entire mapping. Omit it to preserve current arguments; `None` is not an update mapping. |
 | `key` | 1–128 characters. Starts with an ASCII letter or digit; remaining characters may also include `.`, `_`, `:`, `~`, and `-`. Scoped to application and user. |
+| `create(max_runs=...)` | Optional positive integer, at most 1,000,000. Cancels the schedule after that many occurrences are queued. |
+| `create(max_consecutive_failures=...)` | Optional positive integer, at most 1,000,000. Cancels after that many terminally failed occurrences in a row; success resets the count. The decorator's `max_retries` applies within one occurrence. |
 | `schedule_id` / `CronJob.id` | Opaque `cron_` ID returned by Harnest. Keep it for later owner-scoped operations. |
 | `list(after=..., limit=50)` | Returns a tuple ordered by ID. Pass the final job ID as the exclusive next-page cursor; `limit` must be an integer from 1 to 100. |
 
@@ -36,6 +38,8 @@ Calls require an active managed invocation and a cron-enabled runtime. Register 
 | `delete(id)` / `job.delete()` | `True` if an owned record was removed, otherwise `False`. |
 
 `CronJob` is immutable. Assign the returned snapshot, for example `job = await job.pause()`, or fetch it again to read updated fields. Cancelling or deleting a schedule does not cancel tasks already queued or running. Cancelled schedules cannot be updated, paused, or resumed.
+
+`CronJob.run_count` counts queued occurrences; `CronJob.consecutive_failures` counts final failed outcomes since the last success. Reaching either configured limit cancels future scheduling.
 
 ## Errors
 
