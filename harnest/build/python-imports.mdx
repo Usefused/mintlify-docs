@@ -46,6 +46,8 @@ domain modules include [`harnest.content`](/harnest/reference/api/content), [`ha
 
 The implementation path `harnest.context_agent` has been removed. Use `from harnest import context` for `context.agent` operations and `from harnest.context import AgentSession, AgentResponse` for their contracts. Modules prefixed with `_` are private implementation details.
 
+The `harnest.task_storage` implementation path has also been removed. Import `TaskRecord`, `TaskStore`, and `TaskStoreConflictError` from `harnest.task`. Run `harnest upgrade AGENT_DIR --apply` to rewrite supported imports in an existing project. Imports or uses of private storage helpers require manual review.
+
 ## IDE autocomplete and hover help
 
 Synchronize the managed environment to enable typed completion and hover documentation:
