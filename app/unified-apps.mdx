@@ -32,8 +32,8 @@ Create `.fused/unified_app/customer-app.tsx`:
 
 ```typescript
 import * as z from "zod/mini";
-import { buildUnifiedApp, fused } from "@fused/unified-app";
-import { services } from "@fused/operations";
+import { buildUnifiedApp } from "@fused/unified-app";
+import { fused } from "@fused/operations";
 
 export default buildUnifiedApp({
   input: z.object({ name: z.string() }),
@@ -41,14 +41,14 @@ export default buildUnifiedApp({
   fetch: { searchable: ["customerId"] },
   // Keep provider calls inside the selected workspace operation set.
   async execute({ input }) {
-    const customer = await services.crm.createCustomer({ name: input.name });
+    const customer = await fused.crm.createCustomer({ name: input.name });
     await fused.db.set({ customerId: customer.id });
     return { customerId: customer.id };
   },
 });
 ```
 
-The Engine validates the input and output schemas. `services.crm.createCustomer` runs through the Engine's credential and execution policy. `fused.db.set` stores a separate execution data document; `fetch.searchable` makes the selected path searchable for callers with the read grant.
+The Engine validates the input and output schemas. `fused.crm.createCustomer` runs through the Engine's credential and execution policy. `fused.db.set` stores a separate execution data document; `fetch.searchable` makes the selected path searchable for callers with the read grant.
 
 ## Deploy and call
 
@@ -57,21 +57,21 @@ fused-cli unified-app plan -f .fused/unified_app/customer-app.yaml --json
 fused-cli unified-app apply -f .fused/unified_app/customer-app.yaml --json
 ```
 
-The Engine compiles the linked source during plan and hosts it after apply. Save the returned App version ID and one-time execution token securely. Call the App through the Engine REST route:
+The Engine compiles the linked source during plan and hosts it after apply. Save the returned `app_family_id` and one-time execution token securely. Call the App through the Engine REST route:
 
 ```bash
-curl -X POST "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_ID/executions" \
+curl -X POST "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions" \
   -H "Authorization: Bearer $FUSED_APP_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"operation":"execute","input":{"name":"Jane"}}'
 ```
 
-Use the exact App version UUID in the URL, not `customer-app`. The authored `execute` call returns an execution record:
+Use the stable `app_family_id` UUID in the URL. Engine resolves the version receiving traffic on each request. The authored `execute` call returns an execution record:
 
 ```json
 {
   "executionId": "<execution-uuid>",
-  "appId": "<app-version-uuid>",
+  "appFamilyId": "<app-family-uuid>",
   "version": "1.0.0",
   "status": "succeeded",
   "mode": "live",
@@ -85,14 +85,14 @@ Use the exact App version UUID in the URL, not `customer-app`. The authored `exe
 `output` is the value returned by your TypeScript function. The stored document from `fused.db.set` stays available for search and replay, but does not appear as `data` in execution responses. A queued or running execution may return HTTP 202. Keep the read handle to fetch its result:
 
 ```bash
-curl "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_ID/executions/$EXECUTION_ID" \
+curl "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions/$EXECUTION_ID" \
   -H "Authorization: Bearer $FUSED_APP_TOKEN" \
   -H "X-Execution-Read-Handle: $READ_HANDLE"
 ```
 
-SDK apps use the same POST URL with a selected provider operation name. They return a [physical operation response](/app/testing/over-rest#read-the-response) with `status_code` and `results`. Source changes require a new immutable Unified App version.
+SDK apps use their exact version ID on the same route with a selected provider operation name. They return a [physical operation response](/app/testing/over-rest#read-the-response) with `status_code` and `results`. Source changes require a new immutable Unified App version.
 
-For connected users, route a selected operation with `fused.forUserRef(userRef).fetch(...)`; the reference selects a connection in the configured bucket and never carries a provider token.
+For connected users, route a selected operation with `fused.forUserRef(userRef).serviceName.operationName(input)`; the reference selects a connection in the configured bucket and never carries a provider token.
 
 ## Switch traffic to a previous version
 
@@ -105,10 +105,10 @@ fused-cli unified-app promote -f .fused/unified_app/customer-app.yaml --version 
 
 The optional app name takes precedence over config selection and needs no local file. Without a name, the CLI reads the top-level `name` from your config. If you omit `-f`, config discovery must find exactly one Unified App. Always pass `--version` with the destination's version label, such as `1.0.0`. Promotion does not change the config's `version`, edit TypeScript, or rebuild the app.
 
-You need `app.unified_app.read` and `app.unified_app.manage`. The selected version must still have a runnable bundle; you cannot promote a deleted version. Historical execution results remain available. If traffic changes concurrently, review the current destination before retrying.
+You need `app.unified_app.read` and `app.unified_app.manage`. The selected version must still have a runnable bundle; you cannot promote a deleted version. Historical execution results remain available through the same family URL and read handle. Rerun and replay require the source version to be receiving traffic; submit a new invocation to run the newly promoted code. If traffic changes concurrently, review the current destination before retrying.
 
 <Note>
-  Exact-version REST URLs do not redirect after a traffic switch. Update callers to use the selected version's URL. The hosted MCP family URL follows the active version; existing sessions on the previous version must reconnect.
+  The REST URL and execution token stay unchanged after a traffic switch. Unified App version IDs are not accepted as execution URLs. The hosted MCP family URL follows the active version; existing sessions on the previous version must reconnect.
 </Note>
 
 ## Use from an SDK or MCP server
