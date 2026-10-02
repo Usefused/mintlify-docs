@@ -1,0 +1,158 @@
+---
+title: "Customize deployment UI"
+description: "Replace Studio's deployment modal, environment choices, and actions with a trusted Studio Pack."
+---
+
+Studio's **Deploy** button calls `studio.deployment.open`. The bundled `fused-studio/deployment` service owns that command and its dialog. Replace this contribution to control deployment UI without replacing the workspace shell.
+
+Your module can define its own modal, fields, environment choices, buttons, validation, and progress display. It receives the same host context as the default deployment service. Backend authentication, feature gates, command validation, and stale-manifest checks still apply. A new deployment backend or operation requires corresponding server support; changing a button does not add one.
+
+## Declare the replacement
+
+```yaml studio-pack.yaml
+apiVersion: harnest.dev/studio-pack/v1
+name: team-deployment
+version: 1.0.0
+title: Team deployment workflow
+resources: []
+ui:
+  apiVersion: harnest.dev/studio-ui/v1
+  assets: [assets/deployment.js]
+  contributions:
+    - id: deployment
+      title: Team deployment
+      slot: service
+      mode: module
+      entry: assets/deployment.js
+      replaces: fused-studio/deployment
+```
+
+`service` modules receive `null` as their mount container. Create a dialog owned by your module, append it to the document, and remove it during cleanup. Register `studio.deployment.open`; the default shell's button will invoke your handler. The resolved default deployment service is removed before activation, so it does not register a competing handler.
+
+An isolated frame cannot implement this command because it has no command bridge. This replacement requires explicit trust:
+
+```bash
+harnest studio pack validate ./team-deployment
+HARNEST_ENABLE_DEPLOYMENT=true harnest studio \
+  --workspace ./agents \
+  --pack ./team-deployment \
+  --trust-ui-pack team-deployment
+```
+
+Select a project and exit **Focus** to access the toolbar's **Deploy** button. Without pack trust, Studio retains the default deployment service. Without the server feature flag, the button is hidden and deployment APIs reject requests, including requests from trusted packs.
+
+## Use the working example
+
+The Harnest checkout includes `examples/studio-packs/team-deployment/`. It contains the manifest above and a standalone module with:
+
+- A **Team deployment** dialog instead of the default modal.
+- A native environment selector with `local` and `staging` choices. Configure those environments in the project's deployment manifest before using them.
+- **Review plan**, which reads the deployment overview without starting infrastructure.
+- **Deploy reviewed plan**, enabled only after an unblocked review.
+- A completion display driven by Studio job state.
+
+Edit this module to change the choices, wording, fields, or button handlers. It imports no default-shell JavaScript and references no shell DOM IDs. Its only runtime asset is `assets/deployment.js`.
+
+## Render the modal with React
+
+Packs are framework-independent. The plain DOM example avoids a build dependency; it is not a requirement. Use React components for your modal, forms, state, and buttons. React's [createRoot API](https://react.dev/reference/react-dom/client/createRoot) mounts a component tree into one container, and `root.unmount()` cleans it up.
+
+For a visual slot, Studio passes the container as `host`. For a deployment service, create one container in the entry adapter, then let React own everything inside it:
+
+```jsx src/deployment.jsx
+import { createRoot } from "react-dom/client";
+import { DeploymentDialog } from "./DeploymentDialog.jsx";
+
+export function activate(studio) {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  let project = null;
+  let active = true;
+
+  const stopProject = studio.state.subscribe("project", value => {
+    if (project?.id !== value?.id) root.render(null);
+    project = value;
+  });
+  const release = studio.commands.register("studio.deployment.open", async () => {
+    const selected = project;
+    if (!selected) throw new Error("Select a project first.");
+    const workspace = await studio.request("workspace");
+    if (!active || project?.id !== selected.id) return;
+    if (!workspace.features?.deployment) throw new Error("Deployment is disabled.");
+    root.render(
+      <DeploymentDialog
+        key={selected.id}
+        studio={studio}
+        project={selected}
+        onClose={() => root.render(null)}
+      />
+    );
+  });
+
+  return () => {
+    active = false;
+    release();
+    stopProject();
+    root.unmount();
+    container.remove();
+  };
+}
+```
+
+`DeploymentDialog` is your component: implement focus containment, closing, environment choices, review, and job handling there. Register the command in `activate`, rather than waiting for a React effect, so it is available when Studio enables shell controls. Components can clean up subscriptions through their effect cleanup functions.
+
+Compile JSX and bundle `react`, `react-dom`, and your components into a production browser ES module exporting `activate`. Point the manifest to the generated `assets/deployment.js`; do not serve raw JSX, unresolved package imports, or a development server. Declare every generated JavaScript chunk in `ui.assets`. Put generated CSS in both `ui.assets` and `ui.styles`, scoped to your component. Studio does not supply a global React instance. Keep bundle assets within the UI size limits.
+
+## Shell commands and state
+
+These commands are supplied by the default shell. A custom shell must implement the commands its deployment contribution uses.
+
+| Command | Arguments and result |
+| --- | --- |
+| `studio.editor.isDirty` | No arguments; returns whether the source editor has unsaved changes. |
+| `studio.jobs.run` | One command-request object; returns the submitted job and opens its terminal output. |
+| `studio.notice` | One message string; updates workspace status. |
+| `studio.proposal.review` | Project ID and proposal; presents proposed files for explicit review and application. |
+| `studio.file.open` | A source-relative path in the currently selected project. |
+| `studio.project.refresh` | No arguments; reloads the selected project. |
+
+Subscribe to `project` to follow selection. Subscribe to `jobs` for complete job snapshots containing IDs, status, and output. Match your submitted job ID and process its completion once. Subscription and command-registration calls return cleanup functions. Stop handling pending results after cleanup, and invalidate reviews when the selected project or environment changes.
+
+The default deployment service checks selection and server capability before opening, owns an independent dialog, and cleans up its command and subscriptions. It uses the same shell commands to review generated configuration and submit deployment jobs. These interfaces do not add new frame permissions.
+
+## Review before applying
+
+Use `studio.request` for authenticated requests relative to `/api/`:
+
+```js
+const overview = await studio.request(
+  `deployment/overview?project=${encodeURIComponent(project.id)}` +
+  `&environment=${encodeURIComponent(environment)}`
+);
+```
+
+The overview includes `plan`, `blockers`, `manifest_revision`, recorded deployment state, and history. It reviews saved configuration; it does not deploy. If configuration is missing, use `deployment/inspect` to discover inputs and `deployment/propose` to produce a source proposal, as the bundled service does.
+
+Only after the user selects the apply action, check unsaved edits and use the exact project, environment, and revision associated with the review:
+
+```js
+if (studio.commands.execute("studio.editor.isDirty")) {
+  throw new Error("Save your source edits before deploying.");
+}
+const job = await studio.commands.execute("studio.jobs.run", {
+  action: "provision",
+  operation: "apply",
+  project: project.id,
+  environment,
+  manifest_revision: overview.manifest_revision,
+});
+```
+
+Submission returns a job, not proof that infrastructure is ready. Observe completion and interpret its result before displaying a ready state. Preserve server-side revision checks; refresh the review after configuration changes. Never deploy during module activation or merely opening the dialog. Keep credentials on the server, outside UI assets.
+
+## Recover and verify
+
+Test missing project selection, disabled deployment, an invalid environment, a valid review, job failure, and project changes while requests are pending. Opening or reviewing the example does not require running containers. Test actual apply only against an authorized deployment target.
+
+Use `?safe-ui=1` to restore the bundled deployment UI for comparison. Launch with `--safe-ui` to exclude all external packs, including builder defaults and resources. Two packs claiming `fused-studio/deployment` fail composition; load order cannot resolve competing replacements.

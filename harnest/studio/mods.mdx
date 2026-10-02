@@ -1,0 +1,208 @@
+---
+title: "Customize Studio"
+description: "Use Studio Packs to change themes, panel layouts, and views, or supply a trusted replacement shell."
+---
+
+Studio loads its default interface from the bundled `fused-studio` pack, maintained by Fused. Your packs use the same versioned manifest, asset snapshots, contribution slots, and module lifecycle. The host owns authentication and recovery; packs own the visible interface.
+
+## Configure with a coding agent
+
+Install the [bundled coding-agent skills](/harnest/build/agent-skills#authoring-skill-versus-runtime-skills) in the project where you maintain your packs:
+
+```bash
+harnest skills install --target codex --project .
+```
+
+Use `$harnest-studio` for workspace, company-pack, and builder configuration. Use `$harnest-studio-ui` for visual changes, including a Tailwind or Panda CSS section replacement. The skills include manifest guidance, build boundaries, validation, and recovery checks. They configure Studio; they are separate from runtime Agent Skills or a pack's builder guidance.
+
+## Choose your customization
+
+| Customization | Contract | Execution |
+| --- | --- | --- |
+| Colors and typography | `ui.themes` | Validated literal tokens |
+| Panel placement and visibility | `ui.layouts` | Declarative configuration |
+| Welcome view, workspace tabs, inspector sections | `ui.contributions` with `mode: frame` | Isolated HTML |
+| Full shell or modules using Studio commands | `ui.contributions` with `mode: module` | Explicitly trusted JavaScript |
+
+UI contributions belong to Studio. They are not installed into your agent project and do not become agent tools or builder instructions. A pack may contain both UI contributions and the [project resources](/harnest/studio/packs) used to build agents.
+
+## Choose a CSS framework
+
+Studio consumes built HTML, CSS, and JavaScript. Each pack owns its build tools, so you can use Tailwind CSS, Panda CSS, or plain CSS independently of the default pack. Changing frameworks means rebuilding the relevant pack assets; there is no Studio-wide framework setting.
+
+| Scope | Required configuration | CSS boundary |
+| --- | --- | --- |
+| One isolated section | `mode: frame`, HTML `entry` in `ui.assets`, and `replaces` for an existing view | Compile CSS and embed it in the HTML. The frame contains framework resets and selectors. No trust flag is needed. |
+| One section with Studio commands | `mode: module`, JavaScript `entry` and imported assets in `ui.assets`, plus `--trust-ui-pack NAME` | Styles in `ui.styles` apply to the whole page. Scope selectors and avoid a global reset. |
+| Entire shell | Trusted module with `slot: shell` and `replaces: fused-studio/shell` | Your shell owns its components and styling. Register the slots and commands its other contributions use. |
+
+Follow [Replace one section with Tailwind](/harnest/studio/tailwind) for a buildable example, exact configuration, and the file-by-file change record. Use the same compiled-asset boundary with another framework.
+
+## Load a theme and layout
+
+Add a `ui` section to an ordinary Studio Pack:
+
+```yaml studio-pack.yaml
+apiVersion: harnest.dev/studio-pack/v1
+name: company-ui
+version: 1.0.0
+title: Company Studio
+resources: []
+ui:
+  apiVersion: harnest.dev/studio-ui/v1
+  themes:
+    - id: blue
+      title: Company blue
+      tokens:
+        accent: '#76b7ff'
+        accent-ink: '#081729'
+        bg: '#0c1424'
+        panel: '#142238'
+  layouts:
+    - id: assistant-first
+      title: Assistant on the left
+      order: [inspector, workspace, sidebar]
+      hidden: []
+```
+
+```bash
+harnest studio --pack ./company-ui
+```
+
+Open **Appearance**, choose your theme and layout, and click **Save**. Selection changes preview immediately; **Cancel** restores the previous appearance. Preferences are stored in this browser for the workspace. Missing selections fall back to the bundled defaults.
+
+One theme is selected at a time. Its tokens overlay the bundled defaults. Common tokens include `bg`, `panel`, `soft`, `hover`, `line`, `muted`, `text`, `accent`, `accent-ink`, `danger`, `font-ui`, `font-size`, `font-code`, `editor-bg`, `editor-gutter`, and `editor-size`. Use literal values, such as hex colors, `14px`, or a font stack. CSS functions, resource URLs, and stylesheet syntax are rejected. Names beginning with `studio-` are reserved for the host.
+
+A layout lists `sidebar`, `workspace`, and `inspector` exactly once in `order`. It may hide `sidebar` or `inspector`. The default shell applies column order on desktop. At widths of 960 pixels or less, the assistant and inspector collapse instead of moving below the workspace. Click **Build / Inspect** to open the side panel; close it with **Close**, Escape, or the backdrop. Drafts and the selected tab survive closing and resizing. Hiding controls does not change backend permissions.
+
+The default shell keeps guided actions under **Steps**. Click **Focus** to hide the workspace heading and tool row while retaining editor tabs and the side-panel control. **Exit focus** restores those controls without remounting the work area or losing edits.
+
+## Contribute an isolated view
+
+Declare each asset explicitly under the pack's `assets/` directory. HTML panels use inline CSS and JavaScript; external resource loads are blocked by the panel's content security policy.
+
+```yaml
+ui:
+  apiVersion: harnest.dev/studio-ui/v1
+  assets: [assets/welcome.html]
+  contributions:
+    - id: welcome
+      title: Company welcome
+      slot: welcome
+      mode: frame
+      entry: assets/welcome.html
+      replaces: fused-studio/welcome
+      permissions: [state.connection]
+```
+
+```html assets/welcome.html
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Company welcome</title>
+<h1>Build your next agent</h1>
+<p id="status">Connecting…</p>
+<script>
+window.addEventListener('message', event => {
+  if (event.source !== parent || event.data?.type !== 'studio:init') return;
+  const port = event.ports[0];
+  if (!port) return;
+  port.onmessage = event => {
+    if (event.data.name === 'connection') {
+      document.getElementById('status').textContent =
+        event.data.value.ready ? 'Connected' : 'Disconnected';
+    }
+  };
+});
+</script>
+</html>
+```
+
+Frames run without same-origin access. The host transfers a private message port and sends only explicitly requested state. `state.connection` supplies `{ ready }`; `state.project` supplies `{ id, name, framework }`. Frames do not receive credentials, project source, filesystem paths, or a command bridge.
+
+| Slot | Default shell behavior |
+| --- | --- |
+| `welcome` | One view shown when no project is selected |
+| `workspace.tabs` | Additional workspace tabs |
+| `inspector.sections` | Additional sections beside the inspector and assistant |
+| `shell` | The complete workspace shell; requires a trusted module |
+| `service` | A module that registers commands or other nonvisual behavior |
+
+Contribution IDs are qualified as `pack-name/local-id`. Use `replaces` to replace an existing contribution in the same slot. Two replacements for the same contribution, replacement cycles, and missing targets are rejected. Pack load order never chooses a winner. The resolved interface must have one shell and one welcome contribution.
+
+The bundled pack exposes `fused-studio/shell`, `fused-studio/welcome`, `fused-studio/appearance`, and `fused-studio/deployment`. You can retain the shell and replace a welcome view or [deployment workflow](/harnest/studio/deployment-ui), or replace the shell with your own implementation.
+
+## Write a trusted module
+
+Modules export `activate(studio, host)` and may return a cleanup function. The entrypoint and every imported module or HTML fragment must be listed in `ui.assets`. Stylesheets listed in `ui.styles` also require trust.
+
+```yaml studio-pack.yaml
+apiVersion: harnest.dev/studio-pack/v1
+name: company-ui
+version: 1.0.0
+title: Company Studio
+resources: []
+ui:
+  apiVersion: harnest.dev/studio-ui/v1
+  assets: [assets/summary.js, assets/summary.css]
+  styles: [assets/summary.css]
+  contributions:
+    - id: summary
+      title: Project summary
+      slot: inspector.sections
+      mode: module
+      entry: assets/summary.js
+```
+
+`assets/summary.css` must exist before validation or launch. For a replacement welcome module, change `slot` to `welcome` and add `replaces: fused-studio/welcome`. For a replacement shell, use `slot: shell` and `replaces: fused-studio/shell`. The referenced JavaScript must implement that view; changing a slot does not generate a shell.
+
+```js assets/summary.js
+export function activate(studio, host) {
+  const heading = document.createElement('h2');
+  host.append(heading);
+  return studio.state.subscribe('project', project => {
+    heading.textContent = project?.name || 'Select an agent';
+  });
+}
+```
+
+```bash
+harnest studio --pack ./company-ui --trust-ui-pack company-ui
+```
+
+<Warning>
+Trust grants a pack JavaScript execution in Studio's page with full Studio access. A manifest cannot grant this authority to itself. Without launch-time trust, module contributions and stylesheets are omitted; themes, layouts, and isolated frames remain available.
+</Warning>
+
+The version-one host context includes:
+
+| API | Purpose |
+| --- | --- |
+| `request(path, method?, body?)` | Authenticated JSON request relative to `/api/` |
+| `transport(path, options)` | Authenticated streaming request to an `/api/` path |
+| `mountHTML(host, path)` | Mount a declared fragment relative to the module |
+| `state.publish(name, value)` / `state.subscribe(name, listener)` | Share cloned state snapshots; subscription returns a disposer |
+| `commands.register(id, handler)` / `commands.execute(id, ...args)` | Register a uniquely owned command or invoke it |
+| `slots.register(name, adapter)` | Let a shell present contributed views; adapter receives `(host, contribution)` |
+| `navigation.guard(handler)` | Register a synchronous unsaved-change guard |
+| `appearance.catalog()` / `appearance.current()` | Read available and selected appearance |
+| `appearance.preview(selection)` / `appearance.save(selection)` / `appearance.reset()` | Apply theme and layout selections |
+| `authorize(launchURL?)` | Let the host consume replacement launch credentials |
+
+Command registration, slot registration, navigation guards, and state subscriptions return cleanup functions. Module cleanup runs when mounting fails. The default shell publishes `connection` and `project` state and registers `studio.project.create`, `studio.project.refresh`, and `studio.file.open`. Those commands are supplied by the default shell, not guaranteed by an arbitrary replacement shell.
+
+The shell also publishes `jobs` and supplies `studio.editor.isDirty`, `studio.jobs.run(body)`, `studio.notice(message)`, and `studio.proposal.review(projectId, proposal)`. The deployment service owns `studio.deployment.open`. See the [deployment UI contract](/harnest/studio/deployment-ui) for arguments, completion handling, and server checks.
+
+A replacement shell declares its regions using `data-studio-region="sidebar"`, `workspace`, and `inspector`, and supplies `data-studio-slot` containers for its selected views. It can register slot adapters to build navigation for contributed views. Service modules receive `null` as their mount container.
+
+## Package and recover
+
+The existing [pack validation and company wheel commands](/harnest/studio/packs) include UI manifests and their exact asset snapshots. Assets use content-revision URLs, and edits to publisher files take effect after restarting Studio. Existing Studio and Harnest compatibility requirements still apply. Each pack can snapshot up to 128 UI assets, with a 1 MiB limit per file and an 8 MiB total UI limit. Referenced assets must be supported UTF-8 text; symlinks and path traversal are rejected.
+
+Use **Restore default UI** to reload the bundled interface without custom UI contributions. The host also displays this recovery link if composition fails. To bypass all external packs, including missing or malformed pack directories, launch:
+
+```bash
+harnest studio --safe-ui
+```
+
+Browser recovery leaves your saved appearance preferences intact. The safe launch flag excludes external packs entirely for that launch, including their agent resources and builder defaults.

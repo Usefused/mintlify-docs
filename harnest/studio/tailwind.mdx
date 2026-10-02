@@ -1,0 +1,108 @@
+---
+title: "Replace one section with Tailwind"
+description: "Build a Tailwind welcome panel, load it through Studio Packs, and keep the surrounding Studio interface unchanged."
+---
+
+Replace Studio's welcome view with a locally compiled Tailwind CSS panel. The example uses the ordinary [Studio UI pack contract](/harnest/studio/mods). Its frame fills the welcome workspace, and the pack controls the spacing within it.
+
+The runnable example is `examples/studio-packs/tailwind-welcome/` in a Harnest source checkout. It replaces only `fused-studio/welcome`, the section shown when no project is selected. The sidebar, workspace controls, editor, assistant, and appearance controls continue to come from the bundled Fused pack.
+
+## Build and launch
+
+Use Node.js 20 or newer and npm to build this example. Node is a publisher build dependency; users loading the generated pack do not need it.
+
+```bash
+cd examples/studio-packs/tailwind-welcome
+npm ci
+npm run build
+npm run check
+harnest studio pack validate .
+mkdir -p /tmp/harnest-tailwind-agents
+harnest studio --workspace /tmp/harnest-tailwind-agents --pack .
+```
+
+Open the private launch URL printed by Studio. Use a fresh, empty workspace to see the welcome section immediately. Do not load the Blueprint example at the same time: both packs replace `fused-studio/welcome`, so composition correctly rejects the conflict. Do not use `--safe-ui` or `?safe-ui=1` when testing the replacement; those options restore the default UI.
+
+The panel displays **Connected to Studio** when the host supplies connection state. Expand **About this welcome panel** to check keyboard interaction. Resize the window to see the Tailwind cards stack inside the panel while the surrounding Studio uses its own responsive behavior.
+
+## Configure the section replacement
+
+```yaml studio-pack.yaml
+apiVersion: harnest.dev/studio-pack/v1
+name: tailwind-welcome
+version: 1.0.0
+title: Tailwind welcome
+resources: []
+ui:
+  apiVersion: harnest.dev/studio-ui/v1
+  assets: [assets/welcome.html]
+  contributions:
+    - id: welcome
+      title: Tailwind welcome
+      slot: welcome
+      mode: frame
+      entry: assets/welcome.html
+      replaces: fused-studio/welcome
+      permissions: [state.connection]
+```
+
+| Field | Why this example needs it |
+| --- | --- |
+| `resources: []` | This pack changes Studio without installing files into an agent project. |
+| `ui.assets` | Snapshots the generated HTML, including its CSS and connection-state script. |
+| `slot: welcome` | Mounts in the default shell's welcome container. |
+| `mode: frame` | Isolates the section's DOM, CSS, and JavaScript. |
+| `replaces` | Explicitly removes the bundled welcome contribution from the resolved interface. |
+| `permissions` | Requests connection readiness only. It grants no Studio commands or project file access. |
+
+There is no `ui.styles` entry and no `--trust-ui-pack` flag. A frame's stylesheet must be inside its HTML: the current frame policy blocks external stylesheets, scripts, fonts, and network requests, including relative stylesheet links. A CDN Tailwind script will not work here.
+
+## Configure the Tailwind build
+
+The example pins `tailwindcss` and `@tailwindcss/cli` to `4.3.3`. Its committed `package-lock.json` locks transitive dependencies. This follows Tailwind's [CLI build approach](https://tailwindcss.com/docs/installation/tailwind-cli), with an explicit source list so only this section contributes utility classes.
+
+```css src/input.css
+@import "tailwindcss" source(none);
+@source "./welcome.html";
+```
+
+Tailwind v4 accepts this CSS configuration directly; the example needs neither `tailwind.config.js` nor a PostCSS or Vite configuration. Keep complete class names in the source template so the compiler can detect them. See Tailwind's [source detection documentation](https://tailwindcss.com/docs/detecting-classes-in-source-files).
+
+`src/welcome.html` contains utility classes such as `bg-slate-950`, `rounded-2xl`, and `sm:grid-cols-2`, plus one insertion marker in its head:
+
+```html
+<style>/* STUDIO_TAILWIND_CSS */</style>
+```
+
+`build.mjs` runs the installed Tailwind CLI with `--minify`, inserts the compiled CSS at that marker, and writes `assets/welcome.html`. It preserves the CSS license comment and removes its temporary build directory. `npm run check` recompiles and fails if the committed HTML differs from the current inputs.
+
+Tailwind's base reset is safe inside this frame because it cannot reach Studio's parent document. Theme tokens from the parent also do not automatically cross this boundary; this example declares its own slate and cyan palette.
+
+## Exact changes for this swap
+
+| File in `examples/studio-packs/tailwind-welcome/` | Change and purpose |
+| --- | --- |
+| `studio-pack.yaml` | Adds one explicit welcome replacement and one state permission. |
+| `package.json` | Pins the two Tailwind build dependencies and defines `build` and `check`. |
+| `package-lock.json` | Makes dependency installation repeatable. |
+| `src/input.css` | Imports Tailwind and limits class detection to the section template. |
+| `src/welcome.html` | Defines the section's content, utility classes, native disclosure, and connection-state listener. |
+| `build.mjs` | Compiles and embeds CSS into the frame-compatible HTML asset. |
+| `assets/welcome.html` | Stores the generated runtime artifact distributed in the pack. |
+| `.gitignore` | Excludes local `node_modules/` from source control. |
+
+The runtime pack needs only `studio-pack.yaml` and `assets/welcome.html`. Keep the remaining files when sharing an editable source pack. Company wheel packaging snapshots the declared runtime HTML without shipping Node, Tailwind, or `node_modules/`.
+
+**Framework integration changes: none.** The pack uses existing host APIs, asset serving, and manifest fields. During visual verification, the default shell's frame layout needed one correction: `studio/src/harnest_builder/ui_packs/default/assets/style.css` now lets framed welcome views fill the available workspace instead of inheriting the bundled welcome's centered 350px box. That fix applies to every framed welcome pack. The Tailwind template uses `w-full` so it does not add a separate maximum content width. No host JavaScript, Python endpoint, editor build, or default manifest change was needed for this example.
+
+The repository adds an integration test to confirm that only welcome is replaced, the shipped asset contains compiled CSS, frame policy is retained, and safe mode restores the default welcome. Browser checks verify that the frame fills its slot at desktop and phone widths.
+
+## Change another section
+
+For an additional workspace tab, use `slot: workspace.tabs` and remove `replaces`. For an additional inspector section, use `slot: inspector.sections`. To replace a view supplied by another pack, name its qualified contribution ID in `replaces` and load that pack too.
+
+The default pack currently exposes shell, welcome, appearance, and deployment contributions. Its sidebar, editor, and assistant are internal parts of the shell, not individually replaceable contributions. Swapping those independently requires first exposing a stable slot in the shell or replacing the shell itself.
+
+If the section needs to create projects or execute Studio commands, use a [trusted module](/harnest/studio/mods#write-a-trusted-module). Its CSS shares Studio's page unless you add an isolation boundary. Avoid including an unscoped Tailwind reset in `ui.styles`; prefixing utilities alone does not isolate the reset.
+
+After editing the example, rebuild and restart Studio. Pack assets are immutable snapshots taken at launch, so refreshing the browser alone does not load changed publisher files. Use `?safe-ui=1` to compare the bundled welcome without removing your pack, or launch `harnest studio --safe-ui` to exclude external packs entirely.

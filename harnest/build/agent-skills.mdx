@@ -124,4 +124,19 @@ Application code accesses the same registry through [`context.skills`](/harnest/
 
 ## Authoring skill versus runtime skills
 
-`harnest skills install` installs a project-editing guide for your coding agent. It does not add a runtime skill to the compiled agent.
+`harnest skills install` installs coding-agent guidance outside the agent's runtime `skills/` directory. It does not add runtime skills to the compiled agent.
+
+| Bundled skill | Use it to |
+| --- | --- |
+| `harnest-authoring` | Build, modify, and verify agent source. |
+| `harnest-authentication` | Configure authentication and credential boundaries. |
+| `harnest-studio` | Configure Studio workspaces, company packs, and builder settings. |
+| `harnest-studio-ui` | Customize Studio themes, layouts, sections, and UI frameworks. |
+
+```bash
+harnest skills install --target codex --project .
+harnest skills show harnest-studio
+harnest skills show harnest-studio-ui
+```
+
+Installation includes each skill's linked references. Targets include `agents`, `claude`, `codex`, `copilot`, and `cursor`; omit `--target` for automatic detection. Existing installations are preserved unless you pass `--force` to replace the bundled skills. For Studio examples, see [company packs](/harnest/studio/packs) and [UI customization](/harnest/studio/mods).

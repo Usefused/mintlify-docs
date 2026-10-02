@@ -179,7 +179,10 @@
               "harnest/studio/components",
               "harnest/studio/mcp-connections",
               "harnest/studio/builder-configuration",
-              "harnest/studio/packs"
+              "harnest/studio/packs",
+              "harnest/studio/mods",
+              "harnest/studio/tailwind",
+              "harnest/studio/deployment-ui"
             ]
           },
           {

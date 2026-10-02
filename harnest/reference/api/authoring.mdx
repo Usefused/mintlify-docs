@@ -156,6 +156,20 @@ ProjectCLI.add_command(name: str, handler: Callable[[argparse.Namespace], int], 
 
 Register a company command and return its parser for company-specific flags.
 
+### ProjectCLI.add_studio
+
+```python
+ProjectCLI.add_studio(
+    *,
+    command: Sequence[str],
+    packs: Sequence[Path] = (),
+    trusted_ui: Sequence[str] = (),
+    init_args: Sequence[str] = (),
+) -> None
+```
+
+Register the optional `studio` command and core command forwarding. `command` is the company executable argv; `packs` are installed Studio pack directories. Trusted UI names authorize module execution; `init_args` are visible, non-secret company defaults appended to Studio initialization jobs. Register custom command handlers first. See [company Studio setup](/harnest/build/project-packs/cli#include-your-companys-studio).
+
 ### ProjectCLI.run
 
 ```python
@@ -287,6 +301,8 @@ ProjectPlanner.plan_init(
     minimal: bool = False,
     template: str | None = None,
     template_sha256: str | None = None,
+    mode: str | None = None,
+    example: bool = False,
 ) -> ProjectPlan
 ```
 
