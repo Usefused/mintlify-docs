@@ -44,6 +44,8 @@ domain modules include [`harnest.content`](/harnest/reference/api/content), [`ha
 
 `AgentResponse` from `harnest.http` represents an HTTP route response. `AgentResponse` from [`harnest.context`](/harnest/reference/api/context) represents a local agent invocation response; select the contract for your integration.
 
+The implementation path `harnest.context_agent` has been removed. Use `from harnest import context` for `context.agent` operations and `from harnest.context import AgentSession, AgentResponse` for their contracts. Modules prefixed with `_` are private implementation details.
+
 ## IDE autocomplete and hover help
 
 Synchronize the managed environment to enable typed completion and hover documentation:
@@ -59,6 +61,39 @@ For Python commands in these agents, use `.venv/bin/python` directly; their
 terminal commands do not inherit the VS Code Python interpreter setting.
 
 Harnest preserves any `.venv` it does not own and prints the managed interpreter for manual selection. Keep `.venv` out of version control.
+
+Harnest includes static declarations for its lazy domain namespaces and invocation context. Editors can discover methods and signatures on `harnest.context`, `context.agent`, `context.session`, `context.mcp`, `context.skills`, and the other context capabilities without running an agent. Context values still resolve for each active invocation; do not access them at module import time.
+
+Core functions and methods carry parameter and return annotations. Static consumer checks cover public classes, inherited methods, properties, and protocol methods across Harnest's domains. Task, context-provider, and lifecycle decorators preserve the authored callable's parameters and result type, so an editor can flag invalid direct calls:
+
+```python
+from harnest.task import task
+
+
+@task
+async def customer_label(customer_id: str) -> str:
+    return customer_id
+
+
+async def example() -> str:
+    return await customer_label("customer-123")
+```
+
+The direct call above retains its `str` argument and result types. Deferred task arguments are validated at runtime; `.defer()` accepts scheduling options and returns a `TaskHandle`. Dynamic payloads and resource lookups without an expected class may still use `Any`.
+
+For application-defined resources, pass the expected class to preserve its completion and return type:
+
+```python
+from harnest import context
+from my_company.customers import CustomerDirectory
+
+
+def customer_label(customer_id: str) -> str:
+    directory = context.resource("customers", CustomerDirectory)
+    return directory.label(customer_id)
+```
+
+Here, your application supplies and registers `CustomerDirectory`. `context.storage("name", ExpectedType)` and `context.extensions("name", ExpectedContext)` also preserve the supplied type. Lookups without an expected type return `Any`; Harnest cannot infer a company's resource type from a runtime string. Runtime type validation remains in place.
 
 The managed wheel also includes editor-only definitions for
 `harnest.extensions.docker` and `harnest.extensions.hatchet`. Those imports get
