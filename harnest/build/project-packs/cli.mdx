@@ -174,3 +174,32 @@ Registering Studio also exposes `add`, `compile`, `test`, `env`, `serve`, `run`,
 Ordinary `acme init` and `acme upgrade` do not import Studio. `acme studio` reports an installation error if the optional dependency is missing. Studio's existing deployment gates and explicit JavaScript trust requirements still apply.
 
 `acme studio --safe-ui` removes external Studio packs while keeping company CLI initialization. The Studio Packs catalog's template installation remains a separate reviewed resource-installation flow; it does not run CLI pack initialization hooks. Use **Create agent** for company CLI initialization.
+
+## Typed Studio embedding
+
+`add_studio(command=...)` takes a list or tuple of argv strings, such as
+`("acme",)` or `["python", "-m", "acme_cli"]`. A bare string is rejected by type
+checkers and by `add_studio` at runtime.
+
+Studio ships `py.typed` metadata. Custom launchers can import
+`harnest_builder.__main__.main`, `harnest_builder.app.create_app`,
+`harnest_builder.packs.Packs`, and
+`harnest_builder.pack_distribution.package_packs` with typed arguments and
+results. `harnest_builder.mcp_credentials.CredentialStore` provides typed storage
+bindings, and `harnest_builder.types.Completion` describes an optional async
+completion hook accepted by `create_app`. Internal route and process modules
+are implementation details rather than a supported embedding API.
+
+```python
+from pathlib import Path
+from harnest_builder.__main__ import main
+
+main(
+    cli_command=("acme",),
+    embedded_packs=[Path(__file__).parent / "studio"],
+    trusted_ui=("acme-ui",),
+)
+```
+
+For browser pack code, use the separate
+[Studio TypeScript contract](/harnest/studio/mods#typescript-and-ide-support).

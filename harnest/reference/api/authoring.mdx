@@ -161,7 +161,7 @@ Register a company command and return its parser for company-specific flags.
 ```python
 ProjectCLI.add_studio(
     *,
-    command: Sequence[str],
+    command: list[str] | tuple[str, ...],
     packs: Sequence[Path] = (),
     trusted_ui: Sequence[str] = (),
     init_args: Sequence[str] = (),

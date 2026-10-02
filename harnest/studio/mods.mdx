@@ -195,6 +195,69 @@ The shell also publishes `jobs` and supplies `studio.editor.isDirty`, `studio.jo
 
 A replacement shell declares its regions using `data-studio-region="sidebar"`, `workspace`, and `inspector`, and supplies `data-studio-slot` containers for its selected views. It can register slot adapters to build navigation for contributed views. Service modules receive `null` as their mount container.
 
+## TypeScript and IDE support
+
+Export the UI types from the Harnest installation that will run your pack:
+
+```bash
+harnest studio pack types --output ./types
+npm install --save-dev ./types/harnest-studio-ui-0.1.0.tgz
+```
+
+Use the archive filename printed by the command. Commit that archive and your npm
+lockfile so teammates use the same contract. The archive is generated locally;
+it does not require an npm registry release. Repeat the export when upgrading
+Studio, using a new output directory if an archive already exists.
+
+The package contains declarations only. `import type` adds no browser code and
+works with React, other frameworks, and ordinary TypeScript:
+
+```ts src/summary.ts
+import type { ViewActivate } from '@harnest/studio-ui';
+
+export const activate: ViewActivate = (studio, host) => {
+  return studio.state.subscribe('project', project => {
+    host.textContent = project?.name ?? 'Select an agent';
+  });
+};
+```
+
+Use `ViewActivate` for visual slots, `ServiceActivate` for a service with a `null`
+container, or `Activate` when the implementation handles both. `StudioContext`
+is available for helper and component props. Build the entrypoint to JavaScript
+and declare its output in the manifest as usual. JavaScript authors can use
+`/** @type {import('@harnest/studio-ui').ViewActivate} */` above an exported
+`const activate` with `checkJs` enabled.
+
+Commands, state, slot names, appearance, navigation, and request arguments have
+shared types. Add your company's command and state contracts through declaration
+merging; this preserves argument checking for the built-in names:
+
+```ts
+import type { StudioContext } from '@harnest/studio-ui';
+
+declare module '@harnest/studio-ui' {
+  interface StudioCommandMap {
+    'acme.deploy': (environment: 'staging' | 'production') => Promise<string>;
+  }
+  interface StudioStateMap {
+    'acme.deployment': { url: string };
+  }
+}
+
+export async function deploy(studio: StudioContext) {
+  const url = await studio.commands.execute('acme.deploy', 'staging');
+  studio.state.publish('acme.deployment', { url });
+}
+```
+
+A contribution must still register `acme.deploy` at runtime. Types do not install
+commands or grant trust. The built-in command signatures describe the default
+shell and services; a replacement shell must supply those commands if its packs
+use them. `request<T>(path, method, body)` defaults its response to `unknown`;
+specifying `T` describes your expected response without validating it at runtime.
+JSON requests use paths relative to `/api/`, while `transport` takes `/api/...`.
+
 ## Package and recover
 
 The existing [pack validation and company wheel commands](/harnest/studio/packs) include UI manifests and their exact asset snapshots. Assets use content-revision URLs, and edits to publisher files take effect after restarting Studio. Existing Studio and Harnest compatibility requirements still apply. Each pack can snapshot up to 128 UI assets, with a 1 MiB limit per file and an 8 MiB total UI limit. Referenced assets must be supported UTF-8 text; symlinks and path traversal are rejected.
