@@ -108,7 +108,7 @@ harnest env sync AGENT_DIR
 
 The runtime profile writes hash-verified framework, project, extension, and transitive dependencies to `harnest-runtime.lock`. It excludes evaluation packages and adds MCP adapters only for active `mcp/*.py` files.
 
-Development tools use independent profiles and locks:
+Tests and evaluations use independent dependency profiles and locks:
 
 ```bash
 harnest env sync AGENT_DIR --profile development
@@ -117,7 +117,7 @@ harnest env sync AGENT_DIR --profile eval
 
 Development adds pytest; eval adds pytest and ADK evaluation dependencies. Commit the corresponding locks used by CI. These locks are portable and excluded from deployment artifacts.
 
-Harnest manages environments under `.harnest/environments/`; do not activate them manually. Commands select and synchronize their required profile. `harnest env sync` also updates the IDE environment link when Harnest owns it; see [editor setup](/harnest/build/python-imports#ide-autocomplete-and-hover-help). CI can require an unchanged committed lock:
+Harnest keeps at most two project environments: `.harnest/environments/agent` for runtime and compilation, and `.harnest/environments/eval` for tests and evaluations. Commands synchronize their selected profile into the corresponding directory; changing profiles reuses that directory. Do not activate them manually. Old fingerprinted environments are removed during synchronization. Stop running commands before changing dependencies in their environment; Harnest refuses to replace an interpreter in use. Ordinary source edits can still reload while dependencies stay unchanged. `harnest env sync` also updates the IDE environment link when Harnest owns it; see [editor setup](/harnest/build/python-imports#ide-autocomplete-and-hover-help). CI can require an unchanged committed lock:
 
 ```bash
 harnest env sync AGENT_DIR --frozen

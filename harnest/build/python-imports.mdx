@@ -56,7 +56,17 @@ Synchronize the managed environment to enable typed completion and hover documen
 harnest env sync .
 ```
 
-Sync creates `.venv` and configures the default interpreter in `.vscode/settings.json` for compatible editors. If your editor already selected another interpreter, select `.venv/bin/python` manually (`.venv/Scripts/python.exe` on Windows). Other IDEs can use the same environment.
+Explicit sync updates `python.defaultInterpreterPath` in `.vscode/settings.json` to the environment it synchronized. For the default runtime profile on macOS or Linux:
+
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.harnest/environments/agent/bin/python"
+}
+```
+
+Windows uses `Scripts/python.exe`; development and eval profiles select the `eval` directory. Sync replaces stale interpreter settings while preserving comments and unrelated preferences, even when a user-owned `.venv` prevents creating the convenience link. Open the agent folder as your VS Code workspace folder so these settings apply.
+
+VS Code can retain a previously selected interpreter separately from this setting. If it still uses another interpreter, run **Python: Select Interpreter** and choose the exact path printed by sync. See the [VS Code settings reference](https://code.visualstudio.com/docs/python/settings-reference). Other IDEs can use the same interpreter.
 
 Codex desktop, Codex CLI, and Antigravity 2.0 are separate agent applications.
 For Python commands in these agents, use `.venv/bin/python` directly; their
@@ -102,9 +112,9 @@ The managed wheel also includes editor-only definitions for
 completion and hover help while the actual modules remain available at runtime
 only when their corresponding official extension is installed in the project.
 
-Run `env sync` after dependency changes. Harnest retargets its `.venv` link when
-the content-addressed runtime changes, so an automatically detected interpreter
-continues to resolve the current environment.
+Run `env sync` after dependency changes. Harnest reuses a stable environment path,
+so the `.venv` link continues to resolve the current interpreter. Synchronization
+also migrates Harnest-owned links away from older fingerprinted environments.
 
 ## Scoped operations
 

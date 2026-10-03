@@ -91,8 +91,9 @@ Compiled directories are reproducible output. Do not edit or commit them.
 | Harnest Extension `pyproject.toml` | Joins the same dependency solve and lock |
 | Public [`@task`](/harnest/reference/api/task#task) | Uses built-in Harnest workers; provider dependencies come from project metadata |
 | Active `mcp/*.py` | Adds the selected framework's MCP adapter |
-| `serve`, `run`, or `test` | Selects the shared development profile |
-| `test --evals` | Selects the Google ADK evaluation profile |
+| `serve` or `run` | Selects the runtime profile in the agent environment |
+| `test` | Selects the development profile in the shared test/eval environment |
+| `test --evals` | Selects the Google ADK evaluation profile in the shared test/eval environment |
 
 Harnest resolves the selected environment before importing the agent or its
 Harnest Extensions. Production runtime, development, and eval use independent
@@ -139,7 +140,7 @@ Teammate documentation and company authoring configuration stay in the project. 
 
 Use agent templates for model-facing instructions and skills; copying a team guide into a project does not make it model-facing.
 
-Selected optional dependencies use a separate `harnest-compile.lock` and environment. Refresh it with `harnest env sync AGENT_DIR --profile compile`. Native runtime packs retain their own resolution constrained by production locks.
+Selected optional dependencies use a separate `harnest-compile.lock`, synchronized into the same agent environment as the runtime profile. Switching between compile and runtime profiles replaces the installed dependency set; it does not create another environment. Refresh it with `harnest env sync AGENT_DIR --profile compile`. Native runtime packs retain their own resolution constrained by production locks.
 
 [Project packs](/harnest/build/project-packs/create#declare-compilation-dependencies) can generate and migrate these declarations through their existing file and YAML operations. Pack authoring and migration tools stay in the authoring environment unless you explicitly declare them as runtime dependencies.
 
