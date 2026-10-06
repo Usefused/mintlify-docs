@@ -29,7 +29,7 @@ That block merges two genuinely different things. The `source` label is the only
 |---|---|---|
 | What it is | Stored workspace notifications | Live provider-API **drift** snapshots |
 | When produced | A background poller reads each activated service's changelog every few minutes | Fetched fresh from the Registry on every `plan` call |
-| Stored where | The Engine's own database | Nowhere — not persisted on the Engine side |
+| Stored where | Fused's own database | Nowhere — not persisted on Fused side |
 | Can be dismissed | Yes, via the UI | No |
 
 Drift is the one to pay attention to. It compares the live provider spec against what the Registry has recorded, so it catches a provider changing something before anyone has cut a new service version for it — the gap between "they shipped a change" and "it reached your catalogue."
@@ -51,7 +51,7 @@ Drift is the one to pay attention to. It compares the live provider spec against
 
 ## They are targeted, not broadcast
 
-Nothing is created unless the Engine has determined the change affects something you use. That filtering is stricter than it first appears:
+Nothing is created unless Fused has determined the change affects something you use. That filtering is stricter than it first appears:
 
 - A **version** change is matched against which of your SDK and MCP configs select that service and version. For `changed` specifically, it is narrowed again to configs that selected the exact endpoint that moved — a config with an explicit operation list is never told about an endpoint it never picked.
 - An **execution policy** change only reaches you if you have *no* local override for that service and version. A local override already shadows the Registry default, so the change is moot for you.
@@ -79,13 +79,13 @@ Three states: `pending`, `acknowledged`, `dismissed`.
 - **Mark read** keeps it visible but de-emphasized. There is no "mark unread."
 - **Dismiss** removes it for good. Terminal — there is no undismiss.
 
-Both go through the `updateWorkspaceNotificationStatus` mutation on the Engine's own GraphQL schema at `/engine/graphql`, not through `fused-cli`. The `id` is the notification's own row id — strip the `engine:` or `registry:` prefix that the merged inbox query exposes.
+Both go through the `updateWorkspaceNotificationStatus` mutation on Fused's own GraphQL schema at `/engine/graphql`, not through `fused-cli`. The `id` is the notification's own row id — strip the `engine:` or `registry:` prefix that the merged inbox query exposes.
 
 <Warning>
   The CLI auto-print only queries `pending` rows. Acknowledging a notification in the UI — not just dismissing it — also stops it appearing in `plan` and `apply` from that point on. If one you were expecting has gone quiet and the underlying condition has not changed, someone already resolved it.
 </Warning>
 
-Read and dismiss state is workspace-global, not per-user. Whoever resolves a notification resolves it for everyone on that Engine deployment.
+Read and dismiss state is workspace-global, not per-user. Whoever resolves a notification resolves it for everyone on that Fused deployment.
 
 ## Why the same one keeps appearing
 

@@ -1,9 +1,9 @@
 ---
 title: "Connect a user's account"
-description: "Run OAuth once, per end user, and let the Engine keep the tokens working."
+description: "Run OAuth once, per end user, and let Fused keep the tokens working."
 ---
 
-When your product acts on behalf of individual users, each one needs their own provider connection. The Engine owns the consent round trip, encrypted token storage, and refresh. Tokens are never returned to your application.
+When your product acts on behalf of individual users, each one needs their own provider connection. Fused owns the consent round trip, encrypted token storage, and refresh. Tokens are never returned to your application.
 
 There are two separate things here, easy to conflate:
 
@@ -12,7 +12,7 @@ There are two separate things here, easy to conflate:
 
 ## Choose a provider application
 
-Use a [Managed service](/workspace/use-managed-service) where Fused offers the exact service and auth scheme, or register your own provider app using the steps below. Both choices store user connections in your Engine and use its existing refresh coordination. Managed auth still requires user consent; it does not expose Fused's application secret to your bucket.
+Use a [Managed service](/workspace/use-managed-service) where Fused offers the exact service and auth scheme, or register your own provider app using the steps below. Both choices store user connections in your Fused deployment and use its existing refresh coordination. Managed auth still requires user consent; it does not expose Fused's application secret to your bucket.
 
 For managed CLI consent, pass `--auth-ref '${fused.bucket.auth.<service>.<auth-name>}'`. SDK and MCP connections use the reference from their applied app config. The [Managed service guide](/workspace/use-managed-service#connect-a-user) covers enrollment, callback requirements, and the complete command.
 
@@ -44,7 +44,7 @@ oidc` for an OIDC scheme.
 
 <Note>
   Configure the provider with
-  `<engine.public_url>/workspace/connect/callback`. The Engine derives this
+  `<engine.public_url>/workspace/connect/callback`. Fused derives this
   callback from its validated canonical public URL and pins it to the consent
   session. You do not send it as credential input.
 </Note>
@@ -117,7 +117,7 @@ fused-cli workspace service connect google-sheets \
 
 The reference always uses the app's selected bucket. `gmail.oauth2` selects
 the source service and its exact auth scheme. The destination declares its own
-exact scheme, and the Engine verifies that both credential families are
+exact scheme, and Fused verifies that both credential families are
 compatible. The source service must be workspace-enabled and hold credentials
 directly, but it does not need to appear in the app's `services` selection.
 References cannot chain through another reference.
@@ -161,9 +161,9 @@ That `--user-ref` is the same value your application later sends as `endUserRef`
 
 ## Refresh happens without you
 
-Nobody refreshes a token through the CLI or the SDK. The Engine refreshes eligible connections at startup and hourly, scheduling from whichever expires first.
+Nobody refreshes a token through the CLI or the SDK. Fused refreshes eligible connections at startup and hourly, scheduling from whichever expires first.
 
-An expired access token is not a reconnect — the Engine can rotate it while the refresh token is still good. A connection becomes `reconnect_required` only when refresh material is missing, expired, revoked, or rejected. Then you run the same connect flow again for that bucket, service, auth name, and user reference.
+An expired access token is not a reconnect — Fused can rotate it while the refresh token is still good. A connection becomes `reconnect_required` only when refresh material is missing, expired, revoked, or rejected. Then you run the same connect flow again for that bucket, service, auth name, and user reference.
 
 <Warning>
   Never treat an unexpected provider 401 or 403 as permission to replay a mutation.
@@ -171,7 +171,7 @@ An expired access token is not a reconnect — the Engine can rotate it while th
 
 ## One user, several tenants
 
-A single OAuth token can front several provider sites, shops, or accounts. The Engine discovers them and picks a default when there is exactly one.
+A single OAuth token can front several provider sites, shops, or accounts. Fused discovers them and picks a default when there is exactly one.
 
 ```bash
 fused-cli workspace connection resources list <connection-id> --json
@@ -190,7 +190,7 @@ fused-cli bucket connections prod-credentials --service jira --service github@v3
 fused-cli bucket connections prod-credentials --user user_123
 ```
 
-`--service` accepts comma-separated values or repeated flags. Use `<service>@<version>` to match only one immutable service version; a service without a version matches all of its versions. The resulting union is paginated by Engine. This lists every matching end user who has connected through the bucket, and whether their token is healthy. Do not confuse it with `workspace connection resources`, which is about one already-connected user's reachable tenants.
+`--service` accepts comma-separated values or repeated flags. Use `<service>@<version>` to match only one immutable service version; a service without a version matches all of its versions. The resulting union is paginated by Fused. This lists every matching end user who has connected through the bucket, and whether their token is healthy. Do not confuse it with `workspace connection resources`, which is about one already-connected user's reachable tenants.
 
 <Card title="Share the bucket" icon="users" href="/bucket/share-a-bucket">
   Let other teams select this bucket without handing them its contents.

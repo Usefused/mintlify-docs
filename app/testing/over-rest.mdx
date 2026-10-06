@@ -1,9 +1,9 @@
 ---
 title: "Call over REST"
-description: "Call an SDK operation or Unified App through the Engine HTTP API."
+description: "Call an SDK operation or Unified App through Fused HTTP API."
 ---
 
-Fused generates TypeScript and Python SDKs. If your service uses another language or you do not want a package, call a selected SDK operation through the Engine's REST route. [Unified Apps](/app/unified-apps) use the same route with `"operation":"execute"`.
+Fused generates TypeScript and Python SDKs. If your service uses another language or you do not want a package, call a selected SDK operation through Fused's REST route. [Unified Apps](/app/unified-apps) use the same route with `"operation":"execute"`.
 
 ```bash
 curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
@@ -12,7 +12,7 @@ curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
   -d '{"operation":"issueUpdate","input":{"id":"ISS-42","state":"done"}}'
 ```
 
-`$VERSION_ID` is the app version UUID that apply printed — not the SDK name, and not the family ID. Note the port: this is the Engine's **HTTP** address, not the gRPC one the generated client wants.
+`$VERSION_ID` is the app version UUID that apply printed — not the SDK name, and not the family ID. Note the port: this is Fused's **HTTP** address, not the gRPC one the generated client wants.
 
 ## Read the response
 
@@ -28,7 +28,7 @@ An SDK operation returns a physical operation response:
 }
 ```
 
-Check both the Engine HTTP status and `status_code`, which records the provider's status. A Unified App uses this same POST URL but returns an [execution record](/app/unified-apps#deploy-and-call) with `executionId`, `status`, `output`, and `readHandle`.
+Check both Fused HTTP status and `status_code`, which records the provider's status. A Unified App uses this same POST URL but returns an [execution record](/app/unified-apps#deploy-and-call) with `executionId`, `status`, `output`, and `readHandle`.
 
 ## The body
 
@@ -37,7 +37,7 @@ Check both the Engine HTTP status and `status_code`, which records the provider'
 | `operation` | The selected physical operation ID |
 | `input` | The operation's parameters |
 | `selector` | One selector: `environment`, `end_user_ref`, `auth_type`, `auth_name`, `resource_id` |
-| `pagination` | Optional `{"max_pages": n}` bound below the Engine policy limit |
+| `pagination` | Optional `{"max_pages": n}` bound below Fused policy limit |
 
 <Warning>
   A stable `Idempotency-Key` helps make retries of a mutating operation safe when its provider contract supports idempotency. Supply the header at most once.
@@ -47,7 +47,7 @@ Check both the Engine HTTP status and `status_code`, which records the provider'
 
 This is the same execution the typed package makes, against the same immutable version. A version applied with [`generate: false`](/app/build-an-sdk#skip-the-package) publishes without building a package at all and is fully callable here.
 
-If the selected bucket is missing a required static credential, the Engine returns HTTP `409` with code `bucket_credentials_missing` before contacting the provider. Its structured details identify the service, bucket, authentication type, and scheme and include the exact value-free `fused-cli secret set` command to run before repeating the request.
+If the selected bucket is missing a required static credential, Fused returns HTTP `409` with code `bucket_credentials_missing` before contacting the provider. Its structured details identify the service, bucket, authentication type, and scheme and include the exact value-free `fused-cli secret set` command to run before repeating the request.
 
 To generate your own client from the contract:
 

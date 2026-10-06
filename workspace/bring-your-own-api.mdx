@@ -45,7 +45,7 @@ fused-cli import discover \
   --slug docs-api
 ```
 
-Discovery is a session rather than a single shot. It resolves the source, pulls out the operations, extracts a contract, and proposes optional Fused enrichment — then stops and waits for you to review. In a terminal it opens the Engine's review page; `--no-browser` prints the URL and waits instead.
+Discovery is a session rather than a single shot. It resolves the source, pulls out the operations, extracts a contract, and proposes optional Fused enrichment — then stops and waits for you to review. In a terminal it opens Fused's review page; `--no-browser` prints the URL and waits instead.
 
 It never applies. When the session reaches `plan_ready` it writes the same receipt `import plan` would, at `.fused/.state/import.plan.json`, and you commit it the same way:
 
@@ -130,5 +130,5 @@ Planning reports structured diagnostics wherever provider metadata cannot be rep
 Importing the same provider version again creates a new internal revision rather than mutating the published one. A different provider version creates that version. Your slug resolves within your own Registry account: a matching slug updates that service, an unknown slug creates it.
 
 <Card title="Build an SDK with it" icon="cube" href="/app/build-an-sdk">
-  A successful Engine-mediated import apply also activates the exact imported version in your workspace. Select it directly when you create the SDK.
+  A successful Fused-mediated import apply also activates the exact imported version in your workspace. Select it directly when you create the SDK.
 </Card>

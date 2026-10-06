@@ -18,7 +18,7 @@ Both arrive through `FusedWebhooks`. Creating an SDK client does not start a lis
 
 ## Register provider ingress
 
-For a [Managed service with event support](/workspace/use-managed-service#receive-managed-provider-events), create a local `relay.source` receiver instead of storing a signing secret. Fused verifies requests at its broker, and your Engine pulls authorized events into this same delivery path. Use the following direct-ingress setup when you own the provider application and signing secret.
+For a [Managed service with event support](/workspace/use-managed-service#receive-managed-provider-events), create a local `relay.source` receiver instead of storing a signing secret. Fused verifies requests at its broker, and your Fused deployment pulls authorized events into this same delivery path. Use the following direct-ingress setup when you own the provider application and signing secret.
 
 A `kind: webhook` config is a named, team-owned bundle that can span several services, with its own plan and apply lifecycle.
 
@@ -38,7 +38,7 @@ fused-cli webhook plan
 fused-cli webhook apply
 ```
 
-Plan validates the local webhook config before contacting the Engine. Use `webhook validate` separately only for an offline-only check.
+Plan validates the local webhook config before contacting Fused. Use `webhook validate` separately only for an offline-only check.
 
 Apply prints each registration's URL, which is what you give the provider:
 
@@ -119,7 +119,7 @@ The implicit subscription is scoped to the SDK family and service. A later SDK v
 
 ## Handle them in your code
 
-The generated package ships the receiver. Your process **dials out** to the Engine and events stream back down that connection, so there is no public endpoint to host, no ingress to open, and no signature to verify yourself — this works unchanged on a laptop, in a private VPC, or on a serverless container.
+The generated package ships the receiver. Your process **dials out** to Fused and events stream back down that connection, so there is no public endpoint to host, no ingress to open, and no signature to verify yourself — this works unchanged on a laptop, in a private VPC, or on a serverless container.
 
 <CodeGroup>
 
@@ -183,7 +183,7 @@ The receiver name is yours. `on` takes one event or a list, and only events you 
 |---|---|
 | Auto-ack | A handler that returns without calling `ctx.ack()` or `ctx.nack()` acknowledges. Call `nack()` explicitly to get the event redelivered |
 | Auto-reconnect | Backs off from 1s to a 30s cap on its own, so a dropped connection needs no supervision |
-| Stops retrying on auth failure | `UNAUTHENTICATED` and `PERMISSION_DENIED` disable reconnect rather than hammering the Engine with a bad key |
+| Stops retrying on auth failure | `UNAUTHENTICATED` and `PERMISSION_DENIED` disable reconnect rather than hammering Fused with a bad key |
 
 Once an event reaches the durable receiver, delivery is at least once. Fused auth lifecycle payloads include an `id` for idempotency and omit app provenance, provider payloads, scopes, URLs, and token material. Call `nack()` when work fails and `receiver.close()` on shutdown. Python also exposes `SyncFusedWebhooks` when your process has no event loop.
 
@@ -196,11 +196,11 @@ Once an event reaches the durable receiver, delivery is at least once. Fused aut
 | Rule | What happens if you miss it |
 |---|---|
 | An omitted or empty `webhooks` list means **no provider events** | Fused auth lifecycle events may still be available for a selected connected OAuth/OIDC path |
-| `webhook_attachment` is required as soon as any service selects provider webhooks | Rejected at plan time, locally and by the Engine |
+| `webhook_attachment` is required as soon as any service selects provider webhooks | Rejected at plan time, locally and by Fused |
 | One attachment per SDK | A list is not supported yet |
 | The named config must exist **and** register every service selecting webhooks | Rejected with a named error at plan and again at apply |
 
-That last one is checked by the Engine rather than the CLI, so a name that was never applied passes `validate` and fails at plan.
+That last one is checked by Fused rather than the CLI, so a name that was never applied passes `validate` and fails at plan.
 
 `webhooks_select_all: true` takes every event a service offers. It is independent of `select_all` for operations — you can take all events and only some operations, or the reverse.
 

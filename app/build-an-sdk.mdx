@@ -3,7 +3,7 @@ title: "Build an SDK"
 description: "Turn a set of approved operations into a typed package your product can import."
 ---
 
-An SDK is a typed package containing only the services and operations one product needs. Authentication, retries, pagination, and provider quirks stay in the Engine. Your application code gets methods.
+An SDK is a typed package containing only the services and operations one product needs. Authentication, retries, pagination, and provider quirks stay in Fused. Your application code gets methods.
 
 By default, `fused-cli init` also hosts the same App through MCP and REST. Use `--sdk` when you want the package without hosted MCP. Both choices keep one App identity and immutable version for every method they enable.
 
@@ -136,9 +136,11 @@ Nothing else changes. Init applies the version and prints a concrete REST reques
 
 Flipping the field edits the file, which moves the source hash, so switching between the two needs a version bump like any other scope change.
 
-## Point the client at the Engine
+<a id="point-the-client-at-the-engine"></a>
 
-The generated client takes `grpcUrl` — `grpc_url` in Python. The name is the instruction: it wants the Engine's gRPC address, not the HTTP one you give the CLI.
+## Point the client at Fused
+
+The generated client takes `grpcUrl` — `grpc_url` in Python. The name is the instruction: it wants Fused's gRPC address, not the HTTP one you give the CLI.
 
 ```typescript
 const sdk = new FusedSDK({
@@ -234,7 +236,7 @@ services:
     connect: { scopes: ["read:issues", "write:issues"] }
 ```
 
-Leave it out and the Engine picks each operation's first provider-declared alternative. `connect.scopes` is a ceiling: an application can request fewer scopes per user, never more.
+Leave it out and Fused picks each operation's first provider-declared alternative. `connect.scopes` is a ceiling: an application can request fewer scopes per user, never more.
 
 The operation's imported security requirements are authoritative, and they are an ordered **OR of ANDs**: alternatives are OR, schemes within one alternative are AND, and an empty alternative permits anonymous execution.
 
@@ -257,7 +259,7 @@ services:
 Webhook secret references still resolve through the top-level bucket, and an `auth.ref` may only join two services that resolve to the same bucket.
 
 <Card title="Use a Managed service" icon="link" href="/workspace/use-managed-service">
-  For supported OAuth services, select a Fused Managed App instead of storing your own client pair. Your Engine still owns each user's connection. Add the managed reference before publishing, or publish a new version when changing an existing app.
+  For supported OAuth services, select a Fused Managed App instead of storing your own client pair. Your Fused workspace still owns each user's connection. Add the managed reference before publishing, or publish a new version when changing an existing app.
 </Card>
 
 <Card title="Store your own credentials" icon="key" href="/bucket/store-credentials">

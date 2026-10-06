@@ -7,7 +7,7 @@ description: "Install the CLI and create one App with SDK, MCP, and REST deliver
 From nothing to one App your code and agents can use through SDK, MCP, or REST. Roughly ten minutes, most of it waiting on a browser tab.
 
 <Note>
-  This assumes you already have an Engine to talk to — hosted, or one you started yourself. If not, [get one running first](/deploy-an-engine); every command below needs it.
+  This assumes you already have a Fused deployment to talk to — hosted, or one you started yourself. If not, [get one running first](/deploy-an-engine); every command below needs it.
 </Note>
 
 ## Install
@@ -25,7 +25,7 @@ For automated or non-interactive installs, set `ASSUME_YES=1` to skip the confir
 fused-cli login
 ```
 
-This opens your Engine's sign-in page and saves a subject-scoped credential after you approve it. The credential never passes through the browser and is never printed.
+This opens your Fused deployment's sign-in page and saves a subject-scoped credential after you approve it. The credential never passes through the browser and is never printed.
 
 ```bash
 fused-cli whoami
@@ -68,8 +68,8 @@ The SDK, MCP server, and REST endpoint use the same selected operations and exec
 | Way | Reach for it when | What it needs |
 |---|---|---|
 | `fused-cli sdk invoke` | Checking the path works, or trying an operation by hand | The CLI and the token |
-| The typed package | Your application calls this for real | The downloaded package and the Engine's **gRPC** address |
-| `POST /v1/apps/{id}/executions` | You are not in TypeScript or Python, or you would rather not ship a package | The Engine's **HTTP** address and the version ID from apply |
+| The typed package | Your application calls this for real | The downloaded package and Fused's **gRPC** address |
+| `POST /v1/apps/{id}/executions` | You are not in TypeScript or Python, or you would rather not ship a package | Fused's **HTTP** address and the version ID from apply |
 | Hosted MCP | An agent discovers and executes selected operations | The stable MCP URL from apply or the App details page |
 
 <CodeGroup>
@@ -130,7 +130,7 @@ app        →  published one immutable version for SDK, MCP, and REST delivery
     Choose MCP-only delivery when you need a server without a package.
   </Card>
   <Card title="Connect user accounts" icon="user-check" href="/bucket/connect-user-accounts">
-    OAuth per end user, with refresh handled by the Engine.
+    OAuth per end user, with refresh handled by Fused.
   </Card>
   <Card title="Share access" icon="users" href="/workspace/share-access">
     Give a team what it needs without giving it everything.

@@ -3,15 +3,15 @@ title: "Issue execution tokens"
 description: "Give a running application a credential that calls your SDK — and nothing else."
 ---
 
-An SDK execution token authenticates your application to the Engine at runtime. It is not your CLI key, and it is not a provider credential. Keeping those three straight is most of what there is to know here.
+An SDK execution token authenticates your application to Fused at runtime. It is not your CLI key, and it is not a provider credential. Keeping those three straight is most of what there is to know here.
 
 ## Three credentials, three jobs
 
 | Credential | Authenticates | Where it lives |
 |---|---|---|
-| CLI API key | Management calls to the Engine | Your local CLI config |
+| CLI API key | Management calls to Fused | Your local CLI config |
 | SDK execution token | `app_id` + token runtime calls | Your application's secret manager |
-| Provider credentials | The Engine to the provider | The SDK's Engine bucket |
+| Provider credentials | Fused to the provider | The SDK's Fused bucket |
 
 Never pass the License Key or a provider credential as an execution token, and never put any of them in the SDK config.
 
@@ -54,13 +54,15 @@ Use `--no-input --json` in automation. Do not parse the token out of human-reada
 
 ## The token the first apply gives you
 
-The first successful `sdk apply` returns an execution token once, in the response where the Engine created it. In JSON output it appears as `execution_token` on that one response only. An idempotent re-apply will not return it again.
+The first successful `sdk apply` returns an execution token once, in the response where Fused created it. In JSON output it appears as `execution_token` on that one response only. An idempotent re-apply will not return it again.
 
 If you lose it, generate a new named token rather than re-applying and hoping.
 
-## After an Engine reset
+<a id="after-an-engine-reset"></a>
 
-The Registry is not an SDK configuration archive and cannot restore SDKs after an Engine database reset. Recovery is: reapply your local SDK config, then issue a new execution token. This is a good reason to keep `.fused/` in source control.
+## After a Fused deployment reset
+
+The Registry is not an SDK configuration archive and cannot restore SDKs after a Fused deployment database reset. Recovery is: reapply your local SDK config, then issue a new execution token. This is a good reason to keep `.fused/` in source control.
 
 ## Permissions
 

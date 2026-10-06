@@ -3,7 +3,7 @@ title: "Test from the CLI"
 description: "Prove credentials, scope, and routing from a terminal or a CI job — without writing application code."
 ---
 
-`sdk invoke` exists for the moment before you trust something: a freshly applied version, a rotated credential, a new operation in a pipeline. It resolves one exact SDK version, calls the Engine with your execution token, and prints what came back.
+`sdk invoke` exists for the moment before you trust something: a freshly applied version, a rotated credential, a new operation in a pipeline. It resolves one exact SDK version, calls Fused with your execution token, and prints what came back.
 
 <Warning>
   Your application should never shell out to this. It is a debug and CI surface with its own limits — [run an operation](/app/run-an-operation) is how your code calls the same path.
@@ -64,7 +64,7 @@ The token comes from `FUSED_SDK_TOKEN` unless you redirect it. Management creden
 
 This is a debug surface, not a production transport. It accepts one buffered JSON provider document up to 1 MiB. Generated SDKs keep their broader gRPC transports, so a payload that fails here may be perfectly fine from your application.
 
-It produces one logical Engine execution and does not retry locally or follow redirects itself — the Engine owns retries, pagination, and continuation.
+It produces one logical Fused execution and does not retry locally or follow redirects itself — Fused owns retries, pagination, and continuation.
 
 <Card title="Read the receipts" icon="receipt" href="/app/run-an-operation#read-the-receipts">
   `sdk activity` shows what every execution did, whichever route made it.

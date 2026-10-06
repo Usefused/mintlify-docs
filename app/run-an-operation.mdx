@@ -42,9 +42,9 @@ else:
 
 | Thrown | Means | Carries |
 |---|---|---|
-| `AuthError` | The credential the Engine holds was rejected | `integration`, `endpoint` |
-| `RateLimitError` | The provider throttled you past Engine retry | `retryAfterMs` |
-| `ExecutionTimeoutError` | Your deadline or the Engine's policy expired first | `timeoutMs`, `code` |
+| `AuthError` | The credential Fused holds was rejected | `integration`, `endpoint` |
+| `RateLimitError` | The provider throttled you past Fused retry | `retryAfterMs` |
+| `ExecutionTimeoutError` | Your deadline or Fused's policy expired first | `timeoutMs`, `code` |
 | `ReconnectRequiredError` | A connected user's grant needs re-consent | `endUserRef`, `connectionId`, `reason` |
 | `IntegrationError` | Base class for the above | `integration`, `endpoint`, `statusCode`, `responseBody` |
 
@@ -120,7 +120,7 @@ await sdk.AsyncLinear.issue_list(
 | Auth type | `authType` / `auth_type` | Picks `oauth`, `oidc`, `basic`, `bearer`, `api_key`, or `mtls` |
 | Auth name | `authName` / `auth_name` | Disambiguates several declared schemes of one type |
 | Resource | `resourceId` / `resource_id` | Chooses an already connected tenant or account |
-| Pagination | `pagination.maxPages` / `pagination.max_pages` | Tightens the Engine's page ceiling for this call |
+| Pagination | `pagination.maxPages` / `pagination.max_pages` | Tightens Fused's page ceiling for this call |
 
 `maxPages` must sit strictly below the effective service policy — equality is rejected. You still get one aggregated result from one execution, so do not build a second page loop around it.
 
@@ -163,7 +163,7 @@ fused-cli sdk activity support-sdk@1.1.0 --all-versions --status failed
 
 The JSON page carries receipt and trace IDs, provider status, total and provider-side latency, attempt counts, and failure classification. Narrow it with `--status`, `--start`, `--end`, `--limit`, and `--offset`.
 
-`sdk activity` needs both `app.read` and `audit.read`. Use it rather than querying Engine GraphQL directly.
+`sdk activity` needs both `app.read` and `audit.read`. Use it rather than querying Fused GraphQL directly.
 
 ## Calling it another way
 

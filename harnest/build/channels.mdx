@@ -31,7 +31,7 @@ Your immutable **Python SDK** version must select:
 Publish a new version if those selections change. Complete fresh consent if the
 existing grant lacks the reply permission. Install the generated Python package
 and use its documented module name and exact generated webhook enum value.
-Export that version's Engine execution OpenAPI document and verify the reply
+Export that version's Fused execution OpenAPI document and verify the reply
 operation accepts `channel`, `text`, `thread_ts`, `reply_broadcast`, `unfurl_links`,
 and `unfurl_media` in its physical `input` object.
 
@@ -77,10 +77,10 @@ Load these values through your normal secret mechanism:
 | Environment variable | Purpose |
 | --- | --- |
 | `CHANNEL_DATABASE_URL` | PostgreSQL database for the worker inbox/outbox and example agent sessions/checkpoints |
-| `FUSED_CHANNEL_TOKEN` | That SDK's execution token; never a provider token or Engine management credential |
+| `FUSED_CHANNEL_TOKEN` | That SDK's execution token; never a provider token or Fused management credential |
 | `CHANNEL_AGENT_TOKEN` | A separate random service credential shared only by the worker and example agent |
 
-Use TLS for remote Engine and agent connections. The loopback URLs above are
+Use TLS for remote Fused and agent connections. The loopback URLs above are
 local acceptance defaults. Neither runtime token belongs in `channel.json`.
 
 ## Start and test
@@ -114,7 +114,7 @@ visible to participants in the Slack conversation.
 
 The generated SDK handler acknowledges Fused only after the task store commits
 input and processing intent together. A database failure produces a negative
-acknowledgement. Reply intent is persisted before calling Fused, and both Engine
+acknowledgement. Reply intent is persisted before calling Fused, and both Fused
 HTTP success and Slack's `ok` result must pass before marking delivery complete.
 
 | Boundary | Recovery |

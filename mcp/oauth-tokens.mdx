@@ -5,7 +5,7 @@ description: "Give an agent access to a provider that acts on behalf of individu
 
 An API key belongs to your company. An OAuth connection is stored in a bucket and names one connected person through its grant. When an agent calls a service like Jira, Google, or Slack, the provider needs to know *which* connected user it is acting for — and Fused calls that identifier the **end-user reference**.
 
-This page covers getting one to the Engine.
+This page covers getting one to Fused.
 
 ## Before the token exists
 
@@ -14,7 +14,7 @@ Provider app credentials must be registered before connecting a user. A dynamic 
 <Steps>
   <Step title="Register the OAuth app">
     Store the provider app's `client_id` and `client_secret` as one atomic pair
-    in the bucket. The Engine derives the callback as
+    in the bucket. Fused derives the callback as
     `<engine.public_url>/workspace/connect/callback`; `redirect_uri` is not
     credential input.
     ```bash
@@ -131,7 +131,7 @@ A token is either fully bound or not issued — there is no partially-bound stat
 
 ## When one user has several tenants
 
-A single OAuth token can front several provider sites, shops, or accounts. The Engine discovers them and picks a default when there is exactly one.
+A single OAuth token can front several provider sites, shops, or accounts. Fused discovers them and picks a default when there is exactly one.
 
 ```bash
 fused-cli workspace connection resources list <connection-id> --json
@@ -149,7 +149,7 @@ fused-cli bucket connections default --service jira,github@v3 --user user_123
 
 ## Who refreshes the token
 
-Nobody, manually. The Engine refreshes eligible connections at startup and hourly, scheduling from whichever expires first. An expired access token is not a reconnect — the Engine rotates it while the refresh grant is still valid.
+Nobody, manually. Fused refreshes eligible connections at startup and hourly, scheduling from whichever expires first. An expired access token is not a reconnect — Fused rotates it while the refresh grant is still valid.
 
 A connection becomes `reconnect_required` only when refresh material is missing, expired, revoked, or rejected by the provider. A client with [URL elicitation support](/mcp/use-the-server/provider-oauth) can present a reconnect link on the affected call. Otherwise, run the same connect flow again for the same bucket, service, auth name, and user reference.
 
@@ -159,9 +159,9 @@ A connection becomes `reconnect_required` only when refresh material is missing,
 
 ## What the agent never sees
 
-The MCP token authenticates the client to the Engine. That is all it does. Provider credentials and OAuth tokens stay in the server's bucket, are never sent to the MCP client, and never appear in the agent's context.
+The MCP token authenticates the client to Fused. That is all it does. Provider credentials and OAuth tokens stay in the server's bucket, are never sent to the MCP client, and never appear in the agent's context.
 
-Do not add a second token format or an MCP-client OAuth flow. SDK and MCP deliberately share one execution-token contract, and provider OAuth stays inside the Engine.
+Do not add a second token format or an MCP-client OAuth flow. SDK and MCP deliberately share one execution-token contract, and provider OAuth stays inside Fused.
 
 <Card title="Connect a user's account" icon="user-check" href="/bucket/connect-user-accounts">
   The full connect flow, resource selection, and what happens when a grant lapses.

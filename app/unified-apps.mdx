@@ -48,7 +48,7 @@ export default buildUnifiedApp({
 });
 ```
 
-The Engine validates the input and output schemas. `fused.crm.createCustomer` runs through the Engine's credential and execution policy. `fused.db.set` stores a separate execution data document; `fetch.searchable` makes the selected path searchable for callers with the read grant.
+Fused validates the input and output schemas. `fused.crm.createCustomer` runs through Fused's credential and execution policy. `fused.db.set` stores a separate execution data document; `fetch.searchable` makes the selected path searchable for callers with the read grant.
 
 ## Deploy and call
 
@@ -57,7 +57,7 @@ fused-cli unified-app plan -f .fused/unified_app/customer-app.yaml --json
 fused-cli unified-app apply -f .fused/unified_app/customer-app.yaml --json
 ```
 
-The Engine compiles the linked source during plan and hosts it after apply. Save the returned `app_family_id` and one-time execution token securely. Call the App through the Engine REST route:
+Fused compiles the linked source during plan and hosts it after apply. Save the returned `app_family_id` and one-time execution token securely. Call the App through the Fused REST route:
 
 ```bash
 curl -X POST "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions" \
@@ -66,7 +66,7 @@ curl -X POST "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions" \
   -d '{"operation":"execute","input":{"name":"Jane"}}'
 ```
 
-Use the stable `app_family_id` UUID in the URL. Engine resolves the version receiving traffic on each request. The authored `execute` call returns an execution record:
+Use the stable `app_family_id` UUID in the URL. Fused resolves the version receiving traffic on each request. The authored `execute` call returns an execution record:
 
 ```json
 {
@@ -139,7 +139,7 @@ For an existing SDK or MCP, keep its existing config and add `unified_apps`, the
 
 Plan resolves each name and version to an immutable app ID and public schemas. The actor and owner need `app.unified_app.use` on the target, in addition to ordinary consumer permissions. Execution uses the consumer token; never copy the Unified App's token into the config. The hosted code uses its own configured credential buckets. Restricted consumer tokens must allow `unified_app:customer_lookup`.
 
-The generated TypeScript client exposes `sdk.unifiedApps.customer_lookup(input)`. Pass the Engine HTTP origin as `engineUrl` and the consumer execution token as `token` to `FusedSDK`. Python exposes `await sdk.unified_apps.customer_lookup(input)` and `sdk.unified_apps.customer_lookup_sync(input)` with `engine_url` and `token` in its config. Calls return the Unified App execution envelope, including `status` and `output`; check `status` before consuming output. These calls execute synchronously and do not retry automatically.
+The generated TypeScript client exposes `sdk.unifiedApps.customer_lookup(input)`. Pass Fused HTTP origin as `engineUrl` and the consumer execution token as `token` to `FusedSDK`. Python exposes `await sdk.unified_apps.customer_lookup(input)` and `sdk.unified_apps.customer_lookup_sync(input)` with `engine_url` and `token` in its config. Calls return the Unified App execution envelope, including `status` and `output`; check `status` before consuming output. These calls execute synchronously and do not retry automatically.
 
 MCP advertises the attachment through the existing `execute` tool with its authored input schema:
 
@@ -159,9 +159,9 @@ References do not follow traffic changes. The selected Unified App version must 
 
 ## Private execution diagnostics
 
-In the Unified App's **Requests** tab, open an execution and expand **Private diagnostics**. This shows the original app input, captured output, detailed exceptions, stack traces, and recorded provider-operation requests and responses, including failed provider bodies. New Engine-compiled versions include inline source maps for TypeScript line numbers; older bundles retain their available JavaScript frames. An output that fails validation is retained privately even though it is not returned as a successful public result.
+In the Unified App's **Requests** tab, open an execution and expand **Private diagnostics**. This shows the original app input, captured output, detailed exceptions, stack traces, and recorded provider-operation requests and responses, including failed provider bodies. New Fused-compiled versions include inline source maps for TypeScript line numbers; older bundles retain their available JavaScript frames. An output that fails validation is retained privately even though it is not returned as a successful public result.
 
-Access requires `app.unified_app.diagnostics.read`, granted through a custom role on the app family or workspace. Ordinary app read/manage access does not include this permission. The built-in Owner role retains all permissions. Opening Requests also requires the existing `app.unified_app.read` and workspace `audit.read` permissions. Engine checks ownership and the diagnostic grant on every management API read; execution tokens do not authorize this endpoint:
+Access requires `app.unified_app.diagnostics.read`, granted through a custom role on the app family or workspace. Ordinary app read/manage access does not include this permission. The built-in Owner role retains all permissions. Opening Requests also requires the existing `app.unified_app.read` and workspace `audit.read` permissions. Fused checks ownership and the diagnostic grant on every management API read; execution tokens do not authorize this endpoint:
 
 ```text
 GET /apps/{app_id}/executions/{execution_id}/diagnostics
@@ -173,6 +173,6 @@ Live and rerun executions publish one logical receipt through the existing execu
 
 ### OpenTelemetry tracing
 
-Hosted executions use the Engine's configured OpenTelemetry provider. A shared `engine.unified_app.run` span covers live and rerun admission, execution, and persistence; `engine.unified_app.runtime` covers worker execution, including replay. Provider calls inherit that trace context. Canonical request receipts retain the trace and span IDs when tracing is enabled. Runtime spans expose timing, outcome, and a bounded failure phase; raw input, output, errors, and stacks remain in permission-gated private diagnostics. `buildUnifiedApp` does not start another exporter or expose the OpenTelemetry SDK inside the sandbox.
+Hosted executions use Fused's configured OpenTelemetry provider. A shared `engine.unified_app.run` span covers live and rerun admission, execution, and persistence; `engine.unified_app.runtime` covers worker execution, including replay. Provider calls inherit that trace context. Canonical request receipts retain the trace and span IDs when tracing is enabled. Runtime spans expose timing, outcome, and a bounded failure phase; raw input, output, errors, and stacks remain in permission-gated private diagnostics. `buildUnifiedApp` does not start another exporter or expose the OpenTelemetry SDK inside the sandbox.
 
 The request inspector's **Execution trace** shows preparation, initialization, input validation, TypeScript execution, and output validation when those phases ran. The isolated worker measures real elapsed time independently of deterministic app time. The same measurements create OTEL phase spans and are persisted on the canonical receipt, so this view works without an external trace backend or OTEL sampling. Failed runs retain completed and failed-stage timings; unexecuted stages are omitted. TypeScript time includes awaited provider work and must not be added to child-provider durations. Ordinary app/activity permissions cover this metadata; private bodies still require the diagnostic grant.

@@ -1,9 +1,9 @@
 ---
 title: "Deploy an MCP server"
-description: "Stand up one Engine-hosted MCP server that reaches every service an agent is allowed to use."
+description: "Stand up one Fused-hosted MCP server that reaches every service an agent is allowed to use."
 ---
 
-An MCP server is an Engine-hosted runtime with its own stable URL. It never builds or downloads a package — apply stands it up, and it stays live until you deactivate it.
+An MCP server is a Fused-hosted runtime with its own stable URL. It never builds or downloads a package — apply stands it up, and it stays live until you deactivate it.
 
 One server can span several internal and external services, so an agent needs one connection rather than one per provider.
 
@@ -130,7 +130,7 @@ The CLI displays both endpoints after apply and in `mcp list`:
 Applying identical content to the same version is a no-op. Changing its description, operation, auth, or injection scope returns `app_version_immutable` — publish a new version instead.
 
 <Note>
-  Deactivating the promoted version makes the stable URL unavailable. The Engine does not guess another sibling version; explicitly apply the version you want to promote next.
+  Deactivating the promoted version makes the stable URL unavailable. Fused does not guess another sibling version; explicitly apply the version you want to promote next.
 </Note>
 
 ## Deactivating
@@ -140,7 +140,7 @@ fused-cli mcp deactivate support-agent@1.0.0
 ```
 
 <Warning>
-  This is irreversible. The Engine writes a tombstone, stops that runtime, and will not allow that MCP name and version to be recreated. Sibling versions and shared tokens survive.
+  This is irreversible. Fused writes a tombstone, stops that runtime, and will not allow that MCP name and version to be recreated. Sibling versions and shared tokens survive.
 </Warning>
 
 Unlike removing a workspace service, deactivation is immediate and is not gated behind a blocker for configs that still reference it. There is no MCP deprecate or undeprecate command — do not invent one.

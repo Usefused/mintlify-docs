@@ -537,7 +537,7 @@
         "href": "https://github.com/Usefused/cli"
       },
       {
-        "label": "Engine",
+        "label": "Fused",
         "href": "https://github.com/Usefused/engine"
       }
     ],
@@ -569,11 +569,11 @@
             "href": "https://github.com/Usefused/cli"
           },
           {
-            "label": "Fused Engine",
+            "label": "Fused",
             "href": "https://github.com/Usefused/engine"
           },
           {
-            "label": "Engine releases",
+            "label": "Fused releases",
             "href": "https://github.com/Usefused/engine/releases"
           }
         ]

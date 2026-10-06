@@ -3,7 +3,7 @@ title: "Control the workflow"
 description: "Use explicit validation, plan, apply, receipts, and structured output when the guided path is not enough."
 ---
 
-Fused keeps the common path short without removing any control boundary. Guided commands compose the same plan and apply functions used by the explicit workflow, and the Engine still owns validation, permissions, and immutable state.
+Fused keeps the common path short without removing any control boundary. Guided commands compose the same plan and apply functions used by the explicit workflow, and Fused still owns validation, permissions, and immutable state.
 
 ## Choose the right level of control
 
@@ -15,7 +15,7 @@ Fused keeps the common path short without removing any control boundary. Guided 
 | Activating a service without creating an SDK | `workspace service add <service> --apply` |
 | Reviewing an existing config one boundary at a time | Explicit `<kind> plan`, then `<kind> apply` |
 | Running CI or another unattended process | `--no-input`, plus `--json` where supported |
-| Checking a local file without contacting an Engine | Standalone `<kind> validate` |
+| Checking a local file without contacting a Fused deployment | Standalone `<kind> validate` |
 
 Terminal commands prompt only when a decision is needed. Omit `--interactive`; that compatibility flag only makes the terminal default explicit.
 
@@ -28,13 +28,13 @@ Use the explicit SDK lifecycle when you are editing an existing config, need an 
     ```bash
     fused-cli sdk plan
     ```
-    Plan validates the local config before contacting the Engine. If the exact selected bucket is missing a credential, a terminal plan can securely offer to write it and retry once.
+    Plan validates the local config before contacting Fused. If the exact selected bucket is missing a credential, a terminal plan can securely offer to write it and retry once.
   </Step>
   <Step title="Apply">
     ```bash
     fused-cli sdk apply
     ```
-    Apply commits only the config content and Engine recorded by the receipt.
+    Apply commits only the config content and Fused recorded by the receipt.
   </Step>
   <Step title="Download">
     ```bash
@@ -77,7 +77,7 @@ was already active, the SDK plan receipt is ready and the remaining command is:
 fused-cli sdk apply -f '.fused/sdks/support-sdk.yaml' --download
 ```
 
-If Linear still needs workspace activation, Engine cannot bind an SDK plan to
+If Linear still needs workspace activation, Fused cannot bind an SDK plan to
 that runtime snapshot yet. Init saves the workspace plan receipt and prints the
 dependency order instead:
 
@@ -167,7 +167,7 @@ fused-cli import discover \
 
 ## Use offline validation deliberately
 
-Plan already validates the local config before its first Engine request. Run standalone validation only when the check must stay offline:
+Plan already validates the local config before its first Fused request. Run standalone validation only when the check must stay offline:
 
 ```bash
 fused-cli sdk validate
@@ -177,7 +177,7 @@ fused-cli webhook validate
 
 ## Keep and move receipts deliberately
 
-A receipt binds a plan to the exact config hash and normalized Engine URL. Apply refuses a stale file, a receipt without Engine identity, or a receipt created for another Engine.
+A receipt binds a plan to the exact config hash and normalized Fused URL. Apply refuses a stale file, a receipt without Fused identity, or a receipt created for another Fused deployment.
 
 | Need | Command |
 |---|---|
@@ -185,12 +185,12 @@ A receipt binds a plan to the exact config hash and normalized Engine URL. Apply
 | Apply that exact receipt | `fused-cli sdk apply --receipt ./ci/sdk.plan.json` |
 | Apply a captured remote plan directly | `fused-cli sdk apply --plan-id <plan-id>` |
 
-Use a direct plan ID only when it came from the exact current config and Engine. Re-plan after the config or target Engine changes.
+Use a direct plan ID only when it came from the exact current config and Fused. Re-plan after the config or target Fused changes.
 
 ## Recover without guessing
 
 - A workspace activation saves executable contract data without SDK generation input. A generated `sdk plan` requests that input and attaches it only when its exact saved runtime contract and source revision still match Registry. If generated `init` (including the default combined App) receives `generation_contract_pin_unavailable`, it first resolves every selected active workspace version. It then prints `Refreshing immutable SDK generation snapshot for <service>@<version>...` as it refreshes each exact snapshot and retries the unchanged plan once. `--no-input` uses the same deterministic path without prompting. The CLI never derives a pin locally, substitutes the runtime contract hash, selects a newer version, or retries twice. REST-only mode, MCP-only mode, ordinary `sdk plan`, and unrelated failures do not refresh snapshots.
-- If exact resolution or refresh fails, init does not retry the plan or create the app config. If the one retry fails, the error reports every refresh that already completed. A repeated missing-pin response directs you to the Engine and Registry logs or another enabled version. A workspace activation may already be applied under its separate receipt. Changing credentials or operation selection does not repair this failure.
+- If exact resolution or refresh fails, init does not retry the plan or create the app config. If the one retry fails, the error reports every refresh that already completed. A repeated missing-pin response directs you to Fused and Registry logs or another enabled version. A workspace activation may already be applied under its separate receipt. Changing credentials or operation selection does not repair this failure.
 - If SDK credential remediation is declined or unavailable, store the credential in the selected bucket and rerun `sdk plan`.
 - If package transfer fails after a successful SDK apply, rerun `sdk download`, not apply.
 - If import apply times out or loses its response, run `fused-cli import status <operation-id>` with the receipt's plan ID. Do not replay the mutation while its commit state is unknown.

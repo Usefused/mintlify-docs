@@ -19,7 +19,7 @@ agent source → validate → compile for ADK or LangGraph → artifact → neut
 | Discover | Agent directories | Validated resources and source digest |
 | Compile | Source plus framework selection | Self-contained artifact under `.harnest/` |
 | Serve | Compiled artifact plus `server.yaml` | HTTP, SSE, WebSocket, and playground surfaces |
-| Deploy | Deployment plan plus artifact | Engine-managed process |
+| Deploy | Deployment plan plus artifact | Fused-managed process |
 
 <Note>
   `orchestrator.py` is trusted project code. Rendering a plan imports it. In CI, you can inspect or store the JSON plan before deployment.

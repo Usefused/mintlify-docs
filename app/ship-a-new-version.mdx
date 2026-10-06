@@ -33,16 +33,16 @@ fused-cli sdk plan
 fused-cli sdk apply --download
 ```
 
-Plan validates the local config before contacting the Engine. Use `sdk validate` separately only when you need an offline-only check.
+Plan validates the local config before contacting Fused. Use `sdk validate` separately only when you need an offline-only check.
 
 ## When the Registry moves under you
 
 `app_version_immutable` is about something you changed. Its sibling is about something Fused changed: when the Registry advances the selection schema your published versions were built against, applying an older plan returns `app_selection_schema_version_mismatch` (HTTP 409), and `fused-cli sdk sync` refuses a version whose schema is newer than the CLI understands.
 
-Neither is a data loss. Re-plan so the selections are rebuilt against the current schema, then apply. If `sync` is the one complaining, upgrade `fused-cli` first — it is telling you the Engine is ahead of it.
+Neither is a data loss. Re-plan so the selections are rebuilt against the current schema, then apply. If `sync` is the one complaining, upgrade `fused-cli` first — it is telling you Fused is ahead of it.
 
 <Note>
-  Do not edit a generated package to impersonate another version. The Engine authorizes the opaque `app_id` embedded in the package, not a version number the client reports.
+  Do not edit a generated package to impersonate another version. Fused authorizes the opaque `app_id` embedded in the package, not a version number the client reports.
 </Note>
 
 ## What carries across versions
@@ -96,13 +96,15 @@ fused-cli sdk buckets support-sdk
 
 `sdk openapi` always writes a file and never prints the document to stdout. It needs your ordinary control credential and `app.read` — an execution token cannot authorize the export.
 
-## Pull the Engine's state back down
+<a id="pull-the-engines-state-back-down"></a>
+
+## Pull Fused's state back down
 
 ```bash
 fused-cli sdk sync support-sdk -f .fused/sdks/support-sdk.yaml
 ```
 
-Sync full-mirrors the exact Engine app version your local file declares. Anything the Engine no longer selects is removed locally rather than flagged, and Engine values win on conflict. There is no implicit latest lookup and no sync-time upgrade — change `version` yourself, then plan and apply it deliberately.
+Sync full-mirrors the exact Fused app version your local file declares. Anything Fused no longer selects is removed locally rather than flagged, and Fused values win on conflict. There is no implicit latest lookup and no sync-time upgrade — change `version` yourself, then plan and apply it deliberately.
 
 One quirk worth expecting: sync freezes the current selection into an explicit sorted operation list, so a service configured with `select_all: true` does not come back as `select_all: true`.
 
@@ -114,7 +116,7 @@ Permanently deactivate one exact immutable version by name and version or by Ver
 fused-cli sdk deactivate support-sdk@1.0.0
 ```
 
-Deactivation immediately removes that version's runtime and package and leaves a tombstone, so the same SDK version cannot be recreated. Sibling versions and SDK-wide execution tokens remain intact. The Engine App UI exposes the same action for one version or a selected group. There is no SDK deprecate or restore command in the CLI; use the App UI/API for those advisory lifecycle transitions.
+Deactivation immediately removes that version's runtime and package and leaves a tombstone, so the same SDK version cannot be recreated. Sibling versions and SDK-wide execution tokens remain intact. Fused App UI exposes the same action for one version or a selected group. There is no SDK deprecate or restore command in the CLI; use the App UI/API for those advisory lifecycle transitions.
 
 <Card title="Issue execution tokens" icon="ticket" href="/app/issue-tokens">
   A new version does not need a new token. It may need you to review the old ones.

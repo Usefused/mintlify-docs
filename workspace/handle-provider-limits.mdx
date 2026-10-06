@@ -105,7 +105,7 @@ retry:
 
 ## Pagination
 
-The Engine walks the pages and streams each one as a separate chunk; your client makes a single call.
+Fused walks the pages and streams each one as a separate chunk; your client makes a single call.
 
 ```yaml
 pagination:
@@ -132,7 +132,7 @@ pagination:
 | `limits` | `max_pages`, `max_items`, `max_bytes`, `max_duration_ms` — all four required |
 
 <Warning>
-  A next-URL continuation needs an explicit same-origin or allowlist policy. Without one, a provider response could redirect the Engine at an unreviewed origin while carrying your credential.
+  A next-URL continuation needs an explicit same-origin or allowlist policy. Without one, a provider response could redirect Fused at an unreviewed origin while carrying your credential.
 </Warning>
 
 Callers may only *lower* the ceiling, via `max_pages`. Strategy, tokens, paths and next URLs are never caller-owned.
@@ -155,7 +155,7 @@ execution_policy:
 
 A connection-resource forced binding (`${resource.base_url}`) still wins at dispatch time. `execution_policy.base_url` is the static fallback beneath it, not a way to override a live connection's routing.
 
-`server_variables` never leaves your Engine, even with `public: true`, and `workspace sync` preserves the local map. There is no owner-editable path for `default_headers` today.
+`server_variables` never leaves your Fused deployment, even with `public: true`, and `workspace sync` preserves the local map. There is no owner-editable path for `default_headers` today.
 
 ## Local effect vs publishing
 
@@ -166,9 +166,9 @@ These are two independent things, and confusing them is the most common mistake 
 | Declaring a policy | Takes effect **locally and immediately on apply** — whether or not you own the service, whether or not `public` is set |
 | `public: true` | *Additionally* publishes it to the Registry so every other consumer of the service inherits it |
 
-So a non-owner declaring `execution_policy` without `public` is not a no-op — it is the normal case: enforce this here, affect nobody else. Only the owning account can set `public: true`; the Engine rejects it from anyone else at apply.
+So a non-owner declaring `execution_policy` without `public` is not a no-op — it is the normal case: enforce this here, affect nobody else. Only the owning account can set `public: true`; Fused rejects it from anyone else at apply.
 
-Other Engine deployments that inherit a published value get a `registry_execution_policy_changed` notification the next time their poller runs.
+Other Fused deployments that inherit a published value get a `registry_execution_policy_changed` notification the next time their poller runs.
 
 <Note>
   Do not confuse this `public` with a service's own top-level `public`, which controls Registry visibility of the service page. Both are owner-only and both are called `public`, but they publish entirely different things.

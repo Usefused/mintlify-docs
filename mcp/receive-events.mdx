@@ -3,7 +3,7 @@ title: "Receive MCP events"
 description: "Expose selected provider webhooks as MCP resources, listen for updates, and read the latest event."
 ---
 
-An MCP server can expose provider webhook events alongside its tools. A client listens for a resource update, reads the event, and decides what the agent should do next. The same Engine can deliver that event independently to a generated SDK handler.
+An MCP server can expose provider webhook events alongside its tools. A client listens for a resource update, reads the event, and decides what the agent should do next. The same Fused can deliver that event independently to a generated SDK handler.
 
 | Surface | Delivery | Recovery |
 |---|---|---|
@@ -14,7 +14,7 @@ Use an SDK receiver when every occurrence must be processed. MCP notifications a
 
 ## Register the event source
 
-For your own provider app, [register webhook ingress](/app/receive-events#register-provider-ingress) and configure the provider with its URL. The Engine verifies requests before admitting events.
+For your own provider app, [register webhook ingress](/app/receive-events#register-provider-ingress) and configure the provider with its URL. Fused verifies requests before admitting events.
 
 For a [Managed service](/workspace/use-managed-service#receive-managed-provider-events), use a local `relay.source` receiver for your managed connection. Fused holds the provider signing secret and verifies events at the broker. Both sources use the same MCP attachment and event selection.
 
@@ -51,7 +51,7 @@ For a new app, `fused-cli init --mcp` also accepts `--webhook-attachment` and re
 
 ## Connect a capable client
 
-The combined tool and event surface uses the Engine's MCP `2026-07-28` protocol over Streamable HTTP. A client supporting only the older session-based tool flow needs additional support for these event methods.
+The combined tool and event surface uses Fused's MCP `2026-07-28` protocol over Streamable HTTP. A client supporting only the older session-based tool flow needs additional support for these event methods.
 
 Every request is an authenticated `POST` to the MCP URL:
 
@@ -66,7 +66,7 @@ Every request is an authenticated `POST` to the MCP URL:
 | `params._meta["io.modelcontextprotocol/protocolVersion"]` | `2026-07-28` |
 | `params._meta["io.modelcontextprotocol/clientCapabilities"]` | Client capabilities, or `{}` |
 
-This surface does not use a protocol session ID. Call `server/discover`, then `tools/list` for `search_docs` and `execute`, and `resources/list` for selected event URIs. Use the returned URIs instead of constructing broker subjects. Never send provider tokens or Engine management credentials as the MCP execution token.
+This surface does not use a protocol session ID. Call `server/discover`, then `tools/list` for `search_docs` and `execute`, and `resources/list` for selected event URIs. Use the returned URIs instead of constructing broker subjects. Never send provider tokens or Fused management credentials as the MCP execution token.
 
 ## Listen, then read
 
@@ -89,7 +89,7 @@ Send a returned URI in `notifications.resourceSubscriptions`. This request holds
 }
 ```
 
-Engine first emits `notifications/subscriptions/acknowledged` with the supported subset of requested URIs. Check it before treating a subscription as active. Later `notifications/resources/updated` messages name the changed URI. Each notification carries the listen request ID in `params._meta["io.modelcontextprotocol/subscriptionId"]`.
+Fused first emits `notifications/subscriptions/acknowledged` with the supported subset of requested URIs. Check it before treating a subscription as active. Later `notifications/resources/updated` messages name the changed URI. Each notification carries the listen request ID in `params._meta["io.modelcontextprotocol/subscriptionId"]`.
 
 After an update, send a separate request with `Mcp-Method: resources/read` and `Mcp-Name` equal to that URI:
 

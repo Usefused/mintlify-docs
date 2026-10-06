@@ -34,7 +34,7 @@ Finish initialization with `notifications/initialized`. Preserve the returned `M
 
 ## Present the authentication link
 
-When `execute` encounters `connection_required` or `reconnect_required`, Engine starts a consent session. The MCP tool call returns a JSON-RPC error with code `-32042` and an entry in `error.data.elicitations`:
+When `execute` encounters `connection_required` or `reconnect_required`, Fused starts a consent session. The MCP tool call returns a JSON-RPC error with code `-32042` and an entry in `error.data.elicitations`:
 
 ```json Authentication required response
 {
@@ -66,7 +66,7 @@ When `execute` encounters `connection_required` or `reconnect_required`, Engine 
 }
 ```
 
-The URL, ID, and expiry above are illustrative. Use the values returned by Engine unchanged. For a lapsed grant, `action` is `reconnect` and the message asks the user to reconnect.
+The URL, ID, and expiry above are illustrative. Use the values returned by Fused unchanged. For a lapsed grant, `action` is `reconnect` and the message asks the user to reconnect.
 
 Handle this error in the MCP client and offer a **Connect account** button. Keep the authorization URL in that interaction rather than forwarding it into the model's context. Open it after the user's approval; collect passwords and provider consent only in the browser. Opening the URL is not proof that authentication completed.
 

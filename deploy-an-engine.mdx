@@ -1,29 +1,29 @@
 ---
-title: "Get an Engine running"
-sidebarTitle: "Get an Engine running"
+title: "Get Fused running"
+sidebarTitle: "Get Fused running"
 description: "Stand up the runtime everything else in Fused talks to."
 ---
 
-Every `fused-cli` command talks to an Engine. If you do not have one yet, nothing else on this site will work — so start here.
+Every `fused-cli` command talks to a Fused deployment. If you do not have one yet, nothing else on this site will work — so start here.
 
 There are two ways to get one.
 
 <CardGroup cols={2}>
   <Card title="Fused-hosted" icon="cloud">
-    Choose a hosted Engine when you create your account and Fused provisions an isolated one for you. You get a URL — skip to [pointing the CLI at it](#point-the-cli-at-it).
+    Choose a hosted Fused workspace when you create your account and Fused provisions an isolated one for you. You get a URL — skip to [pointing the CLI at it](#point-the-cli-at-it).
   </Card>
   <Card title="Self-hosted" icon="server">
-    Run the Engine in your own infrastructure and own its credential storage, execution, and records. You can also opt into [Managed services](/workspace/use-managed-service) for provider authentication and event brokering. The rest of this page covers deployment.
+    Run Fused in your own infrastructure and own its credential storage, execution, and records. You can also opt into [Managed services](/workspace/use-managed-service) for provider authentication and event brokering. The rest of this page covers deployment.
   </Card>
 </CardGroup>
 
 ## What you need first
 
-- **PostgreSQL 16+**. The Engine creates and upgrades its own tables on startup, through one standard connection string. There is no provider-specific branching.
+- **PostgreSQL 16+**. Fused creates and upgrades its own tables on startup, through one standard connection string. There is no provider-specific branching.
 - **A Fused license key**. [Signing up](https://usefused.com/signup) issues one; choose the license-only path and the key is yours to deploy with. An onboarding contact can also provide it.
 
 <Warning>
-  The Engine exits during startup without a valid license key, before serving any HTTP, webhook, or gRPC traffic. There is no offline mode that bypasses the Registry handshake.
+  Fused exits during startup without a valid license key, before serving any HTTP, webhook, or gRPC traffic. There is no offline mode that bypasses the Registry handshake.
 </Warning>
 
 ## Install the binary
@@ -56,7 +56,7 @@ fused-engine start
 That brings up the REST API and dashboard on `:8081`, the SDK gRPC listener on `:50051`, and — since no external NATS is configured — an embedded NATS server on `:4222`.
 
 <Note>
-  Those first two are different audiences. `fused-cli` talks to `:8081`; a generated SDK talks gRPC to `:50051`. Both get called an "Engine URL", so it is worth exporting `FUSED_ENGINE_URL` and `FUSED_ENGINE_GRPC_URL` as separate values from the start.
+  Those first two are different audiences. `fused-cli` talks to `:8081`; a generated SDK talks gRPC to `:50051`. Both get called a "Fused URL", so it is worth exporting `FUSED_ENGINE_URL` and `FUSED_ENGINE_GRPC_URL` as separate values from the start.
 </Note>
 
 ## Or run the container
@@ -65,8 +65,8 @@ Two image variants are published:
 
 | Image | Contains |
 |---|---|
-| `ghcr.io/usefused/engine:latest` | Engine with the embedded Admin UI |
-| `ghcr.io/usefused/engine:headless` | Engine API and runtime, no UI |
+| `ghcr.io/usefused/engine:latest` | Fused with the embedded Admin UI |
+| `ghcr.io/usefused/engine:headless` | Fused API and runtime, no UI |
 
 Both are moving tags. Every release is also published under its own version tag — `:<tag>` and `:<tag>-headless` — and production deployments should pin one.
 
@@ -93,7 +93,7 @@ echo "$GITHUB_TOKEN" | docker login ghcr.io -u <your-github-username> --password
 
 ## The encryption key
 
-`FUSED_ENCRYPTION_KEY` is a 32-byte AES key encrypting everything at rest — webhook signing secrets, auth credentials in Engine-local storage, and connect session state.
+`FUSED_ENCRYPTION_KEY` is a 32-byte AES key encrypting everything at rest — webhook signing secrets, auth credentials in Fused-local storage, and connect session state.
 
 ```bash
 openssl rand -base64 32
@@ -148,7 +148,7 @@ fused-cli --engine-url https://engine.example.com login
 fused-cli whoami
 ```
 
-`login` opens the Engine's sign-in page — managed Fused Auth, or an existing Engine API key. The credential is generated locally and the Engine stores only its hash, so the browser never sees it. Use `--no-browser` on a headless machine to print the URL and approve from another device.
+`login` opens Fused's sign-in page — managed Fused Auth, or an existing Fused API key. The credential is generated locally and Fused stores only its hash, so the browser never sees it. Use `--no-browser` on a headless machine to print the URL and approve from another device.
 
 To save the URL rather than passing it each time:
 
@@ -167,15 +167,15 @@ fused-cli config list
 
 ## Before production
 
-- **Pin a version tag.** `latest` moves; a deploy that reruns should not quietly change Engine underneath you.
+- **Pin a version tag.** `latest` moves; a deploy that reruns should not quietly change Fused underneath you.
 - **Set a real encryption key.** Not the committed example.
 - **External NATS for replicas.** The embedded server is single-instance. Horizontal replication needs `NATS_URL` without embedded credentials, plus exactly one of `NATS_CREDS_FILE`, `NATS_NKEY_SEED_FILE`, `NATS_TOKEN`, or paired `NATS_USERNAME`/`NATS_PASSWORD`. Mount credential and TLS files read-only; never bake them into an image.
-- **Check your license terms.** The Engine is source-available under PolyForm Noncommercial 1.0.0. Commercial or production use needs a separate written agreement with Fused in addition to a valid key.
+- **Check your license terms.** The self-hosted Fused runtime is source-available under PolyForm Noncommercial 1.0.0. Commercial or production use needs a separate written agreement with Fused in addition to a valid key.
 
 <Note>
   That last one is worth starting early. If you are deploying this for a company, [register your interest](https://usefused.com/?plan=enterprise#enterprise-interest) — production licensing, SSO, and support are all settled in the same conversation, and it is a shorter one before you have shipped than after.
 </Note>
 
 <Card title="Quickstart" icon="rocket" href="/quickstart">
-  With an Engine reachable, enable a service and ship an SDK.
+  With a Fused deployment reachable, enable a service and ship an SDK.
 </Card>
