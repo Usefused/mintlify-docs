@@ -15,6 +15,12 @@ Tasks run application work outside the requesting model tool call. Declare publi
 | Let managed code create or control a user's recurring schedule | [Dynamic schedules](/harnest/build/dynamic-schedules) |
 | Ordinary in-process reuse | Call the decorated task directly |
 
+## Configure storage first
+
+Queued Tasks require a Lifecycle factory registered with `@lifecycle.storage.tasks`; declaring `@task` alone is not enough. Add the factory under the agent's root `lifecycle/` folder. Follow [Configure Lifecycle storage](/harnest/build/queued-tasks#configure-lifecycle-storage) for a complete `lifecycle/storage.py` example before queueing your first Task.
+
+Waiting for a Task from a durable tool also needs a Harnest-owned checkpoint provider. Cron schedules need `@lifecycle.storage.cron` on the same factory as task storage. There is no default task database; see [Task and cron storage](/harnest/runtime/task-storage) for provider options.
+
 <CardGroup cols={3}>
   <Card title="Create a Task" icon="list-check" href="/harnest/build/queued-tasks">
     Define, defer, inspect, cancel, and await a folder-discovered Task.

@@ -15,6 +15,38 @@ Use an ordinary function call when the caller can do the work immediately and do
 | `await build_report.defer(...)` | Commits queue work and returns [`TaskHandle`](/harnest/reference/api/task#taskhandle) |
 | `await handle.result()` | Returns a terminal result or suspends a durable tool |
 
+## Configure Lifecycle storage
+
+Before queueing work, register a task storage provider in the agent's root `lifecycle/` folder. Adding a `@task` function does not configure storage. Harnest discovers these Python factories automatically; there is no task-storage setting to add to `config.yaml`.
+
+For the durable tool example below, create or update `lifecycle/storage.py`:
+
+```python lifecycle/storage.py
+import os
+
+from harnest import lifecycle
+from harnest_postgres import PostgresStore
+
+@lifecycle.storage.sessions
+@lifecycle.storage.checkpoints
+@lifecycle.storage.tasks
+def storage() -> PostgresStore:
+    """Share durable storage for conversations, suspended tools, and queued work."""
+    return PostgresStore(os.environ["DATABASE_URL"])
+```
+
+Set `DATABASE_URL` to your running PostgreSQL database before starting the agent. `harnest_postgres` ships with the managed Harnest runtime. Harnest calls the factory and owns starting and closing its provider.
+
+Replace any existing factories for the roles shown above; do not register a second provider for the same role. If you already have session and checkpoint providers that you want to keep, register only `@lifecycle.storage.tasks` on this new factory.
+
+| Work you need | Lifecycle configuration |
+|---|---|
+| Queue and run Tasks | `@lifecycle.storage.tasks` |
+| Suspend a durable tool while it awaits a Task | Task storage plus a Harnest-owned `@lifecycle.storage.checkpoints` provider; use persistent storage for recovery after restart |
+| Run fixed or dynamic Cron schedules | Add `@lifecycle.storage.cron` to the **same factory** as task storage so both roles share one provider instance |
+
+For local experiments, a task factory can return `harnest.task.MemoryTaskStore()` instead. It loses queued work on process exit and does not provide session or checkpoint storage; register it only for task and optional cron roles. Use persistent storage for production. See [Task and cron storage](/harnest/runtime/task-storage#choose-and-register-a-provider) for Redis, custom providers, and complete storage setup.
+
 ## Define and call a task
 
 From the agent root, create a compilable task starter:
@@ -93,7 +125,7 @@ Inside a durable tool, Harnest derives a replay-stable submission key when you o
 | Runtime principal | Permission names and invocation identity are persisted separately; the principal object and credentials are not |
 | Defer boundary | Available only while the compiled Harnest runtime is active |
 
-Configure [Task and cron storage](/harnest/runtime/task-storage), then run from your agent folder. Replicas can share the same persistent provider:
+With [Lifecycle storage configured](#configure-lifecycle-storage) and `DATABASE_URL` set, run from your agent folder. Replicas can share the same persistent provider:
 
 ```bash
 harnest env sync .
