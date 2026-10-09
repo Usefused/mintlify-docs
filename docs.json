@@ -525,6 +525,14 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Blog",
+        "icon": "newspaper",
+        "pages": [
+          "blog",
+          "blog/introducing-mcp"
+        ]
       }
     ]
   },
@@ -605,5 +613,5 @@
       "harnest": "https://github.com/usefused/harnest"
     }
   },
-  "description": "Fused isan integration gateway for apps and agents. Fused offers you a central integration gateway for your internal and external services you depend on"
+  "description": "Fused is an integration gateway for apps and agents. Fused offers you a central integration gateway for your internal and external services you depend on"
 }
