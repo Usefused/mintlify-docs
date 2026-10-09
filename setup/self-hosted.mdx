@@ -1,0 +1,141 @@
+---
+title: "Self-host Fused"
+sidebarTitle: "Self-hosted Fused"
+description: "Run the Fused Engine with your own PostgreSQL database and runtime configuration."
+---
+
+Run Fused in your own infrastructure to control its credential storage, execution, and records. This guide uses the published container, which includes the runtime dependencies and execution worker.
+
+<Note>
+  Using Fused Cloud? Follow [Use Fused Cloud](/setup/fused-cloud). Fused provisions the database and runtime configuration for you.
+</Note>
+
+## What you need
+
+- **PostgreSQL 16+**, reachable from the Engine container. Fused creates and upgrades its tables on startup.
+- **A Fused license key**. [Sign up](https://usefused.com/signup) and choose **License key only** to run the Engine yourself.
+- **A persistent encryption key**, generated in the next step.
+- **Docker** on the host where you will run the Engine.
+
+The Engine must reach the Fused Registry to validate its license at startup. A valid key and a successful Registry handshake are required before it serves traffic.
+
+## Configure engine.yaml
+
+Generate an encryption key once:
+
+```bash
+openssl rand -base64 32
+```
+
+Store the result securely. Use `engine.yaml` as the primary configuration file for your deployment. Create it with the following content and replace all three placeholders:
+
+```yaml engine.yaml
+encryption_key: "<saved-base64-encoded-32-byte-key>"
+database:
+  url: "postgres://<user>:<password>@<database-host>:5432/<database>?sslmode=require"
+engine:
+  license_key: "<your-license-key>"
+```
+
+Use the connection string and TLS settings required by your database provider. The database host must be reachable **from inside the container**; `localhost` there refers to the Engine container, not your host machine or a separate database container.
+
+Keep this file out of version control and restrict access to it. The container runs as the `fused` user, which must be able to read the mounted file. In production, deliver sensitive configuration through your deployment's secret manager.
+
+<Warning>
+  Retain the same encryption key across restarts, upgrades, and database restores. Fused uses it to encrypt stored secrets and connection state. Generating a new key each time you launch the container prevents it from decrypting existing data. Back up the key securely alongside your database recovery procedure.
+</Warning>
+
+## Start the Engine
+
+```bash
+docker pull ghcr.io/usefused/engine:latest
+
+docker run -d --name fused-engine \
+  --mount type=bind,src="$(pwd)/engine.yaml",dst=/app/engine.yaml,readonly \
+  -p 8081:8081 -p 50051:50051 \
+  -v fused-engine-data:/app/data \
+  ghcr.io/usefused/engine:latest \
+  /app/fused-engine start --config /app/engine.yaml
+```
+
+The container reads your mounted `engine.yaml` on startup. After editing it, restart the container to apply the configuration. The named volume retains runtime files across container replacement. PostgreSQL stores your workspace data and needs its own persistence and backup configuration.
+
+| Image | Includes |
+|---|---|
+| `ghcr.io/usefused/engine:latest` | Engine with the embedded dashboard |
+| `ghcr.io/usefused/engine:headless` | Engine API and runtime without the dashboard |
+
+Both are moving tags. For production, replace `latest` with a version tag from the [Engine releases](https://github.com/Usefused/engine/releases), or use `<tag>-headless` for the headless image.
+
+| Listener | Purpose |
+|---|---|
+| HTTP `8081` | Dashboard, CLI, REST API, and MCP endpoints |
+| gRPC `50051` | Generated SDK execution |
+| Embedded NATS `4222` | Internal messaging for a single Engine instance |
+
+The example publishes HTTP and gRPC. It does not require an external NATS server for a single instance.
+
+<Note>
+  Native binaries are also available on the [releases page](https://github.com/Usefused/engine/releases). The container packages the Node runtime, Unified App compiler, and Linux execution worker together; downloading only the Engine binary is not an equivalent full runtime installation.
+</Note>
+
+## Check the deployment
+
+```bash
+docker logs fused-engine
+curl --fail http://localhost:8081/health
+```
+
+Open `http://localhost:8081` on the Docker host and sign in. For a remote deployment, use your Engine's reachable HTTP address. Configure HTTPS routing before making the deployment available to users.
+
+## Connect the CLI
+
+Install the CLI:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Usefused/cli/main/install.sh | bash
+fused-cli --version
+```
+
+For the local container above:
+
+```bash
+fused-cli config set engine-url http://localhost:8081
+fused-cli login
+fused-cli whoami
+```
+
+For a remote deployment, replace `http://localhost:8081` with its HTTP URL, such as `https://engine.example.com`. Approve the browser sign-in to save your CLI credential. The runtime license key and your CLI sign-in credential serve different purposes.
+
+<Note>
+  On a machine without a browser, use `fused-cli login --no-browser`. An existing `FUSED_ENGINE_URL` environment variable overrides the saved URL; update or unset it when switching deployments.
+</Note>
+
+## Additional configuration
+
+Keep deployment settings in `engine.yaml`; select another file with `--config`. Environment variables remain available for deployment-specific overrides. For ordinary runtime settings, explicit flags override environment variables, which override the config file.
+
+The license key resolves separately: `--license-key`, then `FUSED_LICENSE_KEY` in a local `.env`, then `engine.license_key` in `engine.yaml`, then an inherited `FUSED_LICENSE_KEY` process variable. `FUSED_API_KEY` is never a license source.
+
+| Setting | Purpose |
+|---|---|
+| `database.max_conns` | Adjust the database pool ceiling from its default of `10` |
+| `engine.public_url` | Advertise the externally reachable HTTP address |
+| `engine.public_grpc_url` | Advertise the externally reachable gRPC address |
+| `server.http_port` / `server.grpc_port` / `server.webhook_port` | Change listener ports |
+| `nats.url` | Connect to an external NATS server |
+| `nats.credentials_file` | Read NATS authentication from a mounted credentials file |
+
+Public URL settings describe your routes; they do not configure DNS, TLS, or a load balancer. Use the HTTP address for the CLI and the gRPC address for generated SDKs.
+
+## Before production
+
+- Pin the Engine image version and retain your encryption key in a secret manager.
+- Back up PostgreSQL and test restoring it with the same encryption key.
+- Configure TLS and network access for the HTTP and gRPC routes your clients need.
+- For multiple Engine replicas, configure an external NATS server. Set `nats.url` without embedded credentials and select one authentication method. Prefer a mounted file referenced by `nats.credentials_file` or `nats.nkey_seed_file`; token or username/password authentication remains available through `NATS_TOKEN` or paired `NATS_USERNAME` and `NATS_PASSWORD`. Mount credential and TLS files read-only.
+- Review the [Engine license](https://github.com/Usefused/engine/blob/main/LICENSE) and [contact Fused](https://usefused.com/?plan=enterprise#enterprise-interest) about commercial licensing and support.
+
+<Card title="Create your first App" icon="rocket" href="/quickstart#choose-your-services-authentication">
+  With your Engine running and CLI connected, enable a service and create an App.
+</Card>

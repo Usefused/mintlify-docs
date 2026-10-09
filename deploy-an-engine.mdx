@@ -1,181 +1,30 @@
 ---
 title: "Get Fused running"
 sidebarTitle: "Get Fused running"
-description: "Stand up the runtime everything else in Fused talks to."
+description: "Choose Fused Cloud or self-host Fused in your own infrastructure."
 ---
 
-Every `fused-cli` command talks to a Fused deployment. If you do not have one yet, nothing else on this site will work — so start here.
-
-There are two ways to get one.
+Choose where your Fused Engine runs. Both options give you a workspace for services, credentials, SDKs, MCP servers, and Unified Apps.
 
 <CardGroup cols={2}>
-  <Card title="Fused-hosted" icon="cloud">
-    Choose a hosted Fused workspace when you create your account and Fused provisions an isolated one for you. You get a URL — skip to [pointing the CLI at it](#point-the-cli-at-it).
+  <Card title="Use Fused Cloud" icon="cloud" href="/setup/fused-cloud">
+    Create an account and let Fused provision your Engine and managed database. No PostgreSQL setup or runtime installation required.
   </Card>
-  <Card title="Self-hosted" icon="server">
-    Run Fused in your own infrastructure and own its credential storage, execution, and records. You can also opt into [Managed services](/workspace/use-managed-service) for provider authentication and event brokering. The rest of this page covers deployment.
+  <Card title="Self-host Fused" icon="server" href="/setup/self-hosted">
+    Run the Engine in your own infrastructure. You supply PostgreSQL, a license key, and a persistent encryption key.
   </Card>
 </CardGroup>
 
-## What you need first
-
-- **PostgreSQL 16+**. Fused creates and upgrades its own tables on startup, through one standard connection string. There is no provider-specific branching.
-- **A Fused license key**. [Signing up](https://usefused.com/signup) issues one; choose the license-only path and the key is yours to deploy with. An onboarding contact can also provide it.
-
-<Warning>
-  Fused exits during startup without a valid license key, before serving any HTTP, webhook, or gRPC traffic. There is no offline mode that bypasses the Registry handshake.
-</Warning>
-
-## Install the binary
-
-```bash
-OS=$(uname -s)
-ARCH=$(uname -m | sed 's/aarch64/arm64/')
-ARCHIVE="fused_${OS}_${ARCH}.tar.gz"
-BASE="https://github.com/Usefused/engine/releases/latest/download"
-
-curl -LO "${BASE}/${ARCHIVE}"
-curl -LO "${BASE}/checksums.txt"
-sha256sum --check --ignore-missing checksums.txt
-
-tar -xzf "${ARCHIVE}"
-mv fused-engine /usr/local/bin/
-```
-
-That pulls the newest release. For a repeatable build, swap `latest/download` for `download/<tag>` using a tag from the [releases page](https://github.com/Usefused/engine/releases).
-
-Then start it:
-
-```bash
-export FUSED_DATABASE_URL="postgres://fused:password@localhost:5432/fused?sslmode=disable"
-export FUSED_LICENSE_KEY="<provided-by-fused>"
-
-fused-engine start
-```
-
-That brings up the REST API and dashboard on `:8081`, the SDK gRPC listener on `:50051`, and — since no external NATS is configured — an embedded NATS server on `:4222`.
+| | Fused Cloud | Self-hosted Fused |
+|---|---|---|
+| Engine deployment | Provisioned by Fused | Deployed by you |
+| PostgreSQL | Managed by Fused | Supplied by you |
+| Runtime configuration and encryption key | Managed by Fused | Configured and retained by you |
+| Workspace address | Provided after provisioning | Your Engine's HTTP address |
+| First step | Choose **Deploy in Fused Cloud** at signup | Choose **License key only** at signup |
 
 <Note>
-  Those first two are different audiences. `fused-cli` talks to `:8081`; a generated SDK talks gRPC to `:50051`. Both get called a "Fused URL", so it is worth exporting `FUSED_ENGINE_URL` and `FUSED_ENGINE_GRPC_URL` as separate values from the start.
+  Fused Cloud includes a managed database. The PostgreSQL, Docker, `engine.yaml`, and encryption key instructions in the self-hosting guide apply only when you run the Engine yourself.
 </Note>
 
-## Or run the container
-
-Two image variants are published:
-
-| Image | Contains |
-|---|---|
-| `ghcr.io/usefused/engine:latest` | Fused with the embedded Admin UI |
-| `ghcr.io/usefused/engine:headless` | Fused API and runtime, no UI |
-
-Both are moving tags. Every release is also published under its own version tag — `:<tag>` and `:<tag>-headless` — and production deployments should pin one.
-
-```bash
-docker pull ghcr.io/usefused/engine:latest
-
-docker run \
-  -e FUSED_LICENSE_KEY="<license key>" \
-  -e FUSED_DATABASE_URL="postgres://…" \
-  -e FUSED_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
-  -p 8081:8081 -p 50051:50051 \
-  ghcr.io/usefused/engine:latest
-```
-
-<Note>
-  All three environment variables are required. A container started with only the license key will not come up.
-</Note>
-
-If a pull fails with `unauthorized`, the package may not be public yet. Authenticate with a GitHub token carrying `read:packages`:
-
-```bash
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u <your-github-username> --password-stdin
-```
-
-## The encryption key
-
-`FUSED_ENCRYPTION_KEY` is a 32-byte AES key encrypting everything at rest — webhook signing secrets, auth credentials in Fused-local storage, and connect session state.
-
-```bash
-openssl rand -base64 32
-```
-
-<Warning>
-  `engine.yaml.example` ships with a default encryption key, and that value is **committed to a public repository**. Anyone can decrypt secrets encrypted with it. Use it for local throwaway development only, and never anywhere real.
-</Warning>
-
-## Configuration and precedence
-
-Settings come from flags, environment variables, or `engine.yaml` (`--config`, defaulting to `engine.yaml`). **Flags win over environment variables, which win over the config file.**
-
-```yaml
-encryption_key: "…"
-database:
-  url: "postgres://fused:password@localhost:5432/fused?sslmode=disable"
-engine:
-  # public_url: "https://engine.example.com"
-  # public_grpc_url: "https://engine-exec.example.com"
-  worker_counts:
-    mcp_analytics: 2
-    webhook_config: 2
-    webhook_analytics: 2
-observability:
-  otel_target: "localhost:4317"
-```
-
-The license key resolves in its own order: `--license-key`, then `FUSED_LICENSE_KEY` in a local `.env`, then `engine.license_key` in `engine.yaml`, then an inherited `FUSED_LICENSE_KEY` process variable. `FUSED_API_KEY` is never a license source.
-
-Prefer a deployment-managed `.env` or secret-backed config in production. Do not commit production keys to `engine.yaml`.
-
-Common overrides:
-
-| Variable | What it does |
-|---|---|
-| `FUSED_DATABASE_MAX_CONNS` | Pool ceiling, when the default of `10` is too many |
-| `FUSED_ENGINE_PUBLIC_URL` / `FUSED_ENGINE_PUBLIC_GRPC_URL` | External addresses the Admin UI shows as copy-ready. These describe routes; they do not create DNS or load-balancer config |
-| `FUSED_REGISTRY_ENDPOINT` | Only when Fused support directs you away from the Fused Cloud default |
-| `--port` / `--grpc-port` / `--webhook-port` | Move the listeners |
-
-## Confirm it is up
-
-```bash
-curl http://<engine-host>:8081/health
-```
-
-## Point the CLI at it
-
-```bash
-fused-cli --engine-url https://engine.example.com login
-fused-cli whoami
-```
-
-`login` opens Fused's sign-in page — managed Fused Auth, or an existing Fused API key. The credential is generated locally and Fused stores only its hash, so the browser never sees it. Use `--no-browser` on a headless machine to print the URL and approve from another device.
-
-To save the URL rather than passing it each time:
-
-```text
-fused-cli config set <key> <value>
-```
-
-```bash
-fused-cli config set engine-url https://engine.example.com
-fused-cli config list
-```
-
-`fused-cli config list` shows the keys you can set.
-
-`whoami` shows which credential actually won the precedence chain — worth checking when a saved login, `FUSED_API_KEY`, and `FUSED_LICENSE_KEY` might all be present.
-
-## Before production
-
-- **Pin a version tag.** `latest` moves; a deploy that reruns should not quietly change Fused underneath you.
-- **Set a real encryption key.** Not the committed example.
-- **External NATS for replicas.** The embedded server is single-instance. Horizontal replication needs `NATS_URL` without embedded credentials, plus exactly one of `NATS_CREDS_FILE`, `NATS_NKEY_SEED_FILE`, `NATS_TOKEN`, or paired `NATS_USERNAME`/`NATS_PASSWORD`. Mount credential and TLS files read-only; never bake them into an image.
-- **Check your license terms.** The self-hosted Fused runtime is source-available under PolyForm Noncommercial 1.0.0. Commercial or production use needs a separate written agreement with Fused in addition to a valid key.
-
-<Note>
-  That last one is worth starting early. If you are deploying this for a company, [register your interest](https://usefused.com/?plan=enterprise#enterprise-interest) — production licensing, SSO, and support are all settled in the same conversation, and it is a shorter one before you have shipped than after.
-</Note>
-
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  With a Fused deployment reachable, enable a service and ship an SDK.
-</Card>
+Already have a workspace? Open its dashboard, or [install and connect the CLI](/quickstart#install) to start building an App.

@@ -7,7 +7,7 @@ description: "Install the CLI and create one App with SDK, MCP, and REST deliver
 From nothing to one App your code and agents can use through SDK, MCP, or REST. Roughly ten minutes, most of it waiting on a browser tab.
 
 <Note>
-  This assumes you already have a Fused deployment to talk to — hosted, or one you started yourself. If not, [get one running first](/deploy-an-engine); every command below needs it.
+  You need a Fused workspace. Choose [Fused Cloud](/setup/fused-cloud) for a hosted Engine with a managed database, or [self-host Fused](/setup/self-hosted) in your own infrastructure. PostgreSQL setup is only required for self-hosting.
 </Note>
 
 ## Install
@@ -21,7 +21,10 @@ For automated or non-interactive installs, set `ASSUME_YES=1` to skip the confir
 
 ## Sign in
 
+Save your workspace's HTTP URL. For Fused Cloud, use the URL from **Open Fused Engine** after signup. For self-hosting, use your Engine's reachable HTTP address (`http://localhost:8081` for a local deployment). Replace the example below with that address:
+
 ```bash
+fused-cli config set engine-url https://your-workspace.run.usefused.com
 fused-cli login
 ```
 

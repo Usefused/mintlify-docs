@@ -42,6 +42,8 @@
             "pages": [
               "introduction",
               "deploy-an-engine",
+              "setup/fused-cloud",
+              "setup/self-hosted",
               "quickstart"
             ]
           },

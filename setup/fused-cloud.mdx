@@ -1,0 +1,56 @@
+---
+title: "Use Fused Cloud"
+sidebarTitle: "Fused Cloud"
+description: "Create a hosted workspace with an Engine and database managed by Fused."
+---
+
+Fused Cloud provisions an isolated Engine and a managed PostgreSQL database for your workspace. You do not need to install the Engine, provision PostgreSQL, or create an `engine.yaml` file. Fused manages runtime licensing and encryption configuration for you.
+
+## Create your workspace
+
+<Steps>
+  <Step title="Choose Fused Cloud">
+    [Create your Fused account](https://usefused.com/signup). Enter your account or team name and work email, then select **Deploy in Fused Cloud**.
+
+    Choose **Your cloud address** and complete email verification and signup.
+  </Step>
+  <Step title="Wait for provisioning">
+    The signup page shows deployment progress and updates automatically while Fused creates your Engine, storage, routing, and managed database.
+
+    Wait until the page shows **Engine is ready**. If it shows **Needs attention**, resolve the reported provisioning issue before continuing.
+  </Step>
+  <Step title="Open your Engine">
+    Click **Open Fused Engine** and sign in to finish activation. Save this workspace URL; it is the address you use for the dashboard and CLI.
+  </Step>
+</Steps>
+
+You can now enable services and create Apps in the dashboard. To work from your terminal, continue with the CLI setup below.
+
+## Connect the CLI
+
+Install the CLI:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Usefused/cli/main/install.sh | bash
+fused-cli --version
+```
+
+Replace the example URL with the workspace URL from **Open Fused Engine**:
+
+```bash
+fused-cli config set engine-url https://your-workspace.run.usefused.com
+fused-cli login
+fused-cli whoami
+```
+
+Approve the sign-in request in your browser. `whoami` confirms the active credential and workspace. You do not need to supply the Engine's license key to sign in.
+
+<Note>
+  On a machine without a browser, run `fused-cli login --no-browser` and open the printed URL on another device. An existing `FUSED_ENGINE_URL` environment variable overrides the saved URL; update or unset it when switching workspaces.
+</Note>
+
+The CLI uses your workspace's **HTTP** URL. Generated SDKs use its **gRPC** address; copy that address from your Engine's connection details instead of deriving it from the dashboard URL.
+
+<Card title="Create your first App" icon="rocket" href="/quickstart#choose-your-services-authentication">
+  Enable a service and create an App with SDK, MCP, and REST delivery.
+</Card>
