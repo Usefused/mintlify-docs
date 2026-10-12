@@ -47,25 +47,55 @@ Keep this file out of version control and restrict access to it. The container r
 
 ## Start the Engine
 
+Unified Apps run in an isolated worker inside the Engine container. Docker's default system-call filter can block the namespaces this worker needs. Fused images bundle a matching seccomp profile, its license, and a Compose example at `/app/deploy/unified-app-workers`.
+
+Extract these files from a stopped container before starting the Engine. The profile is public configuration and contains no credentials. Docker applies it from the host; placing it inside the image alone does not activate it.
+
 ```bash
-docker pull ghcr.io/usefused/engine:latest
+export FUSED_ENGINE_IMAGE=ghcr.io/usefused/engine:latest
+docker pull "$FUSED_ENGINE_IMAGE"
+
+FUSED_PROFILE_CONTAINER=$(docker create "$FUSED_ENGINE_IMAGE")
+mkdir -p fused-worker
+docker cp "$FUSED_PROFILE_CONTAINER:/app/deploy/unified-app-workers/." ./fused-worker/
+docker rm "$FUSED_PROFILE_CONTAINER"
 
 docker run -d --name fused-engine \
+  --security-opt "seccomp=$(pwd)/fused-worker/seccomp.json" \
+  -e FUSED_UNIFIED_APP_WORKER_REQUIRED=true \
   --mount type=bind,src="$(pwd)/engine.yaml",dst=/app/engine.yaml,readonly \
   -p 8081:8081 -p 50051:50051 \
   -v fused-engine-data:/app/data \
-  ghcr.io/usefused/engine:latest \
+  "$FUSED_ENGINE_IMAGE" \
   /app/fused-engine start --config /app/engine.yaml
 ```
 
 The container reads your mounted `engine.yaml` on startup. After editing it, restart the container to apply the configuration. The named volume retains runtime files across container replacement. PostgreSQL stores your workspace data and needs its own persistence and backup configuration.
+
+When upgrading, extract the bundle from the new image and recreate the container with that profile. Changing Docker security options requires container recreation. Keep the profile and `LICENSE.moby` together, and allow only trusted administrators to modify the deployment files. Older images that predate the bundle require the profile from their matching source revision.
 
 | Image | Includes |
 |---|---|
 | `ghcr.io/usefused/engine:latest` | Engine with the embedded dashboard |
 | `ghcr.io/usefused/engine:headless` | Engine API and runtime without the dashboard |
 
-Both are moving tags. For production, replace `latest` with a version tag from the [Engine releases](https://github.com/Usefused/engine/releases), or use `<tag>-headless` for the headless image.
+Both are moving tags. For production, set `FUSED_ENGINE_IMAGE` to a version tag from the [Engine releases](https://github.com/Usefused/engine/releases), or use `<tag>-headless` for the headless image. Release archives also contain `deploy/unified-app-workers`; `seccomp.json` and `LICENSE.moby` are available as standalone release assets.
+
+### Download the profile by URL
+
+Instead of extracting from the image, you can download the profile and its license from the same release. Replace `<release-tag>` with your Engine version, then use the `docker run` command above with this `FUSED_ENGINE_IMAGE`:
+
+```bash
+FUSED_ENGINE_VERSION='<release-tag>'
+export FUSED_ENGINE_IMAGE="ghcr.io/usefused/engine:$FUSED_ENGINE_VERSION"
+mkdir -p fused-worker
+curl -fSL "https://github.com/Usefused/engine/releases/download/$FUSED_ENGINE_VERSION/seccomp.json" -o fused-worker/seccomp.json
+curl -fSL "https://github.com/Usefused/engine/releases/download/$FUSED_ENGINE_VERSION/LICENSE.moby" -o fused-worker/LICENSE.moby
+```
+
+Docker requires a local filename for `--security-opt seccomp=...`; it cannot fetch an HTTP URL directly. Pin the download to the same release as the image. These assets become available with releases that include the bundle; older releases may return 404.
+
+### Published ports
 
 | Listener | Purpose |
 |---|---|
@@ -85,6 +115,10 @@ The example publishes HTTP and gRPC. It does not require an external NATS server
 docker logs fused-engine
 curl --fail http://localhost:8081/health
 ```
+
+The response must include `"unified_app_worker_ready": true`. Setting `FUSED_UNIFIED_APP_WORKER_REQUIRED=true` makes a failed worker probe return HTTP 503; it does not grant the worker permission to start.
+
+If readiness fails, check that `/app/fused-execution-worker` exists and is executable, Docker is using the extracted profile, and the host permits user namespaces. Host AppArmor policy may still deny worker startup even with the profile applied. Inspect kernel audit logs and resolve the specific denial; do not use privileged mode or disable seccomp or AppArmor globally. Worker readiness is probed at Engine startup, so restart the Engine after resolving a host policy issue.
 
 Open `http://localhost:8081` on the Docker host and sign in. For a remote deployment, use your Engine's reachable HTTP address. Configure HTTPS routing before making the deployment available to users.
 
