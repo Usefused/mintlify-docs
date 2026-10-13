@@ -1,0 +1,37 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:03.600
+Search for Frankfurter
+
+00:00:03.600 --> 00:00:04.967
+Open the service
+
+00:00:04.967 --> 00:00:06.100
+Find getRate
+
+00:00:06.100 --> 00:00:07.867
+Select the operation
+
+00:00:07.867 --> 00:00:14.633
+Name and configure the app
+
+00:00:14.633 --> 00:00:20.000
+Add the TypeScript source
+
+00:00:20.000 --> 00:00:33.300
+Validate and compile
+
+00:00:33.300 --> 00:00:35.800
+Deploy the new version
+
+00:00:35.800 --> 00:00:37.567
+Open the deployed app
+
+00:00:37.567 --> 00:00:39.100
+After the REST call: open Requests
+
+00:00:39.100 --> 00:00:41.300
+Inspect the successful execution
+
+00:00:41.300 --> 00:00:43.233
+Inspect the provider call

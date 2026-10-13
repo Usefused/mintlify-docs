@@ -10,7 +10,7 @@ Give each agent or environment its own named token. You can then limit its opera
 <CodeGroup>
 
 ```bash CLI
-fused-cli mcp token generate support-agent triage-bot \
+fused-cli app token generate support-agent triage-bot \
   --allow issueUpdate \
   --allow chatPostMessage
 ```
@@ -28,7 +28,7 @@ curl --request POST \
 
 </CodeGroup>
 
-For HTTP, use the MCP ID returned by `mcp plan`, `mcp apply`, or `mcp list` as `MCP_ID`. The `token` field in the response is the execution token.
+For HTTP, use the MCP ID returned by `app plan`, `app apply`, or `app list` as `MCP_ID`. The `token` field in the response is the execution token.
 
 Anything absent from `allow` is denied. Omit the scope to grant every operation exposed by the MCP server.
 
@@ -43,7 +43,7 @@ A fixed binding pins the token to a service, auth scheme, and connected-user ref
 <CodeGroup>
 
 ```bash CLI
-fused-cli mcp token generate support-agent triage-bot \
+fused-cli app token generate support-agent triage-bot \
   --allow issueUpdate \
   --fixed-binding 'jira,OAuth2,user_123'
 ```
@@ -74,8 +74,8 @@ Repeat `--fixed-binding` or add more objects to `bindings` when the agent uses m
 ## List or revoke tokens
 
 ```bash
-fused-cli mcp token list support-agent
-fused-cli mcp token revoke support-agent triage-bot
+fused-cli app token list support-agent
+fused-cli app token revoke support-agent triage-bot
 ```
 
 Tokens apply to the whole MCP app family, so they continue to work when you publish a new version. Generating, listing, and revoking tokens requires `app.tokens.manage`.

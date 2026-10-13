@@ -99,7 +99,7 @@ injections:
 It reports how many it added. Re-running it never overwrites an injection you wrote yourself.
 
 <Warning>
-  That value is a reference. If init stops because the matching bucket value is missing, create it with `fused-cli value set`, then rerun init. The app config is not written until its plan succeeds.
+  That value is a reference. If init stops because the matching bucket value is missing, create it with `fused-cli bucket value set`, then rerun init. The app config is not written until its plan succeeds.
 </Warning>
 
 ## Find the downloaded package
@@ -107,7 +107,7 @@ It reports how many it added. Re-running it never overwrites an injection you wr
 SDK mode plans, applies, and downloads the generated package to `fused-sdks/support-sdk`. If a later transfer needs to be retried without replaying apply, run:
 
 ```bash
-fused-cli sdk download support-sdk@1.0.0
+fused-cli app download support-sdk@1.0.0
 ```
 
 <Warning>
@@ -132,7 +132,7 @@ API mode is not another resource type. It writes the same `kind: sdk` config wit
 generate: false
 ```
 
-Nothing else changes. Init applies the version and prints a concrete REST request template for `POST /v1/apps/{app_id}/executions`. Replace the operation placeholder when all operations were selected and provide that operation's required input. The app remains describable with `fused-cli sdk openapi`. Only the package and download are absent: `sdk apply --json` reports `generation.status: "skipped"`, and `--download` is refused before anything is applied.
+Nothing else changes. Init applies the version and prints a concrete REST request template for `POST /v1/apps/{app_id}/executions`. Replace the operation placeholder when all operations were selected and provide that operation's required input. The app remains describable with `fused-cli app openapi`. Only the package and download are absent: `app apply --json` reports `generation.status: "skipped"`, and `--download` is refused before anything is applied.
 
 Flipping the field edits the file, which moves the source hash, so switching between the two needs a version bump like any other scope change.
 
@@ -145,7 +145,7 @@ The generated client takes `grpcUrl` — `grpc_url` in Python. The name is the i
 ```typescript
 const sdk = new FusedSDK({
   grpcUrl: process.env.FUSED_ENGINE_GRPC_URL,
-  token: process.env.FUSED_SDK_TOKEN,
+  token: process.env.FUSED_APP_TOKEN,
 });
 ```
 
@@ -181,7 +181,7 @@ Both are derived from the generated source and validated against it, so the meth
 |---|---|---|
 | No method flag | Creates one App with SDK, MCP, and REST delivery | `fused-cli init support-app --service linear` |
 | `--sdk` | Creates, applies, and downloads a typed SDK without hosted MCP | `fused-cli init support --sdk --service linear` |
-| `--rest` (`--api` alias) | Creates a REST-only `kind: sdk` App with `generate: false` | `fused-cli init support-api --rest --service linear` |
+| `--rest` | Creates a REST-only `kind: sdk` App with `generate: false` | `fused-cli init support-api --rest --service linear` |
 | `--mcp` | Creates an MCP-only App without an SDK package | `fused-cli init support-agent --mcp --service linear` |
 | `--service` | Adds services as `<service>[@<version>]`; comma-separated or repeatable, with an omitted version defaulting to an enabled or latest public version | `fused-cli init support --sdk --service linear@v1,slack` |
 | `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --sdk --service linear --operation 'linear=issueUpdate'` |
@@ -209,19 +209,19 @@ The same file is updated additively. An idempotent repeat keeps its version. A r
 ## Adjust the selection
 
 ```text
-fused-cli sdk service   <add|remove> <service-slug>
-fused-cli sdk operation <add|remove> <service-slug> <operation-id...>
+fused-cli app service   <add|remove> <service-slug>
+fused-cli app operation <add|remove> <service-slug> <operation-id...>
 ```
 
 The service slug comes first, then as many operation IDs as you want:
 
 ```bash
-fused-cli sdk service add zendesk --version v2
-fused-cli sdk operation add linear issueCreate issueArchive
-fused-cli sdk operation remove slack chatDelete
+fused-cli app service add zendesk --version v2
+fused-cli app operation add linear issueCreate issueArchive
+fused-cli app operation remove slack chatDelete
 ```
 
-`sdk operation add` accepts `--interactive` to pick from a list, and `--apply` (or `--download`, which implies it) to push the change straight through.
+`app operation add` accepts `--interactive` to pick from a list, and `--apply` (or `--download`, which implies it) to push the change straight through.
 
 ## Choosing auth
 

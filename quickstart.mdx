@@ -61,7 +61,7 @@ If no suitable Registry service exists, [import the API yourself](/workspace/bri
 </Warning>
 
 <Note>
-  Automating this? Run `fused-cli init support-app --service linear --select-all linear --no-input`. No method flag is needed for the combined App. Missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with `secret set --no-input --value-stdin`, or let the first affected call return the exact safe setup command. Use an explicit `--operation` when the App needs a narrower surface. For structured plan and apply output, use the [advanced controlled workflow](/advanced/control-the-workflow).
+  Automating this? Run `fused-cli init support-app --service linear --select-all linear --no-input`. No method flag is needed for the combined App. Missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with `bucket credential set --no-input --value-stdin`, or let the first affected call return the exact safe setup command. Use an explicit `--operation` when the App needs a narrower surface. For structured plan and apply output, use the [advanced controlled workflow](/advanced/control-the-workflow).
 </Note>
 
 ## Call it
@@ -70,7 +70,7 @@ The SDK, MCP server, and REST endpoint use the same selected operations and exec
 
 | Way | Reach for it when | What it needs |
 |---|---|---|
-| `fused-cli sdk invoke` | Checking the path works, or trying an operation by hand | The CLI and the token |
+| `fused-cli app invoke` | Checking the path works, or trying an operation by hand | The CLI and the token |
 | The typed package | Your application calls this for real | The downloaded package and Fused's **gRPC** address |
 | `POST /v1/apps/{id}/executions` | You are not in TypeScript or Python, or you would rather not ship a package | Fused's **HTTP** address and the version ID from apply |
 | Hosted MCP | An agent discovers and executes selected operations | The stable MCP URL from apply or the App details page |
@@ -78,9 +78,9 @@ The SDK, MCP server, and REST endpoint use the same selected operations and exec
 <CodeGroup>
 
 ```bash CLI
-export FUSED_SDK_TOKEN='...'
+export FUSED_APP_TOKEN='...'
 
-fused-cli sdk invoke support-app@1.0.0 issueUpdate \
+fused-cli app invoke support-app@1.0.0 issueUpdate \
   --params '{"id":"ISS-42","state":"done"}'
 ```
 
@@ -89,7 +89,7 @@ import { FusedSDK } from 'support-app';
 
 const sdk = new FusedSDK({
   grpcUrl: process.env.FUSED_ENGINE_GRPC_URL,
-  token: process.env.FUSED_SDK_TOKEN!,
+  token: process.env.FUSED_APP_TOKEN!,
 });
 
 const result = await sdk.Linear.issueUpdate({ id: 'ISS-42', state: 'done' });
@@ -98,7 +98,7 @@ if (result.ok) console.log(result.data);
 
 ```bash REST
 curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
-  -H "Authorization: Bearer $FUSED_SDK_TOKEN" \
+  -H "Authorization: Bearer $FUSED_APP_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"operation":"issueUpdate","input":{"id":"ISS-42","state":"done"}}'
 ```
@@ -110,7 +110,7 @@ A call returns `{ ok, status, data, error }` rather than the payload itself, and
 Whichever one you used, the receipt is the same:
 
 ```bash
-fused-cli sdk activity support-app@1.0.0
+fused-cli app activity support-app@1.0.0
 ```
 
 It shows what ran, how long the provider took, and what came back.

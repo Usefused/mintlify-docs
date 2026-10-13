@@ -3,7 +3,7 @@ title: "Test from the CLI"
 description: "Prove credentials, scope, and routing from a terminal or a CI job — without writing application code."
 ---
 
-`sdk invoke` exists for the moment before you trust something: a freshly applied version, a rotated credential, a new operation in a pipeline. It resolves one exact SDK version, calls Fused with your execution token, and prints what came back.
+`app invoke` exists for the moment before you trust something: a freshly applied version, a rotated credential, a new operation in a pipeline. It resolves one exact SDK version, calls Fused with your execution token, and prints what came back.
 
 <Warning>
   Your application should never shell out to this. It is a debug and CI surface with its own limits — [run an operation](/app/run-an-operation) is how your code calls the same path.
@@ -12,24 +12,24 @@ description: "Prove credentials, scope, and routing from a terminal or a CI job 
 ## Call something
 
 ```text
-fused-cli sdk invoke <sdk-name@version-or-version-id> <operation>
+fused-cli app invoke <sdk-name@version-or-version-id> <operation>
 ```
 
-The version reference is required and exact — `sdk invoke` never picks a version for you, which is the property that makes it useful in CI.
+The version reference is required and exact — `app invoke` never picks a version for you, which is the property that makes it useful in CI.
 
 ```bash
-export FUSED_SDK_TOKEN='...'
+export FUSED_APP_TOKEN='...'
 
-fused-cli sdk invoke support-sdk@1.1.0 issueUpdate \
+fused-cli app invoke support-sdk@1.1.0 issueUpdate \
   --params '{"id":"ISS-42","state":"done"}'
 ```
 
 Operations require a JSON object for `--params`. Any JSON option also accepts `@file`, or `-` for stdin, which keeps large payloads and anything sensitive out of your shell history.
 
-If the selected bucket is still missing a required static credential, `sdk invoke` stops before contacting the provider and prints the exact `fused-cli secret set` command for that service, bucket, authentication type, and scheme. Store the value securely, then repeat the same invocation.
+If the selected bucket is still missing a required static credential, `app invoke` stops before contacting the provider and prints the exact `fused-cli bucket credential set` command for that service, bucket, authentication type, and scheme. Store the value securely, then repeat the same invocation.
 
 ```bash
-fused-cli sdk invoke support-sdk@1.1.0 issueUpdate --params @./payload.json
+fused-cli app invoke support-sdk@1.1.0 issueUpdate --params @./payload.json
 ```
 
 ## In a pipeline
@@ -37,7 +37,7 @@ fused-cli sdk invoke support-sdk@1.1.0 issueUpdate --params @./payload.json
 Keep the token out of the environment where you can, and gate on the structured output rather than the exit code alone.
 
 ```bash
-printf '%s' "$CI_SDK_TOKEN" | fused-cli sdk invoke support-sdk@1.1.0 healthPing \
+printf '%s' "$CI_SDK_TOKEN" | fused-cli app invoke support-sdk@1.1.0 healthPing \
   --token-stdin \
   --idempotency-key "release-${GIT_SHA}" \
   --no-input \
@@ -50,15 +50,15 @@ printf '%s' "$CI_SDK_TOKEN" | fused-cli sdk invoke support-sdk@1.1.0 healthPing 
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--params` | One duplicate-free JSON object, `@file`, or `-` | `fused-cli sdk invoke support-sdk@1.1.0 issueUpdate --params '{"id":"ISS-42"}'` |
-| `--token-env` | Reads the token from another variable | `fused-cli sdk invoke support-sdk@1.1.0 op --token-env CI_SDK_TOKEN` |
-| `--token-stdin` | Reads the token from stdin, avoiding the environment | `printf '%s' "$TOKEN" \| fused-cli sdk invoke support-sdk@1.1.0 op --token-stdin` |
-| `--environment` | Provider environment selector, sugar for `--selector` | `fused-cli sdk invoke support-sdk@1.1.0 op --environment sandbox` |
-| `--selector` | Strict selector JSON or `@file` | `fused-cli sdk invoke support-sdk@1.1.0 op --selector '{"environment":"sandbox"}'` |
-| `--idempotency-key` | A stable logical-request key; generated when omitted | `fused-cli sdk invoke support-sdk@1.1.0 op --idempotency-key run-2026-08-19-a` |
-| `--json` | Prints endpoint, physical results, status, and timing | `fused-cli sdk invoke support-sdk@1.1.0 op --no-input --json` |
+| `--params` | One duplicate-free JSON object, `@file`, or `-` | `fused-cli app invoke support-sdk@1.1.0 issueUpdate --params '{"id":"ISS-42"}'` |
+| `--token-env` | Reads the token from another variable | `fused-cli app invoke support-sdk@1.1.0 op --token-env CI_SDK_TOKEN` |
+| `--token-stdin` | Reads the token from stdin, avoiding the environment | `printf '%s' "$TOKEN" \| fused-cli app invoke support-sdk@1.1.0 op --token-stdin` |
+| `--environment` | Provider environment selector, sugar for `--selector` | `fused-cli app invoke support-sdk@1.1.0 op --environment sandbox` |
+| `--selector` | Strict selector JSON or `@file` | `fused-cli app invoke support-sdk@1.1.0 op --selector '{"environment":"sandbox"}'` |
+| `--idempotency-key` | A stable logical-request key; generated when omitted | `fused-cli app invoke support-sdk@1.1.0 op --idempotency-key run-2026-08-19-a` |
+| `--json` | Prints endpoint, physical results, status, and timing | `fused-cli app invoke support-sdk@1.1.0 op --no-input --json` |
 
-The token comes from `FUSED_SDK_TOKEN` unless you redirect it. Management credentials and provider credentials are never substituted for it.
+The token comes from `FUSED_APP_TOKEN` unless you redirect it. Management credentials and provider credentials are never substituted for it.
 
 ## Limits worth knowing
 
@@ -67,5 +67,5 @@ This is a debug surface, not a production transport. It accepts one buffered JSO
 It produces one logical Fused execution and does not retry locally or follow redirects itself — Fused owns retries, pagination, and continuation.
 
 <Card title="Read the receipts" icon="receipt" href="/app/run-an-operation#read-the-receipts">
-  `sdk activity` shows what every execution did, whichever route made it.
+  `app activity` shows what every execution did, whichever route made it.
 </Card>

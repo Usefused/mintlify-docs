@@ -26,7 +26,7 @@ fused-cli init support-agent --mcp \
 
 For each service, **All operations** is highlighted by default. Press Enter to expose the complete service, or open **Choose operations…** to search by operation ID, method, path, summary, or tag. The example below assumes you accepted all operations for both services.
 
-Init enables any missing service after one combined confirmation under a separate workspace receipt. It builds and validates the MCP candidate in memory, then plans it before creating `.fused/mcps/support-agent.yaml`. A successful plan creates the file atomically; init then applies the MCP server and prints its connection details. If the MCP plan fails, no app config or app receipt is created, though a completed workspace activation remains applied. MCP planning never changes credentials, and missing values do not block publication. The first affected tool call stops before contacting the provider and returns the exact safe `secret set` command.
+Init enables any missing service after one combined confirmation under a separate workspace receipt. It builds and validates the MCP candidate in memory, then plans it before creating `.fused/mcps/support-agent.yaml`. A successful plan creates the file atomically; init then applies the MCP server and prints its connection details. If the MCP plan fails, no app config or app receipt is created, though a completed workspace activation remains applied. MCP planning never changes credentials, and missing values do not block publication. The first affected tool call stops before contacting the provider and returns the exact safe `bucket credential set` command.
 
 The resulting config is durable desired state:
 
@@ -52,7 +52,7 @@ services:
 
 Each service resolves credentials through its own `bucket:` override when set, otherwise the top-level `bucket:`. A local `${bucket.auth...}` reference joins services in the same bucket. A managed `${fused.bucket.auth...}` reference selects a Fused Managed App while keeping user connections in the selected bucket.
 
-Use `fused-cli mcp list` whenever you need to recover the stable and pinned endpoints after initialization.
+Use `fused-cli app list` whenever you need to recover the stable and pinned endpoints after initialization.
 
 <Warning>
   The first successful apply may return an execution token once. An idempotent apply will not reveal it again. Store it immediately.
@@ -90,22 +90,22 @@ fused-cli extend support-agent --service slack
 
 `extend` reads `.fused/mcps/support-agent.yaml`, infers MCP mode, and updates that same file. An idempotent repeat keeps its version. A real change to a stable SemVer version advances to the next minor version and is shown in terminal confirmation; the same inference works with `--no-input`. Use `--version` to override the inferred successor. Prerelease and non-SemVer versions require an explicit successor.
 
-### `mcp plan`
+### `app plan`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--json` | Prints the plan result and required permissions | `fused-cli mcp plan --no-input --json` |
-| `--owner-team` | Sets the owning team; defaults to you | `fused-cli mcp plan --owner-team support` |
-| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli mcp plan --receipt-out ./ci/mcp.plan.json` |
+| `--json` | Prints the plan result and required permissions | `fused-cli app plan --no-input --json` |
+| `--owner-team` | Sets the owning team; defaults to you | `fused-cli app plan --owner-team support` |
+| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli app plan --receipt-out ./ci/mcp.plan.json` |
 
-MCP planning never mutates credentials. It reports missing entries as readiness metadata and still creates a valid plan. By contrast, an SDK plan in a terminal can offer to store missing credentials securely and retry once; declining also keeps the valid plan. Use `mcp validate` only when you need an offline-only check.
+MCP planning never mutates credentials. It reports missing entries as readiness metadata and still creates a valid plan. By contrast, an SDK plan in a terminal can offer to store missing credentials securely and retry once; declining also keeps the valid plan. Use `app validate` only when you need an offline-only check.
 
-### `mcp apply`
+### `app apply`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--plan-id` | Applies one exact remote plan | `fused-cli mcp apply --plan-id pln_6b2…` |
-| `--receipt` | Applies from a specific receipt | `fused-cli mcp apply --receipt ./ci/mcp.plan.json` |
+| `--plan-id` | Applies one exact remote plan | `fused-cli app apply --plan-id pln_6b2…` |
+| `--receipt` | Applies from a specific receipt | `fused-cli app apply --receipt ./ci/mcp.plan.json` |
 
 `--download` and `--json` are SDK-only. An MCP server has no package to download.
 
@@ -120,7 +120,7 @@ One MCP name has one stable MCP ID shared by every version, and each explicit ve
 
 Applying a version explicitly promotes it for new sessions on the stable MCP URL. Applying an older version again explicitly rolls the stable target back. Existing sessions continue on the immutable version they resolved during initialization.
 
-The CLI displays both endpoints after apply and in `mcp list`:
+The CLI displays both endpoints after apply and in `app list`:
 
 | Endpoint | Use it for |
 |---|---|
@@ -136,14 +136,14 @@ Applying identical content to the same version is a no-op. Changing its descript
 ## Deactivating
 
 ```bash
-fused-cli mcp deactivate support-agent@1.0.0
+fused-cli app deactivate support-agent@1.0.0
 ```
 
 <Warning>
   This is irreversible. Fused writes a tombstone, stops that runtime, and will not allow that MCP name and version to be recreated. Sibling versions and shared tokens survive.
 </Warning>
 
-Unlike removing a workspace service, deactivation is immediate and is not gated behind a blocker for configs that still reference it. There is no MCP deprecate or undeprecate command — do not invent one.
+Unlike removing a service, deactivation is immediate and is not gated behind a blocker for configs that still reference it. There is no MCP deprecate or undeprecate command — do not invent one.
 
 <Card title="Connect an agent with a scoped token" icon="shield-halved" href="/mcp/use-the-server">
   Bind a token to the right connected user and place it in the MCP client.

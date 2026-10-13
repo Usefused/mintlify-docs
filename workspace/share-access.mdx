@@ -13,20 +13,20 @@ Every one of these commands takes the same three things in the same order: **the
 
 | Command | Team | Resource | Level |
 |---|---|---|---|
-| `team access workspace set` | `<team-slug-or-id>` | — | `owner` · `admin` · `builder` · `viewer` |
-| `team access service grant` | `<team-slug-or-id>` | `<service-slug-or-id>` | `use` · `manage` |
-| `team access bucket grant` | `<team-slug-or-id>` | `<bucket-name-or-id>` | `use` · `manage` |
-| `team access app grant` | `<team-slug-or-id>` | `<sdk-or-mcp-id>` | `read` · `use` · `manage` |
+| `workspace team access workspace set` | `<team-slug-or-id>` | — | `owner` · `admin` · `builder` · `viewer` |
+| `workspace team access service grant` | `<team-slug-or-id>` | `<service-slug-or-id>` | `use` · `manage` |
+| `workspace team access bucket grant` | `<team-slug-or-id>` | `<bucket-name-or-id>` | `use` · `manage` |
+| `workspace team access app grant` | `<team-slug-or-id>` | `<app-id>` | `read` · `use` · `manage` |
 
-Swap `grant` for `revoke` to take access away, with the same three arguments. The workspace role is `clear` rather than `revoke`, and it takes no level: `team access workspace clear <team-slug-or-id>`.
+Swap `grant` for `revoke` to take access away, with the same three arguments. The workspace role is `clear` rather than `revoke`, and it takes no level: `workspace team access workspace clear <team-slug-or-id>`.
 
 So for a team whose slug is `payments`:
 
 ```bash
-fused-cli team access workspace set platform admin
-fused-cli team access service grant payments stripe use
-fused-cli team access bucket grant payments prod-credentials use
-fused-cli team access app grant payments app_7f31… read
+fused-cli workspace team access workspace set platform admin
+fused-cli workspace team access service grant payments stripe use
+fused-cli workspace team access bucket grant payments prod-credentials use
+fused-cli workspace team access app grant payments app_7f31… read
 ```
 
 Activation permissions come with Admin and Owner; Builder and Viewer do not carry them.
@@ -50,7 +50,7 @@ App levels apply to every version of that app.
 </Warning>
 
 <Note>
-  App grants need the ID from `sdk list` or `mcp list`, not a name. One `app` command covers both kinds, so it cannot infer which you mean from a name they might share.
+  App grants need the ID from `app list` or `app list`, not a name. One `app` command covers both kinds, so it cannot infer which you mean from a name they might share.
 </Note>
 
 ## Check before you plan
@@ -58,10 +58,10 @@ App levels apply to every version of that app.
 Preflight the owning team against every dependency, so a plan does not fail halfway through on a missing grant.
 
 ```bash
-fused-cli team eligible-owners
-fused-cli team build-access payments --resource service
-fused-cli team build-access payments --resource bucket
-fused-cli sdk plan --owner-team payments
+fused-cli workspace team eligible-owners
+fused-cli workspace team build-access payments --resource service
+fused-cli workspace team build-access payments --resource bucket
+fused-cli app plan --owner-team payments
 ```
 
 `build-access` lists what is available to *both* you and the team — which is the set that will actually work.
@@ -96,26 +96,26 @@ This gives every authenticated member and eligible owning team bounded *use*. Ow
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--resource` | `service` or `bucket` | `fused-cli team build-access payments --resource bucket` |
-| `--search` | Narrows by name | `fused-cli team build-access payments --resource service --search stripe` |
-| `--limit` | Rows to return | `fused-cli team build-access payments --resource service --limit 50` |
+| `--resource` | `service` or `bucket` | `fused-cli workspace team build-access payments --resource bucket` |
+| `--search` | Narrows by name | `fused-cli workspace team build-access payments --resource service --search stripe` |
+| `--limit` | Rows to return | `fused-cli workspace team build-access payments --resource service --limit 50` |
 
-### `team member add`
+### `workspace team member add`
 
 ```text
-fused-cli team member add <team-slug-or-id> <email>
+fused-cli workspace team member add <team-slug-or-id> <email>
 ```
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--role` | `member` (default) or `manager` | `fused-cli team member add payments ada@example.com --role manager` |
+| `--role` | `member` (default) or `manager` | `fused-cli workspace team member add payments ada@example.com --role manager` |
 
-### `team create`
+### `workspace team create`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--slug` | Sets the slug explicitly | `fused-cli team create "Payments" --slug payments` |
-| `--description` | Describes the team | `fused-cli team create "Payments" --description "Billing and invoicing"` |
+| `--slug` | Sets the slug explicitly | `fused-cli workspace team create "Payments" --slug payments` |
+| `--description` | Describes the team | `fused-cli workspace team create "Payments" --description "Billing and invoicing"` |
 
 ## When you are denied
 

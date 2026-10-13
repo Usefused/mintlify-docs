@@ -18,17 +18,17 @@ Never pass the License Key or a provider credential as an execution token, and n
 ## Generate one
 
 ```text
-fused-cli sdk token generate <sdk-name-or-id> <token-name>
-fused-cli sdk token revoke   <sdk-name-or-id> <token-name>
-fused-cli sdk token list     <sdk-name-or-id>
+fused-cli app token generate <sdk-name-or-id> <token-name>
+fused-cli app token revoke   <sdk-name-or-id> <token-name>
+fused-cli app token list     <sdk-name-or-id>
 ```
 
 Both are yours to name: the first identifies the SDK, the second labels the token so you can revoke it later without guessing.
 
 ```bash
-fused-cli sdk token generate support-sdk ci-runner --expires-in 4h
-fused-cli sdk token list support-sdk
-fused-cli sdk token revoke support-sdk ci-runner
+fused-cli app token generate support-sdk ci-runner --expires-in 4h
+fused-cli app token list support-sdk
+fused-cli app token revoke support-sdk ci-runner
 ```
 
 The plaintext prints exactly once. Capture it immediately and store it somewhere real.
@@ -43,18 +43,18 @@ There is no `--allow` flag on an SDK token. That exists on MCP tokens, where nar
 
 ## Flags
 
-### `sdk token generate`
+### `app token generate`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--expires-in` | Makes the token temporary | `fused-cli sdk token generate support-sdk ci --expires-in 4h` |
-| `--json` | Returns the one-time token, expiry, and metadata as an object | `fused-cli sdk token generate support-sdk ci --no-input --json` |
+| `--expires-in` | Makes the token temporary | `fused-cli app token generate support-sdk ci --expires-in 4h` |
+| `--json` | Returns the one-time token, expiry, and metadata as an object | `fused-cli app token generate support-sdk ci --no-input --json` |
 
 Use `--no-input --json` in automation. Do not parse the token out of human-readable apply text.
 
 ## The token the first apply gives you
 
-The first successful `sdk apply` returns an execution token once, in the response where Fused created it. In JSON output it appears as `execution_token` on that one response only. An idempotent re-apply will not return it again.
+The first successful `app apply` returns an execution token once, in the response where Fused created it. In JSON output it appears as `execution_token` on that one response only. An idempotent re-apply will not return it again.
 
 If you lose it, generate a new named token rather than re-applying and hoping.
 

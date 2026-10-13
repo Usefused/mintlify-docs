@@ -37,8 +37,8 @@ services:
 ```
 
 ```bash
-fused-cli mcp plan -f mcp.yaml
-fused-cli mcp apply -f mcp.yaml
+fused-cli app plan -f mcp.yaml
+fused-cli app apply -f mcp.yaml
 ```
 
 Use your enabled service version and event names. A service can be event-only, as above, or also select operations with its usual auth configuration. The bucket must exist and pass app permission checks. Capture the execution token returned on first apply.

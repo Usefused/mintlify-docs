@@ -3,7 +3,7 @@ title: "Handle provider limits and failures"
 description: "Rate limits, retries, and pagination handled once in the runtime instead of in every feature."
 ---
 
-An application makes one call. What happens when the provider rate-limits it, returns a 503, or splits the answer across forty pages is decided here — once, on the workspace service, and inherited by every SDK and MCP server that uses it.
+An application makes one call. What happens when the provider rate-limits it, returns a 503, or splits the answer across forty pages is decided here — once, on the service, and inherited by every SDK and MCP server that uses it.
 
 The outcome: no feature anyone on your team writes needs its own retry loop, token bucket, or page walker.
 

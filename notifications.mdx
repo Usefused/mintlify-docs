@@ -36,7 +36,7 @@ Drift is the one to pay attention to. It compares the live provider spec against
 
 ## What triggers a notification
 
-**Things you did.** `workspace_service_removed` and `workspace_version_removed` are decision-audit records, created only when `workspace service delete --force` or `workspace service version delete --force` overrides the removal blocker while a config still referenced what you removed. You already knew — the record exists so it is traceable later.
+**Things you did.** `workspace_service_removed` and `workspace_version_removed` are decision-audit records, created only when `service remove --force` or `service version remove --force` overrides the removal blocker while a config still referenced what you removed. You already knew — the record exists so it is traceable later.
 
 **Things you did not do.** These come from the poller:
 

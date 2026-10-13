@@ -53,7 +53,7 @@ Apply prints each registration's URL, which is what you give the provider:
 To look one up later without re-running apply:
 
 ```bash
-fused-cli workspace service webhooks jira
+fused-cli webhook list --service jira
 ```
 
 Its `SIGNATURE` column reads `set` or `none` — never the secret itself.
@@ -95,12 +95,12 @@ services:
 Manage the event list from the CLI if you prefer:
 
 ```bash
-# fused-cli sdk webhook <add|remove> <service-slug> <webhook-id...>
-fused-cli sdk webhook add jira issue.created issue.updated
-fused-cli sdk webhook remove jira issue.updated
+# fused-cli app webhook <add|remove> <service-slug> <webhook-id...>
+fused-cli app webhook add jira issue.created issue.updated
+fused-cli app webhook remove jira issue.updated
 ```
 
-`sdk webhook add` accepts `--interactive` when you would rather pick from a list than remember event IDs.
+`app webhook add` accepts `--interactive` when you would rather pick from a list than remember event IDs.
 
 ## Fused auth lifecycle events
 
@@ -130,7 +130,7 @@ import {
   JiraWebhook,
 } from 'support-sdk';
 
-const receiver = FusedWebhooks.listen('support', process.env.FUSED_SDK_TOKEN!);
+const receiver = FusedWebhooks.listen('support', process.env.FUSED_APP_TOKEN!);
 
 receiver.on(JiraWebhook.ISSUE_CREATED, async (payload, ctx) => {
   try {
@@ -158,7 +158,7 @@ import os
 from fused.support_sdk import FusedWebhooks
 from fused.support_sdk.webhooks import JiraWebhook
 
-receiver = FusedWebhooks.listen("support", os.environ["FUSED_SDK_TOKEN"])
+receiver = FusedWebhooks.listen("support", os.environ["FUSED_APP_TOKEN"])
 
 async def on_created(payload, ctx):
     try:

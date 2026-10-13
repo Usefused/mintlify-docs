@@ -10,7 +10,7 @@ fused-cli describe --name customer-onboarding --bucket default \
   "Create a Stripe customer and a HubSpot contact, then return both IDs"
 ```
 
-Service discovery checks the workspace first, then searches Registry when needed. The proposal identifies the selected services, exact versions, and operations. Missing workspace services go through the existing activation lifecycle before the app is applied.
+Service discovery checks the workspace first, then searches Registry when needed. The proposal identifies the selected services, exact versions, and operations. Missing services go through the existing activation lifecycle before the app is applied.
 
 <Note>
   `describe` requires an interactive terminal. For unattended automation, use [explicit init, extend, or plan/apply commands](/advanced/control-the-workflow).
@@ -45,7 +45,7 @@ fused-cli describe --update billing-sdk --version 2.0.0 \
   "Add Stripe invoice lookup"
 ```
 
-`describe` updates to SDK, MCP, and REST configs are additive. To remove capabilities, change routing or language, or upgrade service pins, [edit and plan the config explicitly](/advanced/control-the-workflow). To update a Unified App, edit its `.fused/unified_app/<app>.tsx` source and deploy a new version with `unified-app plan` and `unified-app apply`.
+`describe` updates to SDK, MCP, and REST configs are additive. To remove capabilities, change routing or language, or upgrade service pins, [edit and plan the config explicitly](/advanced/control-the-workflow). To update a Unified App, edit its `.fused/unified_app/<app>.tsx` source and deploy a new version with `app plan` and `app apply`.
 
 ## Review the Unified App draft
 

@@ -7,17 +7,17 @@ Providers change their APIs on their schedule. Version management is how you abs
 
 ## Run more than one version
 
-A workspace service holds a list of enabled versions. Add one and the old one keeps working.
+A service holds a list of enabled versions. Add one and the old one keeps working.
 
 ```text
-fused-cli workspace service version <add|delete|deprecate> <service-slug> <version>
+fused-cli service version <add|delete|deprecate> <service-slug> <version>
 ```
 
 Only the last two are yours — the service slug and the provider's version string.
 
 ```bash
-fused-cli workspace service version add stripe 2024-06-20
-fused-cli workspace service versions stripe
+fused-cli service version add stripe 2024-06-20
+fused-cli service version list stripe
 fused-cli workspace plan
 fused-cli workspace apply
 ```
@@ -39,11 +39,11 @@ Anything scoped to a version — visibility, execution policy, connection profil
 A deprecation is advisory. It records intent — a date and a reason — while the service stays fully active, so existing SDK and MCP configs keep working while their owners migrate.
 
 ```bash
-fused-cli workspace service deprecate stripe \
+fused-cli service deprecate stripe \
   --at 2026-12-01 \
   --reason "Provider retires this version"
 
-fused-cli workspace service version deprecate stripe 2024-04-10 \
+fused-cli service version deprecate stripe 2024-04-10 \
   --at 2026-12-01 \
   --reason "Superseded by 2024-06-20"
 ```
@@ -57,51 +57,51 @@ fused-cli workspace service version deprecate stripe 2024-04-10 \
 Removal is a separate, deliberate step.
 
 ```bash
-fused-cli workspace service version delete stripe 2024-04-10
-fused-cli workspace service delete stripe
+fused-cli service version remove stripe 2024-04-10
+fused-cli service remove stripe
 ```
 
 If any SDK or MCP config in the same Registry account still references what you are removing, the plan comes back with a blocker instead of quietly breaking those configs. `--force` accepts that and removes it anyway — and writes a `workspace_service_removed` or `workspace_version_removed` notification recording that you made the call.
 
 ## Flags
 
-### `workspace service deprecate` / `workspace service version deprecate`
+### `service deprecate` / `service version deprecate`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--at` | Effective date, `YYYY-MM-DD` | `fused-cli workspace service deprecate stripe --at 2026-12-01` |
-| `--reason` | Why, for the people who will read the notification | `fused-cli workspace service deprecate stripe --at 2026-12-01 --reason "Provider EOL"` |
+| `--at` | Effective date, `YYYY-MM-DD` | `fused-cli service deprecate stripe --at 2026-12-01` |
+| `--reason` | Why, for the people who will read the notification | `fused-cli service deprecate stripe --at 2026-12-01 --reason "Provider EOL"` |
 
-### `workspace service delete` / `workspace service version delete`
-
-| Flag | What it does | Example |
-|---|---|---|
-| `--force` | Removes it despite SDK or MCP configs that still reference it | `fused-cli workspace service version delete stripe 2024-04-10 --force` |
-
-### `workspace service operations`
+### `service remove` / `service version remove`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--q` | Searches operations server-side | `fused-cli workspace service operations stripe --q refund` |
-| `--version` | Pins the lookup to one enabled version | `fused-cli workspace service operations stripe --version 2024-06-20` |
-| `--limit` | Rows to read | `fused-cli workspace service operations stripe --q refund --limit 50` |
-| `--offset` | Rows to skip | `fused-cli workspace service operations stripe --q refund --offset 50` |
+| `--force` | Removes it despite SDK or MCP configs that still reference it | `fused-cli service version remove stripe 2024-04-10 --force` |
+
+### `service operation list`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--search` | Searches operations server-side | `fused-cli service operation list stripe --search refund` |
+| `--version` | Pins the lookup to one enabled version | `fused-cli service operation list stripe --version 2024-06-20` |
+| `--limit` | Rows to read | `fused-cli service operation list stripe --search refund --limit 50` |
+| `--offset` | Rows to skip | `fused-cli service operation list stripe --search refund --offset 50` |
 
 ## Check what a version actually offers
 
 Before you point an app at a new version, confirm the operations you depend on still exist under it.
 
 ```text
-fused-cli service operation show <service-slug> <operation-name>
+fused-cli service operation show --registry <service-slug> <operation-name>
 ```
 
 ```bash
-fused-cli service versions stripe
-fused-cli workspace service operations stripe --version 2024-06-20 --q refund
-fused-cli service operation show stripe createRefund --version 2024-06-20
+fused-cli service version list --registry stripe
+fused-cli service operation list stripe --version 2024-06-20 --search refund
+fused-cli service operation show --registry stripe createRefund --version 2024-06-20
 ```
 
-Request and response contracts are opt-in on `service operation show` — add `--include-request` or `--include-responses` — so a large schema does not arrive unless you asked for it.
+Request and response contracts are opt-in on `service operation show --registry` — add `--include-request` or `--include-responses` — so a large schema does not arrive unless you asked for it.
 
 <Card title="Ship a new SDK version" icon="rocket" href="/app/ship-a-new-version">
   Once a new service version is enabled, publish an SDK version that uses it.

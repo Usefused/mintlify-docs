@@ -10,14 +10,14 @@ That separation is what lets one platform team own credentials for the whole com
 ## Grant one team
 
 ```text
-fused-cli team access bucket <grant|revoke> <team-slug-or-id> <bucket-name-or-id> <use|manage>
+fused-cli workspace team access bucket <grant|revoke> <team-slug-or-id> <bucket-name-or-id> <use|manage>
 ```
 
 The team and the bucket are yours; `grant`/`revoke` and the level come from fixed sets.
 
 ```bash
-fused-cli team access bucket grant payments prod-credentials use
-fused-cli team access bucket grant payments prod-credentials manage
+fused-cli workspace team access bucket grant payments prod-credentials use
+fused-cli workspace team access bucket grant payments prod-credentials manage
 ```
 
 | Level | What it permits |
@@ -28,7 +28,7 @@ fused-cli team access bucket grant payments prod-credentials manage
 Revoke with the same shape:
 
 ```bash
-fused-cli team access bucket revoke payments prod-credentials use
+fused-cli workspace team access bucket revoke payments prod-credentials use
 ```
 
 ## Grant the whole workspace
@@ -50,8 +50,8 @@ Revoking removes only that global binding — owner and explicit team bindings s
 Before telling a team their SDK will build, confirm the bucket is genuinely available to both of you:
 
 ```bash
-fused-cli team build-access payments --resource bucket
-fused-cli sdk plan --owner-team payments
+fused-cli workspace team build-access payments --resource bucket
+fused-cli app plan --owner-team payments
 ```
 
 `build-access` lists what is available to the caller *and* the team, which is the set that will actually work at plan time.

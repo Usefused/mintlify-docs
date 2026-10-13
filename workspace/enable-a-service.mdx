@@ -3,16 +3,16 @@ title: "Enable a service"
 description: "Make a service available to every SDK and MCP server in your workspace."
 ---
 
-Nothing in Fused can call a service until your workspace has enabled it. This page takes a service from "exists in the Registry" to "usable by your apps."
+Nothing in Fused can call a service until your service has enabled it. This page takes a service from "exists in the Registry" to "usable by your apps."
 
 Workspace config declares services and policy you want to manage locally. Teams can use the UI alone, keep an optional aggregate `.fused/workspace.yaml`, or split selected declarations into `.fused/services/**/*.yaml` files with `type: services`. Local files reach Fused only through plan and apply.
 
 ## Add and activate it
 
-`workspace service add` is the discovery command as well as the authoring command. It checks the services already enabled in your workspace first, then searches the Registry only when needed. In a terminal, it asks you to select an ambiguous match and confirms every Registry fallback.
+`service add` is the discovery command as well as the authoring command. It checks the services already enabled in your workspace first, then searches the Registry only when needed. In a terminal, it asks you to select an ambiguous match and confirms every Registry fallback.
 
 ```bash
-fused-cli workspace service add stripe --apply
+fused-cli service add stripe --apply
 ```
 
 The version is optional. Fused resolves the latest version during the scoped activation when you omit it. `--apply` activates only the services this command added; it cannot remove an unrelated active service through a full-workspace mirror.
@@ -36,11 +36,11 @@ For API keys, basic auth, or other schemes, [store the required credentials](/bu
 Use read-only search when you want to compare what is already enabled before starting an addition:
 
 ```bash
-fused-cli workspace services list --q stripe
-fused-cli workspace has "Stripe"
+fused-cli service list --search stripe
+fused-cli service has "Stripe"
 ```
 
-`workspace has` matches the service *name*, not the slug. Use it as an exact check rather than primary discovery.
+`service has` matches the service *name*, not the slug. Use it as an exact check rather than primary discovery.
 
 ## Need a controlled workspace diff?
 
@@ -50,14 +50,14 @@ Starting from nothing, `fused-cli workspace init` creates the skeleton, and `--e
 
 ## Flags
 
-### `workspace service add`
+### `service add`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--apply` | Activates only the services added by this command | `fused-cli workspace service add stripe --apply` |
-| `--version` | Overrides the version that would otherwise resolve during plan or activation | `fused-cli workspace service add stripe --version 2024-06-20` |
-| `--service-id` | Stores a known service ID when you are editing a local config directly | `fused-cli workspace service add stripe --service-id 9f2c…` |
-| `--no-input` | Disables selection and confirmation; ambiguous references fail | `fused-cli workspace service add stripe --apply --no-input` |
+| `--apply` | Activates only the services added by this command | `fused-cli service add stripe --apply` |
+| `--version` | Overrides the version that would otherwise resolve during plan or activation | `fused-cli service add stripe --version 2024-06-20` |
+| `--service-id` | Stores a known service ID when you are editing a local config directly | `fused-cli service add stripe --service-id 9f2c…` |
+| `--no-input` | Disables selection and confirmation; ambiguous references fail | `fused-cli service add stripe --apply --no-input` |
 
 Terminal selection and confirmation are the default. The retained `--interactive` flag explicitly requires that default behavior and fails when combined with `--no-input` or `CI=true`.
 
@@ -95,10 +95,10 @@ Finding a service does not mean you may add it. Planning needs `workspace.read` 
 If you are denied, keep your draft and plan, and ask an administrator for the exact missing scope rather than working around it:
 
 ```bash
-# fused-cli team access service <grant|revoke> <team-slug-or-id> <service-slug-or-id> <use|manage>
-# fused-cli team access workspace set <team-slug-or-id> <owner|admin|builder|viewer>
-fused-cli team access service grant platform stripe manage
-fused-cli team access workspace set platform admin
+# fused-cli workspace team access service <grant|revoke> <team-slug-or-id> <service-slug-or-id> <use|manage>
+# fused-cli workspace team access workspace set <team-slug-or-id> <owner|admin|builder|viewer>
+fused-cli workspace team access service grant platform stripe manage
+fused-cli workspace team access workspace set platform admin
 ```
 
 <Card title="Bring your own API in" icon="file-import" href="/workspace/bring-your-own-api">

@@ -157,19 +157,19 @@ Stopping iteration cancels the underlying call. Bound long streams with `streamI
 Every execution leaves a canonical receipt, whichever route made it.
 
 ```bash
-fused-cli sdk activity support-sdk@1.1.0
-fused-cli sdk activity support-sdk@1.1.0 --all-versions --status failed
+fused-cli app activity support-sdk@1.1.0
+fused-cli app activity support-sdk@1.1.0 --all-versions --status failed
 ```
 
 The JSON page carries receipt and trace IDs, provider status, total and provider-side latency, attempt counts, and failure classification. Narrow it with `--status`, `--start`, `--end`, `--limit`, and `--offset`.
 
-`sdk activity` needs both `app.read` and `audit.read`. Use it rather than querying Fused GraphQL directly.
+`app activity` needs both `app.read` and `audit.read`. Use it rather than querying Fused GraphQL directly.
 
 ## Calling it another way
 
 <CardGroup cols={2}>
   <Card title="Test from the CLI" icon="terminal" href="/app/testing/from-the-cli">
-    `sdk invoke` for a smoke test or a CI gate — not for application code.
+    `app invoke` for a smoke test or a CI gate — not for application code.
   </Card>
   <Card title="Call over REST" icon="cloud" href="/app/testing/over-rest">
     One HTTP endpoint, for languages with no generated package.

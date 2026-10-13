@@ -53,8 +53,8 @@ Fused validates the input and output schemas. `fused.crm.createCustomer` runs th
 ## Deploy and call
 
 ```bash
-fused-cli unified-app plan -f .fused/unified_app/customer-app.yaml --json
-fused-cli unified-app apply -f .fused/unified_app/customer-app.yaml --json
+fused-cli app plan -f .fused/unified_app/customer-app.yaml --json
+fused-cli app apply -f .fused/unified_app/customer-app.yaml --json
 ```
 
 Fused compiles the linked source during plan and hosts it after apply. Save the returned `app_family_id` and one-time execution token securely. Call the App through the Fused REST route:
@@ -99,8 +99,8 @@ For connected users, route a selected operation with `fused.forUserRef(userRef).
 Switch new traffic to a retained Unified App version using the app name or its config:
 
 ```bash
-fused-cli unified-app promote customer-app --version 1.0.0
-fused-cli unified-app promote -f .fused/unified_app/customer-app.yaml --version 1.0.0
+fused-cli app promote customer-app --version 1.0.0
+fused-cli app promote -f .fused/unified_app/customer-app.yaml --version 1.0.0
 ```
 
 The optional app name takes precedence over config selection and needs no local file. Without a name, the CLI reads the top-level `name` from your config. If you omit `-f`, config discovery must find exactly one Unified App. Always pass `--version` with the destination's version label, such as `1.0.0`. Promotion does not change the config's `version`, edit TypeScript, or rebuild the app.
@@ -131,11 +131,11 @@ unified_apps:
 Apply through the normal consumer workflow:
 
 ```bash
-fused-cli sdk plan -f .fused/sdks/customer-portal.yaml --json
-fused-cli sdk apply -f .fused/sdks/customer-portal.yaml --json
+fused-cli app plan -f .fused/sdks/customer-portal.yaml --json
+fused-cli app apply -f .fused/sdks/customer-portal.yaml --json
 ```
 
-For an existing SDK or MCP, keep its existing config and add `unified_apps`, then increment the consumer's `version`. For MCP, use `kind: mcp`, omit SDK-only `language`, provide the server's `description`, and use `fused-cli mcp plan` / `fused-cli mcp apply`. Physical `services` can remain alongside these references; they are optional for a consumer containing only hosted apps.
+For an existing SDK or MCP, keep its existing config and add `unified_apps`, then increment the consumer's `version`. For MCP, use `kind: mcp`, omit SDK-only `language`, provide the server's `description`, and use `fused-cli app plan` / `fused-cli app apply`. Physical `services` can remain alongside these references; they are optional for a consumer containing only hosted apps.
 
 Plan resolves each name and version to an immutable app ID and public schemas. The actor and owner need `app.unified_app.use` on the target, in addition to ordinary consumer permissions. Execution uses the consumer token; never copy the Unified App's token into the config. The hosted code uses its own configured credential buckets. Restricted consumer tokens must allow `unified_app:customer_lookup`.
 

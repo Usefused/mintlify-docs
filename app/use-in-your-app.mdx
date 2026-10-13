@@ -10,7 +10,7 @@ The package is an ordinary npm or pip package. There is no Fused runtime to depl
 
 ## Install it
 
-`sdk download <name@version>` extracts the package to `fused-sdks/<name>`. The `sdk apply --download` convenience form does the same after an explicit apply. The package is not published anywhere, so install it from that path.
+`app download <name@version>` extracts the package to `fused-sdks/<name>`. The `app apply --download` convenience form does the same after an explicit apply. The package is not published anywhere, so install it from that path.
 
 <CodeGroup>
 
@@ -41,7 +41,7 @@ import { FusedSDK } from 'support-sdk';
 
 const sdk = new FusedSDK({
   grpcUrl: process.env.FUSED_ENGINE_GRPC_URL,
-  token: process.env.FUSED_SDK_TOKEN!,
+  token: process.env.FUSED_APP_TOKEN!,
 });
 ```
 
@@ -51,7 +51,7 @@ from fused.support_sdk import FusedSDK
 
 sdk = FusedSDK({
     "grpc_url": os.environ["FUSED_ENGINE_GRPC_URL"],
-    "token": os.environ["FUSED_SDK_TOKEN"],
+    "token": os.environ["FUSED_APP_TOKEN"],
 })
 ```
 

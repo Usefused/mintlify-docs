@@ -23,14 +23,14 @@ bucket. This is an immediate admin action. It does not wait for a workspace
 plan or apply.
 
 ```bash
-fused-cli secret set jira --bucket prod-credentials
+fused-cli bucket credential set jira --bucket prod-credentials
 ```
 
 The CLI asks you to choose a supported authentication method, then securely prompts for its fields. To automate the same OAuth write, select the exact scheme and provide the complete pair through stdin:
 
 ```bash
 printf '%s' 'client_id=abc;client_secret=xyz' \
-  | fused-cli secret set jira \
+  | fused-cli bucket credential set jira \
       --bucket prod-credentials \
       --type oauth \
       --auth-name JiraOAuth \
@@ -49,20 +49,20 @@ oidc` for an OIDC scheme.
   session. You do not send it as credential input.
 </Note>
 
-### `secret set` flags
+### `bucket credential set` flags
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--bucket` | Bucket that owns the credentials; omit it to use the default bucket | `fused-cli secret set jira --bucket prod-credentials --type oauth --auth-name JiraOAuth` |
-| `--no-input` | Disables prompts for automation | `fused-cli secret set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
-| `--value-stdin` | Selects stdin as the complete client-pair source | `printf '%s' 'client_id=…;client_secret=…' \| fused-cli secret set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
-| `--type` | Selects `oauth` or `oidc` | `fused-cli secret set jira --type oauth --auth-name JiraOAuth` |
-| `--auth-name` | Selects the exact Registry auth scheme | `fused-cli secret set jira --type oauth --auth-name JiraOAuth` |
+| `--bucket` | Bucket that owns the credentials; omit it to use the default bucket | `fused-cli bucket credential set jira --bucket prod-credentials --type oauth --auth-name JiraOAuth` |
+| `--no-input` | Disables prompts for automation | `fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
+| `--value-stdin` | Selects stdin as the complete client-pair source | `printf '%s' 'client_id=…;client_secret=…' \| fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
+| `--type` | Selects `oauth` or `oidc` | `fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth` |
+| `--auth-name` | Selects the exact Registry auth scheme | `fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth` |
 
 The retained `--interactive` flag explicitly requires the normal terminal prompts. Omit it for ordinary terminal use.
 
 The pair is atomic. Supply both values when creating or rotating it. Secret
-values cannot be read back. Use `fused-cli secret list --bucket
+values cannot be read back. Use `fused-cli bucket secret list
 prod-credentials` to inspect secret metadata, or `fused-cli bucket services
 prod-credentials` to see application-credential counts by service.
 
@@ -98,8 +98,8 @@ For a generated SDK runtime, pin the reference by planning and applying the app
 configuration:
 
 ```bash
-fused-cli sdk plan -f .fused/sdks/sheets-reader.yaml
-fused-cli sdk apply -f .fused/sdks/sheets-reader.yaml
+fused-cli app plan -f .fused/sdks/sheets-reader.yaml
+fused-cli app apply -f .fused/sdks/sheets-reader.yaml
 ```
 
 For a standalone CLI connection, pass the same reference explicitly. The
@@ -107,7 +107,7 @@ command does not load an SDK or MCP app and cannot infer the mapping from app
 identity:
 
 ```bash
-fused-cli workspace service connect google-sheets \
+fused-cli service connect google-sheets \
   --bucket default \
   --user-ref user_123 \
   --type oauth \
@@ -132,7 +132,7 @@ separately from the shared app credentials.
 ## Connect a user
 
 ```bash
-fused-cli workspace service connect jira \
+fused-cli service connect jira \
   --bucket prod-credentials \
   --user-ref user_123 \
   --scope read:jira-work \
@@ -141,15 +141,15 @@ fused-cli workspace service connect jira \
 
 Omit `--scope` to request the service's declared scope catalogue. OIDC subsets must include `openid`.
 
-### `workspace service connect` flags
+### `service connect` flags
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--bucket` | Bucket holding or referencing the app credentials (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
-| `--user-ref` | Stable end-user reference (required) | `fused-cli workspace service connect jira --bucket prod --user-ref user_123` |
-| `--scope` | Requests one scope; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --scope read:jira-work` |
-| `--auth-ref` | Selects a local source registration or a Fused Managed App | `fused-cli workspace service connect slack --bucket prod --user-ref user_123 --type oauth --auth-name oauth2 --auth-ref '${fused.bucket.auth.slack.oauth2}'` |
-| `--resource-input` | Tenant input as `key=value`; repeatable | `fused-cli workspace service connect jira --bucket prod --user-ref user_123 --resource-input site=acme` |
+| `--bucket` | Bucket holding or referencing the app credentials (required) | `fused-cli service connect jira --bucket prod --user-ref user_123` |
+| `--user-ref` | Stable end-user reference (required) | `fused-cli service connect jira --bucket prod --user-ref user_123` |
+| `--scope` | Requests one scope; repeatable | `fused-cli service connect jira --bucket prod --user-ref user_123 --scope read:jira-work` |
+| `--auth-ref` | Selects a local source registration or a Fused Managed App | `fused-cli service connect slack --bucket prod --user-ref user_123 --type oauth --auth-name oauth2 --auth-ref '${fused.bucket.auth.slack.oauth2}'` |
+| `--resource-input` | Tenant input as `key=value`; repeatable | `fused-cli service connect jira --bucket prod --user-ref user_123 --resource-input site=acme` |
 
 The command has no SDK or MCP identity selector. Generated runtimes use the
 `auth.ref` in their immutable app configuration; standalone initialization

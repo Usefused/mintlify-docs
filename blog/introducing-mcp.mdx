@@ -1,1 +1,92 @@
+---
+title: "Introducing MCP server imports in Fused"
+sidebarTitle: "MCP server imports"
+description: "Bring an existing MCP server into Fused, review its capabilities, and choose what your apps can use. Meet the opt-in alpha."
+---
 
+Your service already has an MCP server. Now you can bring its capabilities into Fused, review what it offers, and choose what your MCP apps can use—without recreating those tools as REST endpoints.
+
+MCP server imports bring tools, prompts, and resources into the service experience you already use for operations and webhooks. It’s a new way to build on the integrations your team already has.
+
+> **Alpha preview.** MCP server imports are disabled by default and require an explicit Engine feature flag. Screenshots show a demo service on deployed Fused; controls may vary by build. Use an Engine build that includes this feature; enabling the flag does not add it to an older release.
+
+## Bring the server. Choose the capabilities.
+
+An MCP server can offer more than actions. It can provide reusable prompts, readable resources, and resource templates. Fused gives those capabilities a home in your service’s **MCP** tab, with searchable rows, type filters, and details you can inspect before using them.
+
+Importing a catalog is also separate from giving an app access. When building a Fused MCP app, you choose the specific imported capabilities it should expose. You can combine them with the service operations your app already uses.
+
+For a documentation assistant, that could mean adding a public repository knowledge server alongside your existing API operations. Your team gets a shared place to review and select those capabilities instead of treating each server as a separate integration project.
+
+## From a URL to a reviewed import
+
+Here’s the flow with [DeepWiki’s public MCP server](https://docs.devin.ai/work-with-devin/deepwiki-mcp), which provides access to public repository documentation without authentication.
+
+### 1. Add the server URL
+
+Open a service version enabled in your workspace. In its **MCP** tab, choose **Options → Import MCP server**, enter the server’s public HTTPS URL, and click **Discover server**. Import actions are available to the service owner with the required workspace permissions.
+
+For DeepWiki, the URL is `https://mcp.deepwiki.com/mcp`.
+
+![Fused alpha import form with the public DeepWiki MCP URL and a Discover server button.](/images/blog/introducing-mcp/import-mcp-url.jpg)
+
+*Add the MCP URL to the service. In builds that show an Authentication selector, choose No authentication for this walkthrough.*
+
+### 2. Review before you import
+
+Fused discovers the server’s available capabilities and presents them for review. In this example, DeepWiki returns three tools for exploring repository documentation and asking questions about a codebase.
+
+You can inspect the catalog before clicking **Import catalog**. Discovery reads capability definitions; it does not execute the tools or read resource content.
+
+![Fused discovery preview listing three public DeepWiki tools with an Import catalog button.](/images/blog/introducing-mcp/review-deepwiki-tools.jpg)
+
+*Review the discovered tools before saving the catalog.*
+
+### 3. Explore what each tool needs
+
+Once imported, the catalog stays in the service’s MCP tab. Search by name or description, filter by capability type, and open an item for its details. For example, DeepWiki’s `read_wiki_structure` tool expects a repository name in `owner/repo` format.
+
+![Fused tool inspector showing the required repoName string for read_wiki_structure.](/images/blog/introducing-mcp/inspect-tool-schema.jpg)
+
+*Inspect a tool’s input schema before selecting it for an app.*
+
+If the server changes, use **Options → Refresh catalog** to review additions, changes, and removals. **Change server URL** lets you replace the endpoint through the same discovery-and-review flow. Refreshing a catalog does not silently change the capabilities pinned to an existing app version.
+
+<video
+  controls
+  playsInline
+  preload="metadata"
+  aria-label="Live Fused catalog discovery, review and tool inspection"
+  className="w-full rounded-xl"
+  src="/videos/blog/mcp-live-demo.mp4"
+>
+  [Watch the live catalog workflow](/videos/blog/mcp-live-demo.mp4).
+</video>
+
+*Live recording: rediscover and review an existing DeepWiki catalog, save it, then inspect a tool’s input schema.*
+
+## Use imported capabilities in your MCP apps
+
+When you [build a Fused MCP app](/mcp/deploy-a-server), select the imported tools, prompts, and resources you want it to use.
+
+- **Tools** are discoverable through Fused’s `search_docs` and callable through `execute`.
+- **Prompts** appear through the MCP client’s native prompt interface.
+- **Resources and resource templates** appear through native MCP resource interfaces.
+
+Each app version keeps its selected definitions. Adopt a refreshed catalog deliberately in a new app version, so a provider update does not quietly expand what an existing app can do.
+
+## Try the alpha on your terms
+
+Set this environment variable on an Engine build that includes MCP imports, then restart Engine and reload the UI:
+
+```dotenv
+FUSED_ENABLE_IMPORTED_MCP=true
+```
+
+If you run the standalone UI server, set the same variable there and restart it too. The embedded UI takes the setting directly from Engine.
+
+Leaving the flag unset keeps import controls and imported-capability selection hidden, and blocks imported-MCP usage. Turning it off later preserves saved catalogs and selections. Regular Fused MCP apps built from API operations remain available.
+
+The alpha currently supports remote **Streamable HTTP over public HTTPS** with **anonymous capability discovery**. If a server requires credentials to discover its catalog, Fused explains that authenticated discovery is not supported yet. Upstream OAuth, local stdio servers, legacy SSE endpoints, and private-network servers are outside this alpha’s scope.
+
+Start with one public MCP server, review its catalog, and select the capabilities your next app needs. We’d love to hear which servers you want to bring into Fused as the alpha evolves.

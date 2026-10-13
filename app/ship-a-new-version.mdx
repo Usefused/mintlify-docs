@@ -29,15 +29,15 @@ version: "1.1.0"   # was 1.0.0
 ```
 
 ```bash
-fused-cli sdk plan
-fused-cli sdk apply --download
+fused-cli app plan
+fused-cli app apply --download
 ```
 
-Plan validates the local config before contacting Fused. Use `sdk validate` separately only when you need an offline-only check.
+Plan validates the local config before contacting Fused. Use `app validate` separately only when you need an offline-only check.
 
 ## When the Registry moves under you
 
-`app_version_immutable` is about something you changed. Its sibling is about something Fused changed: when the Registry advances the selection schema your published versions were built against, applying an older plan returns `app_selection_schema_version_mismatch` (HTTP 409), and `fused-cli sdk sync` refuses a version whose schema is newer than the CLI understands.
+`app_version_immutable` is about something you changed. Its sibling is about something Fused changed: when the Registry advances the selection schema your published versions were built against, applying an older plan returns `app_selection_schema_version_mismatch` (HTTP 409), and `fused-cli app sync` refuses a version whose schema is newer than the CLI understands.
 
 Neither is a data loss. Re-plan so the selections are rebuilt against the current schema, then apply. If `sync` is the one complaining, upgrade `fused-cli` first — it is telling you Fused is ahead of it.
 
@@ -61,47 +61,47 @@ There is no implicit "latest." Every command that resolves a version wants `name
 ## Inspect what shipped
 
 ```bash
-fused-cli sdk list
-fused-cli sdk show support-sdk@1.1.0
-fused-cli sdk services support-sdk@1.1.0
-fused-cli sdk buckets support-sdk
+fused-cli app list
+fused-cli app show support-sdk@1.1.0
+fused-cli app service list support-sdk@1.1.0
+fused-cli app bucket list support-sdk
 ```
 
-`sdk list` shows `SDK_ID`, stable across versions, and `VERSION_ID`, identifying one exact immutable version.
+`app list` shows `SDK_ID`, stable across versions, and `VERSION_ID`, identifying one exact immutable version.
 
 ## Flags
 
-### `sdk download`
+### `app download`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--out` | Output directory | `fused-cli sdk download support-sdk@1.1.0 --out ./vendor` |
-| `--json` | Prints SDK, Version ID, status, and output path | `fused-cli sdk download support-sdk@1.1.0 --no-input --json` |
+| `--out` | Output directory | `fused-cli app download support-sdk@1.1.0 --out ./vendor` |
+| `--json` | Prints SDK, Version ID, status, and output path | `fused-cli app download support-sdk@1.1.0 --no-input --json` |
 
-### `sdk list`
-
-| Flag | What it does | Example |
-|---|---|---|
-| `--limit` | Rows to read | `fused-cli sdk list --limit 50` |
-| `--offset` | Rows to skip | `fused-cli sdk list --offset 50` |
-
-### `sdk openapi`
+### `app list`
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--operation` | Exports one exact physical operation | `fused-cli sdk openapi support-sdk@1.1.0 --operation issueUpdate` |
-| `--out` | Output file path | `fused-cli sdk openapi support-sdk@1.1.0 --out ./support.yaml` |
-| `--format` | `yaml` or `json` | `fused-cli sdk openapi support-sdk@1.1.0 --format json` |
-| `--json` | Prints export metadata only, including a `sha256:` of the file | `fused-cli sdk openapi support-sdk@1.1.0 --no-input --json` |
+| `--limit` | Rows to read | `fused-cli app list --limit 50` |
+| `--offset` | Rows to skip | `fused-cli app list --offset 50` |
 
-`sdk openapi` always writes a file and never prints the document to stdout. It needs your ordinary control credential and `app.read` — an execution token cannot authorize the export.
+### `app openapi`
+
+| Flag | What it does | Example |
+|---|---|---|
+| `--operation` | Exports one exact physical operation | `fused-cli app openapi support-sdk@1.1.0 --operation issueUpdate` |
+| `--out` | Output file path | `fused-cli app openapi support-sdk@1.1.0 --out ./support.yaml` |
+| `--format` | `yaml` or `json` | `fused-cli app openapi support-sdk@1.1.0 --format json` |
+| `--json` | Prints export metadata only, including a `sha256:` of the file | `fused-cli app openapi support-sdk@1.1.0 --no-input --json` |
+
+`app openapi` always writes a file and never prints the document to stdout. It needs your ordinary control credential and `app.read` — an execution token cannot authorize the export.
 
 <a id="pull-the-engines-state-back-down"></a>
 
 ## Pull Fused's state back down
 
 ```bash
-fused-cli sdk sync support-sdk -f .fused/sdks/support-sdk.yaml
+fused-cli app sync support-sdk -f .fused/sdks/support-sdk.yaml
 ```
 
 Sync full-mirrors the exact Fused app version your local file declares. Anything Fused no longer selects is removed locally rather than flagged, and Fused values win on conflict. There is no implicit latest lookup and no sync-time upgrade — change `version` yourself, then plan and apply it deliberately.
@@ -113,7 +113,7 @@ One quirk worth expecting: sync freezes the current selection into an explicit s
 Permanently deactivate one exact immutable version by name and version or by Version ID:
 
 ```bash
-fused-cli sdk deactivate support-sdk@1.0.0
+fused-cli app deactivate support-sdk@1.0.0
 ```
 
 Deactivation immediately removes that version's runtime and package and leaves a tombstone, so the same SDK version cannot be recreated. Sibling versions and SDK-wide execution tokens remain intact. Fused App UI exposes the same action for one version or a selected group. There is no SDK deprecate or restore command in the CLI; use the App UI/API for those advisory lifecycle transitions.

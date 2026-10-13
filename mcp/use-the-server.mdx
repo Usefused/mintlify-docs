@@ -5,7 +5,7 @@ description: "Place the stable Fused MCP URL and an agent token in your MCP clie
 
 Connect an MCP client with two values from Fused:
 
-- The stable Streamable HTTP URL returned by `mcp apply` or `mcp list`.
+- The stable Streamable HTTP URL returned by `app apply` or `app list`.
 - An MCP execution token sent in the `Authorization` header.
 
 The MCP client owns JSON-RPC initialization, protocol negotiation, sessions, and reconnection. You only configure its URL and authentication.
@@ -17,7 +17,7 @@ For provider webhook notifications, use a client that supports Fused's combined 
 ## Get the stable URL
 
 ```bash
-fused-cli mcp list
+fused-cli app list
 ```
 
 Use the stable Streamable HTTP URL for ordinary client configuration:
@@ -38,7 +38,7 @@ Choose Streamable HTTP unless the client explicitly requires the older SSE trans
 
 ## Get an agent token
 
-The first successful `mcp apply` may print a full-access token once. It is suitable for initial testing if you stored it securely.
+The first successful `app apply` may print a full-access token once. It is suitable for initial testing if you stored it securely.
 
 For a long-running agent, create a separate token with the operations and connected-user binding it needs:
 
