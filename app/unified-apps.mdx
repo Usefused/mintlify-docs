@@ -3,9 +3,11 @@ title: "Unified Apps"
 description: "Write an action once. Host it in Fused and call it from your product or agent."
 ---
 
-A Unified App is a TypeScript function hosted by Fused. It accepts input, calls the API operations you choose, and returns a result. Fused supplies the provider credentials from your bucket.
+A Unified App is a reusable action that runs on Fused. It combines your logic with calls to one or more services, giving your product or agent one action to call.
 
-For example, your product can call **create customer** instead of handling your CRM's API and credentials itself.
+For example, an **onboard customer** action could create a customer in your CRM, send a welcome email, and return the new customer's ID.
+
+Use it to keep a workflow in one place and reuse it across your products and agents. You define its inputs, steps, and result in TypeScript. Fused hosts the action and supplies credentials for the service operations you allow it to use.
 
 ## Create your first app
 

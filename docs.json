@@ -622,5 +622,5 @@
       "harnest": "https://github.com/usefused/harnest"
     }
   },
-  "description": "Fused is an integration gateway for apps and agents. Fused offers you a central integration gateway for your internal and external services you depend on"
+  "description": "Fused — The simplification of integration. Build and deliver integrations faster, from a single service call to complex workflows for your applications and agents."
 }
