@@ -1,0 +1,75 @@
+---
+title: "Write a Unified App"
+sidebarTitle: "Write the code"
+description: "Define an app with one TypeScript file and one YAML config."
+---
+
+A Unified App uses two files:
+
+| File | What you put in it |
+| --- | --- |
+| TypeScript | Input, output, and the function to run. |
+| YAML | App name, version, credential bucket, and allowed API operations. |
+
+This example creates a customer. It assumes your workspace has a CRM service with a `createCustomer` operation that accepts `name` and `email` and returns `id`. Replace the example service reference, version, and operation with the [exact values in your workspace](/workspace/enable-a-service).
+
+## 1. Create the files
+
+Save `customer-app.ts` and `customer-app.yaml` together in `.fused/unified_app/`. The TypeScript defines your action; the YAML selects the operations it can call.
+
+<CodeGroup>
+
+```typescript TypeScript
+import * as z from "zod/mini";
+import { buildUnifiedApp } from "@fused/unified-app";
+import { services } from "@fused/operations";
+
+export default buildUnifiedApp({
+  input: z.object({ name: z.string(), email: z.string() }),
+  output: z.object({ customerId: z.string() }),
+  // Expose one customer-creation action through the selected provider operation.
+  async execute({ input }) {
+    const customer = await services["@your-provider/crm"].createCustomer({
+      name: input.name,
+      email: input.email,
+    });
+    return { customerId: customer.id };
+  },
+});
+```
+
+```yaml YAML
+apiVersion: fused/v1
+kind: unified_app
+name: customer-app
+version: "1.0.0"
+bucket: default
+source_path: customer-app.ts
+services:
+  "@your-provider/crm":
+    version: "2026-01-01"
+    operations: [createCustomer]
+```
+
+</CodeGroup>
+
+Use the service's full reference, including its provider. The app can call only the operations you select. `bucket: default` tells Fused where to find credentials; keep the credential values in the [bucket](/bucket/store-credentials).
+
+Use the same service reference in both files. Fused checks the request against `input`, runs `execute`, then checks the returned value against `output`.
+
+You do not need a database call to return a result. Add [stored execution data](/app/unified-apps/results-and-debugging#store-data-for-later-lookup) only when you need it.
+
+## 2. Deploy and call
+
+```bash
+fused-cli app plan -f .fused/unified_app/customer-app.yaml
+fused-cli app apply -f .fused/unified_app/customer-app.yaml
+```
+
+`plan` checks and compiles the source. `apply` deploys it. Save the returned `app_family_id` and execution token, then [call the app](/app/unified-apps#create-your-first-app) with input matching your schema—for this example, `{"name":"Jane","email":"jane@example.com"}`.
+
+After changing the source or selected operations, [increase the version and deploy again](/app/unified-apps/versions).
+
+## Use a connected user's account
+
+For OAuth services, [connect the user](/bucket/connect-user-accounts) first. In your function, use `fused.forUserRef(userRef).serviceName.operationName(input)` from `@fused/operations`. The user reference selects their connection in the configured bucket; it does not contain their provider token.

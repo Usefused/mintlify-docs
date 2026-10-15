@@ -1,0 +1,107 @@
+---
+title: "Call from an SDK, MCP, or another app"
+sidebarTitle: "SDK, MCP, and app calls"
+description: "Reuse a deployed Unified App in another Fused app."
+---
+
+Your Unified App can be called directly over REST, or selected by another Fused app. This page covers the second option. For a direct call, follow the [quickstart](/app/unified-apps).
+
+## 1. Select the deployed app
+
+Add `unified_apps` to the config of the SDK or MCP server that will call it. Choose a name for the call, such as `customer_lookup`, and select the deployed app by name and version:
+
+```yaml
+apiVersion: fused/v1
+kind: sdk
+name: customer-portal
+version: "1.0.0"
+language: typescript
+bucket: default
+unified_apps:
+  customer_lookup:
+    name: customer-app
+    version: "1.0.0"
+```
+
+## 2. Deploy the calling app
+
+Run plan and apply on that SDK or MCP config:
+
+```bash
+fused-cli app plan -f .fused/sdks/customer-portal.yaml --json
+fused-cli app apply -f .fused/sdks/customer-portal.yaml --json
+```
+
+For an existing SDK or MCP, keep its existing config and add `unified_apps`, then increment the consumer's `version`. For MCP, use `kind: mcp`, omit SDK-only `language`, provide the server's `description`, and use `fused-cli app plan` / `fused-cli app apply`. Physical `services` can remain alongside these references; they are optional for a consumer containing only hosted apps.
+
+Use the SDK or MCP server's execution token to call it. You do not copy the Unified App's token into this config. The Unified App continues to use its own credential bucket.
+
+## 3. Call the selected app
+
+<Tabs>
+  <Tab title="TypeScript">
+    With your generated SDK client:
+
+    ```typescript
+    const result = await sdk.unifiedApps.customer_lookup({ name: "Jane" });
+    ```
+
+    Configure `FusedSDK` with your Engine's HTTP origin as `engineUrl` and the SDK execution token as `token`.
+  </Tab>
+  <Tab title="Python">
+    ```python
+    result = await sdk.unified_apps.customer_lookup({"name": "Jane"})
+    ```
+
+    Use `engine_url` and `token` in the client config. A synchronous client can use `sdk.unified_apps.customer_lookup_sync(...)`.
+  </Tab>
+  <Tab title="MCP">
+    Call the server's `execute` tool:
+
+    ```json
+    {
+      "name": "execute",
+      "arguments": {
+        "operation": "unified_app:customer_lookup",
+        "input": { "name": "Jane" }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="REST">
+    POST the following body to `/v1/apps/<consumer-version-id>/executions`, using the SDK or MCP app's token:
+
+    ```json
+    {
+      "operation": "unified_app:customer_lookup",
+      "input": { "name": "Jane" }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Check the returned `status` before using `output`. Calls wait for the hosted action and do not retry automatically.
+
+## When you deploy a new version
+
+These selections stay on the exact version you chose. When you switch the Unified App's traffic, update this config to select that version and publish a new SDK or MCP version. Otherwise, promote the previously selected Unified App version back.
+
+## Call from another Unified App
+
+Add the same `unified_apps` entry to the calling app's YAML. In its TypeScript, import `fused` from `@fused/unified-app` and call:
+
+```typescript
+const result = await fused.callApp("customer_lookup", { name: "Jane" });
+```
+
+Check `result.status` before using `result.output`. Each app uses its own credentials and execution data. Pass any connected-user reference explicitly in the input.
+
+<Accordion title="Permissions and limits">
+  - The actor and owner need `app.unified_app.use` on the selected app, alongside the calling app's normal permissions.
+  - Restricted execution tokens must allow `unified_app:customer_lookup`.
+  - The selected version must be receiving traffic during plan, apply, and execution.
+  - Each config can select up to 16 hosted apps. Call names use lowercase letters, digits, and underscores, start with a letter, and cannot be reserved language names or conflict with another call's `_sync` method.
+  - Execution records belong to the hosted app. Calling it does not grant access to unrelated execution history.
+  - Nested calls cannot recurse. A root execution permits eight app levels and 32 nested calls. Each waiting parent occupies a worker slot, so the Engine needs capacity for the whole chain; a child fails immediately when capacity is unavailable.
+  - Nested calls are synchronous, are not automatically retried, and remain bounded by parent cancellation and deadlines. Replay uses recorded child responses.
+</Accordion>

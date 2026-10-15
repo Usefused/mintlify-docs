@@ -169,7 +169,7 @@ curl --request POST \
 
 Keep this authenticated call on a trusted backend. An execution token is a credential; do not put it in browser code, screenshots, or committed examples.
 
-Check the execution's `status` before using `output`. A queued or running call may return HTTP 202; retain its read handle and fetch the result rather than treating acceptance as completion. See the [execution request and result flow](https://usefused.com/docs/app/unified-apps#deploy-and-call).
+Check the execution's `status` before using `output`. A queued or running call may return HTTP 202; retain its read handle and fetch the result rather than treating acceptance as completion. See the [execution request and result flow](https://usefused.com/docs/app/unified-apps/results-and-debugging#read-a-result).
 
 For the sample input, the successful execution returned this `output`:
 
@@ -225,7 +225,7 @@ console.log(result.output);
 
 An MCP consumer can expose the same attachment through its `execute` tool, using `unified_app:quote` as the operation. The agent supplies the authored input; the hosted app still performs the selected provider call.
 
-These references are pinned. They do not automatically follow a traffic change. Coordinate a new consumer version with the selected app version, as described in [using a Unified App from SDK or MCP](https://usefused.com/docs/app/unified-apps#use-from-an-sdk-or-mcp-server).
+These references are pinned. They do not automatically follow a traffic change. Coordinate a new consumer version with the selected app version, as described in [using a Unified App from SDK or MCP](https://usefused.com/docs/app/unified-apps/use-from-apps).
 
 ## Change the workflow without losing its history
 

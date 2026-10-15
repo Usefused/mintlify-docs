@@ -28,7 +28,7 @@ An SDK operation returns a physical operation response:
 }
 ```
 
-Check both Fused HTTP status and `status_code`, which records the provider's status. A Unified App uses this same POST URL but returns an [execution record](/app/unified-apps#deploy-and-call) with `executionId`, `status`, `output`, and `readHandle`.
+Check both Fused HTTP status and `status_code`, which records the provider's status. A Unified App uses its stable **app family ID** in the URL and returns an [execution record](/app/unified-apps/results-and-debugging#read-a-result) with `executionId`, `status`, `output`, and `readHandle`.
 
 ## The body
 

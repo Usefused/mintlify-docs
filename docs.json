@@ -64,7 +64,16 @@
                 "expanded": false,
                 "pages": [
                   "mcp/deploy-a-server",
-                  "app/unified-apps",
+                  {
+                    "group": "Unified Apps",
+                    "pages": [
+                      "app/unified-apps",
+                      "app/unified-apps/write-code",
+                      "app/unified-apps/versions",
+                      "app/unified-apps/use-from-apps",
+                      "app/unified-apps/results-and-debugging"
+                    ]
+                  },
                   "app/build-an-sdk",
                   "app/testing/over-rest",
                   "app/from-a-prompt",
