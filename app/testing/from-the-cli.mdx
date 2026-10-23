@@ -3,7 +3,7 @@ title: "Test from the CLI"
 description: "Prove credentials, scope, and routing from a terminal or a CI job — without writing application code."
 ---
 
-`app invoke` exists for the moment before you trust something: a freshly applied version, a rotated credential, a new operation in a pipeline. It resolves one exact SDK version, calls Fused with your execution token, and prints what came back.
+Use `app invoke` to test an exact SDK, REST, or Unified App version with your execution token. Call MCP apps through an MCP client; the CLI manages their deployment, inspection, and tokens.
 
 <Warning>
   Your application should never shell out to this. It is a debug and CI surface with its own limits — [run an operation](/app/run-an-operation) is how your code calls the same path.
@@ -12,7 +12,7 @@ description: "Prove credentials, scope, and routing from a terminal or a CI job 
 ## Call something
 
 ```text
-fused-cli app invoke <sdk-name@version-or-version-id> <operation>
+fused-cli app invoke <app-name@version-or-version-id> <operation>
 ```
 
 The version reference is required and exact — `app invoke` never picks a version for you, which is the property that makes it useful in CI.
