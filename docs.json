@@ -7,6 +7,22 @@
   },
   "redirects": [
     {
+      "source": "/blog",
+      "destination": "https://usefused.com/blog"
+    },
+    {
+      "source": "/blog/introducing-mcp",
+      "destination": "https://usefused.com/blog"
+    },
+    {
+      "source": "/blog/unified-apps",
+      "destination": "https://usefused.com/blog"
+    },
+    {
+      "source": "/blogs/untitled-page",
+      "destination": "https://usefused.com/blog"
+    },
+    {
       "source": "/harnest/build/runtime-plugins",
       "destination": "/harnest/build/extensions"
     },
@@ -538,10 +554,7 @@
       {
         "tab": "Blog",
         "icon": "newspaper",
-        "pages": [
-          "blog",
-          "blog/introducing-mcp"
-        ]
+        "href": "https://usefused.com/blog"
       }
     ]
   },

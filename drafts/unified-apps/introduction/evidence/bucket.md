@@ -1,0 +1,204 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://usefused.com/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Store credentials
+
+> Put a provider credential somewhere your apps can use it without ever seeing it.
+
+A bucket is the credential container an SDK, MCP server, or service points at. Services declare what is *enabled*; buckets hold what a running app actually *uses*.
+
+Secrets are resolved server-side by Fused at dispatch time. They never appear in a config file, a plan receipt, or a generated package.
+
+## Use managed auth or your own credentials
+
+For a supported OAuth service, you can [use a Managed service](/docs/workspace/use-managed-service) instead of creating and storing a provider client pair. Fused holds the application's client secret; your selected bucket still owns the encrypted user connections. Use the steps below for your own provider application or other authentication schemes.
+
+## One app, different buckets per service
+
+An SDK or MCP server declares one default `bucket:` at the top level. Any service may override it with its own `bucket:`, so a single app can route different services' credentials through different buckets:
+
+```yaml theme={null}
+apiVersion: fused/v1
+kind: sdk
+bucket: default
+services:
+  linear:
+    version: "v1"
+    select_all: true
+  slack:
+    version: "v1"
+    bucket: slack-credentials
+    select_all: true
+```
+
+A service without its own `bucket:` resolves through the app's top-level default. A local `${bucket.auth...}` reference joins services in the same bucket. A managed `${fused.bucket.auth...}` reference selects Fused's broker application. Webhook signing-secret references explicitly name their bucket independently of the app.
+
+## Pick a bucket before you write to one
+
+```bash theme={null}
+fused-cli bucket list
+fused-cli bucket show default
+fused-cli bucket services default
+```
+
+A listed bucket is one you can *see*, not necessarily one you may use. Choose a visible candidate, run the action you intended, and let the permission check decide. If it is denied, stop and report it — do not create a fallback bucket.
+
+Create one only when you actually need isolation:
+
+```bash theme={null}
+fused-cli bucket create prod-credentials
+```
+
+<Warning>
+  A `buckets:` block in `workspace.yaml` configures an *existing* bucket. It cannot create one. If no bucket of that name exists, apply fails with "bucket not found" rather than creating it. `bucket create` is the only way.
+</Warning>
+
+## Store a secret
+
+In a terminal, give Fused the service and let it ask which supported authentication method you want to configure. It then prompts for that method's fields without echoing secret values:
+
+```bash theme={null}
+fused-cli bucket credential set stripe
+```
+
+For automation, disable prompts and pipe the credential through the dedicated stdin channel. Credential values are rejected in argv so they cannot survive in shell history or a process listing:
+
+```bash theme={null}
+printf '%s' "$TOKEN" | \
+  fused-cli bucket credential set stripe --no-input --value-stdin
+```
+
+Multi-field schemes are still **one** stdin value, joined with `;`:
+
+```bash theme={null}
+printf '%s' 'username=x;password=y' | \
+  fused-cli bucket credential set jira --type basic --no-input --value-stdin
+printf '%s' 'cert=...;key=...' | \
+  fused-cli bucket credential set acme --type mtls --no-input --value-stdin
+```
+
+There is no `--username`, `--password`, `--cert`, or `--key` flag, and these are not two separate secrets set in two calls.
+
+<Note>
+  `bucket credential set` is an upsert with no apply step. It takes effect on the next request. Re-running it with a new value *is* how you rotate a credential — there is no versioning and no grace period, so the old value is simply gone.
+</Note>
+
+## Flags
+
+### `bucket credential set`
+
+| Flag | What it does | Example |
+| - | - | - |
+| `--no-input` | Disables prompts; use it for automation | `fused-cli bucket credential set stripe --no-input --value-stdin` |
+| `--value-stdin` | Selects stdin as the secure credential source | `printf '%s' "$T" \| fused-cli bucket credential set stripe --no-input --value-stdin` |
+| `--type` | Auth family: `api_key`, `bearer`, `basic`, `oauth`, `mtls`… | `printf '%s' "$T" \| fused-cli bucket credential set jira --type bearer --no-input --value-stdin` |
+| `--auth-name` | Exact Registry scheme, when one family has several | `printf '%s' "$T" \| fused-cli bucket credential set jira --type api_key --auth-name legacy-key --no-input --value-stdin` |
+| `--bucket` | Targets a bucket other than the default | `printf '%s' "$T" \| fused-cli bucket credential set stripe --bucket prod-credentials --no-input --value-stdin` |
+| `--expires-at` | Advisory expiry metadata, RFC3339 | `printf '%s' "$T" \| fused-cli bucket credential set stripe --expires-at 2026-12-31T23:59:59Z --no-input --value-stdin` |
+
+The retained `--interactive` flag explicitly requires the normal terminal prompts. Most people should omit it; automation should use both `--no-input` and `--value-stdin` so interaction policy and secret transport stay explicit.
+
+`--expires-at` is advisory only. Listings flag an expired secret; nothing auto-rotates and nothing blocks requests when it passes.
+
+In a terminal, a bare `set` asks you to select the supported authentication method even when only one is available. With `--no-input`, a sole method can be selected deterministically; multiple methods require `--type`, and same-family alternatives also require `--auth-name`.
+
+### `bucket secret list <bucket-name-or-id>`
+
+| Flag | What it does | Example |
+| - | - | - |
+| `<bucket-name-or-id>` | Bucket to inspect (required) | `fused-cli bucket secret list prod-credentials` |
+| `--limit` | Rows to read | `fused-cli bucket secret list default --limit 50` |
+
+Secret values are never read back — metadata only.
+
+## Store a non-secret value
+
+Some providers need a non-secret piece of configuration, like a tenant ID that appears in the host name.
+
+`bucket value set` takes five positional arguments, and only the third comes from a fixed set:
+
+```text theme={null}
+fused-cli bucket value set <bucket-name-or-id> <service-slug> <location> <key-name> <value>
+fused-cli bucket value delete <bucket-name-or-id> <service-slug> <key-name>
+fused-cli bucket value list <bucket-name-or-id>
+```
+
+| Position | Is | Example |
+| - | - | - |
+| `<bucket-name-or-id>` | Yours | `sendbird-bucket` |
+| `<service-slug>` | The service this value belongs to | `sendbird` |
+| `<location>` | One of `env`, `body`, `query`, `header`, `path` | `env` |
+| `<key-name>` | Yours | `SENDBIRD_APP_ID` |
+| `<value>` | The value itself | `your-app-id` |
+
+```bash theme={null}
+fused-cli bucket value set sendbird-bucket sendbird env SENDBIRD_APP_ID your-app-id
+fused-cli bucket value list sendbird-bucket
+fused-cli bucket value delete sendbird-bucket sendbird SENDBIRD_APP_ID
+```
+
+The `env` namespace here is the bucket's own value store — it does not read an operating-system environment variable.
+
+## Inject a bucket value into a request
+
+An SDK or MCP service can pull those values into the outgoing request at dispatch time, so a tenant ID or account prefix never has to be hardcoded per environment.
+
+Usually you will not write these by hand — [`fused-cli init` generates them](/docs/app/build-an-sdk#init-fills-in-the-routing-for-you) for whichever server-template variables your selected operations declare, leaving you to supply the value.
+
+```yaml theme={null}
+services:
+  sendbird:
+    version: "v3"
+    operations: [listChannels]
+    injections:
+      - location: server_variable
+        name: app_id
+        value: ${bucket.env.SENDBIRD_APP_ID}
+        mode: force
+```
+
+References always resolve against the bucket the referencing service uses — that service's own `bucket:` override when one is set, otherwise the app's top-level `bucket:`. There is no way to name an arbitrary third bucket in a reference, unlike a `kind: webhook` secret. An ordinary injection value may also mix a tag with surrounding text, such as `"Bearer ${bucket.secrets.API_KEY}"`.
+
+`location: server_variable` is stricter than the rest. Its value must be a complete `${bucket.env.KEY}` or `${bucket.values.KEY}` reference — never a literal, never interpolated, never a secret — because host routing has to stay non-secret and reviewable. Plan checks `name` against the service and operation server templates and rejects an undeclared one.
+
+### Which value wins
+
+| Source | Precedence |
+| - | - |
+| Workspace `execution_policy.server_variables` | Final authority |
+| Injection with `mode: force` | Overrides connection-resource input |
+| Connection-resource input | Overrides a `default` injection |
+| Injection with `mode: default` | Supplies the app value ahead of a provider fallback |
+| Provider-declared fallback | Last resort |
+
+An omitted `mode` canonicalizes to `force`.
+
+<Warning>
+  A host template must keep a fixed registrable anchor such as `.sendbird.com`. Whole-host or public-suffix-only forms like `https://{host}` or `https://{tenant}.com` fail closed — Fused validates the resolved value and the final HTTPS URL before dispatch.
+</Warning>
+
+## Inspect a bucket
+
+```bash theme={null}
+fused-cli bucket secret list prod-credentials
+fused-cli bucket value list prod-credentials
+fused-cli bucket sdks prod-credentials
+```
+
+## Permissions
+
+| Action | Needs |
+| - | - |
+| List or show a bucket | `bucket.read` |
+| Read values | `bucket.values.read` |
+| List secret metadata | `credentials.metadata.read` |
+| Create a bucket, change values | `bucket.manage` |
+| Change secrets | `credentials.manage` |
+
+<Card title="Connect a user's account" icon="user-check" href="/docs/bucket/connect-user-accounts">
+  Static credentials cover one identity. OAuth covers one per end user.
+</Card>
+
+
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

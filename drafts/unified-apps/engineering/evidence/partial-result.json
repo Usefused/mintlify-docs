@@ -1,0 +1,19 @@
+{
+  "customerId": "cus_demo",
+  "coverage": "partial",
+  "subscriptions": {
+    "state": "ready",
+    "items": [
+      {
+        "id": "sub_demo",
+        "status": "canceled",
+        "cancelAtPeriodEnd": false
+      }
+    ],
+    "hasMore": false
+  },
+  "openInvoices": {
+    "state": "unavailable",
+    "reason": "upstream_error"
+  }
+}

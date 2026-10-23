@@ -1,0 +1,70 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://usefused.com/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Call over REST
+
+> Call an SDK operation or Unified App through Fused HTTP API.
+
+Fused generates TypeScript and Python SDKs. If your service uses another language or you do not want a package, call a selected SDK operation through Fused's REST route. [Unified Apps](/docs/app/unified-apps) use the same route with `"operation":"execute"`.
+
+```bash theme={null}
+curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
+  -H "Authorization: Bearer $FUSED_SDK_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"issueUpdate","input":{"id":"ISS-42","state":"done"}}'
+```
+
+`$VERSION_ID` is the app version UUID that apply printed — not the SDK name, and not the family ID. Note the port: this is Fused's **HTTP** address, not the gRPC one the generated client wants.
+
+## Read the response
+
+An SDK operation returns a physical operation response:
+
+```json theme={null}
+{
+  "app_id": "<version-uuid>",
+  "operation": "issueUpdate",
+  "kind": "physical",
+  "status_code": 200,
+  "results": [{ "id": "ISS-42", "state": "done" }]
+}
+```
+
+Check both Fused HTTP status and `status_code`, which records the provider's status. A Unified App uses this same POST URL but returns an [execution record](/docs/app/unified-apps#deploy-and-call) with `executionId`, `status`, `output`, and `readHandle`.
+
+## The body
+
+| Field | For |
+| - | - |
+| `operation` | The selected physical operation ID |
+| `input` | The operation's parameters |
+| `selector` | One selector: `environment`, `end_user_ref`, `auth_type`, `auth_name`, `resource_id` |
+| `pagination` | Optional `{"max_pages": n}` bound below Fused policy limit |
+
+<Warning>
+  A stable `Idempotency-Key` helps make retries of a mutating operation safe when its provider contract supports idempotency. Supply the header at most once.
+</Warning>
+
+## No package required
+
+This is the same execution the typed package makes, against the same immutable version. A version applied with [`generate: false`](/docs/app/build-an-sdk#skip-the-package) publishes without building a package at all and is fully callable here.
+
+If the selected bucket is missing a required static credential, Fused returns HTTP `409` with code `bucket_credentials_missing` before contacting the provider. Its structured details identify the service, bucket, authentication type, and scheme and include the exact value-free `fused-cli bucket credential set` command to run before repeating the request.
+
+To generate your own client from the contract:
+
+```bash theme={null}
+fused-cli app openapi support-sdk@1.1.0 --out ./support.openapi.yaml
+```
+
+## What you give up
+
+The generated package carries typed errors, one shared gRPC channel, and broader transport limits. Over REST you handle status codes yourself, and the 1 MiB provider-document bound also applies on the CLI path.
+
+<Card title="Run an operation" icon="code" href="/docs/app/run-an-operation">
+  What the typed package gives you, if your language is one of the two.
+</Card>
+
+
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

@@ -1,0 +1,261 @@
+{
+  "name": "GetInvoices",
+  "path": "/v1/invoices",
+  "method": "GET",
+  "description": "List all invoices",
+  "security_requirements": [
+    {
+      "schemes": [
+        {
+          "scheme": "basicAuth",
+          "scopes": []
+        }
+      ]
+    },
+    {
+      "schemes": [
+        {
+          "scheme": "bearerAuth",
+          "scopes": []
+        }
+      ]
+    }
+  ],
+  "documentation": {
+    "summary": "List all invoices",
+    "description": "<p>You can list all invoices, or list the invoices for a specific customer. The invoices are returned sorted by creation date, with the most recently created invoices appearing first.</p>",
+    "tags": []
+  },
+  "stable_key": "rest:GET:/v1/invoices",
+  "version": "2026-07-29.dahlia",
+  "normalized_path": "/v1/invoices",
+  "deprecated": false,
+  "parameters": [
+    {
+      "name": "collection_method",
+      "in": "query",
+      "required": false,
+      "type": "string",
+      "description": "The collection method of the invoice to retrieve. Either `charge_automatically` or `send_invoice`."
+    },
+    {
+      "name": "created",
+      "in": "query",
+      "required": false,
+      "type": "object",
+      "description": "Only return invoices that were created during the given date interval."
+    },
+    {
+      "name": "customer",
+      "in": "query",
+      "required": false,
+      "type": "string",
+      "description": "Only return invoices for the customer specified by this customer ID."
+    },
+    {
+      "name": "customer_account",
+      "in": "query",
+      "required": false,
+      "type": "string",
+      "description": "Only return invoices for the account representing the customer specified by this account ID."
+    },
+    {
+      "name": "due_date",
+      "in": "query",
+      "required": false,
+      "type": "object"
+    },
+    {
+      "name": "ending_before",
+      "in": "query",
+      "required": false,
+      "type": "string",
+      "description": "A cursor for use in pagination. `ending_before` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, starting with `obj_bar`, your subsequent call can include `ending_before=obj_bar` in order to fetch the previous page of the list."
+    },
+    {
+      "name": "expand",
+      "in": "query",
+      "required": false,
+      "type": "array",
+      "description": "Specifies which fields in the response should be expanded."
+    },
+    {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "type": "integer",
+      "description": "A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 10."
+    },
+    {
+      "name": "starting_after",
+      "in": "query",
+      "required": false,
+      "type": "string",
+      "description": "A cursor for use in pagination. `starting_after` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with `obj_foo`, your subsequent call can include `starting_after=obj_foo` in order to fetch the next page of the list."
+    },
+    {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "type": "string",
+      "description": "The status of the invoice, one of `draft`, `open`, `paid`, `uncollectible`, or `void`. [Learn more](https://docs.stripe.com/billing/invoices/workflow#workflow-overview)"
+    },
+    {
+      "name": "subscription",
+      "in": "query",
+      "required": false,
+      "type": "string",
+      "description": "Only return invoices for the subscription specified by this subscription ID."
+    }
+  ],
+  "request_content": {
+    "representations": [
+      {
+        "media_type": "application/x-www-form-urlencoded",
+        "serialization": "form_urlencoded",
+        "schema": {
+          "dialect": "https://spec.openapis.org/oas/3.0/schema/2021-09-28",
+          "raw": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          "content_hash": "99334726611ccf58a148b0814696bfa6fe08c1b2d027e946beccf5a74331c9aa",
+          "projection": {
+            "type": "object"
+          },
+          "projection_diagnostics": [
+            {
+              "code": "contract_projection_loss",
+              "keyword": "additionalProperties",
+              "pointer": "/paths/~1v1~1invoices/get/requestBody/content/application~1x-www-form-urlencoded/schema/additionalProperties",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            }
+          ],
+          "shared_definitions": true
+        }
+      }
+    ],
+    "default_media_type": "application/x-www-form-urlencoded"
+  },
+  "responses": {
+    "200": {
+      "description": "Successful response.",
+      "representations": [
+        {
+          "media_type": "application/json",
+          "schema": {
+            "dialect": "https://spec.openapis.org/oas/3.0/schema/2021-09-28",
+            "raw": {
+              "type": "object",
+              "title": "InvoicesResourceList",
+              "required": [
+                "data",
+                "has_more",
+                "object",
+                "url"
+              ],
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "pattern": "^/v1/invoices",
+                  "maxLength": 5000,
+                  "description": "The URL where this list can be accessed."
+                },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/invoice"
+                  }
+                },
+                "object": {
+                  "enum": [
+                    "list"
+                  ],
+                  "type": "string",
+                  "description": "String representing the object's type. Objects of the same type share the same value. Always has the value `list`."
+                },
+                "has_more": {
+                  "type": "boolean",
+                  "description": "True if this list has another page of items after this one that can be fetched."
+                }
+              },
+              "description": "",
+              "x-expandableFields": [
+                "data"
+              ]
+            },
+            "content_hash": "0417d3c071f42c71c04a0b40ed051c9e38372dee9b888c03372d1ee471ba222b",
+            "projection": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/invoice"
+                  }
+                },
+                "has_more": {
+                  "type": "boolean"
+                },
+                "object": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "data",
+                "has_more",
+                "object",
+                "url"
+              ]
+            },
+            "projection_diagnostics": [
+              {
+                "code": "contract_projection_loss",
+                "keyword": "enum",
+                "pointer": "/paths/~1v1~1invoices/get/responses/200/content/application~1json/schema/properties/object/enum",
+                "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+              },
+              {
+                "code": "contract_projection_loss",
+                "keyword": "maxLength",
+                "pointer": "/paths/~1v1~1invoices/get/responses/200/content/application~1json/schema/properties/url/maxLength",
+                "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+              },
+              {
+                "code": "contract_projection_loss",
+                "keyword": "pattern",
+                "pointer": "/paths/~1v1~1invoices/get/responses/200/content/application~1json/schema/properties/url/pattern",
+                "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+              }
+            ],
+            "shared_definitions": true
+          }
+        }
+      ]
+    },
+    "default": {
+      "description": "Error response.",
+      "representations": [
+        {
+          "media_type": "application/json",
+          "schema": {
+            "dialect": "https://spec.openapis.org/oas/3.0/schema/2021-09-28",
+            "raw": {
+              "$ref": "#/$defs/error"
+            },
+            "content_hash": "aed3466e3d2e24369bf7f08d315ae9671ddd31cdc7919c06cb418f38df3e5772",
+            "projection": {
+              "$ref": "#/components/schemas/error"
+            },
+            "shared_definitions": true
+          }
+        }
+      ]
+    }
+  },
+  "provider_protocol": "rest"
+}

@@ -1,0 +1,24 @@
+{
+  "name": "GitLab",
+  "slug": "@martins-joseph/gitlab",
+  "base_url": "https://gitlab.com/",
+  "servers": [
+    {
+      "url": "https://gitlab.com/"
+    }
+  ],
+  "auth_configs": [
+    {
+      "name": "access_token_header",
+      "type": "apiKey",
+      "location": "header",
+      "key_name": "PRIVATE-TOKEN"
+    },
+    {
+      "name": "access_token_query",
+      "type": "apiKey",
+      "location": "query",
+      "key_name": "private_token"
+    }
+  ]
+}

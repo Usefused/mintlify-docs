@@ -1,0 +1,45 @@
+{
+  "config_key": "unified_app:welcome-member:1.0.0",
+  "source_hash": "sha256:6b894d75957cc5351778a4eaae86420579b5d3e5ea9ffaf008ce923bbe665ca8",
+  "created_at": "2026-10-16T14:09:37Z",
+  "summary": {
+    "create_execution": true,
+    "runtime_buckets": null,
+    "services": [
+      {
+        "auth": {
+          "name": "bearerAuth",
+          "type": "bearer"
+        },
+        "name": "Resend",
+        "operations_added": [
+          "postEmails"
+        ],
+        "operations_removed": null,
+        "version": "1.5.0"
+      }
+    ],
+    "update_execution": false
+  },
+  "notifications": {
+    "items": null,
+    "warnings": null
+  },
+  "required_permissions": [
+    {
+      "permission": "app.unified_app.create",
+      "resource_type": "workspace",
+      "display_name": "workspace"
+    },
+    {
+      "permission": "bucket.use",
+      "resource_type": "bucket",
+      "display_name": "default"
+    },
+    {
+      "permission": "service.consume",
+      "resource_type": "service",
+      "display_name": "Resend"
+    }
+  ]
+}

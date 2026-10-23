@@ -1,0 +1,10 @@
+apiVersion: fused/v1
+kind: unified_app
+name: currency-quote-demo
+version: "1.0.1"
+bucket: default
+source_path: currency-quote.ts
+services:
+  frankfurter:
+    version: "2.1.1"
+    operations: [getRate]

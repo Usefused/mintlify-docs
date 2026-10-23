@@ -1,0 +1,35 @@
+Create a Unified App from a natural-language goal by default, or explicitly request SDK, MCP, or REST output.
+
+Unified App describe drafts TypeScript using exact selected operation contracts, shows the
+source for review, then sends the selected App cart to Fused for compilation and deployment.
+
+Use --update <app-name> or name an existing app in an update goal. Updates resolve a local
+config (use -f to disambiguate), preserve its settings, and publish an immutable successor.
+Sequential runtime intent is authored as one Unified App execute function.
+
+Describe uses Jev through Fused Registry to select operations from search intent and operation names/descriptions.
+No additional API key is required. Describe resolves exact selections before showing its proposal.
+If a Unified App, SDK, or MCP goal asks to receive provider events, describe also creates or reuses
+a webhook registration and attaches it to the app. Direct REST apps cannot receive webhook events.
+Every proposal requires interactive terminal confirmation before changes are applied.
+
+Usage:
+  fused-cli describe <goal> [flags]
+
+Flags:
+      --bucket string     Existing bucket to bind to the app
+  -h, --help              help for describe
+      --kind string       Constrain the primary output to unified, sdk, mcp, or rest
+  -l, --language string   Override the generated SDK language
+  -n, --name string       Override the suggested app name
+      --update string     Update an existing app by name, preserving its local config
+  -v, --version string    App version (default "1.0.0")
+
+Global Flags:
+      --engine-url string   Fused URL (overrides config & FUSED_ENGINE_URL)
+  -f, --file string         Path to a Fused config file, or init/extend target (disables .fused/ discovery)
+      --key string          Fused credential (overrides saved login, FUSED_API_KEY & FUSED_LICENSE_KEY)
+      --no-input            Fail instead of prompting for input (also enabled by CI=true)
+      --readme              Print the CLI onboarding README and exit
+      --request-id string   Attach an audit correlation ID to Fused requests
+      --timeout duration    Maximum duration for a Fused request (spec imports default to 20m and contract refresh defaults to 10m unless set) (default 1m0s)

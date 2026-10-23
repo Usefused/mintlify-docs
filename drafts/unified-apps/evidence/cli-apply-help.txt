@@ -1,0 +1,19 @@
+Apply a Unified App plan
+
+Usage:
+  fused-cli unified-app apply [flags]
+
+Flags:
+  -h, --help             help for apply
+      --json             Print apply receipt as JSON
+      --plan-id string   Apply a specific remote plan ID
+      --receipt string   Read a plan receipt from this path
+
+Global Flags:
+      --engine-url string   Fused Engine URL (overrides config & FUSED_ENGINE_URL)
+  -f, --file string         Path to a Fused config file, or init/extend target (disables .fused/ discovery)
+      --key string          Engine credential (overrides saved login, FUSED_API_KEY & FUSED_LICENSE_KEY)
+      --no-input            Fail instead of prompting for input (also enabled by CI=true)
+      --readme              Print the CLI onboarding README and exit
+      --request-id string   Attach an audit correlation ID to Engine requests
+      --timeout duration    Maximum duration for an Engine request (spec imports default to 20m and contract refresh defaults to 10m unless set) (default 1m0s)

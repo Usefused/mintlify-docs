@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --import ./fused-test-loader.mjs --test billing-brief.test.mjs"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}

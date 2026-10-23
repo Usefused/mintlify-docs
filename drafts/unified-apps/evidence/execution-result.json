@@ -1,0 +1,14 @@
+{
+  "version": "1.0.1",
+  "status": "succeeded",
+  "mode": "live",
+  "output": {
+    "base": "EUR",
+    "rate": 1.1589,
+    "quote": "USD",
+    "amount": 100,
+    "rateDate": "2026-03-25",
+    "convertedAmount": 115.89
+  },
+  "httpStatus": 200
+}

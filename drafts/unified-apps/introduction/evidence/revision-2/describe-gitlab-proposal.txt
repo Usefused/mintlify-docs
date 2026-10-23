@@ -1,0 +1,83 @@
+Describe proposal: Unified App escalate-support version 1.0.0
+TypeScript source (Fused compiled):
+import { z } from "zod";
+import { buildUnifiedApp } from "@fused/unified-app";
+import { fused } from "@fused/operations";
+
+const GitLabIssueResponseSchema = z.object({
+  id: z.number().int(),
+  web_url: z.string(),
+});
+
+const ResendEmailResponseSchema = z.object({
+  id: z.string().optional(),
+});
+
+const IdempotencyKeySchema = z.string().max(256);
+
+export default buildUnifiedApp({
+  input: z.object({
+    caseId: z.string().min(1),
+    title: z.string().min(1),
+    details: z.string(),
+    requesterEmail: z.string().email(),
+    projectId: z.string().min(1),
+  }),
+  output: z.object({
+    issueId: z.string(),
+    issueUrl: z.string(),
+    notification: z.enum(["accepted", "needs_attention"]),
+  }),
+  async execute({ input }) {
+    // Create the escalation once; GitLab failures propagate and issue creation is never retried here.
+    const rawIssue = await fused.gitlab.postApiV4ProjectsIdIssues({
+      id: input.projectId,
+      title: `${input.caseId}: ${input.title}`,
+      description: `Support case: ${input.caseId}\nRequester: ${input.requesterEmail}\n\n${input.details}`,
+    });
+
+    // Validate provider data before using the issue identifier or URL in the notification.
+    const issue = GitLabIssueResponseSchema.parse(rawIssue);
+    const issueId = String(issue.id);
+    const idempotencyKey = IdempotencyKeySchema.parse(
+      `support-escalation-issue-${issueId}`,
+    );
+
+    try {
+      // The issue-derived key helps Resend deduplicate this notification without implying exactly-once issue creation.
+      const rawNotification = await fused.resend.postEmails({
+        "Idempotency-Key": idempotencyKey,
+        from: "Fused <onboarding@resend.dev>",
+        to: "delivered@resend.dev",
+        subject: `Support escalation: ${input.caseId}`,
+        text: `A support escalation issue has been created:\n${issue.web_url}`,
+      });
+
+      // A missing email id is a recoverable notification problem because the GitLab issue already exists.
+      const notification = ResendEmailResponseSchema.parse(rawNotification);
+      if (!notification.id) {
+        return {
+          issueId,
+          issueUrl: issue.web_url,
+          notification: "needs_attention" as const,
+        };
+      }
+
+      return {
+        issueId,
+        issueUrl: issue.web_url,
+        notification: "accepted" as const,
+      };
+    } catch {
+      // Do not recreate the issue when notification delivery throws or returns a malformed response.
+      return {
+        issueId,
+        issueUrl: issue.web_url,
+        notification: "needs_attention" as const,
+      };
+    }
+  },
+});
+  - @martins-joseph/gitlab@v4: postApiV4ProjectsIdIssues
+  - resend@1.5.0: postEmails
+Apply this proposed Fused configuration? [Y/n] 

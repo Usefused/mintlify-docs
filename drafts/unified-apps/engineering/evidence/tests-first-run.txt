@@ -1,0 +1,27 @@
+(node:14810) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///private/tmp/fused-engineering-blog-demo/billing-brief.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /private/tmp/fused-engineering-blog-demo/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ successful empty pages are complete evidence (2.371541ms)
+✔ provider requests are scoped and bounded (0.514208ms)
+✔ invoice failure preserves subscription history (0.224958ms)
+✔ subscription failure preserves open invoices (0.196875ms)
+✔ two failures produce unavailable coverage (0.127291ms)
+✔ additional pages make coverage partial (0.172458ms)
+✔ missing has_more invalidates a page (0.897834ms)
+✔ empty page with continuation is invalid (0.388ms)
+✔ oversized provider pages are rejected (0.362167ms)
+✔ cross-customer records never reach the caller (0.298791ms)
+✔ non-open invoices invalidate the invoice section (0.179041ms)
+✔ projection drops contact data and preserves nullable due dates (0.162084ms)
+✔ blank customer input triggers zero provider calls (0.763333ms)
+✔ mixed currencies retain their own amounts (0.192708ms)
+✔ independent reads start concurrently (0.174083ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 122.250292

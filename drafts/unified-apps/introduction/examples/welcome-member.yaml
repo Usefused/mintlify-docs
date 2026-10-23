@@ -1,0 +1,10 @@
+apiVersion: fused/v1
+kind: unified_app
+name: welcome-member
+version: "1.0.0"
+bucket: default
+source_path: welcome-member.ts
+services:
+  resend:
+    version: "1.5.0"
+    operations: [postEmails]

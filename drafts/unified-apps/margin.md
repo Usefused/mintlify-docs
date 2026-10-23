@@ -1,9 +1,3 @@
----
-title: "Build reusable actions with Fused Unified Apps"
-sidebarTitle: "Unified Apps"
-description: "Host your integration logic once, call it from products and agents, and keep provider changes behind a stable contract."
----
-
 A **Fused Unified App** turns integration logic into a hosted action. Define its input and output, choose the API operations it can use, and write the TypeScript that connects them. Your product, jobs, and agents can share the same implementation.
 
 That gives you one place to validate data, combine API calls, and adapt when a provider changes. Keep the action's contract stable, and your callers can keep working while you update the implementation behind it.
@@ -12,22 +6,11 @@ That gives you one place to validate data, combine API calls, and adapt when a p
 
 Build a currency quote app from an empty form: search for a service, select its operation, enter the configuration and TypeScript, then compile, deploy, and inspect a successful execution.
 
-<video controls playsInline preload="metadata" poster="/images/blog/unified-apps/video-poster.jpg" aria-label="Creating and inspecting a currency quote Unified App">
-  <source src="/videos/unified-apps/create-and-use.mp4" type="video/mp4" />
-  <track kind="captions" src="/videos/unified-apps/captions.vtt" srcLang="en" label="English" />
-  Your browser does not support embedded video. [Download the walkthrough](/videos/unified-apps/create-and-use.mp4).
-</video>
+[Video src="https://usefused.com/docs/videos/unified-apps/create-and-use.mp4" caption="Build and inspect a currency quote Unified App in 43 seconds."]
 
 *Actual UI recording at normal scale, with click highlights and captions. Pauses, credential setup, and the REST call are omitted; the new execution receipt is shown afterward.*
 
-<CardGroup cols={2}>
-  <Card title="Create your Fused account" icon="user-plus" href="https://usefused.com/signup">
-    Register and set up a Fused Cloud workspace.
-  </Card>
-  <Card title="Set up your workspace" icon="rocket" href="https://usefused.com/docs/setup/fused-cloud">
-    Follow the hosted workspace setup guide, then open your Engine.
-  </Card>
-</CardGroup>
+[Create your Fused account](https://usefused.com/signup) · [Set up your workspace](https://usefused.com/docs/setup/fused-cloud)
 
 ## Why put the workflow in a Unified App?
 
@@ -56,7 +39,9 @@ Our example accepts an amount, two currencies, and a date. It asks Frankfurter f
 }
 ```
 
+[Callout tone="note"]
 This is a display-oriented example using public reference rates. The two-decimal calculation keeps the walkthrough small; a financial ledger needs its own decimal arithmetic and currency-specific rounding rules.
+[/Callout]
 
 ## Create the app
 
@@ -89,13 +74,13 @@ The service version and operation must be available in your workspace. This sele
 
 Save the linked source beside it as `currency-quote.ts`. The schema describes the business action; the provider call stays inside its implementation.
 
-<Accordion title="View the complete TypeScript source">
 
 ```typescript
 import { z } from "zod";
 import { buildUnifiedApp } from "@fused/unified-app";
 import { fused } from "@fused/operations";
 
+// Reject malformed provider data before calculating the quote.
 const rateSchema = z.object({
   base: z.string(),
   quote: z.string(),
@@ -104,12 +89,14 @@ const rateSchema = z.object({
 });
 
 export default buildUnifiedApp({
+  // Validate the caller contract before any provider request runs.
   input: z.object({
     amount: z.number().nonnegative(),
     base: z.string().length(3),
     quote: z.string().length(3),
     date: z.string().date(),
   }),
+  // Keep the hosted action response consistent for every consumer.
   output: z.object({
     amount: z.number(),
     base: z.string(),
@@ -125,6 +112,7 @@ export default buildUnifiedApp({
       quote: input.quote,
       date: input.date,
     });
+    // Enforce the provider contract before using its rate.
     const rate = rateSchema.parse(response);
     return {
       amount: input.amount,
@@ -138,9 +126,8 @@ export default buildUnifiedApp({
 });
 ```
 
-</Accordion>
 
-![The Unified App editor showing the typed currency quote input and output](/images/blog/unified-apps/workflow-code.jpg)
+[Image src="https://usefused.com/docs/images/blog/unified-apps/workflow-code.jpg" alt="The Unified App editor showing the typed currency quote input and output" frame="border" width="full"]
 
 The input schema rejects a negative amount before the function performs the lookup. The provider schema validates the returned rate before calculation. The output schema defines the result your clients receive. `rateDate` comes from the provider response, so the client can see the date of the returned reference rate.
 
@@ -153,7 +140,7 @@ fused-cli app plan -f .fused/unified_app/currency-quote.yaml --json
 fused-cli app apply -f .fused/unified_app/currency-quote.yaml --json
 ```
 
-![Successful validation with the selected Frankfurter operation and the separate deploy action](/images/blog/unified-apps/ready-to-deploy.jpg)
+[Image src="https://usefused.com/docs/images/blog/unified-apps/ready-to-deploy.jpg" alt="Successful validation with the selected Frankfurter operation and the separate deploy action" frame="border" width="full"]
 
 Review the plan before applying it. Fused compiles the linked source during `plan` and hosts it after `apply`. Keep the one-time execution token private. For a direct Unified App invocation, use the stable app family ID and `"operation":"execute"`; the family resolves to the version currently receiving traffic.
 
@@ -167,9 +154,11 @@ curl --request POST \
   --data '{"operation":"execute","input":{"amount":100,"base":"EUR","quote":"USD","date":"2026-03-25"}}'
 ```
 
+[Callout tone="warning"]
 Keep this authenticated call on a trusted backend. An execution token is a credential; do not put it in browser code, screenshots, or committed examples.
+[/Callout]
 
-Check the execution's `status` before using `output`. A queued or running call may return HTTP 202; retain its read handle and fetch the result rather than treating acceptance as completion. See the [execution request and result flow](https://usefused.com/docs/app/unified-apps/results-and-debugging#read-a-result).
+Check the execution's `status` before using `output`. A queued or running call may return HTTP 202; retain its read handle and fetch the result rather than treating acceptance as completion. See the [execution request and result flow](https://usefused.com/docs/app/unified-apps/results-and-debugging).
 
 For the sample input, the successful execution returned this `output`:
 
@@ -184,7 +173,7 @@ For the sample input, the successful execution returned this `output`:
 }
 ```
 
-![The successful currency quote execution and its runtime phases in Fused](/images/blog/unified-apps/execution-success.jpg)
+[Image src="https://usefused.com/docs/images/blog/unified-apps/execution-success.jpg" alt="The successful currency quote execution and its runtime phases in Fused" frame="border" width="full"]
 
 An app's **Requests** view lets you inspect the execution. Private diagnostics can include original inputs and provider responses, so access is permission-controlled. Use synthetic data for a shareable walkthrough and keep private diagnostics out of public recordings.
 

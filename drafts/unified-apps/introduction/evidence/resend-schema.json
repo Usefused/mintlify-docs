@@ -1,0 +1,351 @@
+{
+  "name": "postEmails",
+  "path": "/emails",
+  "method": "POST",
+  "description": "Send an email",
+  "security_requirements": [
+    {
+      "schemes": [
+        {
+          "scheme": "bearerAuth",
+          "scopes": []
+        }
+      ]
+    },
+    {
+      "schemes": [
+        {
+          "scheme": "resendOAuth",
+          "scopes": [
+            "full_access"
+          ]
+        }
+      ]
+    },
+    {
+      "schemes": [
+        {
+          "scheme": "resendOAuth",
+          "scopes": [
+            "emails:send"
+          ]
+        }
+      ]
+    }
+  ],
+  "documentation": {
+    "summary": "Send an email",
+    "tags": [
+      "Emails"
+    ]
+  },
+  "stable_key": "rest:POST:/emails",
+  "version": "1.5.0",
+  "normalized_path": "/emails",
+  "deprecated": false,
+  "parameters": [
+    {
+      "name": "Idempotency-Key",
+      "in": "header",
+      "required": false,
+      "type": "string",
+      "description": "A unique identifier for the request to ensure emails are only sent once. [Learn more](https://resend.com/docs/dashboard/emails/idempotency-keys)"
+    }
+  ],
+  "request_content": {
+    "representations": [
+      {
+        "media_type": "application/json",
+        "serialization": "json",
+        "schema": {
+          "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+          "raw": {
+            "$ref": "#/$defs/SendEmailRequest",
+            "$defs": {
+              "Tag": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the email tag. It can only contain ASCII letters (a\u2013z, A\u2013Z), numbers (0\u20139), underscores (_), or dashes (-). It can contain no more than 256 characters."
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "The value of the email tag.It can only contain ASCII letters (a\u2013z, A\u2013Z), numbers (0\u20139), underscores (_), or dashes (-). It can contain no more than 256 characters."
+                  }
+                }
+              },
+              "Attachment": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Path where the attachment file is hosted"
+                  },
+                  "content": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Content of an attached file."
+                  },
+                  "filename": {
+                    "type": "string",
+                    "description": "Name of attached file."
+                  },
+                  "content_id": {
+                    "type": "string",
+                    "description": "Content ID for embedding inline images using cid references (e.g., cid:image001)."
+                  },
+                  "content_type": {
+                    "type": "string",
+                    "description": "Optional content type for the attachment, if not set it will be derived from the filename property"
+                  }
+                }
+              },
+              "SendEmailRequest": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "to",
+                  "subject"
+                ],
+                "properties": {
+                  "cc": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Cc recipient email address. For multiple addresses, send as an array of strings."
+                  },
+                  "to": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 50,
+                        "minItems": 1
+                      }
+                    ],
+                    "description": "Recipient email address. For multiple addresses, send as an array of strings. Max 50."
+                  },
+                  "bcc": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Bcc recipient email address. For multiple addresses, send as an array of strings."
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "Sender email address. To include a friendly name, use the format \"Your Name <sender@domain.com>\"."
+                  },
+                  "html": {
+                    "type": "string",
+                    "description": "The HTML version of the message."
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/Tag"
+                    }
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "The plain text version of the message."
+                  },
+                  "headers": {
+                    "type": "object",
+                    "description": "Custom headers to add to the email."
+                  },
+                  "subject": {
+                    "type": "string",
+                    "description": "Email subject."
+                  },
+                  "reply_to": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Reply-to email address. For multiple addresses, send as an array of strings."
+                  },
+                  "template": {
+                    "allOf": [
+                      {
+                        "$ref": "#/$defs/EmailTemplateInput"
+                      },
+                      {
+                        "description": "Use a published template to send the email. If provided, do not include html or text."
+                      }
+                    ]
+                  },
+                  "topic_id": {
+                    "type": "string",
+                    "description": "The topic ID to scope the email to. If the recipient is a contact and opted-in to the topic, the email is sent. If opted-out, the email is not sent. If the recipient is not a contact, the email is sent if the topic's default subscription is opt_in."
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/Attachment"
+                    }
+                  },
+                  "scheduled_at": {
+                    "type": "string",
+                    "description": "Schedule email to be sent later. The date should be in ISO 8601 format."
+                  }
+                }
+              },
+              "EmailTemplateInput": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "The id of the published email template."
+                  },
+                  "variables": {
+                    "type": "object",
+                    "example": {
+                      "variableName": "Sign up now",
+                      "variableName2": 123
+                    },
+                    "description": "Template variables object with key/value pairs.",
+                    "additionalProperties": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "content_hash": "a27d4ba4a5c7ca71ed9246ed8956ea1dc9fd235e67f06a4efb3083f0f15d7588",
+          "projection": {
+            "$ref": "#/components/schemas/SendEmailRequest"
+          },
+          "projection_diagnostics": [
+            {
+              "code": "contract_projection_loss",
+              "keyword": "additionalProperties",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/EmailTemplateInput/properties/variables/additionalProperties",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "oneOf",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/EmailTemplateInput/properties/variables/additionalProperties/oneOf",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "oneOf",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/SendEmailRequest/properties/bcc/oneOf",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "oneOf",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/SendEmailRequest/properties/cc/oneOf",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "oneOf",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/SendEmailRequest/properties/reply_to/oneOf",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "allOf",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/SendEmailRequest/properties/template/allOf",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "oneOf",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/SendEmailRequest/properties/to/oneOf",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "maxItems",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/SendEmailRequest/properties/to/oneOf/1/maxItems",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            },
+            {
+              "code": "contract_projection_loss",
+              "keyword": "minItems",
+              "pointer": "/paths/~1emails/post/requestBody/content/application~1json/schema/$defs/SendEmailRequest/properties/to/oneOf/1/minItems",
+              "message": "Canonical raw schema preserves semantics not enforced by the bounded projection."
+            }
+          ]
+        }
+      }
+    ],
+    "default_media_type": "application/json"
+  },
+  "responses": {
+    "200": {
+      "description": "OK",
+      "representations": [
+        {
+          "media_type": "application/json",
+          "schema": {
+            "dialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+            "raw": {
+              "$ref": "#/$defs/SendEmailResponse",
+              "$defs": {
+                "SendEmailResponse": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The ID of the sent email."
+                    }
+                  }
+                }
+              }
+            },
+            "content_hash": "ab96f89ee577e9917c0d8342709c5fa7fab61117d8e1956c5fe7fcc6ddb51e8c",
+            "projection": {
+              "$ref": "#/components/schemas/SendEmailResponse"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "provider_protocol": "rest"
+}

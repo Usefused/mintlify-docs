@@ -1,0 +1,126 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://usefused.com/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Unified Apps
+
+> Write an action once. Host it in Fused and call it from your product or agent.
+
+A Unified App is a reusable action that runs on Fused. It combines your logic with calls to one or more services, giving your product or agent one action to call.
+
+For example, an **onboard customer** action could create a customer in your CRM, send a welcome email, and return the new customer's ID.
+
+Use it to keep a workflow in one place and reuse it across your products and agents. You define its inputs, steps, and result in TypeScript. Fused hosts the action and supplies credentials for the service operations you allow it to use.
+
+## Create your first app
+
+Start with a [configured CLI](/docs/quickstart#sign-in) and [your service credentials in the `default` bucket](/docs/bucket/store-credentials). You need access to create apps and use that bucket.
+
+<Steps>
+  <Step title="Start with a prompt or code">
+    To have Fused draft the files, run this in an interactive terminal:
+
+    ```bash theme={null}
+    fused-cli describe --name customer-app --bucket default \
+      "Use my CRM to create a customer. Accept name and email as strings. Return customerId as a string."
+    ```
+
+    Fused finds the service and operation, then drafts the TypeScript and YAML for you. Review its proposal and confirm to deploy.
+
+    To write the app yourself, save these two files as `customer-app.ts` and `customer-app.yaml` in `.fused/unified_app/`:
+
+    <CodeGroup>
+      ```typescript TypeScript theme={null}
+      import * as z from "zod/mini";
+      import { buildUnifiedApp } from "@fused/unified-app";
+      import { services } from "@fused/operations";
+
+      export default buildUnifiedApp({
+        input: z.object({ name: z.string(), email: z.string() }),
+        output: z.object({ customerId: z.string() }),
+        // Expose one customer-creation action through the selected provider operation.
+        async execute({ input }) {
+          const customer = await services["@your-provider/crm"].createCustomer({
+            name: input.name,
+            email: input.email,
+          });
+          return { customerId: customer.id };
+        },
+      });
+      ```
+
+      ```yaml YAML theme={null}
+      apiVersion: fused/v1
+      kind: unified_app
+      name: customer-app
+      version: "1.0.0"
+      bucket: default
+      source_path: customer-app.ts
+      services:
+        "@your-provider/crm":
+          version: "2026-01-01"
+          operations: [createCustomer]
+      ```
+    </CodeGroup>
+
+    This example assumes a CRM operation that accepts `name` and `email` and returns `id`. Replace `@your-provider/crm`, the service version, and operation with the [exact values in your workspace](/docs/workspace/enable-a-service). Use the same service reference in both files.
+  </Step>
+
+  <Step title="Deploy your files">
+    If you wrote the files yourself, review the plan and apply it:
+
+    ```bash theme={null}
+    fused-cli app plan -f .fused/unified_app/customer-app.yaml
+    fused-cli app apply -f .fused/unified_app/customer-app.yaml
+    ```
+
+    If you already confirmed deployment through `describe`, continue to the call below.
+
+    Save the returned **app family ID** (`app_family_id`) and **execution token**. The token is shown once. Deployment does not create a customer; calling the app does.
+  </Step>
+
+  <Step title="Call your app">
+    Set `FUSED_ENGINE_URL` to your Engine's HTTP address. Use the app family ID and execution token from deployment for `FUSED_APP_FAMILY_ID` and `FUSED_APP_TOKEN`.
+
+    ```bash theme={null}
+    curl -X POST "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions" \
+      -H "Authorization: Bearer $FUSED_APP_TOKEN" \
+      -H 'Content-Type: application/json' \
+      -d '{"operation":"execute","input":{"name":"Jane","email":"jane@example.com"}}'
+    ```
+
+    A successful response includes:
+
+    ```json theme={null}
+    {
+      "status": "succeeded",
+      "output": { "customerId": "cus_123" }
+    }
+    ```
+
+    `output` is what your function returns. If the response is still queued or running, [retrieve the result](/docs/app/unified-apps/results-and-debugging#read-a-result).
+  </Step>
+</Steps>
+
+## Keep building
+
+<CardGroup cols={2}>
+  <Card title="Write the code yourself" icon="code" href="/docs/app/unified-apps/write-code">
+    Create the two files: TypeScript for the action and YAML for its selected operations.
+  </Card>
+
+  <Card title="Update or roll back" icon="code-branch" href="/docs/app/unified-apps/versions">
+    Deploy a change or switch traffic to a previous version.
+  </Card>
+
+  <Card title="Call from an SDK or MCP" icon="plug" href="/docs/app/unified-apps/use-from-apps">
+    Reuse the same action in another app or agent.
+  </Card>
+
+  <Card title="Read results and debug" icon="magnifying-glass" href="/docs/app/unified-apps/results-and-debugging">
+    Retrieve pending results and inspect failed requests.
+  </Card>
+</CardGroup>
+
+
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

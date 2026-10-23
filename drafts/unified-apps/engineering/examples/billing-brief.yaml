@@ -1,0 +1,11 @@
+apiVersion: fused/v1
+kind: unified_app
+name: billing-support-brief
+version: "1.0.0"
+bucket: default
+source_path: billing-brief.ts
+services:
+  "stripe":
+    version: "2026-07-29.dahlia"
+    # The support action must not be able to change subscriptions or collect payments.
+    operations: [GetSubscriptions, GetInvoices]

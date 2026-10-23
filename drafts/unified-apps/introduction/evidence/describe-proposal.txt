@@ -1,0 +1,41 @@
+Describe proposal: Unified App welcome-member version 1.0.0
+TypeScript source (Fused compiled):
+import { z } from "zod";
+import { buildUnifiedApp } from "@fused/unified-app";
+import { fused } from "@fused/operations";
+
+const sendEmailResponseSchema = z.object({
+  id: z.string().optional(),
+});
+
+export default buildUnifiedApp({
+  input: z.object({
+    email: z.string(),
+    displayName: z.string(),
+  }),
+  output: z.object({
+    messageId: z.string(),
+  }),
+  async execute({ input }) {
+    // Send a plain-text welcome email using Engine-managed Resend credentials.
+    const response = await fused.resend.postEmails({
+      from: "Fused <onboarding@resend.dev>",
+      to: input.email,
+      subject: "Welcome aboard",
+      text: `Welcome aboard, ${input.displayName}!`,
+    });
+
+    const parsedResponse = sendEmailResponseSchema.parse(response);
+
+    // The contract permits an omitted id, but a messageId cannot be returned without it.
+    if (parsedResponse.id === undefined) {
+      throw new Error("Resend response did not include an email id");
+    }
+
+    return {
+      messageId: parsedResponse.id,
+    };
+  },
+});
+  - resend@1.5.0: postEmails
+Apply this proposed Fused configuration? [Y/n] 

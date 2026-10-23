@@ -1,0 +1,19 @@
+apiVersion: fused/v1
+kind: unified_app
+name: escalate-support
+version: "1.0.0"
+bucket: default
+source_path: escalate-support.ts
+services:
+  github:
+    version: "2026-03-10"
+    operations: [createIssue]
+    auth:
+      type: bearer
+      name: bearerAuth
+  resend:
+    version: "1.5.0"
+    operations: [postEmails]
+    auth:
+      type: bearer
+      name: bearerAuth

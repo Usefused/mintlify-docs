@@ -1,0 +1,223 @@
+# Build reusable actions with Fused Unified Apps
+
+A **Fused Unified App** turns integration logic into a hosted action. Define its input and output, choose the API operations it can use, and write the TypeScript that connects them. Your product, jobs, and agents can share the same implementation.
+
+That gives you one place to validate data, combine API calls, and adapt when a provider changes. Keep the action's contract stable, and your callers can keep working while you update the implementation behind it.
+
+## Watch a Unified App come together
+
+Build a currency quote app from an empty form: search for a service, select its operation, enter the configuration and TypeScript, then compile, deploy, and inspect a successful execution.
+
+[Watch the 43-second UI recording](../../videos/unified-apps/create-and-use.mp4)
+
+![Live app creation in Fused](../../images/blog/unified-apps/video-poster.jpg)
+
+*Actual UI recording at normal scale, with click highlights and captions. Pauses, credential setup, and the REST call are omitted; the new execution receipt is shown afterward.*
+
+[Create your Fused account](https://usefused.com/signup) · [Set up your workspace](https://usefused.com/docs/setup/fused-cloud)
+
+## Why put the workflow in a Unified App?
+
+| Opportunity | What it gives you |
+| --- | --- |
+| Reuse across products and agents | One hosted implementation, callable over REST or through SDK and MCP consumers. |
+| Change providers | Update provider calls and response mapping while preserving the contract your internal systems use. |
+| Shape APIs around your product | Validate inputs, combine operations, and return the result your callers need. |
+| Control access and releases | Select exact operations, resolve credentials through Fused, and deploy immutable versions. |
+| Understand failures | Inspect execution receipts and permission-controlled diagnostics. |
+
+For example, an expense system can call `currencyQuote` without depending on Frankfurter's response format. Replacing that provider means adapting and testing the Unified App, while preserving the input fields, output meanings, and behavior the expense system expects. Direct REST callers retain the family URL; pinned SDK and MCP consumers need a coordinated version update.
+
+See the [Unified Apps guide](https://usefused.com/docs/app/unified-apps) for the execution and versioning contracts.
+
+## Start with a currency quote
+
+Our example accepts an amount, two currencies, and a date. It asks Frankfurter for the exchange rate, then returns the converted amount and the date associated with the rate. The caller does not need to know the provider route or repeat the calculation.
+
+```json
+{
+  "amount": 100,
+  "base": "EUR",
+  "quote": "USD",
+  "date": "2026-03-25"
+}
+```
+
+This is a display-oriented example using public reference rates. The two-decimal calculation keeps the walkthrough small; a financial ledger needs its own decimal arithmetic and currency-specific rounding rules.
+
+## Create the app
+
+You need a Fused workspace, permission to create Unified Apps, and access to the selected service and bucket. You can draft the app from a goal, or author its configuration and TypeScript directly.
+
+[Goal-based creation](https://usefused.com/docs/app/from-a-prompt) resolves operations and proposes source for review. Review the selected operations, input validation, and output before applying. Applying creates the hosted app; invoking it later runs its provider calls.
+
+### Pick the operation, then review the source
+
+In the Engine, open **Apps → Create App → Unified App**. Use **Ask Fused** to describe the action, or select the service and write the source yourself. A useful goal is specific about the input, the operation, and the result:
+
+> Create a currency quote app using Frankfurter getRate. Accept amount, base, quote, and date. Reject negative amounts. Return the provider's rate and rate date, plus the converted amount rounded to two decimal places.
+
+The same app can be represented by two files. Save this config as `.fused/unified_app/currency-quote.yaml`:
+
+```yaml
+apiVersion: fused/v1
+kind: unified_app
+name: currency-quote-demo
+version: "1.0.1"
+bucket: default
+source_path: currency-quote.ts
+services:
+  frankfurter:
+    version: "2.1.1"
+    operations: [getRate]
+```
+
+The service version and operation must be available in your workspace. This selection gives the app one capability: `getRate`. It does not need customer records, payment operations, or a provider API key. If Frankfurter is not enabled, add the published service/version through your workspace's normal service workflow before deployment.
+
+Save the linked source beside it as `currency-quote.ts`. The schema describes the business action; the provider call stays inside its implementation.
+
+
+```typescript
+import { z } from "zod";
+import { buildUnifiedApp } from "@fused/unified-app";
+import { fused } from "@fused/operations";
+
+const rateSchema = z.object({
+  base: z.string(),
+  quote: z.string(),
+  date: z.string().date(),
+  rate: z.number().positive(),
+});
+
+export default buildUnifiedApp({
+  input: z.object({
+    amount: z.number().nonnegative(),
+    base: z.string().length(3),
+    quote: z.string().length(3),
+    date: z.string().date(),
+  }),
+  output: z.object({
+    amount: z.number(),
+    base: z.string(),
+    quote: z.string(),
+    rate: z.number(),
+    rateDate: z.string(),
+    convertedAmount: z.number(),
+  }),
+  // Validate the provider result before producing a display-oriented quote.
+  async execute({ input }) {
+    const response = await fused.frankfurter.getRate({
+      base: input.base,
+      quote: input.quote,
+      date: input.date,
+    });
+    const rate = rateSchema.parse(response);
+    return {
+      amount: input.amount,
+      base: rate.base,
+      quote: rate.quote,
+      rate: rate.rate,
+      rateDate: rate.date,
+      convertedAmount: Math.round(input.amount * rate.rate * 100) / 100,
+    };
+  },
+});
+```
+
+
+![The Unified App editor showing the typed currency quote input and output](../../images/blog/unified-apps/workflow-code.jpg)
+
+The input schema rejects a negative amount before the function performs the lookup. The provider schema validates the returned rate before calculation. The output schema defines the result your clients receive. `rateDate` comes from the provider response, so the client can see the date of the returned reference rate.
+
+## Deploy, call, and inspect
+
+In the UI, **Validate and compile** checks the source and selected operation bindings; deployment is a separate step. With the CLI, use the corresponding plan/apply workflow:
+
+```bash
+fused-cli app plan -f .fused/unified_app/currency-quote.yaml --json
+fused-cli app apply -f .fused/unified_app/currency-quote.yaml --json
+```
+
+![Successful validation with the selected Frankfurter operation and the separate deploy action](../../images/blog/unified-apps/ready-to-deploy.jpg)
+
+Review the plan before applying it. Fused compiles the linked source during `plan` and hosts it after `apply`. Keep the one-time execution token private. For a direct Unified App invocation, use the stable app family ID and `"operation":"execute"`; the family resolves to the version currently receiving traffic.
+
+Set the Engine URL, app family ID, and execution token in your calling environment, then invoke it:
+
+```bash
+curl --request POST \
+  "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions" \
+  --header "Authorization: Bearer $FUSED_APP_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data '{"operation":"execute","input":{"amount":100,"base":"EUR","quote":"USD","date":"2026-03-25"}}'
+```
+
+Keep this authenticated call on a trusted backend. An execution token is a credential; do not put it in browser code, screenshots, or committed examples.
+
+Check the execution's `status` before using `output`. A queued or running call may return HTTP 202; retain its read handle and fetch the result rather than treating acceptance as completion. See the [execution request and result flow](https://usefused.com/docs/app/unified-apps#deploy-and-call).
+
+For the sample input, the successful execution returned this `output`:
+
+```json
+{
+  "base": "EUR",
+  "rate": 1.1589,
+  "quote": "USD",
+  "amount": 100,
+  "rateDate": "2026-03-25",
+  "convertedAmount": 115.89
+}
+```
+
+![The successful currency quote execution and its runtime phases in Fused](../../images/blog/unified-apps/execution-success.jpg)
+
+An app's **Requests** view lets you inspect the execution. Private diagnostics can include original inputs and provider responses, so access is permission-controlled. Use synthetic data for a shareable walkthrough and keep private diagnostics out of public recordings.
+
+## Reuse the action
+
+A REST call is a good first consumer. An SDK or MCP server can also declare the app in its `unified_apps` map. Each attachment uses an alias and an exact app version. The hosted code keeps its own configured credential buckets; callers use the consumer's execution token.
+
+For example, a TypeScript SDK can expose the workflow as `quote`:
+
+```yaml
+apiVersion: fused/v1
+kind: sdk
+name: expense-tools
+version: "1.0.0"
+language: typescript
+bucket: default
+unified_apps:
+  quote:
+    name: currency-quote-demo
+    version: "1.0.1"
+```
+
+After planning, applying, and configuring that SDK, the generated client exposes the hosted action:
+
+```typescript
+const result = await sdk.unifiedApps.quote({
+  amount: 100,
+  base: "EUR",
+  quote: "USD",
+  date: "2026-03-25",
+});
+// An execution envelope must report success before its output is consumed.
+if (result.status !== "succeeded") {
+  throw new Error("The currency quote did not complete successfully");
+}
+console.log(result.output);
+```
+
+An MCP consumer can expose the same attachment through its `execute` tool, using `unified_app:quote` as the operation. The agent supplies the authored input; the hosted app still performs the selected provider call.
+
+These references are pinned. They do not automatically follow a traffic change. Coordinate a new consumer version with the selected app version, as described in [using a Unified App from SDK or MCP](https://usefused.com/docs/app/unified-apps#use-from-an-sdk-or-mcp-server).
+
+## Change the workflow without losing its history
+
+Publish a new immutable version when source changes. Promotion chooses which retained version receives new traffic; it does not edit or rebuild that version. Direct REST callers keep the family URL, while pinned consumer attachments need deliberate coordination.
+
+A workflow that writes to more than one provider needs more design than this read-only example. Decide which errors are retryable, how duplicate requests are identified, and what to do when an earlier write succeeds but a later one fails. Hosting that code does not remove those decisions.
+
+Start with one action your team repeats. Give it a clear contract, host it once, and share it across the places that need it.
+
+[Create your Fused account](https://usefused.com/signup) and follow the [workspace setup guide](https://usefused.com/docs/setup/fused-cloud) to build your first action.

@@ -1,0 +1,48 @@
+openapi: 3.0.3
+info:
+  title: GitHub issue creation
+  version: "2026-03-10"
+servers:
+  - url: https://api.github.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+security:
+  - bearerAuth: []
+paths:
+  /repos/{owner}/{repo}/issues:
+    post:
+      operationId: createIssue
+      summary: Create a GitHub issue
+      parameters:
+        - { name: owner, in: path, required: true, schema: { type: string } }
+        - { name: repo, in: path, required: true, schema: { type: string } }
+        - name: X-GitHub-Api-Version
+          in: header
+          schema: { type: string, enum: ["2026-03-10"], default: "2026-03-10" }
+        - name: Accept
+          in: header
+          schema: { type: string, default: application/vnd.github+json }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                body: { type: string }
+      responses:
+        "201":
+          description: Issue created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, html_url]
+                properties:
+                  id: { type: integer }
+                  html_url: { type: string, format: uri }

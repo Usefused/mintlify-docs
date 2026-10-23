@@ -1,0 +1,22 @@
+{
+  "source_hash": "a4cc1a5755aaa81eb3ac31e4750f65b3d7a83b90cce8b764edf755790b40c1a5",
+  "overlay_present": false,
+  "source_bundle_hash": "939df20e7e6af5259d45d72e4c7c2a63d86009820de700d7ea8ae915ea8813f3",
+  "review_hash": "b2f9c585b1370ab3738ed00e82c8469ad8e75988313d9fe0a6917435037d9d05",
+  "source_format": "openapi3",
+  "adapter_version": "openapi3/v6",
+  "service_id": "",
+  "slug": "github",
+  "name": "GitHub",
+  "is_new_service": true,
+  "target_version": "2026-03-10",
+  "target_type": "endpoints",
+  "action": "create_service",
+  "diff": {
+    "added": 1,
+    "changed": 0,
+    "removed": 0,
+    "changed_names": null,
+    "removed_names": null
+  }
+}

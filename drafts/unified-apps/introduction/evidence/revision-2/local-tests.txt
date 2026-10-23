@@ -1,0 +1,16 @@
+(node:33359) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ rejects invalid email before provider calls (2.905084ms)
+✔ rejects whitespace case ID before provider calls (0.426542ms)
+✔ issue failure prevents notification (0.357625ms)
+✔ creates one issue and confirms one notification (0.919459ms)
+✔ returns the issue when notification throws (0.43725ms)
+✔ missing email ID reports needs_attention (0.371291ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 110.776791

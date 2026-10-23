@@ -1,0 +1,8 @@
+[
+  {
+    "name": "GetSubscriptions",
+    "path": "/v1/subscriptions",
+    "method": "GET",
+    "description": "List subscriptions"
+  }
+]

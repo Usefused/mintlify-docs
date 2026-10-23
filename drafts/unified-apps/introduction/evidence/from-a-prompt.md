@@ -1,0 +1,90 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://usefused.com/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Create or update from a goal
+
+> Describe an outcome, review selected operations and source, and deploy a Unified App.
+
+Use `fused-cli describe` to create a hosted Unified App from a natural-language goal. The CLI resolves services and operations, drafts TypeScript, shows the proposal, and asks you to confirm before applying it. Pass `--kind sdk|mcp|rest` to create one of those outputs instead. To create one App with SDK, MCP, and REST delivery, use [`fused-cli init` without a method flag](/docs/quickstart#create-an-app).
+
+```bash theme={null}
+fused-cli describe --name customer-onboarding --bucket default \
+  "Create a Stripe customer and a HubSpot contact, then return both IDs"
+```
+
+Service discovery checks the workspace first, then searches Registry when needed. The proposal identifies the selected services, exact versions, and operations. Missing services go through the existing activation lifecycle before the app is applied.
+
+<Note>
+  `describe` requires an interactive terminal. For unattended automation, use [explicit init, extend, or plan/apply commands](/docs/advanced/control-the-workflow).
+</Note>
+
+## Update an existing app
+
+Name the app with `--update`:
+
+```bash theme={null}
+fused-cli describe --update billing-sdk "Add Stripe invoice lookup"
+```
+
+Or name it in the goal:
+
+```bash theme={null}
+fused-cli describe "Update billing-sdk to add Stripe invoice lookup"
+```
+
+| How you identify the app | How the CLI resolves it |
+| - | - |
+| `--update billing-sdk` | Finds the named SDK or MCP config under the local `.fused/` directory |
+| An update goal naming `billing-sdk` | Extracts the name, finds its local config, then interprets the goal with that app's context |
+| `-f .fused/sdks/billing.yaml` pointing to an existing config | Uses that exact file as the update target |
+
+The CLI does not send an inventory of every local app to the model or choose an unnamed SDK automatically. If the name is missing or several configs match, supply `--update` or an exact `-f` path. An update target must exist locally; a missing target stops the request instead of creating an app.
+
+Updates preserve existing selections, language, bucket, authentication configuration, and service-version pins. They add the requested capabilities to the same file and app family. A changed stable SemVer version advances to the next minor release, such as `1.2.3` to `1.3.0`. Use `--version` to choose another successor; prerelease and non-SemVer versions require it. An unchanged proposal keeps its version.
+
+```bash theme={null}
+fused-cli describe --update billing-sdk --version 2.0.0 \
+  "Add Stripe invoice lookup"
+```
+
+`describe` updates to SDK, MCP, and REST configs are additive. To remove capabilities, change routing or language, or upgrade service pins, [edit and plan the config explicitly](/docs/advanced/control-the-workflow). To update a Unified App, edit its `.fused/unified_app/<app>.tsx` source and deploy a new version with `app plan` and `app apply`.
+
+## Review the Unified App draft
+
+The proposal shows the exact selected provider operations and the
+`buildUnifiedApp` TypeScript source. Review its input schema, provider calls,
+and output before confirming. After apply, the CLI saves the source under
+`.fused/unified_app/` and prints the new immutable App version ID. See
+[author a Unified App](/docs/app/unified-apps/write-code) for the file format and deployment
+commands.
+
+Applying publishes the App; it does not run its provider calls. A later
+request to the deployed App starts an execution.
+
+## What the models receive
+
+The CLI shows processing disclosures before the corresponding requests:
+
+| Stage | Model | Data used |
+| - | - | - |
+| Intent parsing | Registry's configured language model | Your goal; for updates, the selected app's name, kind, and service names |
+| Operation selection | Jev through the licensed Fused Registry endpoint | Operation search intent, candidate operation names, and descriptions |
+| Unified App source drafting | Registry's configured language model | Your goal and the exact selected operations' Registry contracts, including parameters and request/response schemas |
+
+No additional user API key is required. The CLI does not send local bucket or authentication configuration, provider credentials, or execution payloads for drafting. Keep credentials out of the goal itself. The source draft is validated against selected operations; the normal Fused plan/apply permission and version checks still apply.
+
+## Useful flags
+
+| Flag | Purpose |
+| - | - |
+| `--update <app-name>` | Selects an existing local app for an additive update |
+| `-f <path>` | Selects an exact existing config, or a destination for a new app |
+| `--kind sdk\|mcp\|rest` | Constrains the output kind; it cannot convert an existing app |
+| `--name <name>` | Overrides a new app's suggested name; it cannot rename an existing app |
+| `--version <version>` | Sets the initial version or an explicit immutable successor |
+| `--language <language>` | Selects the generated SDK language on creation |
+| `--bucket <name>` | Selects an existing bucket on creation |
+
+
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

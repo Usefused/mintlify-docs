@@ -1,0 +1,26 @@
+{
+  "command": "fused-cli app plan -f billing-brief.yaml --no-input --json",
+  "exit_status": 0,
+  "source_hash": "sha256:bb55dfb58cea669e79c7f2b7bc3960bb02ba53cac429f2d2a743c83dc7b1e3cc",
+  "summary": {
+    "create_execution": true,
+    "runtime_buckets": null,
+    "services": [
+      {
+        "auth": {
+          "name": "bearerAuth",
+          "type": "bearer"
+        },
+        "name": "Stripe",
+        "operations_added": [
+          "GetInvoices",
+          "GetSubscriptions"
+        ],
+        "operations_removed": null,
+        "version": "2026-07-29.dahlia"
+      }
+    ],
+    "update_execution": false
+  },
+  "redactions": "Private endpoint, plan ID, timestamp and permission resource IDs omitted."
+}

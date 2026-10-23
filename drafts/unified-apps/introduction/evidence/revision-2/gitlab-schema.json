@@ -1,0 +1,74 @@
+{
+  "name": "postApiV4ProjectsIdIssues",
+  "path": "/api/v4/projects/{id}/issues",
+  "method": "POST",
+  "description": "Create an issue",
+  "security_requirements": [
+    {
+      "schemes": []
+    }
+  ],
+  "documentation": {
+    "summary": "Create an issue",
+    "description": "Creates an issue for a specified project.",
+    "tags": [
+      "projects"
+    ]
+  },
+  "stable_key": "rest:POST:/api/v4/projects/{}/issues",
+  "version": "v4",
+  "normalized_path": "/api/v4/projects/{}/issues",
+  "deprecated": false,
+  "parameters": [
+    {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "type": "string",
+      "description": "The ID or URL-encoded path of the project"
+    }
+  ],
+  "request_content": {
+    "required": true,
+    "representations": [
+      {
+        "media_type": "application/json",
+        "serialization": "json",
+        "schema": {
+          "dialect": "https://spec.openapis.org/oas/3.0/schema/2021-09-28",
+          "raw": {
+            "$ref": "#/$defs/postApiV4ProjectsIdIssues"
+          },
+          "content_hash": "08822e9e3efd9abb7e698dcfbba6f200e3a478d8c7b83f30b4e8ab8dfb86d9f4",
+          "projection": {
+            "$ref": "#/components/schemas/postApiV4ProjectsIdIssues"
+          },
+          "shared_definitions": true
+        }
+      }
+    ],
+    "default_media_type": "application/json"
+  },
+  "responses": {
+    "201": {
+      "description": "Create an issue",
+      "representations": [
+        {
+          "media_type": "application/json",
+          "schema": {
+            "dialect": "https://spec.openapis.org/oas/3.0/schema/2021-09-28",
+            "raw": {
+              "$ref": "#/$defs/API_Entities_Issue"
+            },
+            "content_hash": "ec3542454ed668ff962245ce2954ef6212118ad2493cf74b77c88994b61989aa",
+            "projection": {
+              "$ref": "#/components/schemas/API_Entities_Issue"
+            },
+            "shared_definitions": true
+          }
+        }
+      ]
+    }
+  },
+  "provider_protocol": "rest"
+}

@@ -1,0 +1,184 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://usefused.com/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Unified Apps
+
+> Combine approved services into one typed action for onboarding, fulfillment, or reporting.
+
+Combine approved services into one typed action for onboarding, fulfillment, or reporting.
+
+To draft one from a goal, use [`fused-cli describe`](/docs/app/from-a-prompt). To author it directly, save a config and a linked TypeScript file.
+
+## Select operations
+
+Create `.fused/unified_app/customer-app.yaml`:
+
+```yaml theme={null}
+apiVersion: fused/v1
+kind: unified_app
+name: customer-app
+version: "1.0.0"
+bucket: default
+source_path: customer-app.tsx
+services:
+  crm:
+    version: "2026-01-01"
+    operations: [createCustomer]
+```
+
+Select at least one exact operation. Replace the service, version, and operation with values enabled in your workspace. `source_path` is relative to the YAML file.
+
+## Write the function
+
+Create `.fused/unified_app/customer-app.tsx`:
+
+```typescript theme={null}
+import * as z from "zod/mini";
+import { buildUnifiedApp } from "@fused/unified-app";
+import { fused } from "@fused/operations";
+
+export default buildUnifiedApp({
+  input: z.object({ name: z.string() }),
+  output: z.object({ customerId: z.string() }),
+  fetch: { searchable: ["customerId"] },
+  // Keep provider calls inside the selected workspace operation set.
+  async execute({ input }) {
+    const customer = await fused.crm.createCustomer({ name: input.name });
+    await fused.db.set({ customerId: customer.id });
+    return { customerId: customer.id };
+  },
+});
+```
+
+Fused validates the input and output schemas. `fused.crm.createCustomer` runs through Fused's credential and execution policy. `fused.db.set` stores a separate execution data document; `fetch.searchable` makes the selected path searchable for callers with the read grant.
+
+## Deploy and call
+
+```bash theme={null}
+fused-cli app plan -f .fused/unified_app/customer-app.yaml --json
+fused-cli app apply -f .fused/unified_app/customer-app.yaml --json
+```
+
+Fused compiles the linked source during plan and hosts it after apply. Save the returned `app_family_id` and one-time execution token securely. Call the App through the Fused REST route:
+
+```bash theme={null}
+curl -X POST "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions" \
+  -H "Authorization: Bearer $FUSED_APP_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"execute","input":{"name":"Jane"}}'
+```
+
+Use the stable `app_family_id` UUID in the URL. Fused resolves the version receiving traffic on each request. The authored `execute` call returns an execution record:
+
+```json theme={null}
+{
+  "executionId": "<execution-uuid>",
+  "appFamilyId": "<app-family-uuid>",
+  "version": "1.0.0",
+  "status": "succeeded",
+  "mode": "live",
+  "readHandle": "<caller-held-handle>",
+  "output": { "customerId": "cus_123" },
+  "createdAt": "<timestamp>",
+  "completedAt": "<timestamp>"
+}
+```
+
+`output` is the value returned by your TypeScript function. The stored document from `fused.db.set` stays available for search and replay, but does not appear as `data` in execution responses. A queued or running execution may return HTTP 202. Keep the read handle to fetch its result:
+
+```bash theme={null}
+curl "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions/$EXECUTION_ID" \
+  -H "Authorization: Bearer $FUSED_APP_TOKEN" \
+  -H "X-Execution-Read-Handle: $READ_HANDLE"
+```
+
+SDK apps use their exact version ID on the same route with a selected provider operation name. They return a [physical operation response](/docs/app/testing/over-rest#read-the-response) with `status_code` and `results`. Source changes require a new immutable Unified App version.
+
+For connected users, route a selected operation with `fused.forUserRef(userRef).serviceName.operationName(input)`; the reference selects a connection in the configured bucket and never carries a provider token.
+
+## Switch traffic to a previous version
+
+Switch new traffic to a retained Unified App version using the app name or its config:
+
+```bash theme={null}
+fused-cli app promote customer-app --version 1.0.0
+fused-cli app promote -f .fused/unified_app/customer-app.yaml --version 1.0.0
+```
+
+The optional app name takes precedence over config selection and needs no local file. Without a name, the CLI reads the top-level `name` from your config. If you omit `-f`, config discovery must find exactly one Unified App. Always pass `--version` with the destination's version label, such as `1.0.0`. Promotion does not change the config's `version`, edit TypeScript, or rebuild the app.
+
+You need `app.unified_app.read` and `app.unified_app.manage`. The selected version must still have a runnable bundle; you cannot promote a deleted version. Historical execution results remain available through the same family URL and read handle. Rerun and replay require the source version to be receiving traffic; submit a new invocation to run the newly promoted code. If traffic changes concurrently, review the current destination before retrying.
+
+<Note>
+  The REST URL and execution token stay unchanged after a traffic switch. Unified App version IDs are not accepted as execution URLs. The hosted MCP family URL follows the active version; existing sessions on the previous version must reconnect.
+</Note>
+
+## Use from an SDK or MCP server
+
+Declare the hosted app by name and exact version in the consumer config. The map key is its callable alias:
+
+```yaml theme={null}
+apiVersion: fused/v1
+kind: sdk
+name: customer-portal
+version: "1.0.0"
+language: typescript
+bucket: default
+unified_apps:
+  customer_lookup:
+    name: customer-app
+    version: "1.0.0"
+```
+
+Apply through the normal consumer workflow:
+
+```bash theme={null}
+fused-cli app plan -f .fused/sdks/customer-portal.yaml --json
+fused-cli app apply -f .fused/sdks/customer-portal.yaml --json
+```
+
+For an existing SDK or MCP, keep its existing config and add `unified_apps`, then increment the consumer's `version`. For MCP, use `kind: mcp`, omit SDK-only `language`, provide the server's `description`, and use `fused-cli app plan` / `fused-cli app apply`. Physical `services` can remain alongside these references; they are optional for a consumer containing only hosted apps.
+
+Plan resolves each name and version to an immutable app ID and public schemas. The actor and owner need `app.unified_app.use` on the target, in addition to ordinary consumer permissions. Execution uses the consumer token; never copy the Unified App's token into the config. The hosted code uses its own configured credential buckets. Restricted consumer tokens must allow `unified_app:customer_lookup`.
+
+The generated TypeScript client exposes `sdk.unifiedApps.customer_lookup(input)`. Pass Fused HTTP origin as `engineUrl` and the consumer execution token as `token` to `FusedSDK`. Python exposes `await sdk.unified_apps.customer_lookup(input)` and `sdk.unified_apps.customer_lookup_sync(input)` with `engine_url` and `token` in its config. Calls return the Unified App execution envelope, including `status` and `output`; check `status` before consuming output. These calls execute synchronously and do not retry automatically.
+
+MCP advertises the attachment through the existing `execute` tool with its authored input schema:
+
+```json theme={null}
+{
+  "name": "execute",
+  "arguments": {
+    "operation": "unified_app:customer_lookup",
+    "input": { "name": "Jane" }
+  }
+}
+```
+
+For REST, POST the same `operation` and `input` to `/v1/apps/<consumer-version-id>/executions` using the consumer token. Execution records belong to the hosted Unified App and retain the consumer token ID for attribution. Reading historical results requires the Unified App's normal result-access authority; an attachment does not grant access to unrelated execution history.
+
+References do not follow traffic changes. The selected Unified App version must be receiving traffic during plan, apply, and execution. After promotion, publish a new consumer version selecting the new target, or promote the pinned target back. At most 16 attachments are allowed. Aliases use lowercase letters, digits, and underscores, start with a letter, and cannot be reserved language names or collide with another alias's `_sync` method. Unified Apps may also declare these references and call them with `await fused.callApp("customer_lookup", input)` from `@fused/unified-app`. Check `status` before using `output`. Each child keeps its own credentials and execution data. Recursive calls are rejected; allow one worker slot per app in a synchronous chain. Calls are bounded to eight app levels and 32 nested calls per root execution, and replay uses recorded child responses.
+
+## Private execution diagnostics
+
+In the Unified App's **Requests** tab, open an execution and expand **Private diagnostics**. This shows the original app input, captured output, detailed exceptions, stack traces, and recorded provider-operation requests and responses, including failed provider bodies. New Fused-compiled versions include inline source maps for TypeScript line numbers; older bundles retain their available JavaScript frames. An output that fails validation is retained privately even though it is not returned as a successful public result.
+
+Access requires `app.unified_app.diagnostics.read`, granted through a custom role on the app family or workspace. Ordinary app read/manage access does not include this permission. The built-in Owner role retains all permissions. Opening Requests also requires the existing `app.unified_app.read` and workspace `audit.read` permissions. Fused checks ownership and the diagnostic grant on every management API read; execution tokens do not authorize this endpoint:
+
+```text theme={null}
+GET /apps/{app_id}/executions/{execution_id}/diagnostics
+```
+
+Detailed exceptions and provider evidence are encrypted on the retained result and expire with it (currently 24 hours after completion). Diagnostics are never embedded in ordinary activity, public errors, logs, or trace attributes. App inputs and validated outputs use the existing result storage and limits. Captured strings are bounded to 64 KiB and the combined diagnostic record to 1 MiB; the UI labels truncated or incomplete evidence. Provider requests are the operation inputs supplied by the app, not credential-injected HTTP headers. Missing historical evidence is reported as unavailable and never reconstructed by executing the app again.
+
+Live and rerun executions publish one logical receipt through the existing execution-event worker, including failures before any provider call. Unified App analytics count those logical runs; service/provider usage continues to count physical calls.
+
+### OpenTelemetry tracing
+
+Hosted executions use Fused's configured OpenTelemetry provider. A shared `engine.unified_app.run` span covers live and rerun admission, execution, and persistence; `engine.unified_app.runtime` covers worker execution, including replay. Provider calls inherit that trace context. Canonical request receipts retain the trace and span IDs when tracing is enabled. Runtime spans expose timing, outcome, and a bounded failure phase; raw input, output, errors, and stacks remain in permission-gated private diagnostics. `buildUnifiedApp` does not start another exporter or expose the OpenTelemetry SDK inside the sandbox.
+
+The request inspector's **Execution trace** shows preparation, initialization, input validation, TypeScript execution, and output validation when those phases ran. The isolated worker measures real elapsed time independently of deterministic app time. The same measurements create OTEL phase spans and are persisted on the canonical receipt, so this view works without an external trace backend or OTEL sampling. Failed runs retain completed and failed-stage timings; unexecuted stages are omitted. TypeScript time includes awaited provider work and must not be added to child-provider durations. Ordinary app/activity permissions cover this metadata; private bodies still require the diagnostic grant.
+
+
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

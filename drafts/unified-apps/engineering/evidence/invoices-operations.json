@@ -1,0 +1,8 @@
+[
+  {
+    "name": "GetInvoices",
+    "path": "/v1/invoices",
+    "method": "GET",
+    "description": "List all invoices"
+  }
+]
