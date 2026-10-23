@@ -17,7 +17,7 @@ Fused keeps the common path short without removing any control boundary. Guided 
 | Running CI or another unattended process | `--no-input`, plus `--json` where supported |
 | Checking a local file without contacting a Fused deployment | Standalone `<kind> validate` |
 
-Terminal commands prompt only when a decision is needed. Omit `--interactive`; that compatibility flag only makes the terminal default explicit.
+Terminal commands prompt when a decision is needed. Use `--no-input` for unattended runs; `connect` then requires an exact method selection when several methods match.
 
 ## Plan and apply separately
 
@@ -130,15 +130,15 @@ fused-cli init support-agent --mcp \
 ```
 
 ```bash
-printf '%s' "$LINEAR_TOKEN" | \
-  fused-cli bucket credential set linear --no-input --value-stdin
+fused-cli connect linear "<auth-name>=$LINEAR_TOKEN" \
+  --auth-name <auth-name> --no-input
 
 fused-cli app plan --no-input --json
 fused-cli app apply --no-input --json
 fused-cli app download support-sdk@1.0.0 --no-input --json
 ```
 
-`--value-stdin` is not an interaction flag. It selects the secure source of secret bytes, while `--no-input` guarantees that the command will not prompt. Planning reports missing entries in structured `credential_readiness` metadata and continues. If an affected operation is called before setup, execution stops before contacting the provider with `bucket_credentials_missing` and the exact safe `bucket credential set` command.
+Replace `<auth-name>` with the service's exact authentication scheme from `fused-cli service show --registry linear --json`. `connect` accepts one quoted, comma-separated assignment argument; the shell expands environment variables before invocation. `--no-input` disables the picker and value prompts. See [credential setup](/bucket/store-credentials#supply-values-for-automation) for paired methods and selection rules. Planning reports missing entries in structured `credential_readiness` metadata and continues. If an affected operation is called before setup, execution stops before contacting the provider with `bucket_credentials_missing` and the exact safe `connect` command.
 
 ## Create and extend apps
 

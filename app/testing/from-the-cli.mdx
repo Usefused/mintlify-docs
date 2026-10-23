@@ -26,7 +26,7 @@ fused-cli app invoke support-sdk@1.1.0 issueUpdate \
 
 Operations require a JSON object for `--params`. Any JSON option also accepts `@file`, or `-` for stdin, which keeps large payloads and anything sensitive out of your shell history.
 
-If the selected bucket is still missing a required static credential, `app invoke` stops before contacting the provider and prints the exact `fused-cli bucket credential set` command for that service, bucket, authentication type, and scheme. Store the value securely, then repeat the same invocation.
+If the selected bucket is still missing a required static credential, `app invoke` stops before contacting the provider and prints the exact `fused-cli connect` command for that service, bucket, authentication type, and scheme. Store the value securely, then repeat the same invocation.
 
 ```bash
 fused-cli app invoke support-sdk@1.1.0 issueUpdate --params @./payload.json

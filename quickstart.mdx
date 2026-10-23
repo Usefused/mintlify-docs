@@ -61,7 +61,7 @@ If no suitable Registry service exists, [import the API yourself](/workspace/bri
 </Warning>
 
 <Note>
-  Automating this? Run `fused-cli init support-app --service linear --select-all linear --no-input`. No method flag is needed for the combined App. Missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with `bucket credential set --no-input --value-stdin`, or let the first affected call return the exact safe setup command. Use an explicit `--operation` when the App needs a narrower surface. For structured plan and apply output, use the [advanced controlled workflow](/advanced/control-the-workflow).
+  Automating this? Run `fused-cli init support-app --service linear --select-all linear --no-input`. No method flag is needed for the combined App. Missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with [`connect` with explicit values and `--no-input`](/bucket/store-credentials#supply-values-for-automation), or let the first affected call return the exact safe setup command. Use an explicit `--operation` when the App needs a narrower surface. For structured plan and apply output, use the [advanced controlled workflow](/advanced/control-the-workflow).
 </Note>
 
 ## Call it

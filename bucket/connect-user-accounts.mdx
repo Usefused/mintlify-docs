@@ -18,53 +18,33 @@ For managed CLI consent, pass `--auth-ref '${fused.bucket.auth.<service>.<auth-n
 
 ## Store the OAuth app credentials
 
-Register the app with the provider, then store its complete client pair in the
-bucket. This is an immediate admin action. It does not wait for a workspace
-plan or apply.
+Register your app with the provider, then store its complete client pair through `connect`. This saves the application credentials immediately; end-user consent is a separate `service connect` step.
 
 ```bash
-fused-cli bucket credential set jira --bucket prod-credentials
+fused-cli connect jira --bucket prod-credentials
 ```
 
-The CLI asks you to choose a supported authentication method, then securely prompts for its fields. To automate the same OAuth write, select the exact scheme and provide the complete pair through stdin:
+Choose the OAuth or OIDC method from the picker. Configured methods have a checkmark and an **edit** label, so you can select an existing pair to replace it. Secret fields are masked, and existing values are never displayed or prefilled. See [credential setup and editing](/bucket/store-credentials#set-up-or-edit-provider-credentials) for all picker statuses.
+
+For automation, provide both fields in one quoted, comma-separated argument:
 
 ```bash
-printf '%s' 'client_id=abc;client_secret=xyz' \
-  | fused-cli bucket credential set jira \
-      --bucket prod-credentials \
-      --type oauth \
-      --auth-name JiraOAuth \
-      --no-input \
-      --value-stdin
+fused-cli connect jira "client_id=$CLIENT_ID, client_secret=$CLIENT_SECRET" \
+  --bucket prod-credentials \
+  --type oauth \
+  --auth-name JiraOAuth \
+  --no-input
 ```
 
-The stdin value must contain exactly `client_id` and `client_secret`. The CLI
-rejects blank, partial, or extra fields, including `redirect_uri`. Use `--type
-oidc` for an OIDC scheme.
+Use `--type oidc` for an OIDC scheme. The argument must contain exactly `client_id` and `client_secret`; blank, partial, or extra fields, including `redirect_uri`, are invalid. The shell expands environment variables before the CLI receives the values. Use interactive entry for values containing literal commas.
 
 <Note>
-  Configure the provider with
-  `<engine.public_url>/workspace/connect/callback`. Fused derives this
-  callback from its validated canonical public URL and pins it to the consent
-  session. You do not send it as credential input.
+  Configure the provider with `<engine.public_url>/workspace/connect/callback`. Fused derives this callback from its validated canonical public URL and pins it to the consent session. You do not send it as credential input.
 </Note>
 
-### `bucket credential set` flags
+`--bucket` defaults to `default`. `--type` and `--auth-name` narrow the available methods; without them, interactive mode lets you choose. Non-interactive mode needs an unambiguous selection. The [connect flags reference](/bucket/store-credentials#connect-flags) also covers expiry and JSON output.
 
-| Flag | What it does | Example |
-|---|---|---|
-| `--bucket` | Bucket that owns the credentials; omit it to use the default bucket | `fused-cli bucket credential set jira --bucket prod-credentials --type oauth --auth-name JiraOAuth` |
-| `--no-input` | Disables prompts for automation | `fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
-| `--value-stdin` | Selects stdin as the complete client-pair source | `printf '%s' 'client_id=…;client_secret=…' \| fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth --no-input --value-stdin` |
-| `--type` | Selects `oauth` or `oidc` | `fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth` |
-| `--auth-name` | Selects the exact Registry auth scheme | `fused-cli bucket credential set jira --type oauth --auth-name JiraOAuth` |
-
-The retained `--interactive` flag explicitly requires the normal terminal prompts. Omit it for ordinary terminal use.
-
-The pair is atomic. Supply both values when creating or rotating it. Secret
-values cannot be read back. Use `fused-cli bucket secret list
-prod-credentials` to inspect secret metadata, or `fused-cli bucket services
-prod-credentials` to see application-credential counts by service.
+The pair is atomic. Supply both values when creating or rotating it. OAuth credentials cannot be read back. Use `fused-cli bucket secret list prod-credentials` to inspect metadata, or `fused-cli bucket services prod-credentials` to see application-credential counts by service.
 
 ## Reuse an OAuth app for another service
 
