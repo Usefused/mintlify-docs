@@ -32,7 +32,7 @@ fused-cli app plan -f .fused/sdks/customer-portal.yaml --json
 fused-cli app apply -f .fused/sdks/customer-portal.yaml --json
 ```
 
-For an existing SDK or MCP, keep its existing config and add `unified_apps`, then increment the consumer's `version`. For MCP, use `kind: mcp`, omit SDK-only `language`, provide the server's `description`, and use `fused-cli app plan` / `fused-cli app apply`. Physical `services` can remain alongside these references; they are optional for a consumer containing only hosted apps.
+For an existing SDK or MCP, keep its existing config and add `unified_apps`, then increment the consumer's `version`. For MCP, use `kind: mcp`, omit SDK-only `language`, provide the server's `description`, and run the same `app plan` / `app apply` commands with `-f` pointing to that MCP config. Selecting the consumer file keeps deployment scoped when the Unified App's own config is in the same project. Physical `services` can remain alongside these references; they are optional for a consumer containing only hosted apps.
 
 Use the SDK or MCP server's execution token to call it. You do not copy the Unified App's token into this config. The Unified App continues to use its own credential bucket.
 

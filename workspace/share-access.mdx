@@ -50,7 +50,7 @@ App levels apply to every version of that app.
 </Warning>
 
 <Note>
-  App grants need the ID from `app list` or `app list`, not a name. One `app` command covers both kinds, so it cannot infer which you mean from a name they might share.
+  App grants use the stable `APP_ID` from `fused-cli app list`. This identifies the app across all its versions and distinguishes apps that share a name across types.
 </Note>
 
 ## Check before you plan
@@ -61,8 +61,10 @@ Preflight the owning team against every dependency, so a plan does not fail half
 fused-cli workspace team eligible-owners
 fused-cli workspace team build-access payments --resource service
 fused-cli workspace team build-access payments --resource bucket
-fused-cli app plan --owner-team payments
+fused-cli app plan -f .fused/sdks/payments.yaml --owner-team payments
 ```
+
+Replace the file path with the app config whose owning team you are checking.
 
 `build-access` lists what is available to *both* you and the team — which is the set that will actually work.
 

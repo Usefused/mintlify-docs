@@ -52,7 +52,7 @@ services:
 
 Each service resolves credentials through its own `bucket:` override when set, otherwise the top-level `bucket:`. A local `${bucket.auth...}` reference joins services in the same bucket. A managed `${fused.bucket.auth...}` reference selects a Fused Managed App while keeping user connections in the selected bucket.
 
-Use `fused-cli app list` whenever you need to recover the stable and pinned endpoints after initialization.
+Use `fused-cli app versions list support-agent` whenever you need to recover the stable and pinned endpoints after initialization.
 
 <Warning>
   The first successful apply may return an execution token once. An idempotent apply will not reveal it again. Store it immediately.
@@ -92,11 +92,13 @@ fused-cli extend support-agent --service slack
 
 ### `app plan`
 
+Select this server's config with `-f .fused/mcps/support-agent.yaml` for plan, apply, and offline validation. This keeps the commands scoped to the server when your project contains other apps. See [config selection](/advanced/control-the-workflow#plan-and-apply-separately).
+
 | Flag | What it does | Example |
 |---|---|---|
-| `--json` | Prints the plan result and required permissions | `fused-cli app plan --no-input --json` |
-| `--owner-team` | Sets the owning team; defaults to you | `fused-cli app plan --owner-team support` |
-| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli app plan --receipt-out ./ci/mcp.plan.json` |
+| `--json` | Prints the plan result and required permissions | `fused-cli app plan -f .fused/mcps/support-agent.yaml --no-input --json` |
+| `--owner-team` | Sets the owning team; defaults to you | `fused-cli app plan -f .fused/mcps/support-agent.yaml --owner-team support` |
+| `--receipt-out` | Writes the receipt to a chosen path | `fused-cli app plan -f .fused/mcps/support-agent.yaml --receipt-out ./ci/mcp.plan.json` |
 
 MCP planning never mutates credentials. It reports missing entries as readiness metadata and still creates a valid plan. By contrast, an SDK plan in a terminal can offer to store missing credentials securely and retry once; declining also keeps the valid plan. Use `app validate` only when you need an offline-only check.
 
@@ -104,10 +106,11 @@ MCP planning never mutates credentials. It reports missing entries as readiness 
 
 | Flag | What it does | Example |
 |---|---|---|
-| `--plan-id` | Applies one exact remote plan | `fused-cli app apply --plan-id pln_6b2…` |
-| `--receipt` | Applies from a specific receipt | `fused-cli app apply --receipt ./ci/mcp.plan.json` |
+| `--plan-id` | Applies one exact remote plan | `fused-cli app apply -f .fused/mcps/support-agent.yaml --plan-id pln_6b2…` |
+| `--receipt` | Applies from a specific receipt | `fused-cli app apply -f .fused/mcps/support-agent.yaml --receipt ./ci/mcp.plan.json` |
+| `--json` | Returns structured apply receipts, transport URLs, and any newly issued execution token | `fused-cli app apply -f .fused/mcps/support-agent.yaml --json` |
 
-`--download` and `--json` are SDK-only. An MCP server has no package to download.
+`--json` is supported across app types. `--download` requires a generated SDK package; an MCP-only server has no package to download.
 
 ## MCP-specific constraints
 
@@ -120,7 +123,7 @@ One MCP name has one stable MCP ID shared by every version, and each explicit ve
 
 Applying a version explicitly promotes it for new sessions on the stable MCP URL. Applying an older version again explicitly rolls the stable target back. Existing sessions continue on the immutable version they resolved during initialization.
 
-The CLI displays both endpoints after apply and in `app list`:
+The CLI displays both endpoints after apply and in `app versions list support-agent`:
 
 | Endpoint | Use it for |
 |---|---|

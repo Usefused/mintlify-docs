@@ -29,8 +29,8 @@ version: "1.1.0"   # was 1.0.0
 ```
 
 ```bash
-fused-cli app plan
-fused-cli app apply --download
+fused-cli app plan -f .fused/sdks/support-sdk.yaml
+fused-cli app apply -f .fused/sdks/support-sdk.yaml --download
 ```
 
 Plan validates the local config before contacting Fused. Use `app validate` separately only when you need an offline-only check.
@@ -62,12 +62,15 @@ There is no implicit "latest." Every command that resolves a version wants `name
 
 ```bash
 fused-cli app list
+fused-cli app versions list support-sdk
 fused-cli app show support-sdk@1.1.0
 fused-cli app service list support-sdk@1.1.0
 fused-cli app bucket list support-sdk
 ```
 
-`app list` shows `SDK_ID`, stable across versions, and `VERSION_ID`, identifying one exact immutable version.
+`app list` shows one row per app with `NAME`, `TYPE`, the stable `APP_ID`, a version count, and the latest and stable version labels. `app versions list support-sdk` shows the app's immutable versions with their `VERSION_ID`, status, and stable-target metadata. Use `APP_ID` for app-wide access and tokens; use an exact `name@version` or `VERSION_ID` for version-specific operations.
+
+Omit the name from `app versions list` to list versions across visible apps. For apps with hosted MCP delivery, the version listing also includes stable and version-pinned transport URLs.
 
 ## Flags
 
@@ -82,8 +85,19 @@ fused-cli app bucket list support-sdk
 
 | Flag | What it does | Example |
 |---|---|---|
+| `--type` | Filters to `sdk`, `rest`, `mcp`, or `unified-app`; omission lists all types | `fused-cli app list --type sdk` |
 | `--limit` | Rows to read | `fused-cli app list --limit 50` |
 | `--offset` | Rows to skip | `fused-cli app list --offset 50` |
+| `--json` | Returns app summaries with pagination metadata | `fused-cli app list --type rest --json` |
+
+### `app versions list`
+
+```bash
+fused-cli app versions list support-sdk
+fused-cli app versions list support-sdk --json
+```
+
+Pass an app name or its stable `APP_ID` to select one app. Use the ID when names are ambiguous. `--limit` and `--offset` page through versions; `--json` returns version records with pagination metadata. The `--type` filter belongs to `app list`.
 
 ### `app openapi`
 

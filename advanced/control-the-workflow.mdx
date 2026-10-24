@@ -13,26 +13,29 @@ Fused keeps the common path short without removing any control boundary. Guided 
 | Creating only an SDK, REST API, or MCP server | `fused-cli init <name> --sdk`, `--rest`, or `--mcp` |
 | Initializing and reviewing now, but applying later | `fused-cli init <name> ... --no-apply` |
 | Activating a service without creating an SDK | `service add <service> --apply` |
-| Reviewing an existing config one boundary at a time | Explicit `<kind> plan`, then `<kind> apply` |
+| Reviewing an existing app config one boundary at a time | `app plan -f <path>`, then `app apply -f <path>` |
+| Reviewing workspace or webhook configuration | `workspace plan/apply` or `webhook plan/apply` |
 | Running CI or another unattended process | `--no-input`, plus `--json` where supported |
-| Checking a local file without contacting a Fused deployment | Standalone `<kind> validate` |
+| Checking a local file without contacting a Fused deployment | `validate -f <path>` for any config, or `app validate -f <path>` for an app |
 
 Terminal commands prompt when a decision is needed. Use `--no-input` for unattended runs; `connect` then requires an exact method selection when several methods match.
 
 ## Plan and apply separately
+
+SDK, REST, MCP, and Unified App configs all use `app plan`, `app apply`, and `app validate`. Select the intended file with `-f` (`--file`). Without it, the CLI discovers configs under `.fused/`: multiple app kinds produce `multiple app types found`, while multiple configs of the same app kind are selected together. SDK and REST delivery share `kind: sdk`. An explicit file keeps the workflow scoped to the app you are changing.
 
 Use the explicit SDK lifecycle when you are editing an existing config, need an independent approval boundary, or want to retry package transfer separately:
 
 <Steps>
   <Step title="Preview">
     ```bash
-    fused-cli app plan
+    fused-cli app plan -f .fused/sdks/support-sdk.yaml
     ```
     Plan validates the local config before contacting Fused. If the exact selected bucket is missing a credential, a terminal plan can securely offer to write it and retry once.
   </Step>
   <Step title="Apply">
     ```bash
-    fused-cli app apply
+    fused-cli app apply -f .fused/sdks/support-sdk.yaml
     ```
     Apply commits only the config content and Fused recorded by the receipt.
   </Step>
@@ -50,8 +53,8 @@ The same lifecycle applies to other config kinds:
 fused-cli workspace plan
 fused-cli workspace apply
 
-fused-cli app plan
-fused-cli app apply
+fused-cli app plan -f .fused/mcps/support-agent.yaml
+fused-cli app apply -f .fused/mcps/support-agent.yaml
 
 fused-cli webhook plan
 fused-cli webhook apply
@@ -133,8 +136,8 @@ fused-cli init support-agent --mcp \
 fused-cli connect linear "<auth-name>=$LINEAR_TOKEN" \
   --auth-name <auth-name> --no-input
 
-fused-cli app plan --no-input --json
-fused-cli app apply --no-input --json
+fused-cli app plan -f .fused/sdks/support-sdk.yaml --no-input --json
+fused-cli app apply -f .fused/sdks/support-sdk.yaml --no-input --json
 fused-cli app download support-sdk@1.0.0 --no-input --json
 ```
 
@@ -171,8 +174,8 @@ fused-cli import discover \
 Plan already validates the local config before its first Fused request. Run standalone validation only when the check must stay offline:
 
 ```bash
-fused-cli app validate
-fused-cli app validate
+fused-cli app validate -f .fused/sdks/support-sdk.yaml
+fused-cli validate -f .fused/workspace.yaml
 fused-cli webhook validate
 ```
 
@@ -182,9 +185,9 @@ A receipt binds a plan to the exact config hash and normalized Fused URL. Apply 
 
 | Need | Command |
 |---|---|
-| Store a plan outside `.fused/.state/` | `fused-cli app plan --receipt-out ./ci/sdk.plan.json` |
-| Apply that exact receipt | `fused-cli app apply --receipt ./ci/sdk.plan.json` |
-| Apply a captured remote plan directly | `fused-cli app apply --plan-id <plan-id>` |
+| Store a plan outside `.fused/.state/` | `fused-cli app plan -f .fused/sdks/support-sdk.yaml --receipt-out ./ci/sdk.plan.json` |
+| Apply that exact receipt | `fused-cli app apply -f .fused/sdks/support-sdk.yaml --receipt ./ci/sdk.plan.json` |
+| Apply a captured remote plan directly | `fused-cli app apply -f .fused/sdks/support-sdk.yaml --plan-id <plan-id>` |
 
 Use a direct plan ID only when it came from the exact current config and Fused. Re-plan after the config or target Fused changes.
 
