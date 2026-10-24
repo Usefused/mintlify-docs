@@ -3,7 +3,7 @@ title: "Call over REST"
 description: "Call an SDK operation or Unified App through Fused HTTP API."
 ---
 
-Fused generates TypeScript and Python SDKs. If your service uses another language or you do not want a package, call a selected SDK operation through Fused's REST route. [Unified Apps](/app/unified-apps) use the same route with `"operation":"execute"`.
+Fused generates TypeScript, Python, and Go SDKs. If your service uses another language or you do not want a package, call a selected SDK operation through Fused's REST route. [Unified Apps](/app/unified-apps) use the same route with `"operation":"execute"`.
 
 ```bash
 curl -X POST "$FUSED_ENGINE_URL/v1/apps/$VERSION_ID/executions" \
@@ -60,5 +60,5 @@ fused-cli app openapi support-sdk@1.1.0 --out ./support.openapi.yaml
 The generated package carries typed errors, one shared gRPC channel, and broader transport limits. Over REST you handle status codes yourself, and the 1 MiB provider-document bound also applies on the CLI path.
 
 <Card title="Run an operation" icon="code" href="/app/run-an-operation">
-  What the typed package gives you, if your language is one of the two.
+  What the typed package gives you in TypeScript, Python, or Go.
 </Card>

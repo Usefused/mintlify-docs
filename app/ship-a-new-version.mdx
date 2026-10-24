@@ -54,7 +54,7 @@ Neither is a data loss. Re-plan so the selections are rebuilt against the curren
 | Execution tokens | Shared across every active or deprecated version |
 | Operation scope | Enforced per version |
 
-Because tokens belong to the SDK rather than a version, a new version that expands capability expands what existing tokens can reach. The plan reports which tokens are affected. If two teams must not share capability, give them different SDK names rather than different versions of one.
+Because tokens belong to the SDK rather than a version, a new version that expands capability expands what unrestricted tokens can reach. Tokens with an explicit operation allowlist remain limited to that list. Each call must satisfy both the token policy and the selected version's scope. Use separate apps when teams need independent ownership and version lifecycles; see [execution token policies](/app/issue-tokens) for restricting callers within one app.
 
 There is no implicit "latest." Every command that resolves a version wants `name@version` or a Version ID.
 
@@ -120,7 +120,7 @@ fused-cli app sync support-sdk -f .fused/sdks/support-sdk.yaml
 
 Sync full-mirrors the exact Fused app version your local file declares. Anything Fused no longer selects is removed locally rather than flagged, and Fused values win on conflict. There is no implicit latest lookup and no sync-time upgrade — change `version` yourself, then plan and apply it deliberately.
 
-One quirk worth expecting: sync freezes the current selection into an explicit sorted operation list, so a service configured with `select_all: true` does not come back as `select_all: true`.
+Sync preserves the remote selection intent, including `select_all: true`. Explicit operation selections return as sorted operation lists. Auth references, connection scopes, and injections also come from that exact version's saved definition.
 
 ## Retiring a version
 

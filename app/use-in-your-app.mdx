@@ -6,7 +6,7 @@ description: "Install the generated package and stand up a client your applicati
 
 The CLI builds and ships the SDK. Your application is what actually calls it. This page gets the package installed and a client running; [run an operation](/app/run-an-operation) is the call itself.
 
-The package is an ordinary npm or pip package. There is no Fused runtime to deploy alongside it; it opens one gRPC connection to your Fused deployment and that is the whole dependency.
+The generated SDK is an npm package, a Python package, or a Go module. It opens a shared gRPC connection to your Fused deployment for physical service calls. Hosted Unified App calls use Fused's HTTP endpoint.
 
 ## Install it
 
@@ -26,9 +26,18 @@ npm install ./fused-sdks/support-sdk
 pip install ./fused-sdks/support-sdk
 ```
 
+```bash Go
+# Run from your application's existing Go module to use the downloaded SDK locally.
+FUSED_SDK_MODULE=$(cd ./fused-sdks/support-sdk && go list -m)
+go mod edit -require="${FUSED_SDK_MODULE}@v0.0.0"
+go mod edit -replace="${FUSED_SDK_MODULE}=./fused-sdks/support-sdk"
+```
+
 </CodeGroup>
 
-Vendor it, or publish it to your own private registry — the generated `package.json` and `pyproject.toml` carry the name you gave the SDK.
+Go requires version 1.24 or later. After importing the generated module in your application, run `go mod tidy`. Use the exact module path from its `go.mod` or generated README; it includes a suffix derived from the SDK name.
+
+Vendor the package, or publish it to your own private registry. The generated `package.json`, `pyproject.toml`, or `go.mod` records its package identity.
 
 ## Create the client
 
@@ -55,13 +64,43 @@ sdk = FusedSDK({
 })
 ```
 
+```go Go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	fusedsdk "fused.local/support-sdk-01e60d53"
+)
+
+// main opens one authenticated client for the generated support-sdk package.
+func main() {
+	ctx := context.Background()
+	sdk, err := fusedsdk.New(ctx, fusedsdk.Config{
+		EngineURL: os.Getenv("FUSED_ENGINE_GRPC_URL"),
+		Token:     os.Getenv("FUSED_APP_TOKEN"),
+	})
+	// Do not use the client unless its immutable app handshake succeeds.
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sdk.Close(ctx)
+
+	// Call the service methods listed in the generated README here.
+}
+```
+
 </CodeGroup>
 
-`token` is the execution token from apply. `grpcUrl` is optional — it falls back to `FUSED_ENGINE_GRPC_URL`, then `FUSED_ENGINE_URL`, then localhost. Set it explicitly; [the fallback has a trap](/app/build-an-sdk#point-the-client-at-the-engine).
+`token` (`Token` in Go) is the execution token from apply. In TypeScript and Python, the optional gRPC address falls back to `FUSED_ENGINE_GRPC_URL`, then `FUSED_ENGINE_URL`, then localhost. Set it explicitly; [the fallback has a trap](/app/build-an-sdk#point-the-client-at-the-engine).
+
+The Go import above is for an SDK named `support-sdk`; replace it with the module path in your generated `go.mod`. `Config.EngineURL` takes Fused's gRPC address. Set `Config.HTTPURL` to the HTTP address when calling hosted Unified Apps.
 
 ## Shut it down
 
-The channel is long-lived, so close it when your process does.
+The channel is long-lived, so close it when your process does. Go uses `sdk.Close(ctx)`, as shown by the deferred call above.
 
 <CodeGroup>
 

@@ -50,7 +50,7 @@ fused-cli init support-app --service linear
 
 Without a method flag, `fused-cli init` creates one App with SDK, MCP, and REST delivery. It searches your workspace and then the Registry, pins a concrete service version, and asks which operations the App should expose. **All operations** is highlighted by default. Open **Choose operations…** to search by operation ID, method, path, summary, or tag. You do not need to know operation IDs before you start.
 
-If activation is needed, the CLI shows one combined confirmation. It writes separate workspace and App receipts. Missing provider credentials do not block creation: in a terminal the CLI offers to store them securely and retry planning once, while skipping that optional step still publishes the App.
+If activation is needed, the CLI shows one combined confirmation. It writes separate workspace and App receipts. Missing provider credentials open a review menu: set them up in the terminal, open bucket setup in the browser, recheck readiness, proceed anyway, or cancel creation. Setup and recheck refresh the plan; you can repeat the review while credentials are still missing. Choose **Proceed anyway** to publish with readiness warnings. Cancelling stops before app publication.
 
 When the command succeeds, Fused applies one immutable App version, downloads its typed SDK package, and reports its hosted MCP URLs. REST execution uses that same version ID and token. Init writes one `kind: sdk` config with nested `mcp` delivery, plus a workspace config if service activation was needed.
 
@@ -72,7 +72,7 @@ The SDK, MCP server, and REST endpoint use the same selected operations and exec
 |---|---|---|
 | `fused-cli app invoke` | Checking the path works, or trying an operation by hand | The CLI and the token |
 | The typed package | Your application calls this for real | The downloaded package and Fused's **gRPC** address |
-| `POST /v1/apps/{id}/executions` | You are not in TypeScript or Python, or you would rather not ship a package | Fused's **HTTP** address and the version ID from apply |
+| `POST /v1/apps/{id}/executions` | You use a language other than TypeScript, Python, or Go, or prefer calling over HTTP | Fused's **HTTP** address and the version ID from apply |
 | Hosted MCP | An agent discovers and executes selected operations | The stable MCP URL from apply or the App details page |
 
 <CodeGroup>

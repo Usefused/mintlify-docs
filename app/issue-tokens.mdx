@@ -18,12 +18,12 @@ Never pass the License Key or a provider credential as an execution token, and n
 ## Generate one
 
 ```text
-fused-cli app token generate <sdk-name-or-id> <token-name>
-fused-cli app token revoke   <sdk-name-or-id> <token-name>
-fused-cli app token list     <sdk-name-or-id>
+fused-cli app token generate <app-name-or-id> <token-name>
+fused-cli app token revoke   <app-name-or-id> <token-name>
+fused-cli app token list     <app-name-or-id>
 ```
 
-Both are yours to name: the first identifies the SDK, the second labels the token so you can revoke it later without guessing.
+The shared `app token` commands manage SDK, REST, MCP, and Unified App tokens. The first argument identifies the app by name or stable `APP_ID`; the second labels the token so you can revoke it later. Use `APP_ID` when names are ambiguous.
 
 ```bash
 fused-cli app token generate support-sdk ci-runner --expires-in 4h
@@ -39,7 +39,14 @@ Omit `--expires-in` for a non-expiring service credential; use it for temporary 
   A token belongs to the SDK, not one version. It works with every active or deprecated version, while each version still enforces its own operation scope. `--expires-in` limits *time*, not which operations the token may call.
 </Note>
 
-There is no `--allow` flag on an SDK token. That exists on MCP tokens, where narrowing an agent's reach is the common case. If you need two audiences with different capability, publish two SDKs rather than trying to split one token.
+The shared command exposes `--allow` and `--fixed-binding`; Fused validates the policy for the selected app. Use repeated `--allow` flags to restrict a token to exact operation IDs. Each call must satisfy both this allowlist and the selected app version's operation scope. Omit `--allow` to use the app's default token policy.
+
+```bash
+fused-cli app token generate support-sdk issue-reader \
+  --allow issueRead --expires-in 4h --json
+```
+
+For OAuth calls, `--fixed-binding` pins the token to a service, auth scheme, connected-user reference, and optional resource UUID. See [fixed bindings](/mcp/agent-tokens#bind-the-token-to-a-connected-user) for the field format.
 
 ## Flags
 
@@ -48,6 +55,8 @@ There is no `--allow` flag on an SDK token. That exists on MCP tokens, where nar
 | Flag | What it does | Example |
 |---|---|---|
 | `--expires-in` | Makes the token temporary | `fused-cli app token generate support-sdk ci --expires-in 4h` |
+| `--allow` | Restricts calls to exact operation IDs; repeat for each allowed operation | `fused-cli app token generate support-sdk reader --allow issueRead --json` |
+| `--fixed-binding` | Binds a service and auth scheme to a connected user; repeat for each pair | `fused-cli app token generate support-sdk jira-reader --fixed-binding 'jira,OAuth2,user_123' --json` |
 | `--json` | Returns the one-time token, expiry, and metadata as an object | `fused-cli app token generate support-sdk ci --no-input --json` |
 
 Use `--no-input --json` in automation. Do not parse the token out of human-readable apply text.

@@ -96,9 +96,23 @@ rerun its plan command before apply.
 
 Only terminal SDK planning offers optional credential setup. Workspace, MCP, webhook, and import planning do not mutate credentials; missing SDK or MCP values are readiness warnings rather than plan or apply failures.
 
+### Review credentials during init
+
+Interactive `init` adds a credential review before publishing SDK, MCP, and combined Apps. This review is separate from standalone `app plan` behavior.
+
+| Choice | Result |
+|---|---|
+| **Set up credentials here** | Collects values securely for the selected service and bucket, then refreshes the plan |
+| **Open bucket setup in the browser** | Opens the selected bucket's setup page; return to the terminal to recheck |
+| **Recheck credentials and continue** | Refreshes the plan using current credentials |
+| **Proceed anyway** | Publishes using the valid plan with readiness warnings |
+| **Cancel app creation** | Stops before writing or publishing the app config |
+
+Setup and recheck return to the menu while credentials remain missing. Cancellation does not undo service activation or credential writes already completed. With `--no-input` or `CI=true`, init reports readiness warnings and continues without prompting or storing credentials.
+
 ## Make automation explicit
 
-Use `--no-input` for every unattended command. It turns a missing selection, confirmation, or credential into an error instead of waiting for terminal input. Add `--json` when the command exposes structured output.
+Use `--no-input` for every unattended command. Commands that require explicit input fail with guidance instead of waiting for terminal input. Missing provider credentials during app init or planning remain readiness warnings; an affected runtime call fails until those credentials are configured. `connect` requires values when its selected method is not already configured. Add `--json` when the command exposes structured output.
 
 For App initialization, automation must declare the operation boundary that the terminal selector would normally collect. No method flag creates the combined App:
 

@@ -65,21 +65,11 @@ Use `fused-cli init ... --no-apply` when preparing a new app, add the reference,
   Missing local credentials never switch an app to Fused automatically. This reference selects managed auth explicitly. It cannot read arbitrary Fused API keys or signing secrets.
 </Note>
 
-## Choose a specific managed application
+## Managed application selection
 
-Fused can publish several applications for the same service and auth scheme. Your operator supplies the application UUID and authorizes your Fused deployment installation. Keep the provider's `auth.name` unchanged and add the selector beside the managed reference:
+Consumer configs select managed auth through the service and auth scheme in `auth.ref`. Fused resolves the managed application behind that reference. Publishing the offering and authorizing deployment access are operator responsibilities; consumer configs do not supply an application UUID or expose its secrets.
 
-```yaml
-auth:
-  type: oauth
-  name: oauth2
-  ref: "${fused.bucket.auth.slack.oauth2}"
-  managed_application_id: "729ea172-5512-4f37-b202-31084e2d2766"
-```
-
-The same field works in SDK and MCP configs. Omit it to select the service's original default application. Omission never selects an arbitrary available application. Publishing applications and granting consumer access are Fused operator operations; consumer configs cannot publish an application or read its secrets.
-
-Your connection keeps its selected application for callback and refresh. Changing the selector requires a new immutable SDK/MCP version and consent using that application. Use separate connection buckets when the same end-user reference needs simultaneous connections to multiple applications for the same service and scheme; the existing bucket/service/scheme/user connection identity is unchanged.
+Keep the reference consistent between app configuration and standalone consent. Changing an applied app's `auth.ref` requires a new immutable version. If no managed offering is available for the exact service and scheme, configure your own provider application instead.
 
 ## Connect a user
 
@@ -94,8 +84,6 @@ fused-cli service connect slack \
   --auth-ref '${fused.bucket.auth.slack.oauth2}' \
   --scope app_mentions:read
 ```
-
-For a named application, also pass `--managed-application-id <application-uuid>`. Use the same UUID as your SDK or MCP config. REST and GraphQL connect requests accept `managed_application_id` alongside `auth_ref`.
 
 The user completes provider consent. Your app then uses the usual `endUserRef`, or your MCP client uses `X-Fused-End-User-Ref`. Neither client receives Fused's application secret or the user's provider tokens.
 

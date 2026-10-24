@@ -55,7 +55,7 @@ Select operations for linear v1
 
 Press Enter to take the complete surface. **Choose operations…** opens a searchable multi-select matching operation IDs, methods, paths, summaries, and tags. Press `/` to filter, type your search, press Space to toggle an operation, and press Enter to confirm. You do not need to know an endpoint name before you start.
 
-If activation is needed, init shows one combined confirmation and applies the workspace change under its own receipt. It then builds and validates the SDK candidate in memory and plans the SDK. Missing credentials are readiness warnings, not publication failures: a terminal securely offers to fill them and retry once, while skipping the offer still keeps the valid plan. Only a successful plan creates `.fused/sdks/support-sdk.yaml`; init then applies the SDK, downloads the package, and finishes with first-call guidance. Workspace and SDK changes retain separate receipts.
+If activation is needed, init shows one combined confirmation and applies the workspace change under its own receipt. It then builds and validates the SDK candidate in memory and plans the SDK. Missing credentials open the [init credential review](/advanced/control-the-workflow#review-credentials-during-init): set them up, open the bucket in your browser, recheck, proceed anyway, or cancel. Setup and recheck refresh the plan. A successful plan and completed review allow init to create `.fused/sdks/support-sdk.yaml`, apply the SDK, and download the package. Workspace and SDK changes retain separate receipts.
 
 <Note>
   Adding a service saves its executable contract without archiving SDK generation input. SDK planning acquires that input when you select the service for a generated package, and accepts it only if the saved runtime contract and source revision still match. If they have changed, generated SDK init prints each exact `service@version` as it refreshes that snapshot and retries the unchanged plan once. It does this deterministically with `--no-input` too. It never invents a pin, selects another version, or bypasses Registry retention. A failed refresh or retry creates no app config or app receipt, while any completed exact refresh remains explicit. See [Recover without guessing](/advanced/control-the-workflow#recover-without-guessing) for the failure boundaries.
@@ -140,7 +140,7 @@ Flipping the field edits the file, which moves the source hash, so switching bet
 
 ## Point the client at Fused
 
-The generated client takes `grpcUrl` — `grpc_url` in Python. The name is the instruction: it wants Fused's gRPC address, not the HTTP one you give the CLI.
+The generated TypeScript client takes `grpcUrl`, and Python uses `grpc_url`. Go uses `Config.EngineURL` for its gRPC address and `Config.HTTPURL` for hosted Unified App calls. Set the gRPC address explicitly for physical service calls; it is separate from the HTTP address used by the CLI.
 
 ```typescript
 const sdk = new FusedSDK({
@@ -149,7 +149,7 @@ const sdk = new FusedSDK({
 });
 ```
 
-It resolves the target in this order, first non-empty wins:
+TypeScript and Python resolve the target in this order, first non-empty wins:
 
 1. `grpcUrl` / `grpc_url` passed to the constructor
 2. `FUSED_ENGINE_GRPC_URL`
@@ -188,17 +188,19 @@ Both are derived from the generated source and validated against it, so the meth
 | `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --sdk --service linear --select-all linear` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --sdk --bucket prod-credentials` |
 | `--version` | Sets the initial app version | `fused-cli init support --sdk --version 2.0.0 --service linear` |
-| `--language` | `typescript` (default) or `python` for generated packages, including the combined App | `fused-cli init support-app --language python --service linear` |
+| `--language` | `typescript` (default), `python`, or `go` for generated packages, including the combined App | `fused-cli init support-app --language go --service linear` |
 | `--description` | Supplies the hosted MCP summary; the combined App derives one from its name when omitted | `fused-cli init support-app --description 'Manage support issues' --service linear` |
 | `--no-apply` | Writes validated desired state, saves available plan receipts, and prints the commands to apply later | `fused-cli init support --sdk --service linear --no-apply` |
 
 Omit `--sdk`, `--rest`, and `--mcp` to create the combined App in a terminal or automation. Creating never replaces an existing file. Init writes one App config and any workspace config needed for activation; it does not create three separate Apps.
 
+Generated Go packages require Go 1.24 or later. They include a `go.mod` and a README with the exact module path and local installation commands. See [install the package](/app/use-in-your-app#install-it).
+
 In a terminal, omit `--operation` and `--select-all` to use the guided selector. With `--no-input`, declare one operation boundary for every service; add a method flag only when you want a single method. Use the explicit plan/apply path when automation needs structured results.
 
 ### `fused-cli extend`
 
-Use `extend` after creation. It finds the existing YAML and infers generated SDK or direct API mode from that document, so you do not repeat `--sdk` or `--api`:
+Use `extend` after creation. It finds the existing YAML and infers the app's delivery configuration, so you do not repeat `--sdk`, `--rest`, or `--mcp`:
 
 ```bash
 fused-cli extend support --service slack
