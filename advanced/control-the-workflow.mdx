@@ -69,7 +69,6 @@ available plan receipts without applying anything:
 ```bash
 fused-cli init support-sdk --sdk \
   --service linear \
-  --select-all linear \
   --no-apply
 ```
 
@@ -114,23 +113,21 @@ Setup and recheck return to the menu while credentials remain missing. Cancellat
 
 Use `--no-input` for every unattended command. Commands that require explicit input fail with guidance instead of waiting for terminal input. Missing provider credentials during app init or planning remain readiness warnings; an affected runtime call fails until those credentials are configured. `connect` requires values when its selected method is not already configured. Add `--json` when the command exposes structured output.
 
-For App initialization, automation must declare the operation boundary that the terminal selector would normally collect. No method flag creates the combined App:
+For App initialization, bare services select all operations automatically, while inline lists select only the named operations. The same selectors work in terminals and automation. No method flag creates the combined App:
 
 ```bash
 fused-cli init support-app \
-  --service linear \
-  --operation 'linear=issueUpdate' \
+  --service 'linear=issueUpdate;slack=chatPostMessage' \
   --no-input
 ```
 
-Use `--select-all linear` instead when the App intentionally needs the service's complete operation surface. Add `--sdk`, `--rest`, or `--mcp` only when you want one delivery method.
+Use `--service 'linear;slack'` instead when the App needs all operations from both services. Semicolons separate services; commas separate operations within one service, as in `--service 'linear=issueUpdate;slack=chatPostMessage,conversationsList'`. Keep the value quoted so the shell preserves semicolons. Add `--sdk`, `--rest`, or `--mcp` only when you want one delivery method.
 
 Top-level `extend` infers the app mode from the existing YAML and updates that same file; no parallel config is created. A real change to a stable SemVer version advances to the next minor version deterministically, including under `--no-input`:
 
 ```bash
 fused-cli extend support-sdk \
-  --service slack \
-  --select-all slack \
+  --service 'slack=chatPostMessage,conversationsList' \
   --no-input
 ```
 
@@ -141,8 +138,7 @@ An unattended MCP init also requires an authored description:
 ```bash
 fused-cli init support-agent --mcp \
   --description 'Read and update support issues.' \
-  --service linear \
-  --select-all linear \
+  --service 'linear=issueUpdate' \
   --no-input
 ```
 

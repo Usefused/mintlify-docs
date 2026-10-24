@@ -48,7 +48,16 @@ For a supported OAuth integration, [use a Managed service](/workspace/use-manage
 fused-cli init support-app --service linear
 ```
 
-Without a method flag, `fused-cli init` creates one App with SDK, MCP, and REST delivery. It searches your workspace and then the Registry, pins a concrete service version, and asks which operations the App should expose. **All operations** is highlighted by default. Open **Choose operations…** to search by operation ID, method, path, summary, or tag. You do not need to know operation IDs before you start.
+Without a method flag, `fused-cli init` creates one App with SDK, MCP, and REST delivery. It searches your workspace and then the Registry, pins a concrete service version, and automatically selects all operations for a bare service such as `linear`.
+
+Use semicolons to select several services in one quoted value: `--service 'linear;slack'`. To select only specific operations, add `=` after each service and separate its operations with commas:
+
+```bash
+fused-cli init support-app \
+  --service 'linear=issueUpdate;slack=chatPostMessage,conversationsList'
+```
+
+Choose either initialization command. Quote values containing semicolons so your shell passes them as one argument. The [SDK guide](/app/build-an-sdk#choose-services-and-operations) covers version pins and mixed selections.
 
 If activation is needed, the CLI shows one combined confirmation. It writes separate workspace and App receipts. Missing provider credentials open a review menu: set them up in the terminal, open bucket setup in the browser, recheck readiness, proceed anyway, or cancel creation. Setup and recheck refresh the plan; you can repeat the review while credentials are still missing. Choose **Proceed anyway** to publish with readiness warnings. Cancelling stops before app publication.
 
@@ -61,7 +70,7 @@ If no suitable Registry service exists, [import the API yourself](/workspace/bri
 </Warning>
 
 <Note>
-  Automating this? Run `fused-cli init support-app --service linear --select-all linear --no-input`. No method flag is needed for the combined App. Missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with [`connect` with explicit values and `--no-input`](/bucket/store-credentials#supply-values-for-automation), or let the first affected call return the exact safe setup command. Use an explicit `--operation` when the App needs a narrower surface. For structured plan and apply output, use the [advanced controlled workflow](/advanced/control-the-workflow).
+  Automating this? Run `fused-cli init support-app --service linear --no-input` for all Linear operations, or use `--service 'linear=issueUpdate'` for only that operation. No method flag is needed for the combined App. Missing credentials are reported as readiness metadata without blocking publication. You may pre-provision them with [`connect` with explicit values and `--no-input`](/bucket/store-credentials#supply-values-for-automation), or let the first affected call return the exact safe setup command. For structured plan and apply output, use the [advanced controlled workflow](/advanced/control-the-workflow).
 </Note>
 
 ## Call it

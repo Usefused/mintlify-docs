@@ -12,10 +12,10 @@ Re-applying identical content to the same version is a no-op — no regeneration
 The fix is always the same: bump the version and publish that. The guided path updates the existing YAML rather than creating a second file:
 
 ```bash
-fused-cli extend support-sdk --service slack
+fused-cli extend support-sdk --service 'slack=chatPostMessage,conversationsList'
 ```
 
-`extend` reads the existing YAML to infer SDK mode, then opens the same operation selector as init. Existing services and operations remain in that file, and the app keeps its stable SDK ID.
+`extend` reads the existing YAML to infer SDK mode and adds the listed Slack operations. Use `--service 'slack'` to add all Slack operations, or group services in one quoted value such as `--service 'slack=chatPostMessage;linear=issueUpdate'`. Omitted provider versions inherit existing App pins. Existing services and operations remain in the file, and the app keeps its stable SDK ID.
 
 When the requested merge changes a stable SemVer version, Fused infers the next minor version: `1.0.0` becomes `1.1.0`. A terminal shows that successor in the combined confirmation before writing. The same deterministic inference works with `--no-input`. An idempotent extension keeps its current version.
 

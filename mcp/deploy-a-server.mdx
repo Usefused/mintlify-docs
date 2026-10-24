@@ -18,19 +18,18 @@ For supported OAuth integrations, [use a Managed service](/workspace/use-managed
 ```bash
 fused-cli init support-agent --mcp \
   --description 'Update support issues and notify the owning team in Slack.' \
-  --service linear \
-  --service slack
+  --service 'jira=issueUpdate;slack=chatPostMessage'
 ```
 
-`--service` accepts comma-separated selectors or repeated flags. Use the canonical `<service>@<version>` form when the server must select one exact immutable service version.
+This selects only `issueUpdate` from Jira and `chatPostMessage` from Slack. Use one quoted `--service` value: semicolons separate services, and commas separate operations within a service. For example, `--service 'slack=chatPostMessage,conversationsList;jira=issueUpdate'` selects two Slack operations and one Jira operation.
 
-For each service, **All operations** is highlighted by default. Press Enter to expose the complete service, or open **Choose operations…** to search by operation ID, method, path, summary, or tag. The example below assumes you accepted all operations for both services.
+To expose all operations from both services, use `--service 'jira;slack'`. Bare services select all physical operations automatically, including with `--no-input`. Quote the value so your shell preserves semicolons. Use `<service>@<version>` to pin a provider version, such as `--service 'jira@v3=issueUpdate;slack=chatPostMessage'`.
 
 Init enables any missing service after one combined confirmation under a separate workspace receipt. It builds and validates the MCP candidate in memory, then plans it before creating `.fused/mcps/support-agent.yaml`. Interactive init offers the [credential review](/advanced/control-the-workflow#review-credentials-during-init): set up credentials here, open bucket setup in the browser, recheck, proceed anyway, or cancel. After a successful plan and completed review, init creates the file atomically, applies the MCP server, and prints its connection details. A failed plan or cancelled review creates no app config or app receipt, though completed workspace activation or credential writes remain applied.
 
 Standalone `app plan` for MCP reports missing credentials without changing them. Init can publish with readiness warnings when you choose **Proceed anyway** or run with `--no-input`. The first affected tool call then stops before contacting the provider and identifies the missing credentials. Run [`fused-cli connect`](/bucket/store-credentials#set-up-or-edit-provider-credentials) for that service and bucket, then retry the call.
 
-The resulting config is durable desired state:
+The resulting config is durable desired state. Provider versions depend on the versions resolved in your workspace; this example uses Jira `v3` and Slack `v1`:
 
 ```yaml
 apiVersion: fused/v1
@@ -40,14 +39,12 @@ version: "1.0.0"
 description: Update support issues and notify the owning team in Slack.
 bucket: default
 services:
-  linear:
-    version: "v1"
-    select_all: true
-    auth: { type: "oauth" }
-    connect: { scopes: ["read:issues"] }
+  jira:
+    version: "v3"
+    operations: [issueUpdate]
   slack:
     version: "v1"
-    select_all: true
+    operations: [chatPostMessage]
 ```
 
 `description` summarizes what the server helps an agent accomplish in one to three concise sentences. Keep operation IDs out of this overview; the agent discovers exact calls later through `search_docs`. In a terminal, init prompts when you omit it. With `--no-input`, pass it explicitly.
@@ -67,9 +64,7 @@ Use `fused-cli app versions list support-agent` whenever you need to recover the
 | Flag | What it does | Example |
 |---|---|---|
 | `--description` | Describes the server's business capability; required with `--no-input` | `fused-cli init support --mcp --description 'Read and update support issues.'` |
-| `--service` | Adds services as `<service>[@<version>]`; comma-separated or repeatable, with an omitted version defaulting to an enabled or latest public version | `fused-cli init support --mcp --service linear@v1,slack` |
-| `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --mcp --service linear --operation 'linear=issueUpdate'` |
-| `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --mcp --service slack --select-all slack` |
+| `--service` | Groups services with `;` and optional operation lists with `=` and `,`; bare services select all operations | `fused-cli init support --mcp --description 'Manage support issues.' --service 'jira=issueUpdate;slack=chatPostMessage'` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --mcp --bucket agent-credentials` |
 | `--webhook-attachment` | Attaches an already applied webhook config | `--webhook-attachment managed-slack-events` |
 | `--events` | Selects explicit provider events; repeatable | `--events 'slack=app_mention'` |
@@ -80,17 +75,19 @@ Use `fused-cli app versions list support-agent` whenever you need to recover the
 
 Init also resolves server-template variables for the operations you selected and writes the matching `server_variable` injections, reporting a count of what it generated. The behaviour is identical to the SDK side — [how init fills in routing](/app/build-an-sdk#init-fills-in-the-routing-for-you).
 
-Omit the method flags to create one App with SDK, MCP, and REST delivery. For MCP only, pass `--mcp`. With `--no-input`, also pass `--description` and an explicit `--operation` or `--select-all` for every service.
+Omit the method flags to create one App with SDK, MCP, and REST delivery. For MCP only, pass `--mcp`. With `--no-input`, also pass `--description`; bare and scoped service selectors work the same way as in a terminal.
+
+Repeated service flags, comma-separated bare services, and the older `--operation` and `--select-all` flags remain supported. Explicit legacy operation lists, event selections, or imported MCP capability flags keep their selected scope without adding all physical operations.
 
 ### `fused-cli extend`
 
 Add another service or operation without repeating `--mcp`:
 
 ```bash
-fused-cli extend support-agent --service slack
+fused-cli extend support-agent --service 'slack=conversationsList'
 ```
 
-`extend` reads `.fused/mcps/support-agent.yaml`, infers MCP mode, and updates that same file. An idempotent repeat keeps its version. A real change to a stable SemVer version advances to the next minor version and is shown in terminal confirmation; the same inference works with `--no-input`. Use `--version` to override the inferred successor. Prerelease and non-SemVer versions require an explicit successor.
+`extend` reads `.fused/mcps/support-agent.yaml`, infers MCP mode, and adds the selected operation to that same file. Use `--service 'slack'` to add all Slack operations, or semicolons to group several services. Omitted provider versions inherit existing App pins. An idempotent repeat keeps its version. A real change to a stable SemVer version advances to the next minor version and is shown in terminal confirmation; the same inference works with `--no-input`. Use `--version` to override the inferred successor. Prerelease and non-SemVer versions require an explicit successor.
 
 ### `app plan`
 

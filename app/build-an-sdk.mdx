@@ -14,10 +14,10 @@ By default, `fused-cli init` also hosts the same App through MCP and REST. Use `
 ## Create all three delivery methods
 
 ```bash
-fused-cli init support-app --service linear --service slack
+fused-cli init support-app --service 'linear;slack'
 ```
 
-This creates one `kind: sdk` App with a generated package, a hosted MCP server, and REST execution. The selected scope, version, and token are shared. Its config includes a nested MCP description:
+This selects all operations from Linear and Slack and creates one `kind: sdk` App with a generated package, a hosted MCP server, and REST execution. The selected scope, version, and token are shared. You can express the same scope in YAML with a nested MCP description:
 
 ```yaml
 apiVersion: fused/v1
@@ -40,20 +40,10 @@ Use `--description` to author the MCP summary. When omitted, init derives one fr
 
 ```bash
 fused-cli init support-sdk --sdk \
-  --service linear \
-  --service slack
+  --service 'linear;slack'
 ```
 
-For each service, `fused-cli init` reuses an enabled workspace version or pins the latest public Registry version. It then opens this choice:
-
-```text
-Select operations for linear v1
-
-❯ All operations
-  Choose operations…
-```
-
-Press Enter to take the complete surface. **Choose operations…** opens a searchable multi-select matching operation IDs, methods, paths, summaries, and tags. Press `/` to filter, type your search, press Space to toggle an operation, and press Enter to confirm. You do not need to know an endpoint name before you start.
+For each service, `fused-cli init` reuses an enabled workspace version or pins the latest public Registry version. Bare services automatically select all physical operations without opening an operation picker. This works in terminals and with `--no-input`.
 
 If activation is needed, init shows one combined confirmation and applies the workspace change under its own receipt. It then builds and validates the SDK candidate in memory and plans the SDK. Missing credentials open the [init credential review](/advanced/control-the-workflow#review-credentials-during-init): set them up, open the bucket in your browser, recheck, proceed anyway, or cancel. Setup and recheck refresh the plan. A successful plan and completed review allow init to create `.fused/sdks/support-sdk.yaml`, apply the SDK, and download the package. Workspace and SDK changes retain separate receipts.
 
@@ -61,7 +51,7 @@ If activation is needed, init shows one combined confirmation and applies the wo
   Adding a service saves its executable contract without archiving SDK generation input. SDK planning acquires that input when you select the service for a generated package, and accepts it only if the saved runtime contract and source revision still match. If they have changed, generated SDK init prints each exact `service@version` as it refreshes that snapshot and retries the unchanged plan once. It does this deterministically with `--no-input` too. It never invents a pin, selects another version, or bypasses Registry retention. A failed refresh or retry creates no app config or app receipt, while any completed exact refresh remains explicit. See [Recover without guessing](/advanced/control-the-workflow#recover-without-guessing) for the failure boundaries.
 </Note>
 
-If you press Enter for both services, the resulting config records that complete-surface intent without requiring you to type either service version or operation ID:
+The equivalent YAML uses `select_all: true` for both services. Init resolves this to explicit operation lists before publishing the immutable App version:
 
 ```yaml
 apiVersion: fused/v1
@@ -80,9 +70,24 @@ services:
     select_all: true
 ```
 
-Each service key is the canonical Registry slug selected by the CLI. `--service` accepts comma-separated selectors or repeated flags; pass an explicit `<service>@<version>` only when you need a version other than the default.
+Each service key is the canonical Registry slug selected by the CLI. The provider versions shown here are illustrative; init writes the concrete versions it resolves.
 
 `operations` and `select_all: true` are alternatives. Exactly one is required per service, never both and never neither.
+
+## Choose services and operations
+
+Use one quoted `--service '<service>[@<version>][=<operationId>,...];...'` value with `init` or `extend`. Semicolons separate services, and commas separate operations within a service.
+
+| Selection | Example |
+|---|---|
+| All operations from both services | `--service 'linear;slack'` |
+| Only the listed operations | `--service 'linear=issueUpdate;slack=chatPostMessage,conversationsList'` |
+| All Linear operations and one Slack operation | `--service 'linear;slack=chatPostMessage'` |
+| Operations from an exact provider version | `--service 'linear@v1=issueUpdate;slack=chatPostMessage'` |
+
+Quote the value so your shell does not interpret semicolons as command separators. To find operation IDs before creating an App, use `fused-cli service operation list <service> --registry`.
+
+Repeated service flags, comma-separated bare services, and the older `--operation` and `--select-all` flags remain supported. Explicit legacy operation lists, event selections, or imported MCP capability flags keep their selected scope without adding all physical operations.
 
 ## init fills in the routing for you
 
@@ -183,9 +188,7 @@ Both are derived from the generated source and validated against it, so the meth
 | `--sdk` | Creates, applies, and downloads a typed SDK without hosted MCP | `fused-cli init support --sdk --service linear` |
 | `--rest` | Creates a REST-only `kind: sdk` App with `generate: false` | `fused-cli init support-api --rest --service linear` |
 | `--mcp` | Creates an MCP-only App without an SDK package | `fused-cli init support-agent --mcp --service linear` |
-| `--service` | Adds services as `<service>[@<version>]`; comma-separated or repeatable, with an omitted version defaulting to an enabled or latest public version | `fused-cli init support --sdk --service linear@v1,slack` |
-| `--operation` | Skips the selector for one exact operation; repeatable | `fused-cli init support --sdk --service linear --operation 'linear=issueUpdate'` |
-| `--select-all` | Skips the selector and takes every operation of a service | `fused-cli init support --sdk --service linear --select-all linear` |
+| `--service` | Groups services with `;` and optional operation lists with `=` and `,`; bare services select all operations | `fused-cli init support --sdk --service 'linear@v1=issueUpdate;slack=chatPostMessage'` |
 | `--bucket` | References an existing bucket; never creates one | `fused-cli init support --sdk --bucket prod-credentials` |
 | `--version` | Sets the initial app version | `fused-cli init support --sdk --version 2.0.0 --service linear` |
 | `--language` | `typescript` (default), `python`, or `go` for generated packages, including the combined App | `fused-cli init support-app --language go --service linear` |
@@ -196,17 +199,19 @@ Omit `--sdk`, `--rest`, and `--mcp` to create the combined App in a terminal or 
 
 Generated Go packages require Go 1.24 or later. They include a `go.mod` and a README with the exact module path and local installation commands. See [install the package](/app/use-in-your-app#install-it).
 
-In a terminal, omit `--operation` and `--select-all` to use the guided selector. With `--no-input`, declare one operation boundary for every service; add a method flag only when you want a single method. Use the explicit plan/apply path when automation needs structured results.
+The same service selectors work in a terminal and with `--no-input`: bare services select all operations, and inline lists select only those operations. Add a method flag only when you want a single method. Use the explicit plan/apply path when automation needs structured results.
 
 ### `fused-cli extend`
 
 Use `extend` after creation. It finds the existing YAML and infers the app's delivery configuration, so you do not repeat `--sdk`, `--rest`, or `--mcp`:
 
 ```bash
-fused-cli extend support --service slack
+fused-cli extend support --service 'slack=chatPostMessage,conversationsList'
 ```
 
-The same file is updated additively. An idempotent repeat keeps its version. A real change to a stable SemVer version advances to the next minor version and is shown in terminal confirmation; `--no-input` uses the same deterministic inference. Pass `--version <successor>` to override it. Prerelease and non-SemVer versions always require that explicit flag.
+The same file is updated additively. Use `--service 'slack'` to add all Slack operations, or group several services with semicolons. Omitted provider versions inherit existing App pins. Running `extend support` without selection flags in a terminal opens the operation picker for existing services.
+
+An idempotent repeat keeps its version. A real change to a stable SemVer version advances to the next minor version and is shown in terminal confirmation; `--no-input` uses the same deterministic inference. Pass `--version <successor>` to override it. Prerelease and non-SemVer versions always require that explicit flag.
 
 ## Adjust the selection
 
