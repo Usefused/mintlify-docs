@@ -43,6 +43,15 @@ Check both Fused HTTP status and `status_code`, which records the provider's sta
   A stable `Idempotency-Key` helps make retries of a mutating operation safe when its provider contract supports idempotency. Supply the header at most once.
 </Warning>
 
+If Fused blocks a physical operation because of its idempotency key, it returns HTTP `409` with a descriptive `error.message` and next steps in `error.details.remediation`:
+
+| Code | What happened | Next step |
+|---|---|---|
+| `idempotency_conflict` | The key was already used for a different request. This request did not call the provider. | Retry with the original request and key, or use a new key only for an intentionally separate operation. |
+| `idempotency_unresolved` | The earlier request has no confirmed saved result. It may still be running, or its provider outcome may be unknown. This request did not call the provider again. | Retry later with the same key and identical request. If it remains unresolved, check the original execution and provider state. Changing the key to bypass the block could duplicate the operation. |
+
+Both responses include `details.provider_execution: "not_started"`, which describes the **current rejected request**, not the earlier request. An unresolved response also includes `details.previous_outcome: "pending_or_unknown"`; it does not claim the original operation failed or that a new operation is safe.
+
 ## No package required
 
 This is the same execution the typed package makes, against the same immutable version. A version applied with [`generate: false`](/app/build-an-sdk#skip-the-package) publishes without building a package at all and is fully callable here.
