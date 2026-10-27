@@ -1,0 +1,144 @@
+---
+title: "Automatic snapshots and recovery"
+sidebarTitle: "Snapshots and recovery"
+description: "Let Engine checkpoint provider calls and reuse completed responses when a run is retried."
+---
+
+Enable `snapshot: true` to checkpoint provider calls automatically. Your function runs normally, without `snapshot.save()` or a resume cursor:
+
+```typescript
+import * as z from "zod/mini";
+import { buildUnifiedApp } from "@fused/unified-app";
+import { fused } from "@fused/operations";
+
+export default buildUnifiedApp({
+  snapshot: true,
+  recovery: { mode: "automatic", maxAttempts: 3, backoffSeconds: 5 },
+  input: z.object({ orderId: z.string() }),
+  output: z.object({ ok: z.boolean() }),
+  // Select these provider operations in the app configuration before compiling.
+  async execute({ input }) {
+    await fused.orders.create({ orderId: input.orderId });
+    await fused.orders.confirm({ orderId: input.orderId });
+    return { ok: true };
+  },
+});
+```
+
+If `create` succeeds and a later call fails, the next attempt starts the function again. Engine returns the saved `create` response without calling the provider again, then continues. The app's original clock and random seed are restored too. Each attempt has a new execution ID; generated provider keys use the stable logical `runId` and call ordinal. Two intentional calls with identical input have distinct keys. Keep call ordering deterministic across retries; a changed request at the same call position is rejected.
+
+Engine uses its existing provider-response store for every keyed call, whether it comes from an SDK, MCP, or a Unified App. It reserves the key before dispatch and acknowledges a successful finite response only after saving it. A repeated key with changed operation, input, token scope, or routing fails instead of returning an unrelated response. Database failures never turn into cache misses.
+
+To supply a business key, pass `idempotencyKey` in the operation options:
+
+```typescript
+await fused.orders.create({ orderId }, { idempotencyKey: `order:${orderId}` });
+```
+
+The same option is available on `fused.fetch({ service, operation, input, idempotencyKey })`. An explicit key takes precedence over a generated key and works even when `snapshot` is disabled. Keys are scoped to the exact app version. Omitting `snapshot`, or setting it to `false`, generates no automatic provider keys.
+
+Automatic checkpoints currently support finite, non-paginated provider calls with responses up to 16 MiB; existing app response limits still apply. SOAP, streaming contracts, and nested `fused.callApp` calls are rejected before dispatch in this mode. A snapshot-enabled app can itself be invoked through an SDK, MCP server, or another app. Buffered `fused.db` data retains its existing terminal-commit behavior. Manual `snapshot.load()` and `snapshot.save()` cannot be mixed with automatic provider checkpoints. Publish a new immutable version to enable the opt-in.
+
+A provider may commit a write before Engine saves its response. Engine leaves that key pending and refuses to repeat the uncertain write, including after a restart. This prevents a blind duplicate but does **not** provide exactly-once completion or automatic resolution of an unknown outcome. Provider-supported idempotency remains necessary to resolve that crash window safely. Failed contract-declared reads can be retried; uncertain writes require reconciliation. Standalone pending keys are not expired automatically. Completed standalone keys retain their existing 24-hour lifetime; snapshot-bound responses follow the current run's configured retention, including indefinite retention. When runs share an explicit key, Engine keeps one response until every dependent run expires.
+
+## Explicit progress checkpoints
+
+Existing apps can continue using explicit JSON checkpoints with automatic provider snapshots disabled. This mode lets authored code choose where to resume:
+
+```typescript
+import * as z from "zod/mini";
+import { buildUnifiedApp, snapshot } from "@fused/unified-app";
+import { fused } from "@fused/operations";
+
+// Saved progress: the next item to process and the results so far.
+const progress = z.nullable(z.object({ next: z.number(), found: z.array(z.string()) }));
+
+export default buildUnifiedApp({
+  input: z.object({ emails: z.array(z.string()) }),
+  output: z.object({ customerIds: z.array(z.string()) }),
+  recovery: { mode: "automatic", maxAttempts: 3, backoffSeconds: 5 },
+
+  // `snapshot` is null on a fresh run and the latest saved progress on a retry.
+  async execute({ input, snapshot: restored }) {
+    const saved = progress.parse(restored) ?? { next: 0, found: [] };
+    const found = [...saved.found];
+
+    for (let i = saved.next; i < input.emails.length; i++) {
+      const { data } = await fused.stripe.getCustomers({ email: input.emails[i] });
+      found.push(...data.map((customer) => customer.id));
+      // Save after each item so a retry skips everything already done.
+      await snapshot.save({ next: i + 1, found });
+    }
+    return { customerIds: found };
+  },
+});
+```
+
+- `snapshot.save(state)` stores any JSON value up to 512 KiB. It's also available as `fused.snapshot.save(...)`.
+- `save` resolves only after Engine has stored the progress, encrypted. If Engine can't confirm the save, the attempt is cancelled, even if your code catches the error.
+- On every attempt, Engine loads the latest snapshot before calling `execute`. Validate its shape, as above. Aliasing it as `restored` avoids hiding the imported `snapshot` helper.
+- Your function starts from the top on each attempt. Local variables, promises and timers aren't restored, only the JSON you saved.
+- Snapshots are separate from `fused.db.set(...)`, which saves the run's result data when it finishes.
+
+## Choose a recovery policy
+
+Declare `recovery` in `buildUnifiedApp`:
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `mode` | `manual` or `automatic` | `manual` |
+| `maxAttempts` | 1–10, counting the first run | `3` |
+| `backoffSeconds` | 1–300, the wait before an automatic retry | `5` |
+
+- **`manual`**: a new attempt starts only when you request a rerun.
+- **`automatic`**: Engine retries a failed or interrupted attempt after `backoffSeconds`. An attempt that stops responding is retried once its two-minute lease expires.
+
+Every attempt keeps the original input, runtime bucket and app version. If you promote a different version, older runs stop being retried, so a snapshot is never read by different code. Each attempt has its own execution ID, and all attempts share a `runId`. Execution responses include `runId` and `attempt`.
+
+Automatic recovery works for direct calls, SDKs, MCP servers, other apps, schedules and webhooks. Engine retains the original caller chain and checks its token, alias grants, selected app versions and bindings before continuing. Revoked access or a retired caller stops recovery. A synchronous call returns its attempt's result; later retries run in Engine and do not replace that response.
+
+Apps published before recovery support keep their earlier behavior. Publish a new version to use snapshots.
+
+## Rerun manually
+
+Keep the `executionId` and `readHandle` from the original response, then request a rerun with a unique `Idempotency-Key`:
+
+```bash
+curl -X POST "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions/$EXECUTION_ID/rerun" \
+  -H "Authorization: Bearer $FUSED_APP_TOKEN" \
+  -H "X-Execution-Read-Handle: $READ_HANDLE" \
+  -H "Idempotency-Key: $(uuidgen)"
+```
+
+The rerun continues from the latest attempt's snapshot. If the response is lost, retry with the same key. You get the same attempt back instead of starting another one. To see every attempt in the run:
+
+```bash
+curl "$FUSED_ENGINE_URL/v1/apps/$FUSED_APP_FAMILY_ID/executions/$EXECUTION_ID/attempts" \
+  -H "Authorization: Bearer $FUSED_APP_TOKEN" \
+  -H "X-Execution-Read-Handle: $READ_HANDLE"
+```
+
+A run that finished successfully can't be rerun. Start a new execution instead.
+
+## Explicit checkpoint write safety
+
+With explicit progress checkpoints, a provider call can succeed just before a crash and before the next manual save. A retry can repeat the call unless it has an idempotency key. Automatic provider checkpoints instead leave an uncertain write pending and block a blind repeat; neither mode guarantees exactly-once completion.
+
+For a write, use a provider-supported idempotency key derived from a stable business operation and item identity. Reuse that key on every attempt, then save progress after the provider confirms success. A new random key per attempt does not prevent duplicates. Check that the provider's deduplication window covers your retry window. The rerun endpoint's `Idempotency-Key` prevents duplicate rerun submissions; it does not deduplicate provider writes.
+
+## Keep run history
+
+Hosted Engines retain results, private diagnostics, replay history and snapshots for **seven days** after each attempt completes. Database operators can choose a longer period or keep them indefinitely:
+
+```yaml title="engine.yaml"
+engine:
+  # Use a positive number of days, or zero to keep run records indefinitely.
+  execution_result_retention_days: 0
+```
+
+Restart Engine after changing this setting. New completions use the configured period; existing records keep their recorded expiry. This setting is separate from activity-event retention and has no plan-imposed maximum. Retaining a failed run lets you inspect it later, but rerunning still requires an executable app version and valid access.
+
+## Limits
+
+- A recovery attempt has a 45-second budget. Snapshots help a run survive failure; they don't make it long-running.
+- Snapshots are deleted with the run's retained results.

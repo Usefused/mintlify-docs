@@ -86,6 +86,7 @@
                       "app/unified-apps",
                       "app/unified-apps/write-code",
                       "app/unified-apps/versions",
+                      "app/unified-apps/recovery",
                       "app/unified-apps/use-from-apps",
                       "app/unified-apps/results-and-debugging"
                     ]
