@@ -1,0 +1,82 @@
+---
+title: "Run an app on a schedule"
+sidebarTitle: "Schedules"
+description: "Run a Unified App once at a set time, or on a recurring cron schedule, with saved input."
+---
+
+A schedule runs your Unified App's active version with input you save in advance. Use it for work that isn't triggered by a caller or an event, such as a weekday report or a monthly sync. Engine runs schedules itself, so there's no separate cron service to host.
+
+You need permission to manage the app (`app.unified_app.manage`) to create or change its schedules.
+
+## Create a schedule
+
+<Tabs>
+  <Tab title="Dashboard">
+    Open the Unified App and select **Schedules**. Choose a date and time for a one-time run, or enter a cron expression and timezone for a recurring one, then enter the input as JSON.
+
+    The input editor checks your JSON against the app's input schema as you type and shows the path of each error.
+  </Tab>
+  <Tab title="CLI">
+    ```bash
+    # Recurring: weekdays at 09:00 London time.
+    fused-cli app schedule create customer-app \
+      --name "Weekday run" \
+      --cron '0 9 * * 1-5' \
+      --timezone Europe/London \
+      --input-file ./input.json
+
+    # One-time: include the timezone offset in the timestamp.
+    fused-cli app schedule create customer-app \
+      --name "December run" \
+      --at '2026-12-01T09:00:00Z' \
+      --input-file ./input.json
+    ```
+
+    Pass the app name, or omit it and use `-f` to read the app from its config. Use `--input '<json>'` for inline input, or `--input-file -` to read from stdin. Prefer a file or stdin for private values. `--paused` saves the schedule without enabling it. Recurring schedules default to `UTC` when you omit `--timezone`.
+  </Tab>
+</Tabs>
+
+Cron expressions have five fields: minute, hour, day of month, month and weekday.
+
+| Expression | Runs |
+| --- | --- |
+| `0 9 * * *` | Every day at 09:00 |
+| `0 9 * * 1-5` | Weekdays at 09:00 |
+| `*/15 * * * *` | Every 15 minutes |
+| `0 9 1 * *` | The first day of each month at 09:00 |
+
+Seconds and `@every` aren't supported. When both day of month and weekday are restricted, the schedule matches either one. Local times skipped by a daylight-saving change don't run, and repeated local times can run twice. Use `UTC` to avoid daylight-saving effects.
+
+## Manage schedules
+
+```bash
+fused-cli app schedule list customer-app
+fused-cli app schedule update customer-app --id SCHEDULE_ID --input-file ./revised-input.json
+fused-cli app schedule pause customer-app --id SCHEDULE_ID
+fused-cli app schedule resume customer-app --id SCHEDULE_ID
+fused-cli app schedule delete customer-app --id SCHEDULE_ID
+```
+
+Every command accepts `--json`. The JSON list includes the saved input; the default output doesn't. Update keeps any field you don't pass. Changing `--at` removes the cron schedule, and changing `--cron` removes the one-time date.
+
+A schedule can't be edited or deleted while its run is in progress. Deleting a schedule stops future runs and keeps its history.
+
+## How scheduled runs behave
+
+- **Saved input is checked and encrypted.** When you enable a schedule, Engine checks its input against the active version's input schema. The input is stored encrypted and never appears in logs or traces. Input can be up to 512 KiB.
+- **It follows the active version.** A schedule belongs to the app, not to the person who created it, and always runs the version currently receiving traffic. If you promote a version with a different input contract, review your saved inputs.
+- **Runs never overlap.** A schedule won't start a new run while its previous run is still in progress.
+- **Each occurrence runs once.** With several Engine replicas, only one replica runs each occurrence.
+- **Missed runs are combined.** If Engine was unavailable, a missed one-time run happens when it's back. Missed recurring times become one catch-up run, then the schedule moves to its next future time. Resuming a paused schedule doesn't replay the times it missed.
+- **Timing isn't exact.** Engine checks for due schedules every five seconds, and busy execution capacity can delay a run.
+- **Each run has a one-minute deadline.**
+
+## When a run fails
+
+The schedule doesn't retry a failed run. It records the failure, and the next occurrence runs at its normal time.
+
+To retry failures, declare automatic recovery in the app. Engine then retries the failed attempt, restoring any progress the app saved. See [Save progress and recover from failures](/app/unified-apps/recovery).
+
+If a run's outcome is uncertain, for example because Engine stopped mid-run, the schedule is paused. That doesn't happen if the app uses automatic recovery and still has attempts left. A run still in progress after five minutes is treated as interrupted. Check the provider's state before you resume a paused schedule, because Fused can't guarantee that each provider call happened exactly once.
+
+Scheduled runs appear in the app's **Requests** tab with the rest of its history. An app can have up to 100 schedules.
