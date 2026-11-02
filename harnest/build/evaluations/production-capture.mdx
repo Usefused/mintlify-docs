@@ -1,0 +1,185 @@
+---
+icon: "flask"
+title: "Production eval capture"
+sidebarTitle: "Production capture"
+description: "Select production invocations for evaluation with a capture rule, an explicit redaction policy, and your own store."
+---
+
+Capture selected production invocations for later evaluation. Define a rule in `lifecycle/evals_improvement.py` and register a store. Harnest runs capture in the background after the response.
+
+This is separate from [Simulations and live evaluation](/harnest/build/evaluations/simulations-and-live-evaluation), where “live” means ADK's real-time inference mode, not production traffic.
+
+<Warning>
+  Harnest does not detect personal data. Without your own redactor, captures retain structure only and omit input, output, tool arguments, and tool results. Register a redactor only when you have a policy for the content you intend to store.
+</Warning>
+
+## Select invocations
+
+```python lifecycle/evals_improvement.py
+from harnest import lifecycle
+from harnest.eval_capture import CaptureEvent
+
+
+@lifecycle.evals.capture(store="captures", sample_rate=0.05)
+def should_capture(event: CaptureEvent) -> bool:
+    """Keep invocation and tool failures for evaluation review."""
+    return event.failed or event.tool_error
+```
+
+The rule takes exactly one `CaptureEvent` argument and returns `True` to capture the invocation. It can be synchronous or asynchronous. Only one capture rule is allowed.
+
+`sample_rate` is optional and must be between `0` and `1`. It additionally captures that share of traffic rejected by the rule. The example keeps failures plus a 5% sample of other invocations. Records identify the selection reason as `rule` or `sample`.
+
+Both `@lifecycle.evals.capture` and `@lifecycle.evals.redact` must live in `lifecycle/evals_improvement.py`; Harnest refuses them in other files. Deleting this file turns capture off without changing the rest of the application.
+
+### What the rule sees
+
+| `CaptureEvent` field | Meaning |
+|---|---|
+| `agent_name`, `invocation_id` | Agent and invocation identifiers |
+| `session_id`, `user_id` | Session and user identifiers available only to the rule |
+| `transport` | Invocation transport |
+| `status` | `completed` or `failed` |
+| `input_text`, `output_text` | Invocation input and output |
+| `tool_calls` | Tool activity; each item has `name`, `arguments`, `result`, and `error` |
+| `error_type` | Invocation error type |
+| `metadata` | Metadata available only to the rule |
+| `failed` | Shortcut for `status == "failed"` |
+| `tool_error` | Shortcut indicating that a tool result appears to be an error |
+
+`tool_error` is a best guess: it detects ADK results with an `error` field and LangGraph tool messages with `status="error"`. Use explicit checks in your rule when your tools have a different failure contract.
+
+`user_id`, `session_id`, and `metadata` are never stored in capture records.
+
+## Register a store
+
+The rule's `store="captures"` names a [`@lifecycle.storage.custom("captures")`](/harnest/runtime/session-storage#register-a-domain-repository) provider:
+
+```python lifecycle/storage.py
+from harnest import lifecycle
+from harnest.eval_capture import LocalCaptureStore
+
+
+@lifecycle.storage.custom("captures")
+def captures() -> LocalCaptureStore:
+    """Keep capture records on the instance's persistent volume."""
+    return LocalCaptureStore("./data/eval-captures", retention_days=30)
+```
+
+`LocalCaptureStore(directory, retention_days=30)` writes one JSON Lines file per UTC day. It deletes old days on startup and when a new day begins. Use it locally or on a single instance with a persistent volume.
+
+For another backend, return a value implementing `harnest.eval_capture.CaptureStore`:
+
+| Async method | Contract |
+|---|---|
+| `start()` | Open the storage resource |
+| `close()` | Release the storage resource |
+| `append(record)` | Persist a `CaptureRecord` |
+| `list(*, since=None, limit=100)` | Return records newest first, optionally restricted by `since`, up to `limit` |
+
+## Choose what content to keep
+
+| Policy | Stored data | `content` |
+|---|---|---|
+| No redactor | Structure only: status, error type, reasons, tool names, and which tools failed; no input, output, tool arguments, or tool results | `"omitted"` |
+| `@lifecycle.evals.redact` | Content after your redactor runs | `"redacted"` |
+
+A redactor takes exactly one `CaptureRecord` and must return a `CaptureRecord`. Only one redactor is allowed. If it returns anything else, Harnest drops the capture. The `"redacted"` marker means your policy ran; it does not certify that all personal data was removed.
+
+### Example with Presidio
+
+[Presidio's analyzer](https://microsoft.github.io/presidio/analyzer/) detects supported personal-data entities, and its [anonymizer](https://microsoft.github.io/presidio/anonymizer/) replaces detected spans. Install `presidio-analyzer` and `presidio-anonymizer` in your agent environment and provision the NLP model required by your analyzer configuration before serving.
+
+Add this to the same `lifecycle/evals_improvement.py` file as the rule. This example applies Presidio to input and output text and discards tool arguments and results, whose schemas may contain sensitive values beyond free text.
+
+```python lifecycle/evals_improvement.py
+from dataclasses import replace
+
+from harnest import lifecycle
+from harnest.eval_capture import CaptureRecord
+from presidio_analyzer import AnalyzerEngine
+from presidio_anonymizer import AnonymizerEngine
+
+analyzer = AnalyzerEngine()
+anonymizer = AnonymizerEngine()
+
+
+def redact_text(text: str) -> str:
+    """Replace personal-data spans detected by the configured English analyzer."""
+    # Empty content has no spans and needs no NLP processing.
+    if not text:
+        return text
+    findings = analyzer.analyze(text=text, language="en")
+    return anonymizer.anonymize(text=text, analyzer_results=findings).text
+
+
+@lifecycle.evals.redact
+def redact_capture(record: CaptureRecord) -> CaptureRecord:
+    """Apply the team's text policy and remove unreviewed tool payloads."""
+    return replace(
+        record,
+        input_text=redact_text(record.input_text),
+        output_text=redact_text(record.output_text),
+        # Preserve tool names and failure flags without retaining payload content.
+        tool_calls=tuple(
+            replace(tool, arguments=None, result=None)
+            for tool in record.tool_calls
+        ),
+    )
+```
+
+Automated detection is not guaranteed to catch everything. Review the languages, recognizers, and domain-specific sensitive data your application handles before retaining content. Leave capture structure-only if that policy is not ready.
+
+## Stored record format
+
+`CaptureRecord` serializes with `schemaVersion: 1` and these fields:
+
+| JSON field | Meaning |
+|---|---|
+| `id`, `capturedAt` | Record identifier and capture timestamp |
+| `agentName`, `invocationId` | Agent and invocation identifiers |
+| `reasons` | Selection reasons: `rule` or `sample` |
+| `status`, `errorType` | Invocation outcome and error type |
+| `inputText`, `outputText` | Text retained under your redaction policy, or omitted content |
+| `toolCalls` | Tool names and failure flags, with arguments and results only under your redaction policy |
+| `content` | `"omitted"` or `"redacted"` |
+
+When `content` is `"omitted"`, `inputText` and `outputText` are empty strings, and each tool's `arguments` and `result` are `null`. Tool names and failure flags remain available.
+
+## Configure sampling and disable capture
+
+Harnest selects the sample rate in this order:
+
+1. The authored `sample_rate` on `@lifecycle.evals.capture`.
+2. `HARNEST_EVAL_CAPTURE_SAMPLE_RATE`.
+3. `0`, which disables sampling of rejected traffic.
+
+Omit the authored `sample_rate` if operators should control it through the environment. A zero rate still captures invocations accepted by the rule.
+
+Set `HARNEST_EVAL_CAPTURE=off` to disable capture without changing code. `false`, `0`, `no`, and `disabled` also switch it off. Both environment variables can be set under `spec.environment` in `config.yaml`:
+
+```yaml config.yaml
+spec:
+  environment:
+    HARNEST_EVAL_CAPTURE: "off"
+    HARNEST_EVAL_CAPTURE_SAMPLE_RATE: "0.05"
+```
+
+The off switch disables capture regardless of the configured sample rate.
+
+## Failure handling and validation
+
+Capture runs in the background after the response. Errors in the rule, redactor, or store are logged as `eval.capture.failed` and never reach users. Successful captures log `eval.capture.stored`. Neither event contains content.
+
+Compilation rejects:
+
+- Either decorator outside `lifecycle/evals_improvement.py`.
+- A rule or redactor with the wrong number of arguments.
+- Duplicate capture rules or redactors.
+- A missing named store or a provider value that does not implement `CaptureStore`.
+
+## Coverage and limitations
+
+Capture covers Harnest's own routes, including `/responses`, streaming, and AG-UI. It does not cover ADK's native `/run` or `/run_sse` routes. Playground evaluation runs are never captured.
+
+There is no `harnest evals pull` command yet. Use your store's `list` method to read captured records.

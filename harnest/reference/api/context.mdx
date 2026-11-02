@@ -335,14 +335,6 @@ async LocalAgentRuntime.open_session(session_id: str) -> AgentSession
 
 Open an existing session without revealing another owner's records.
 
-### context.agent.open_session
-
-```python
-async context.agent.open_session(session_id: str) -> AgentSession
-```
-
-Available inside a compiled Task. Open an existing root-agent session owned by the task's user, including the session that deferred the Task. The returned session can `invoke()` or `stream()` a new turn. A missing or foreign session raises `AgentSessionNotFoundError`. This method does not create a session or infer a destination from `defer()`.
-
 ## MemoryContext
 
 Access explicit memories across sessions within one application/user scope.
@@ -580,7 +572,7 @@ derive_agent_context(active: AgentContext, *, agent_name: str) -> AgentContext
 Declare one invocation-scoped resource on the public context namespace.
 
 ```python
-provider(name: str, *, order: int = 0) -> Callable[[Callable[..., Any]], Callable[..., Any]]
+provider(name: str, *, order: int = 0) -> Callable[[_ProviderT], _ProviderT]
 ```
 
 ## resource

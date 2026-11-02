@@ -407,6 +407,22 @@ async TaskStoreConformanceMixin.test_cron_occurrence_commit_is_atomic_and_exactl
 
 Concurrent dispatchers advance once and commit exactly one runnable job.
 
+### TaskStoreConformanceMixin.test_cron_max_runs_caps_atomic_handoffs
+
+```python
+async TaskStoreConformanceMixin.test_cron_max_runs_caps_atomic_handoffs() -> None
+```
+
+A schedule cannot enqueue more occurrences than its run cap.
+
+### TaskStoreConformanceMixin.test_cron_failure_streak_resets_after_success
+
+```python
+async TaskStoreConformanceMixin.test_cron_failure_streak_resets_after_success() -> None
+```
+
+Only consecutive terminal failures stop later occurrences.
+
 ### TaskStoreConformanceMixin.test_cancelled_cron_cannot_commit_and_conflict_rolls_back_cursor
 
 ```python

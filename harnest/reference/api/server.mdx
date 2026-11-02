@@ -70,6 +70,7 @@ ServerConfig(
     live: bool = False,
     agent_principal: Literal['optional', 'required'] = 'optional',
     openapi: bool = True,
+    agui: bool = True,
 ) -> None
 ```
 
@@ -83,6 +84,7 @@ Fields (`—` means no declared default):
 | `live` | `bool` | `False` |
 | `agent_principal` | `Literal['optional', 'required']` | `'optional'` |
 | `openapi` | `bool` | `True` |
+| `agui` | `bool` | `True` |
 
 ### ServerConfig.with_overrides
 

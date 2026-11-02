@@ -23,6 +23,7 @@ icon: "code"
 |---|---|
 | [`CoverageLevel`](#coveragelevel) | Class |
 | [`DROP_EVENT`](#drop_event) | Namespace |
+| [`EvalCaptureOptions`](#evalcaptureoptions) | Class |
 | [`Finish`](#finish) | Class |
 | [`LifecycleContext`](#lifecyclecontext) | Class |
 | [`LifecycleCoverage`](#lifecyclecoverage) | Class |
@@ -39,6 +40,8 @@ icon: "code"
 | [`authenticate`](#authenticate) | Namespace |
 | [`coverage`](#coverage) | Function |
 | [`credential_provider`](#credential_provider) | Namespace |
+| [`eval_capture_options`](#eval_capture_options) | Function |
+| [`evals`](#evals) | Namespace |
 | [`http`](#http) | Namespace |
 | [`http_routes`](#http_routes) | Namespace |
 | [`langgraph_middleware`](#langgraph_middleware) | Function |
@@ -73,6 +76,21 @@ CoverageLevel(*values)
 ## DROP_EVENT
 
 
+
+## EvalCaptureOptions
+
+Authored capture settings; `None` defers to the environment, then defaults.
+
+```python
+EvalCaptureOptions(store: str, sample_rate: float | None = None) -> None
+```
+
+Fields (`—` means no declared default):
+
+| Field | Type | Default |
+|---|---|---|
+| `store` | `str` | `—` |
+| `sample_rate` | `float \| None` | `None` |
 
 ## Finish
 
@@ -382,7 +400,7 @@ Return a final value without advancing to later execution.
 Register a native ADK plugin factory at the lifecycle boundary.
 
 ```python
-adk_plugin(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+adk_plugin(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## agent
@@ -391,42 +409,42 @@ Name invocation hooks by their agent lifecycle responsibility.
 
 ### agent.before
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-agent.before(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+agent.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### agent.after
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-agent.after(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+agent.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### agent.on_event
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-agent.on_event(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+agent.on_event(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### agent.on_error
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-agent.on_error(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+agent.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## authenticate
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-authenticate(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+authenticate(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## coverage
@@ -439,10 +457,45 @@ coverage(framework: str, mode: str, *, overrides: Mapping[str, CoverageLevel] | 
 
 ## credential_provider
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-credential_provider(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+credential_provider(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
+```
+
+## eval_capture_options
+
+Return capture options attached by `@lifecycle.evals.capture`.
+
+```python
+eval_capture_options(function: Any) -> EvalCaptureOptions | None
+```
+
+## evals
+
+Production eval improvement hooks, valid only in `lifecycle/evals_improvement.py`.
+
+### evals.capture
+
+```python
+evals.capture(*, store: str, sample_rate: float | None = None) -> Callable[[_Hook], _Hook]
+```
+
+Select finished invocations for structure-only or team-redacted capture.
+
+`store` names a `@lifecycle.storage.custom` provider implementing
+`harnest.eval_capture.CaptureStore`. `sample_rate` additionally
+captures that fraction of invocations the rule rejects.
+Content is omitted unless `@lifecycle.evals.redact` is registered.
+That hook takes and returns one `CaptureRecord`; any other return
+value drops the capture. Harnest does not detect personal data.
+
+### evals.redact
+
+Preserve authored hook signatures while attaching lifecycle metadata.
+
+```python
+evals.redact(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## http
@@ -451,42 +504,42 @@ Group server middleware hooks under the HTTP lifecycle boundary.
 
 ### http.scope
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-http.scope(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+http.scope(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### http.before
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-http.before(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+http.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### http.after
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-http.after(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+http.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### http.on_error
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-http.on_error(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+http.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## http_routes
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-http_routes(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+http_routes(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## langgraph_middleware
@@ -494,7 +547,7 @@ http_routes(function: Callable[..., Any] | None = None, *, order: int = 0) -> An
 Register a native LangGraph middleware factory at the lifecycle boundary.
 
 ```python
-langgraph_middleware(function: Callable[..., Any] | None = None, *, order: int = 0) -> Callable[[Callable[..., Any]], Callable[..., Any]]
+langgraph_middleware(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## lifecycle_coverage
@@ -516,26 +569,26 @@ Group managed remote-tool hooks separately from transport ownership.
 
 ### mcp.before
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-mcp.before(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+mcp.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### mcp.after
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-mcp.after(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+mcp.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### mcp.on_error
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-mcp.on_error(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+mcp.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## model
@@ -544,34 +597,34 @@ Group provider-neutral model hooks under one authoring namespace.
 
 ### model.before
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-model.before(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+model.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### model.after
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-model.after(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+model.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### model.on_error
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-model.on_error(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+model.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## output_policy
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-output_policy(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+output_policy(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## registrations_for
@@ -584,10 +637,10 @@ registrations_for(function: Any) -> tuple[LifecycleRegistration, ...]
 
 ## resource
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-resource(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+resource(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## session
@@ -596,10 +649,10 @@ Observe committed sessions without participating in persistence.
 
 ### session.created
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-session.created(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+session.created(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## skills
@@ -609,7 +662,7 @@ Register named runtime catalogs independently of filesystem skills.
 ### skills.source
 
 ```python
-skills.source(name: str, *, order: int = 0) -> Any
+skills.source(name: str, *, order: int = 0) -> Callable[[_Hook], _Hook]
 ```
 
 Declare one named provider queried only during managed execution.
@@ -620,48 +673,48 @@ Namespace storage roles while retaining distributed file discovery.
 
 ### storage.sessions
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-storage.sessions(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+storage.sessions(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### storage.checkpoints
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-storage.checkpoints(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+storage.checkpoints(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### storage.tasks
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-storage.tasks(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+storage.tasks(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### storage.cron
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-storage.cron(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+storage.cron(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### storage.memory
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-storage.memory(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+storage.memory(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### storage.assets
 
 ```python
-storage.assets(name: str, *, order: int = 0) -> Any
+storage.assets(name: str, *, order: int = 0) -> Callable[[_Hook], _Hook]
 ```
 
 Declare one named asset authority assembled into the registry.
@@ -669,17 +722,17 @@ Declare one named asset authority assembled into the registry.
 ### storage.custom
 
 ```python
-storage.custom(name: str, *, order: int = 0) -> Any
+storage.custom(name: str, *, order: int = 0) -> Callable[[_Hook], _Hook]
 ```
 
 Declare lifecycle-owned application storage under an explicit name.
 
 ## telemetry_exporter
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-telemetry_exporter(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+telemetry_exporter(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ## tool
@@ -688,24 +741,24 @@ Group portable tool interception under its first-class domain path.
 
 ### tool.before
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-tool.before(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+tool.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### tool.after
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-tool.after(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+tool.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 ### tool.on_error
 
-
+Preserve authored hook signatures while attaching lifecycle metadata.
 
 ```python
-tool.on_error(function: Callable[..., Any] | None = None, *, order: int = 0) -> Any
+tool.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
 ```

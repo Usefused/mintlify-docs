@@ -314,7 +314,8 @@
                   "harnest/build/evaluations/run-and-inspect-results",
                   "harnest/build/evaluations/create-custom-evals",
                   "harnest/build/evaluations/custom-metrics",
-                  "harnest/build/evaluations/simulations-and-live-evaluation"
+                  "harnest/build/evaluations/simulations-and-live-evaluation",
+                  "harnest/build/evaluations/production-capture"
                 ]
               },
               {
@@ -543,6 +544,7 @@
                 "pages": [
                   "harnest/reference/api/testing",
                   "harnest/reference/api/evaluation",
+                  "harnest/reference/api/eval_capture",
                   "harnest/reference/api/telemetry",
                   "harnest/reference/api/logging",
                   "harnest/reference/api/tracing",

@@ -322,6 +322,34 @@ async PostgresStore.cancel_task(*, application_id: str, user_id: str, job_id: st
 
 Cancel an owned nonterminal job and revoke any running attempt.
 
+### PostgresStore.list_task_metadata
+
+```python
+async PostgresStore.list_task_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Push owner, cursor, projection, ordering, and limit into one database query.
+
+### PostgresStore.list_cron_metadata
+
+```python
+async PostgresStore.list_cron_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Read a bounded metadata projection with owner filtering in one SQL query.
+
 ### PostgresStore.as_langgraph_checkpointer
 
 ```python
@@ -813,3 +841,31 @@ async PostgresTaskStore.cancel_task(*, application_id: str, user_id: str, job_id
 ```
 
 Cancel an owned nonterminal job and revoke any running attempt.
+
+### PostgresTaskStore.list_task_metadata
+
+```python
+async PostgresTaskStore.list_task_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Push owner, cursor, projection, ordering, and limit into one database query.
+
+### PostgresTaskStore.list_cron_metadata
+
+```python
+async PostgresTaskStore.list_cron_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Read a bounded metadata projection with owner filtering in one SQL query.

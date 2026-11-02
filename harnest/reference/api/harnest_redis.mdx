@@ -619,3 +619,31 @@ async RedisStore.delete_run(*, scope: RunScope) -> None
 ```
 
 Make run data unreachable immediately and let private blobs expire.
+
+### RedisStore.list_task_metadata
+
+```python
+async RedisStore.list_task_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Index legacy jobs incrementally and project one owner page inside Redis.
+
+### RedisStore.list_cron_metadata
+
+```python
+async RedisStore.list_cron_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Project one indexed owner page in Redis without transferring private arguments.

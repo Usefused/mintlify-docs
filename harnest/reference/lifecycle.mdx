@@ -19,6 +19,8 @@ Root files under `lifecycle/**/*.py` add behavior around the agent. Harnest disc
 | `@lifecycle.tool.before/after/on_error` | Many | Tool policy and observation | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.mcp.before/after/on_error` | Many | Governed remote-tool policy | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
 | `@lifecycle.http.before/after/on_error` | Many | HTTP request and response policy | [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks) |
+| `@lifecycle.evals.capture(store=...)` | One, in `lifecycle/evals_improvement.py` | Production eval capture rule | [Production eval capture](/harnest/build/evaluations/production-capture) |
+| `@lifecycle.evals.redact` | One, in `lifecycle/evals_improvement.py` | Team redaction policy for captured content | [Production eval capture](/harnest/build/evaluations/production-capture) |
 | [`@lifecycle.output_policy`](/harnest/reference/api/lifecycle#output_policy) | Zero or one | Public narration, tool activity, reasoning, and metadata | [Output policy](/harnest/runtime/lifecycle/output-policy) |
 | [`@lifecycle.adk_plugin`](/harnest/reference/api/lifecycle#adk_plugin) | Many | ADK-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |
 | [`@lifecycle.langgraph_middleware`](/harnest/reference/api/lifecycle#langgraph_middleware) | Many | LangGraph-native behavior | [Native integrations](/harnest/runtime/lifecycle/native-integrations) |

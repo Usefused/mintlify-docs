@@ -133,6 +133,20 @@ async MemoryTaskStore.get_task(*, application_id: str, job_id: str, user_id: str
 
 Read one detached snapshot through the caller's ownership scope.
 
+### MemoryTaskStore.list_task_metadata
+
+```python
+async MemoryTaskStore.list_task_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Return a bounded owner-scoped metadata page without copying private payloads.
+
 ### MemoryTaskStore.claim_tasks
 
 ```python
@@ -218,6 +232,20 @@ async MemoryTaskStore.list_crons(
 ```
 
 Return one bounded page from this in-memory reference collection.
+
+### MemoryTaskStore.list_cron_metadata
+
+```python
+async MemoryTaskStore.list_cron_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Project an owner-scoped schedule page without copying task arguments.
 
 ### MemoryTaskStore.update_cron
 
@@ -447,6 +475,34 @@ async PostgresTaskStore.cancel_task(*, application_id: str, user_id: str, job_id
 
 Cancel an owned nonterminal job and revoke any running attempt.
 
+### PostgresTaskStore.list_task_metadata
+
+```python
+async PostgresTaskStore.list_task_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Push owner, cursor, projection, ordering, and limit into one database query.
+
+### PostgresTaskStore.list_cron_metadata
+
+```python
+async PostgresTaskStore.list_cron_metadata(
+    *,
+    application_id: str,
+    user_id: str,
+    after: str | None = None,
+    limit: int = 100,
+) -> dict[str, Any]
+```
+
+Read a bounded metadata projection with owner filtering in one SQL query.
+
 ## TaskCallable
 
 Preserve direct invocation while adding an asynchronous defer boundary.
@@ -559,6 +615,7 @@ TaskRecord(
     idempotency_key: str | None = None,
     created_at: float = 0.0,
     updated_at: float = 0.0,
+    cron_schedule_id: str | None = None,
 ) -> None
 ```
 
@@ -586,6 +643,7 @@ Fields (`—` means no declared default):
 | `idempotency_key` | `str \| None` | `None` |
 | `created_at` | `float` | `0.0` |
 | `updated_at` | `float` | `0.0` |
+| `cron_schedule_id` | `str \| None` | `None` |
 
 ## TaskStore
 

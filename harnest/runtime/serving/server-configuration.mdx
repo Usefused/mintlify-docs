@@ -67,9 +67,11 @@ Compilation preserves these references. The standalone launcher resolves and typ
 
 ## Concurrency and throughput
 
-`server.http.maxConcurrentRequests` limits how many agent requests can execute concurrently in each server process. It is an admission limit, not a requests-per-second rate limit or a throughput promise.
+`server.http.maxConcurrentRequests` limits concurrent in-flight requests in each server process. It counts requests in progress, not open connections, so idle keep-alive connections do not use slots. The limit applies to Harnest's routes and ADK's native routes alike. Requests over the limit receive HTTP `503 Service Unavailable`.
 
-Tune concurrency against model quotas and downstream capacity. Raising it can worsen saturation; excess requests may wait or be rejected.
+With `harnest serve`, Playground page and file loads (`GET /` and `/_harnest/*`) do not count toward the limit. Playground actions, such as evaluation runs, still count.
+
+This is an admission limit, not a requests-per-second rate limit or a throughput promise. Tune concurrency against model quotas and downstream capacity; raising it can worsen saturation.
 
 Choose the value from load tests that use representative agents and production dependencies. Scale replicas separately through your deployment platform.
 
