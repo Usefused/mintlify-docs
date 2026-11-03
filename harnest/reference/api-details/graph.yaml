@@ -1,0 +1,60 @@
+# Curated details for /harnest/reference/api/graph. See task.yaml for the format.
+
+Graph:
+  fields:
+    name: Graph name. A valid Python identifier other than `user`.
+    nodes: Map of node name to node (callable, agent, nested graph, `Join()`, or agent name).
+    edges: Edges between node names, starting from `Edge(START, ...)`.
+    description: Short description of the graph.
+    output_schema: Pydantic model that validates the final output.
+  example: |
+    from harnest.graph import START, Edge, Graph
+
+    root_agent = Graph(
+        name="support_flow",
+        nodes={"respond": "responder"},
+        edges=(Edge(START, "respond"),),
+    )
+
+Edge:
+  fields:
+    source: Node the edge starts from, or `START`.
+    target: Node the edge leads to.
+    route: Follow only when the source `Event` has this route. `None` means always.
+  example: |
+    from harnest.graph import Edge
+
+    edge = Edge("classify", "refunds", route="refund")
+
+Event:
+  fields:
+    output: Value passed to the next node.
+    route: Selects which conditional `Edge` to follow.
+    message: Assistant text shown to the user.
+    state_delta: Keys to update in session state.
+  example: |
+    from harnest.graph import Event
+
+    event = Event(output="cleaned text", route="ready")
+
+GraphContext:
+  fields:
+    state: Read-only session state.
+  example: |
+    from harnest.graph import GraphContext
+
+    def greet(value: str, context: GraphContext):
+        name = context.state.get("customer_name")
+        ...
+
+Join:
+  example: |
+    from harnest.graph import Join
+
+    nodes = {"web": search_web, "docs": search_docs, "merge": Join()}
+
+START:
+  example: |
+    from harnest.graph import START, Edge
+
+    edge = Edge(START, "first_node")
