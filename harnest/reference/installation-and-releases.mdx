@@ -31,6 +31,12 @@ curl -fsSL \
   HARNEST_VERSION=v0.1.18 sh
 ```
 
+```powershell Windows
+$installer = Join-Path $env:TEMP 'install-harnest.ps1'
+Invoke-WebRequest https://raw.githubusercontent.com/Usefused/harnest/main/install.ps1 -UseBasicParsing -OutFile $installer
+powershell -NoProfile -ExecutionPolicy Bypass -File $installer
+```
+
 </CodeGroup>
 
 Verify the CLI and managed runtime:
@@ -121,7 +127,7 @@ Release publishing is a maintainer workflow:
     Keep the native CLI, embedded wheel, and compatibility metadata on the same version.
   </Step>
   <Step title="Tag the release">
-    The release workflow builds the supported macOS and Linux archives, creates `checksums.txt`, and publishes the artifacts.
+    The release workflow builds the supported macOS and Linux tarballs and Windows ZIP archives, creates `checksums.txt`, and publishes the artifacts.
   </Step>
   <Step title="Verify a clean install">
     Test the public installer and run `harnest doctor` on at least one supported platform.
