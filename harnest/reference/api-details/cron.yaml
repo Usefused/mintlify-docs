@@ -1,0 +1,116 @@
+# Curated details for /harnest/reference/api/cron. See task.yaml for the format.
+
+cron:
+  params:
+    schedule: Five-field UTC cron expression. Omit for user-created schedules.
+    arguments: JSON-safe keyword arguments for every occurrence.
+    timezone: Only `"UTC"` is supported.
+    queue: Queue name for the generated task.
+    max_retries: Retries for one occurrence, from 0 to 100.
+  example: |
+    from harnest.cron import cron
+
+    @cron("0 9 * * 1-5")
+    async def daily_report() -> None:
+        """Build the weekday report."""
+        ...
+
+Cron:
+  fields:
+    schedule: Five-field UTC cron expression.
+    task: A discovered Harnest task callable.
+    arguments: JSON-safe keyword arguments for each occurrence.
+    timezone: Only `"UTC"` is supported.
+  example: |
+    from harnest.cron import Cron
+
+    daily_report = Cron("0 9 * * 1-5", task=build_report)
+
+create:
+  params:
+    key: Stable name for the user's schedule, 1–128 characters.
+    expression: Five-field UTC cron expression.
+    task: A `@task`/`@cron` callable, or a deployed `@cron` function name.
+    arguments: JSON-safe keyword arguments for the target.
+    max_runs: Cancel after this many queued occurrences.
+    max_consecutive_failures: Cancel after this many final failures in a row.
+  example: |
+    from harnest import cron
+
+    job = await cron.create(key="weekly-report", expression="0 9 * * 1", task="build_report")
+
+get:
+  params:
+    schedule_id: The job's `cron_` ID.
+  example: |
+    from harnest import cron
+
+    job = await cron.get("cron_...")
+
+list:
+  params:
+    after: Last job ID from the previous page.
+    limit: Page size, from 1 to 100.
+  example: |
+    from harnest import cron
+
+    jobs = await cron.list(limit=50)
+
+update:
+  params:
+    schedule_id: The job's `cron_` ID.
+    expression: New expression. Omit to keep the current one.
+    arguments: New arguments; replaces the whole mapping. Omit to keep them.
+  example: |
+    from harnest import cron
+
+    job = await cron.update("cron_...", expression="0 8 * * 1")
+
+pause:
+  params:
+    schedule_id: The job's `cron_` ID.
+  example: |
+    from harnest import cron
+
+    job = await cron.pause("cron_...")
+
+resume:
+  params:
+    schedule_id: The job's `cron_` ID.
+  example: |
+    from harnest import cron
+
+    job = await cron.resume("cron_...")
+
+cancel:
+  params:
+    schedule_id: The job's `cron_` ID.
+  example: |
+    from harnest import cron
+
+    job = await cron.cancel("cron_...")
+
+delete:
+  params:
+    schedule_id: The job's `cron_` ID.
+  example: |
+    from harnest import cron
+
+    removed = await cron.delete("cron_...")
+
+CronJob:
+  example: |
+    from harnest import cron
+
+    job = await cron.create(key="weekly-report", expression="0 9 * * 1", task="build_report")
+
+CronJob.update:
+  params:
+    expression: New expression. Omit to keep the current one.
+    arguments: New arguments; replaces the whole mapping.
+  example: |
+    from harnest.cron import CronJob
+
+    job: CronJob
+    job = await job.update(expression="0 8 * * 1")
+

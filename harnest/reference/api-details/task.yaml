@@ -1,0 +1,48 @@
+# Curated details for /harnest/reference/api/task.
+# Keys are rendered headings (Symbol or Symbol.member). Each entry may set:
+#   params:  parameter descriptions shown in the collapsed table
+#   fields:  field descriptions, reused for constructor parameters
+#   example: a replacement example; keep it to the import plus one use
+# scripts/generate-harnest-reference.py validates every key, parameter, field,
+# and example import against the real API.
+
+task:
+  params:
+    function: The decorated function. Filled in by bare `@task`; omit it when passing options. Needs a docstring and JSON-safe arguments.
+    queue: Queue name, 1–64 characters, starting with a letter. Set it here, not on `.defer()`.
+    max_retries: Retries after a failed run, from 0 to 100.
+  example: |
+    from harnest.task import task
+
+    @task(queue="reports", max_retries=3)
+    async def build_report(account_id: str) -> dict:
+        """Build one account report."""
+        return {"account_id": account_id}
+
+TaskCallable.__call__:
+  params:
+    args: Positional arguments for the task function.
+    kwargs: Keyword arguments for the task function.
+  example: |
+    # build_report is your @task function
+    report = await build_report(account_id="acct_123")  # runs inline, no queue
+
+TaskCallable.defer:
+  params:
+    args: Positional arguments for the task function.
+    idempotency_key: Optional key, at most 512 characters, that deduplicates submissions.
+    schedule_in: Optional delay in seconds before the task can run.
+    kwargs: Keyword arguments for the task function, stored as strict JSON.
+  example: |
+    # build_report is your @task function
+    handle = await build_report.defer(account_id="acct_123")
+
+TaskHandle:
+  fields:
+    id: Opaque queue job ID.
+    task_name: Registered task name.
+  example: |
+    from harnest.task import TaskHandle
+
+    handle: TaskHandle = await build_report.defer(account_id="acct_123")
+

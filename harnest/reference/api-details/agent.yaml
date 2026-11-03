@@ -1,0 +1,101 @@
+# Curated details for /harnest/reference/api/agent. See task.yaml for the format.
+
+Agent: &agent
+  fields:
+    name: Name of the agent.
+    model: Model the agent calls, for example `LiteLLMModel("openai/your-model")`.
+    instruction: System instruction. Use `instruction_file(__file__)` to load it from a file.
+    description: Short description of what the agent does.
+    tools: Agent Tools. Usually discovered from `tools/`, so you rarely set this.
+    subagents: SubAgents. Usually discovered from the filesystem.
+    mcp: MCP clients whose tools the agent can use.
+    input_schema: Pydantic model that validates request `input`.
+    output_schema: Pydantic model for structured output, returned as `result`.
+    history: '`"session"` (default) keeps earlier turns; `"turn"` isolates each invocation.'
+  example: |
+    from harnest.agent import Agent
+    from harnest.model import LiteLLMModel
+
+    root_agent = Agent(name="support", model=LiteLLMModel("openai/your-model"))
+
+AgentDefinition: *agent
+
+tool:
+  params:
+    function: The decorated function. Filled in by bare `@tool`.
+    description: Description the model sees. Defaults to the docstring.
+    output_schema: Pydantic model that validates the result.
+    durable: Let the tool suspend and resume. Must be `async`.
+    permission: Permission name required under an Agent Runtime Principal.
+  example: |
+    from harnest.agent import tool
+
+    @tool
+    def lookup_ticket(ticket_id: str) -> str:
+        """Return the current ticket summary."""
+        ...
+
+client_tool:
+  params:
+    function: The stub to decorate. Harnest never runs its body.
+    description: Description the model sees. Defaults to the docstring.
+    timeout_seconds: Seconds to wait for the client's result.
+    output_schema: Pydantic model that validates the client's result.
+    permission: Permission name required under an Agent Runtime Principal.
+  example: |
+    from harnest.agent import client_tool
+
+    @client_tool
+    def browser_open(url: str) -> dict[str, str]:
+        """Open a URL in the connected browser."""
+        ...
+
+client_input:
+  params:
+    input_schema: Pydantic model for the private value, passed as the handler's first parameter.
+    response: JSON object returned to the model when the handler succeeds.
+    description: Description the model sees. Defaults to the docstring.
+    timeout_seconds: Seconds to wait for the client's private value.
+    permission: Permission name required under an Agent Runtime Principal.
+  example: |
+    from harnest.agent import client_input
+
+    @client_input(input_schema=ConnectionInput, response={"status": "connected"})
+    async def connect(private: ConnectionInput, service: str) -> None:
+        """Connect a service with a client-supplied token."""
+        ...
+
+instruction_file:
+  params:
+    anchor: Pass `__file__` so the path works in a deployed bundle.
+    relative_path: File path relative to the anchor's folder.
+  example: |
+    from harnest.agent import instruction_file
+
+    instruction = instruction_file(__file__)
+
+AgentRuntimePrincipal:
+  fields:
+    permissions: Permission names granted to this invocation.
+    id: Opaque runtime identity, generated for you.
+  example: |
+    from harnest.agent import AgentRuntimePrincipal
+
+    principal = AgentRuntimePrincipal.create(permissions={"tickets.read"})
+
+AgentRuntimePrincipal.create:
+  params:
+    permissions: Permission names your application authorizes.
+  example: |
+    from harnest.agent import AgentRuntimePrincipal
+
+    principal = AgentRuntimePrincipal.create(permissions={"tickets.read"})
+
+AgentRuntimePrincipal.restrict:
+  params:
+    permissions: Subset of the current grants. Adding a new name raises `AgentRuntimePermissionError`.
+  example: |
+    from harnest.agent import AgentRuntimePrincipal
+
+    principal: AgentRuntimePrincipal
+    read_only = principal.restrict({"tickets.read"})

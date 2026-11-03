@@ -1,0 +1,300 @@
+# Curated details for /harnest/reference/api/lifecycle. See task.yaml for the format.
+# Hook decorators accept any function, so their handler arguments are written here.
+# Shapes follow the runtime: interceptors get (context, value), error hooks get
+# (context, error), and factories take no arguments.
+
+agent.before:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.agent.before
+    async def check_request(context, request):
+        return context.next()
+
+agent.after:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.agent.after
+    async def record_result(context, result):
+        return context.next()
+
+agent.on_event:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.agent.on_event
+    async def observe_event(context, event):
+        return context.next()
+
+agent.on_error:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.agent.on_error
+    async def report_failure(context, error):
+        return context.next()
+
+tool.before:
+  params:
+    order: Lower values run first.
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.tool.before(order=-100)
+    async def check_tool(context, request):
+        return context.next()
+
+tool.after:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.tool.after
+    def tool_completed(context, result):
+        return context.next()
+
+tool.on_error:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.tool.on_error
+    def tool_failed(context, error):
+        return context.next()
+
+model.before:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.model.before
+    async def check_prompt(context, request):
+        return context.next()
+
+model.after:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.model.after
+    async def check_reply(context, response):
+        return context.next()
+
+model.on_error:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.model.on_error
+    async def model_failed(context, error):
+        return context.next()
+
+mcp.before:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.mcp.before
+    async def check_remote_call(context, request):
+        return context.next()
+
+mcp.after:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.mcp.after
+    async def check_remote_result(context, result):
+        return context.next()
+
+mcp.on_error:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.mcp.on_error
+    async def remote_failed(context, error):
+        return context.next()
+
+http.scope:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.http.scope
+    def request_scope(context, request):
+        ...  # return an async context manager
+
+http.before:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.http.before
+    async def check_http_request(context, request):
+        return context.next()
+
+http.after:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.http.after
+    def response(context, head):
+        return context.next()
+
+http.on_error:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.http.on_error
+    async def http_failed(context, error):
+        return context.next()
+
+session.created:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.session.created
+    async def session_created(info, session):
+        ...
+
+authenticate:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.authenticate
+    async def authenticate(connection, principal):
+        ...
+
+credential_provider:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.credential_provider
+    def credential_provider():
+        ...
+
+http_routes:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.http_routes
+    def http_routes(agent):
+        ...  # return a FastAPI router
+
+output_policy:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.output_policy
+    def output_policy():
+        ...
+
+resource:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.resource
+    async def catalog():
+        ...
+
+telemetry_exporter:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.telemetry_exporter
+    def telemetry():
+        ...
+
+adk_plugin:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.adk_plugin
+    def plugin():
+        ...  # return an ADK BasePlugin
+
+langgraph_middleware:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.langgraph_middleware
+    def middleware():
+        ...
+
+storage.sessions:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.storage.sessions
+    def sessions():
+        ...  # return a session store
+
+storage.checkpoints:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.storage.checkpoints
+    def checkpoints():
+        ...  # return a checkpoint store
+
+storage.tasks:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.storage.tasks
+    def task_storage():
+        ...  # return a task store
+
+storage.cron:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.storage.cron
+    def cron_storage():
+        ...  # return a cron store
+
+storage.memory:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.storage.memory
+    def memory():
+        ...  # return a memory store
+
+storage.assets:
+  params:
+    name: Asset store name.
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.storage.assets("media")
+    def media_assets():
+        ...
+
+storage.custom:
+  params:
+    name: Name the store is looked up by.
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.storage.custom("users")
+    def users():
+        ...
+
+skills.source:
+  params:
+    name: Name of the runtime skill catalog.
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.skills.source("wex")
+    def wex():
+        ...
+
+evals.capture:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.evals.capture(store="captures", sample_rate=0.05)
+    def should_capture(event) -> bool:
+        ...
+
+evals.redact:
+  example: |
+    from harnest import lifecycle
+
+    @lifecycle.evals.redact
+    def redact_capture(record):
+        ...

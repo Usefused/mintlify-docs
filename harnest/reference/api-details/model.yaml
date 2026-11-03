@@ -1,0 +1,29 @@
+# Curated details for /harnest/reference/api/model. See task.yaml for the format.
+
+LiteLLMModel:
+  params:
+    model: LiteLLM model ID in `provider/model` form.
+    thinking: Turn reasoning on or off. Omit for the provider default.
+    lifecycle: Optional `LiteLLMLifecycle` that owns the transport.
+    prompt_cache: Add provider prompt-cache breakpoints where needed.
+    completion_args: Extra LiteLLM arguments, such as `api_base`, `api_key`, or `temperature`.
+  example: |
+    from harnest.model import LiteLLMModel
+
+    model = LiteLLMModel("openai/your-model", api_base="https://models.example.invalid/v1")
+
+LiteLLMModel.from_openai_environment:
+  params:
+    default_model: Model ID used when `OPENAI_MODEL` is not set.
+    thinking: Same as the `LiteLLMModel` option.
+    lifecycle: Same as the `LiteLLMModel` option.
+    prompt_cache: Same as the `LiteLLMModel` option.
+    completion_args: Extra arguments that override environment values.
+  example: |
+    from harnest.model import LiteLLMModel
+
+    model = LiteLLMModel.from_openai_environment()  # reads OPENAI_MODEL and OPENAI_BASE_URL
+
+LiteLLMModel.build_for:
+  params:
+    framework: '`"adk"` or `"langgraph"`.'
