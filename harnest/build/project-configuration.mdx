@@ -117,7 +117,11 @@ harnest env sync AGENT_DIR --profile eval
 
 Development adds pytest; eval adds pytest and ADK evaluation dependencies. Commit the corresponding locks used by CI. These locks are portable and excluded from deployment artifacts.
 
-Harnest keeps at most two project environments: `.harnest/environments/agent` for runtime and compilation, and `.harnest/environments/eval` for tests and evaluations. Commands synchronize their selected profile into the corresponding directory; changing profiles reuses that directory. Do not activate them manually. Old fingerprinted environments are removed during synchronization. Stop running commands before changing dependencies in their environment; Harnest refuses to replace an interpreter in use. Ordinary source edits can still reload while dependencies stay unchanged. `harnest env sync` also updates the IDE environment link when Harnest owns it; see [editor setup](/harnest/build/python-imports#ide-autocomplete-and-hover-help). CI can require an unchanged committed lock:
+Harnest manages separate environments for running the agent and for testing and evaluating it. When a command is using an interpreter, Harnest can install changed dependencies in an alternate directory for that profile. The running process keeps its original interpreter until it exits. If both directories are in use, stop a command before changing dependencies again.
+
+To add a package while `harnest serve . --reload` is running, use `uv add --no-sync mcp`. This updates your project dependencies and lets Harnest install them for the new server process. Plain `uv add mcp` can sync directly into `.venv`, which may point at the running interpreter. With plain `harnest serve`, restart to use the new dependency. See [development reload](/harnest/runtime/serving/development-reload) and [editor setup](/harnest/build/python-imports#ide-autocomplete-and-hover-help).
+
+CI can require an unchanged committed lock:
 
 ```bash
 harnest env sync AGENT_DIR --frozen
