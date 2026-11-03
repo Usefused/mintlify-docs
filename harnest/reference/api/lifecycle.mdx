@@ -502,6 +502,10 @@ evals.redact(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callab
 
 Group server middleware hooks under the HTTP lifecycle boundary.
 
+### http.agent_principal
+
+`@lifecycle.http.agent_principal` registers one sync or async function that receives a `ConnectionContext` and an `AuthPrincipal`. Return an `AgentRuntimePrincipal` to grant permissions or `None` to deny the invocation. See [Grant permissions on built-in routes](/harnest/runtime/agent-runtime-principals#grant-permissions-on-built-in-routes).
+
 ### http.scope
 
 Preserve authored hook signatures while attaching lifecycle metadata.

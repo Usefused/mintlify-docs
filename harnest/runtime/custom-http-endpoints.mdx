@@ -73,7 +73,7 @@ response = await agent.invoke(
 )
 ```
 
-Omitting a principal leaves the tool surface unrestricted. Supplying one enables default-deny checks; an empty principal permits no governed capabilities. Never take permission names directly from request input. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals).
+With the default server configuration, omitting a principal leaves the tool surface unrestricted. Supplying one enables default-deny checks; an empty principal permits no governed capabilities. Never take permission names directly from request input. See [Agent Runtime Principals](/harnest/runtime/agent-runtime-principals).
 
 For a security-sensitive deployment, require grants on every custom agent
 invocation:
@@ -84,7 +84,7 @@ server:
 ```
 
 With this setting, a custom route that omits `agent_principal=` fails before
-session creation instead of restoring the root agent's unrestricted surface.
+session creation. Built-in routes also need a [grant hook](/harnest/runtime/agent-runtime-principals#grant-permissions-on-built-in-routes); they cannot use a principal constructed inside your custom route.
 
 ## Handle required actions
 

@@ -16,7 +16,7 @@ All property paths below are relative to `server` in `config.yaml`.
 | `live` | Enable WebSocket connections | `false` |
 | `agui` | Expose `POST /agui` and advertise the AG-UI transport | `true` |
 | `openapi` | Expose API documentation and JSON/YAML spec resources | `true` |
-| `agentPrincipal` | Require custom agent invocations to bind runtime grants | `optional` |
+| `agentPrincipal` | Require runtime grants for built-in and custom agent invocations | `optional` |
 | `http.host` | Bind host | `127.0.0.1` |
 | `http.port` | Bind port | `1907` |
 | `http.allowRemote` | Consent for a non-loopback bind | `false` |
@@ -27,7 +27,6 @@ All property paths below are relative to `server` in `config.yaml`.
 
 Unknown fields, invalid types, and out-of-range values fail during compilation. Omit a field to inherit its default; `null` does not mean “use the default.”
 
-Set `agentPrincipal: required` when every custom HTTP route must pass an
-application-authorized `agent_principal=` to [`AgentInvoker`](/harnest/reference/api/http#agentinvoker). An omission then
-fails before Harnest creates a session. Neutral Harnest routes do not construct
-application-specific grant sets and are unaffected by this setting.
+When you set `agentPrincipal: required`, custom HTTP routes must pass `agent_principal=` to [`AgentInvoker`](/harnest/reference/api/http#agentinvoker). To keep using `/responses`, live, AG-UI, or A2A, define [`@lifecycle.http.agent_principal`](/harnest/runtime/agent-runtime-principals#grant-permissions-on-built-in-routes) before enabling the setting. Without that hook these routes refuse new invocations.
+
+In advanced ADK mode, native clients can still invoke the agent through `/run`, `/run_sse`, and (when live is enabled) `/run_live`. These endpoints bypass Harnest’s grant hook even with `agentPrincipal: required`. Enforce any permission policy for native clients separately.

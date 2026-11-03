@@ -78,6 +78,27 @@ def client():
 
 When you omit the client-wide permission, only operations named in `tool_permissions` can be available under a principal. Untagged MCP operations remain unavailable.
 
+## Grant permissions on built-in routes
+
+Define one grant hook in the root agent’s `lifecycle/` directory. Harnest passes it the connection and the identity established by authentication. Use verified claims or look up permissions in your application.
+
+```python lifecycle/grants.py
+from harnest import lifecycle
+from harnest.agent import AgentRuntimePrincipal
+from harnest.auth import AuthPrincipal, ConnectionContext
+
+@lifecycle.http.agent_principal
+def grant(connection: ConnectionContext, principal: AuthPrincipal) -> AgentRuntimePrincipal:
+    permissions = {"refunds.write"} if principal.claims.get("can_refund") is True else set()
+    return AgentRuntimePrincipal.create(permissions=permissions)
+```
+
+This example lets any caller start a turn, but only callers with the verified refund claim can use tools tagged `refunds.write`. Return `None` to deny the invocation entirely. The hook may also be async.
+
+The hook covers `/responses` (including streaming), AG-UI, live WebSocket connections, and A2A. Live resolves the grant at the handshake; resumed runs keep their original grants. Without a hook these routes keep their previous tool surface unless [`server.agentPrincipal: required`](/harnest/reference/server-configuration) is set. With that setting, these Harnest routes refuse new invocations without a principal.
+
+In advanced ADK mode, native `/run`, `/run_sse`, and `/run_live` invocations bypass this hook, including when grants are required. Apply separate authorization if you expose those endpoints.
+
 ## Invoke with a principal
 
 Pass the principal through a trusted [custom HTTP endpoint](/harnest/runtime/custom-http-endpoints):
@@ -101,7 +122,7 @@ Harnest removes untagged and unmatched capabilities from Harnest-owned model too
 
 | Situation | Behavior |
 |---|---|
-| Root invocation omits `agent_principal` | Compatibility mode; the existing capability surface remains available unless a custom route uses `server.agentPrincipal: required` |
+| Root invocation omits `agent_principal` | Compatibility mode; the existing capability surface remains available unless the server requires grants for that HTTP invocation |
 | Root invocation receives an empty principal | Every Harnest-governed capability is unavailable |
 | Active principal encounters an untagged capability | Capability is unavailable |
 | Nested agent call omits it | Inherits the active principal |
