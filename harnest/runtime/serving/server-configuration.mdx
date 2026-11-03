@@ -108,5 +108,4 @@ Harnest rejects projects that declare both `config.yaml` → `server` and an aut
 Compilation writes `server.yaml` beside the launcher. Operators can replace it and restart, or edit project configuration and recompile.
 
 Python applications that directly embed `create_fastapi_app` or `create_neutral_app` can pass `live_enabled=False` to disable WebSockets. These embedding APIs keep their historical `True` default; the standalone launcher always passes its resolved server setting.
-Pass `agent_principal_required=True` to apply the custom-route principal policy
-when embedding the server directly.
+Pass `agent_principal_required=True` to apply the same [invocation grant policy](/harnest/reference/server-configuration) when embedding the server directly.
