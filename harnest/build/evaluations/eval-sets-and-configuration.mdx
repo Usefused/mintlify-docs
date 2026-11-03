@@ -27,6 +27,10 @@ Built-ins create `evals/<name>.evalset.json` and add missing criteria to the sha
 
 Custom scoring creates only `lib/<name>.py`; implement it and [register the metric](/harnest/build/evaluations/custom-metrics#harnest-scoring-helper). Names use underscores in generated files. Use `--project PATH` when running outside the agent folder.
 
+## Save a Playground conversation
+
+After a chat turn in local `harnest serve`, select **Save as eval**, choose an existing suite or create one, review the expected replies, then select **Save eval**. The case is written directly to the agent’s `evals/` folder. Restart plain serve to run the updated suite in the Playground, or use `harnest serve --reload` to pick up changes automatically. Sessions without a writable local workspace offer **Download eval** instead.
+
 ## Directory contract
 
 ```text AGENT_DIR/evals/

@@ -1,0 +1,78 @@
+---
+title: "Use an evaluation runner package"
+sidebarTitle: "Runner packages"
+description: "Run a team-owned evaluation framework alone or alongside ADK."
+icon: "boxes-stacked"
+---
+
+Use a runner when your team’s evaluation package owns the cases, scoring rules, or experiment reports. To add a score to an existing ADK EvalSet, use a [custom metric](/harnest/build/evaluations/custom-metrics).
+
+## Select runners
+
+Declare runners under `spec.evaluation` in the agent’s `config.yaml`. Harnest runs them in order after the selected Python tests pass.
+
+```yaml config.yaml
+spec:
+  evaluation:
+    runners:
+      - name: company
+        entrypoint: company_evals.harnest:run
+        options:
+          suite: support-regression
+      - name: adk
+```
+
+Omit the `adk` list item to run only your package. That mode needs no `*.evalset.json` and does not install the ADK evaluation extra. An ADK-based agent still uses ADK to run the agent itself. Omitting the entire evaluation section keeps the built-in ADK evaluator and its existing output format.
+
+Give each runner a unique lowercase name starting with a letter. Digits and hyphens are allowed, up to 63 characters. The reserved `adk` entry accepts only `name`. Custom entries require an importable `module:function`. Put non-secret settings in `options`; supply service credentials through the evaluation process environment.
+
+## Install the evaluation package
+
+Add your package to the agent's `pyproject.toml`. Use a version available from your Python package index.
+
+```toml pyproject.toml
+[dependency-groups]
+eval = ["company-evals==1.0.0"]
+```
+
+Run `harnest env sync . --profile eval` to resolve and review `harnest-eval.lock`. Only the evaluation profile installs the `eval` group; normal serving does not need the runner or its SDK dependencies.
+
+## Implement the entrypoint
+
+Your function receives an `EvalRunnerContext` from [`harnest.evaluation`](/harnest/reference/api/evaluation). It can be synchronous or asynchronous. `context.client` is a synchronous, in-process HTTP client for the compiled agent. Call the same routes you would use on a served agent. Use your own authenticated client for an external evaluation service.
+
+```python company_evals/harnest.py
+import json
+from harnest.evaluation import EvalRunnerContext, EvalRunnerResult
+
+def run(context: EvalRunnerContext) -> EvalRunnerResult:
+    suite = context.options["suite"]
+    cases = json.loads((context.project_dir / "datasets" / f"{suite}.json").read_text())
+    if not cases:
+        return EvalRunnerResult("not_evaluated")
+
+    rows = []
+    for case in cases:
+        response = context.client.post("/responses", json={"input": case["input"]})
+        response.raise_for_status()
+        passed = response.json()["outputText"] == case["expected"]
+        rows.append({"id": case["id"], "passed": passed})
+
+    (context.report_dir / "scores.json").write_text(json.dumps(rows))
+    status = "passed" if all(row["passed"] for row in rows) else "failed"
+    return EvalRunnerResult(status, artifacts=("scores.json",))
+```
+
+For LangSmith or an internal experiment service, use the same entrypoint to call your framework’s SDK and supply an agent prediction callback backed by `context.client`. Your runner decides which inputs and outputs to send externally. If the provider hosts the report, write its experiment URL into a local report file. Each returned artifact must name an existing file inside `context.report_dir`, using a relative path.
+
+## Run and inspect
+
+```bash
+harnest test . --evals --eval-output artifacts/summary.json
+```
+
+A custom configuration produces an `EvalRunnerSummary` with an overall `status` and one entry per runner. Each entry contains its name, verdict, and native artifact paths relative to the summary file. If you include ADK, its artifact is the existing `EvalRunResult` document. Without `--eval-output`, Harnest saves the summary in a fresh directory under `.harnest/eval-results/`.
+
+A runner can return `passed`, `failed`, or `not_evaluated`. If an entrypoint cannot load, raises an exception, or returns an invalid result, its verdict is `error`. Later runners still execute. Only an overall `passed` verdict exits successfully. Each invocation gets fresh report directories, including when you reuse a summary filename.
+
+Runner packages are trusted Python code executed by `harnest test --evals`. The Playground’s evaluation UI runs built-in ADK EvalSets; use the CLI or CI for configured package runners.

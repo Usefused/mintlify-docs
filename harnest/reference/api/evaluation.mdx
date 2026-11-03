@@ -192,6 +192,8 @@ Harnest omits the original exception message, traceback, and internals from this
 | Name | Kind |
 |---|---|
 | [`EVAL_TRAJECTORIES`](#eval_trajectories) | Value or type alias |
+| [`EvalRunnerContext`](#evalrunnercontext) | Class |
+| [`EvalRunnerResult`](#evalrunnerresult) | Class |
 | [`EvaluationError`](#evaluationerror) | Class |
 | [`MetricContext`](#metriccontext) | Class |
 | [`MetricScore`](#metricscore) | Class |
@@ -207,6 +209,46 @@ Harnest omits the original exception message, traceback, and internals from this
 ```python
 EVAL_TRAJECTORIES = frozenset(['business', 'strict'])
 ```
+
+## EvalRunnerContext
+
+One runner's options, agent HTTP client, project inputs, and private report directory.
+
+```python
+EvalRunnerContext(
+    client: httpx.Client,
+    project_dir: Path,
+    report_dir: Path,
+    options: Mapping[str, Any],
+) -> None
+```
+
+Fields (`—` means no declared default):
+
+| Field | Type | Default |
+|---|---|---|
+| `client` | `httpx.Client` | `—` |
+| `project_dir` | `Path` | `—` |
+| `report_dir` | `Path` | `—` |
+| `options` | `Mapping[str, Any]` | `—` |
+
+## EvalRunnerResult
+
+A quality verdict and optional report files relative to the runner's directory.
+
+```python
+EvalRunnerResult(
+    status: Literal['passed', 'failed', 'not_evaluated'],
+    artifacts: tuple[str, ...] = (),
+) -> None
+```
+
+Fields (`—` means no declared default):
+
+| Field | Type | Default |
+|---|---|---|
+| `status` | `Literal['passed', 'failed', 'not_evaluated']` | `—` |
+| `artifacts` | `tuple[str, ...]` | `()` |
 
 ## EvaluationError
 

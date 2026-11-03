@@ -182,3 +182,90 @@ Snapshots retain authored configuration, including literal values, but never res
 Rollback does **not** restore database contents, revert migrations, or downgrade a persistent backing service. It rejects changes to a persistent service's image, mount, or other declaration; reconcile database compatibility explicitly before rolling back across such a change. Volumes remain retained. Use backward-compatible database migrations when deploying agents that may need to roll back.
 
 History survives restarts and removal. Stop retains the active revision; Remove clears it but preserves history and volumes. After interruption, inspect live state before retrying or rolling back.
+
+## Deploy an existing agent with Hostlier
+
+The optional `hostlier-harnest` package supplies Hostlier's local `project-plan` and `project-package` hooks. Start in the agent directory created by `harnest init`. Install the package executable built for the **CLI machine**. Select the agent's **Linux target** separately.
+
+```bash
+hostlier package install harnest --file /path/to/hostlier-harnest
+hostlier package describe harnest
+hostlier package add harnest
+```
+
+Use a Hostlier CLI with project hook support. From a Harnest source checkout, build the package with `go build -o /tmp/hostlier-harnest ./cmd/hostlier-harnest`.
+
+Put the deployment in one `.hostlier` file. The add command enrolls Harnest under `packages.harnest`. Put its build settings there. Hostlier runs the hooks of packages explicitly enrolled in the project. Replace the example digest with a compatible Linux base image digest. This example provisions Redis and connects a dedicated sandbox Docker daemon over mutually authenticated TLS.
+
+```yaml .hostlier
+version: 2
+name: support
+packages:
+  harnest:
+    baseImage: debian@sha256:REPLACE_WITH_BASE_IMAGE_DIGEST
+    artifact: .harnest/build/support-agent
+    requiredBindings: [CACHE_URL, DOCKER_HOST, DOCKER_TLS_VERIFY, DOCKER_CERT_PATH]
+source:
+  container: {context: ., architecture: amd64}
+endpoint: {exposure: public, port: 1907, route: support.example.com}
+health: {path: /healthz}
+dependencies:
+  cache: {type: redis, source: provision, storage: 1Gi}
+bindings:
+  CACHE_URL: cache.url
+env:
+  DOCKER_HOST: tcp://sandbox.internal.example.com:2376
+  DOCKER_TLS_VERIFY: "1"
+  DOCKER_CERT_PATH: /run/sandbox-tls
+configs:
+  sandbox-ca: {secret: support-sandbox-ca, mount: /run/sandbox-tls/ca.pem}
+  sandbox-cert: {secret: support-sandbox-cert, mount: /run/sandbox-tls/cert.pem}
+  sandbox-key: {secret: support-sandbox-key, mount: /run/sandbox-tls/key.pem, mode: 0400}
+```
+
+On a Linux builder matching the target architecture, run `harnest compile . --format executable --output .harnest/build/support-agent`. Copy the embedded executable to the declared path when deploying from another platform. On matching Linux, omit `artifact` to compile during packaging. Older projects can still use `harnest-hostlier.yaml`. Inline settings take precedence.
+
+Add a stored secret reference or dependency output for each `spec.secrets` environment variable in the agent config. Supply model credentials and the agent's HTTP authentication policy for the intended audience. The local plan checks explicitly required binding names without importing agent code. Keep configuration values public and place credentials in Hostlier's secret store.
+
+```bash
+hostlier plan
+hostlier deploy --server production
+```
+
+The package verifies the executable and embedded runtime for the selected platform and hands Hostlier a container context. Hostlier owns provisioning, secret injection, deployment review and rollout.
+
+### Use Redis as a KV cache
+
+Install Harnest's `redis` extra in the agent environment. Register a named store in the lifecycle.
+
+```python lifecycle/cache.py
+from harnest import lifecycle
+from harnest_redis.cache import RedisCache
+
+@lifecycle.storage.custom("cache")
+def cache() -> RedisCache:
+    """Open the cache for this application during startup."""
+    return RedisCache.from_environment(application="support")
+```
+
+Within an invocation, use `cache = context.storage("cache", RedisCache)`, then `await cache.set("summary", b"done", ttl_seconds=300)` and `await cache.get("summary")`. Values are bytes. A miss returns `None`. Keys are scoped by application and invocation user. For an existing Redis workflow that creates a prefix-restricted ACL, bind both `CACHE_URL` and `CACHE_KEY_PREFIX` to the Redis step's `url` and `keyPrefix` outputs. Use dedicated [session and checkpoint storage](/harnest/runtime/checkpoints-and-storage) for resumable state.
+
+### Connect a sandbox
+
+Install the [official Docker extension](/harnest/build/extensions/official/docker) into the project. Declare the execution image that is available on the dedicated daemon. Omit `base_url` so the extension uses the Docker connection and certificate bindings above.
+
+```python sandbox/calculations.py
+from harnest.extensions.docker import docker
+from harnest.sandbox import SandboxBudget, SandboxNetworkPolicy
+
+calculations = docker.sandbox(
+    image="python:3.12-slim",
+    network_policy=SandboxNetworkPolicy.none(),
+    timeout_seconds=10,
+    budget=SandboxBudget(cpu=0.5, memory_bytes=128 * 1024 * 1024, pids=32),
+)
+```
+
+Assign `sandboxes=["calculations"]` to the agent that needs it. An authored tool can then call `await context.sandboxes["calculations"].aexecute("print(6 * 7)")`. The Docker provider starts an isolated execution container on the dedicated daemon and applies the declared policy. Keep the Hostlier deployment daemon separate. See [named sandbox assignments and tools](/harnest/build/sandboxing).
+
+Other providers can consume a private runner endpoint from `bindings` and its scoped token from `secrets`. Register the provider in the project's named sandbox and list the required environment names in `packages.harnest.requiredBindings`. Hostlier checks and supplies the deployment resources. The selected provider enforces isolation and cleanup.

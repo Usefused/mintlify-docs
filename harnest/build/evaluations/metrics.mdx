@@ -164,6 +164,8 @@ The agent under test and every metric backend inherit the same process environme
     Omit `judgeModel` to use `OPENAI_MODEL` and the shared `OPENAI_BASE_URL` and optional `OPENAI_API_KEY` configuration. Choose these settings before running live evaluations. An explicit `judgeModel`, such as `gemini-2.5-flash`, opts into that ADK model provider and requires its own credentials. Harnest does not replace explicit model IDs.
   </Tab>
   <Tab title="Vertex evaluation service">
+    Hosted scoring uses Google ADK 2.13 or newer with the Vertex AI SDK 2.7 or newer in the 2.x series. If your agent pins an earlier ADK release, [update the framework lock](/harnest/build/project-configuration) and run `harnest env sync . --profile eval` before selecting these metrics.
+
     `response_evaluation_score`, `safety_v1`, and the three `multi_turn_*_v1` metrics call the Vertex Gen AI evaluation client. If `GOOGLE_API_KEY` is set, ADK constructs that client with the key. Otherwise set both `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` and make Application Default Credentials available. When all are set, the API key path takes precedence.
   </Tab>
 </Tabs>
