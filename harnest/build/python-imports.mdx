@@ -66,6 +66,8 @@ Explicit sync updates `python.defaultInterpreterPath` in `.vscode/settings.json`
 
 Windows uses `Scripts/python.exe`; development and eval profiles select the `eval` directory. Sync replaces stale interpreter settings while preserving comments and unrelated preferences, even when a user-owned `.venv` prevents creating the convenience link. Open the agent folder as your VS Code workspace folder so these settings apply.
 
+After a dependency change during development reload, run `harnest env sync .` again to refresh an editor setting that points to the old interpreter. A Harnest-managed `.venv` link follows the replacement automatically for the selected profile.
+
 VS Code can retain a previously selected interpreter separately from this setting. If it still uses another interpreter, run **Python: Select Interpreter** and choose the exact path printed by sync. See the [VS Code settings reference](https://code.visualstudio.com/docs/python/settings-reference). Other IDEs can use the same interpreter.
 
 Codex desktop, Codex CLI, and Antigravity 2.0 are separate agent applications.

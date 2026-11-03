@@ -23,7 +23,7 @@ harnest add eval tool-routing --metric tool_trajectory_avg_score
 harnest add eval company-quality --metric custom             # Python stub only
 ```
 
-Built-ins create `evals/<name>.evalset.json` and add missing criteria to the shared `evals/test_config.json`. Existing criteria and settings are preserved; criteria apply to **all** eval sets. Edit the sample cases, thresholds, and rubrics before running `harnest test . --evals`. Scaffolding does not install dependencies or call a model.
+Built-ins create `evals/<name>.evalset.json` and add missing criteria to the shared `evals/test_config.json`. Existing criteria and settings are preserved; shared criteria apply to sets without a configuration of their own. Edit the sample cases, thresholds, and rubrics before running `harnest test . --evals`. Scaffolding does not install dependencies or call a model.
 
 Custom scoring creates only `lib/<name>.py`; implement it and [register the metric](/harnest/build/evaluations/custom-metrics#harnest-scoring-helper). Names use underscores in generated files. Use `--project PATH` when running outside the agent folder.
 
@@ -44,7 +44,7 @@ evals/
 | Case IDs | Every `evalId` must be unique within its set |
 | Layout | Flat; nested directories and unexpected public files are rejected |
 | Order | Eval set filenames are sorted before execution |
-| Configuration | Zero or one shared `test_config.json` |
+| Configuration | Optional shared `test_config.json` and optional `<set>.test_config.json` per set |
 
 Nested SubAgent eval assets may be reached while validating composition, but `harnest test --evals` runs only the root agent's eval sets.
 
@@ -138,6 +138,20 @@ Exactly one of `conversation` and `conversationScenario` is required.
 
 Scoring excludes provider-marked reasoning and retains visible text and tool events.
 
+## Score sets independently
+
+To score `tool_calls.evalset.json` only on tool use, create a configuration with the same set name:
+
+```json evals/tool_calls.test_config.json
+{
+  "criteria": {"tool_trajectory_avg_score": 1.0}
+}
+```
+
+The CLI and Playground use this entire configuration for the matching set. Other sets use the shared `evals/test_config.json` unless they have a configuration of their own. All cases in a set use the same criteria. Split cases into different sets when they need different scoring.
+
+Use `response_match_score` when the wording of a reference answer matters. A longer, semantically correct answer can score poorly on text overlap. For open-ended answers, use a rubric or a judge metric from the [metrics reference](/harnest/build/evaluations/metrics).
+
 ## Configure criteria
 
 Every key under `criteria` names a built-in or custom metric. A numeric value is a threshold. Metrics with judge, rubric, hallucination, simulation, or trajectory options use an object containing `threshold` and their additional fields.
@@ -161,7 +175,7 @@ Every key under `criteria` names a built-in or custom metric. A numeric value is
 }
 ```
 
-If `test_config.json` is absent, ADK's default criteria are:
+If neither configuration exists for a set, ADK uses these default criteria:
 
 ```json
 {
