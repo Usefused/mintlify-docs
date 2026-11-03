@@ -119,7 +119,7 @@ Development adds pytest; eval adds pytest and ADK evaluation dependencies. Commi
 
 Harnest manages separate environments for running the agent and for testing and evaluating it. When a command is using an interpreter, Harnest can install changed dependencies in an alternate directory for that profile. The running process keeps its original interpreter until it exits. If both directories are in use, stop a command before changing dependencies again.
 
-To add a package while `harnest serve . --reload` is running, use `uv add --no-sync mcp`. This updates your project dependencies and lets Harnest install them for the new server process. Plain `uv add mcp` can sync directly into `.venv`, which may point at the running interpreter. With plain `harnest serve`, restart to use the new dependency. See [development reload](/harnest/runtime/serving/development-reload) and [editor setup](/harnest/build/python-imports#ide-autocomplete-and-hover-help).
+To add a package while `harnest serve . --reload` is running, use `uv add --no-sync 'mcp>=1.26,<2'`. This uses the MCP version range supported by Harnest’s adapters. It updates your project dependencies and lets Harnest install them for the new server process. Plain `uv add mcp` can sync directly into `.venv`, which may point at the running interpreter. With plain `harnest serve`, restart to use the new dependency. See [development reload](/harnest/runtime/serving/development-reload) and [editor setup](/harnest/build/python-imports#ide-autocomplete-and-hover-help).
 
 CI can require an unchanged committed lock:
 
