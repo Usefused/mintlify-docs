@@ -240,6 +240,23 @@ Fields (`—` means no declared default):
 | `report_dir` | `Path` | `—` |
 | `options` | `Mapping[str, Any]` | `—` |
 
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default |
+|---|---|---|
+| `client` | `httpx.Client` | Required |
+| `project_dir` | `Path` | Required |
+| `report_dir` | `Path` | Required |
+| `options` | `Mapping[str, Any]` | Required |
+
+```python
+from harnest.evaluation import EvalRunnerContext
+
+context = EvalRunnerContext(client=..., project_dir=..., report_dir=..., options=...)
+```
+
+</Accordion>
+
 ## EvalRunnerResult
 
 A quality verdict and optional report files relative to the runner's directory.
@@ -257,6 +274,21 @@ Fields (`—` means no declared default):
 |---|---|---|
 | `status` | `Literal['passed', 'failed', 'not_evaluated']` | `—` |
 | `artifacts` | `tuple[str, ...]` | `()` |
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default |
+|---|---|---|
+| `status` | `Literal['passed', 'failed', 'not_evaluated']` | Required |
+| `artifacts` | `tuple[str, ...]` | `()` |
+
+```python
+from harnest.evaluation import EvalRunnerResult
+
+result = EvalRunnerResult(status=...)
+```
+
+</Accordion>
 
 ## EvaluationError
 

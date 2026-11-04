@@ -109,6 +109,19 @@ mcp.on_error:
     async def remote_failed(context, error):
         return context.next()
 
+http.agent_principal:
+  example: |
+    from harnest import lifecycle
+    from harnest.agent import AgentRuntimePrincipal
+    from harnest.auth import AuthPrincipal, ConnectionContext
+
+    @lifecycle.http.agent_principal
+    def grant(connection: ConnectionContext, principal: AuthPrincipal) -> AgentRuntimePrincipal:
+        permissions = set()
+        if principal.claims.get("can_refund") is True:
+            permissions.add("refunds.write")
+        return AgentRuntimePrincipal.create(permissions=permissions)
+
 http.scope:
   example: |
     from harnest import lifecycle

@@ -1,5 +1,9 @@
 
 
+## HTTP agent principal grants
+
+`@lifecycle.http.agent_principal` registers one sync or async function that receives a `ConnectionContext` and an `AuthPrincipal`. Return an `AgentRuntimePrincipal` to grant permissions or `None` to deny the invocation. See [Grant permissions on built-in routes](/harnest/runtime/agent-runtime-principals#grant-permissions-on-built-in-routes).
+
 ## Hook control flow
 
 | Return | Effect |

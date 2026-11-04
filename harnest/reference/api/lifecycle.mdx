@@ -9,6 +9,10 @@ icon: "code"
 
 [All Python modules](/harnest/reference/api/overview) · [Import and compatibility guidance](/harnest/build/python-imports)
 
+## HTTP agent principal grants
+
+`@lifecycle.http.agent_principal` registers one sync or async function that receives a `ConnectionContext` and an `AuthPrincipal`. Return an `AgentRuntimePrincipal` to grant permissions or `None` to deny the invocation. See [Grant permissions on built-in routes](/harnest/runtime/agent-runtime-principals#grant-permissions-on-built-in-routes).
+
 ## Hook control flow
 
 | Return | Effect |
@@ -1111,10 +1115,6 @@ from harnest import lifecycle
 
 </Accordion>
 
-### http.agent_principal
-
-`@lifecycle.http.agent_principal` registers one sync or async function that receives a `ConnectionContext` and an `AuthPrincipal`. Return an `AgentRuntimePrincipal` to grant permissions or `None` to deny the invocation. See [Grant permissions on built-in routes](/harnest/runtime/agent-runtime-principals#grant-permissions-on-built-in-routes).
-
 ### http.scope
 
 Preserve authored hook signatures while attaching lifecycle metadata.
@@ -1211,6 +1211,39 @@ from harnest import lifecycle
 @lifecycle.http.on_error
 async def http_failed(context, error):
     return context.next()
+```
+
+</Accordion>
+
+### http.agent_principal
+
+Preserve authored hook signatures while attaching lifecycle metadata.
+
+```python
+http.agent_principal(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
+```
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default |
+|---|---|---|
+| `function` | `_Hook \| None` | `None` |
+| `order` | `int` | `0` |
+
+```python
+from harnest import lifecycle
+from harnest.agent import AgentRuntimePrincipal
+from harnest.auth import AuthPrincipal, ConnectionContext
+
+@lifecycle.http.agent_principal
+def grant(
+    connection: ConnectionContext,
+    principal: AuthPrincipal,
+) -> AgentRuntimePrincipal:
+    permissions = set()
+    if principal.claims.get("can_refund") is True:
+        permissions.add("refunds.write")
+    return AgentRuntimePrincipal.create(permissions=permissions)
 ```
 
 </Accordion>
