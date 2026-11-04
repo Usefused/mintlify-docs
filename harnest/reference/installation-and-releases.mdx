@@ -34,10 +34,12 @@ curl -fsSL \
 ```powershell Windows
 $installer = Join-Path $env:TEMP 'install-harnest.ps1'
 Invoke-WebRequest https://raw.githubusercontent.com/Usefused/harnest/main/install.ps1 -UseBasicParsing -OutFile $installer
-powershell -NoProfile -ExecutionPolicy Bypass -File $installer
+powershell -NoProfile -File $installer
 ```
 
 </CodeGroup>
+
+The Windows command uses your existing execution policy. If the downloaded script is blocked, use the ZIP instructions below or ask your administrator to approve installation.
 
 Verify the CLI and managed runtime:
 
@@ -45,6 +47,34 @@ Verify the CLI and managed runtime:
 harnest --version
 harnest doctor
 ```
+
+## Windows ZIP installation
+
+Use this method when your device permits the Harnest executable but blocks downloaded PowerShell scripts. On managed devices, follow your organization's software approval process.
+
+1. Open [Harnest releases](https://github.com/Usefused/harnest/releases/latest). Download `checksums.txt` and the ZIP for your Windows system type from the same release. Choose `harnest_<version>_windows_amd64.zip` for x64 or `harnest_<version>_windows_arm64.zip` for ARM64. Windows Settings → System → About lists your system type.
+2. In PowerShell, calculate the archive hash, replacing the filename with the one you downloaded:
+
+   ```powershell
+   Get-FileHash -Algorithm SHA256 -LiteralPath "$HOME\Downloads\harnest_<version>_windows_amd64.zip"
+   ```
+
+   Compare the result with the entry for that exact filename in `checksums.txt`. Continue only if the full SHA-256 values match.
+3. Extract the verified ZIP with File Explorer and place `harnest.exe` in a directory you own, such as `$HOME\.local\bin`.
+4. Run these commands in PowerShell, using the directory you chose:
+
+   ```powershell
+   & "$HOME\.local\bin\harnest.exe" runtime install
+   ```
+
+   After installation succeeds, verify both layers:
+
+   ```powershell
+   & "$HOME\.local\bin\harnest.exe" --version
+   & "$HOME\.local\bin\harnest.exe" doctor
+   ```
+
+5. Add the executable's directory to your user PATH in Windows Environment Variables and open a new terminal to use `harnest` directly.
 
 ## Diagnose an agent
 

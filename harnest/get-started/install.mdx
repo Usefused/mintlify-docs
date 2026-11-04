@@ -27,10 +27,12 @@ Install the native CLI and its managed runtime on macOS, Linux, or Windows.
     ```powershell Windows
     $installer = Join-Path $env:TEMP 'install-harnest.ps1'
     Invoke-WebRequest https://raw.githubusercontent.com/Usefused/harnest/main/install.ps1 -UseBasicParsing -OutFile $installer
-    powershell -NoProfile -ExecutionPolicy Bypass -File $installer
+    powershell -NoProfile -File $installer
     ```
 
     </CodeGroup>
+
+    The Windows command uses your existing execution policy. If the downloaded script is blocked, follow [Windows ZIP installation](/harnest/reference/installation-and-releases#windows-zip-installation) or ask your administrator to approve installation.
 
     On Windows, add the reported CLI directory to your user PATH or invoke `harnest.exe` by its full path.
 
