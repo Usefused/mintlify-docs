@@ -16,27 +16,24 @@ Install the native CLI and its managed runtime on macOS, Linux, or Windows.
 
 <Steps>
   <Step title="Run the installer">
-    <CodeGroup>
+    <Tabs>
+      <Tab title="Windows">
+        Download the MSI for your system type from [Harnest releases](https://github.com/Usefused/harnest/releases/latest) and double-click it. Choose `harnest_<version>_windows_amd64.msi` for x64 or `harnest_<version>_windows_arm64.msi` for ARM64. You can find your system type in Windows Settings → System → About.
 
-    ```bash macOS and Linux
-    curl -fsSL \
-      https://raw.githubusercontent.com/Usefused/harnest/main/install.sh |
-      sh
-    ```
+        Follow the installation wizard. It installs the CLI for your user, prepares the runtime, and adds Harnest to your user PATH. Runtime setup may need internet access. Open a new terminal after installation.
 
-    ```powershell Windows
-    $installer = Join-Path $env:TEMP 'install-harnest.ps1'
-    Invoke-WebRequest https://raw.githubusercontent.com/Usefused/harnest/main/install.ps1 -UseBasicParsing -OutFile $installer
-    powershell -NoProfile -File $installer
-    ```
+        On managed devices, use your organization's software approval process if Windows blocks installation. See [Windows installer](/harnest/reference/installation-and-releases#windows-installer) for repair, upgrades, and uninstall.
+      </Tab>
+      <Tab title="macOS and Linux">
+        ```bash
+        curl -fsSL \
+          https://raw.githubusercontent.com/Usefused/harnest/main/install.sh |
+          sh
+        ```
+      </Tab>
+    </Tabs>
 
-    </CodeGroup>
-
-    The Windows command uses your existing execution policy. If the downloaded script is blocked, follow [Windows ZIP installation](/harnest/reference/installation-and-releases#windows-zip-installation) or ask your administrator to approve installation.
-
-    On Windows, add the reported CLI directory to your user PATH or invoke `harnest.exe` by its full path.
-
-    The installer shows the selected version and destination paths before asking for confirmation.
+    Review the installation details before confirming.
   </Step>
   <Step title="Verify both layers">
     ```bash
