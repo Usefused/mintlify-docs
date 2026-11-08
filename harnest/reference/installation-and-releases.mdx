@@ -33,7 +33,7 @@ curl -fsSL \
 
 </CodeGroup>
 
-On Windows, use the [native MSI installer](#windows-installer).
+On x64 Windows, use the [native MSI installer](#windows-installer).
 
 Verify the CLI and managed runtime:
 
@@ -49,7 +49,7 @@ Download the MSI from [Harnest releases](https://github.com/Usefused/harnest/rel
 | Windows system type | Installer |
 |---|---|
 | x64 | `harnest_<version>_windows_amd64.msi` |
-| ARM64 | `harnest_<version>_windows_arm64.msi` |
+| ARM64 | [Windows ZIP installation](#windows-zip-installation) |
 
 The wizard installs `harnest.exe` under `%LOCALAPPDATA%\Programs\Harnest` for your user, adds that directory to your user PATH, and prepares the managed runtime. Runtime setup may download Python and dependencies. Open a new terminal after installation, then run `harnest doctor`.
 
@@ -57,7 +57,7 @@ Use the newer MSI to upgrade. Windows Installer also supports repair. Uninstall 
 
 For automated deployment, Windows Installer accepts `msiexec /i <installer.msi> /qn /norestart`. The installer runs under the installing user's account. A failed runtime setup fails the installation and rolls back the MSI-managed files and PATH changes. On managed devices, follow your organization's software approval process if installation is blocked.
 
-Release `checksums.txt` includes the MSI's SHA-256 hash. The optional legacy `install.ps1` entry point verifies this checksum and launches the same MSI. It requires a policy that permits scripts.
+Release `checksums.txt` includes the MSI's SHA-256 hash. The optional legacy `install.ps1` entry point verifies this checksum and launches the same MSI when available. For ZIP-only releases it verifies and installs the matching ZIP. It requires a policy that permits scripts.
 
 ## Windows ZIP installation
 
