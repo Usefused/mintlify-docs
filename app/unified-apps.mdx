@@ -22,16 +22,26 @@ Start with a [configured CLI](/quickstart#sign-in) and [your service credentials
       "Use my CRM to create a customer. Accept name and email as strings. Return customerId as a string."
     ```
 
-    Fused finds the service and operation, then drafts the TypeScript and YAML for you. Review its proposal and confirm to deploy.
+    Fused finds the service and operation, then drafts one TypeScript file for you. Review its proposal and confirm to deploy.
 
-    To write the app yourself, save these two files as `customer-app.ts` and `customer-app.yaml` in `.fused/unified_app/`:
-
-    <CodeGroup>
+    To write the app yourself, save this as `.fused/unified_app/customer-app.ts`:
 
     ```typescript TypeScript
     import * as z from "zod/mini";
     import { buildUnifiedApp } from "@fused/unified-app";
     import { services } from "@fused/operations";
+
+    export const fusedConfig = {
+      "name": "customer-app",
+      "version": "1.0.0",
+      "bucket": "default",
+      "services": {
+        "@your-provider/crm": {
+          "version": "2026-01-01",
+          "operations": ["createCustomer"]
+        }
+      }
+    };
 
     export default buildUnifiedApp({
       input: z.object({ name: z.string(), email: z.string() }),
@@ -47,29 +57,14 @@ Start with a [configured CLI](/quickstart#sign-in) and [your service credentials
     });
     ```
 
-    ```yaml YAML
-    apiVersion: fused/v1
-    kind: unified_app
-    name: customer-app
-    version: "1.0.0"
-    bucket: default
-    source_path: customer-app.ts
-    services:
-      "@your-provider/crm":
-        version: "2026-01-01"
-        operations: [createCustomer]
-    ```
-
-    </CodeGroup>
-
-    This example assumes a CRM operation that accepts `name` and `email` and returns `id`. Replace `@your-provider/crm`, the service version, and operation with the [exact values in your workspace](/workspace/enable-a-service). Use the same service reference in both files.
+    This example assumes a CRM operation that accepts `name` and `email` and returns `id`. Replace `@your-provider/crm`, the service version, and operation with the [exact values in your workspace](/workspace/enable-a-service). Use the same service reference in the metadata and call.
   </Step>
-  <Step title="Deploy your files">
-    If you wrote the files yourself, review the plan and apply it:
+  <Step title="Deploy your app">
+    If you wrote the file yourself, review the plan and apply it:
 
     ```bash
-    fused-cli app plan -f .fused/unified_app/customer-app.yaml
-    fused-cli app apply -f .fused/unified_app/customer-app.yaml
+    fused-cli app plan -f .fused/unified_app/customer-app.ts
+    fused-cli app apply -f .fused/unified_app/customer-app.ts
     ```
 
     If you already confirmed deployment through `describe`, continue to the call below.
@@ -103,7 +98,7 @@ Start with a [configured CLI](/quickstart#sign-in) and [your service credentials
 
 <CardGroup cols={2}>
   <Card title="Write the code yourself" icon="code" href="/app/unified-apps/write-code">
-    Create the two files: TypeScript for the action and YAML for its selected operations.
+    Define the action and selected operations in one TypeScript file.
   </Card>
   <Card title="Update or roll back" icon="code-branch" href="/app/unified-apps/versions">
     Deploy a change or switch traffic to a previous version.

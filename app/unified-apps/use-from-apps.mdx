@@ -88,7 +88,15 @@ These selections stay on the exact version you chose. When you switch the Unifie
 
 ## Call from another Unified App
 
-Add the same `unified_apps` entry to the calling app's YAML. In its TypeScript, import `fused` from `@fused/unified-app` and call:
+Add this entry to the calling Unified App's `fusedConfig` object:
+
+```typescript
+"unified_apps": {
+  "customer_lookup": { "name": "customer-app", "version": "1.0.0" }
+}
+```
+
+In its TypeScript, import `fused` from `@fused/unified-app` and call:
 
 ```typescript
 const result = await fused.callApp("customer_lookup", { name: "Jane" });

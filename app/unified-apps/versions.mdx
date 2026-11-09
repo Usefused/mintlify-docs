@@ -6,16 +6,20 @@ description: "Deploy a code change or switch traffic to a previous version."
 
 ## Deploy a change
 
-Edit your TypeScript, then increase `version` in the existing YAML file:
+Edit your TypeScript, then increase `version` in its `fusedConfig` object:
 
-```yaml
-name: customer-app
-version: "1.0.1"
+```typescript
+export const fusedConfig = {
+  "name": "customer-app",
+  "version": "1.0.1",
+  "bucket": "default",
+  "services": { "crm": { "version": "2026-01-01", "operations": ["createCustomer"] } }
+};
 ```
 
 ```bash
-fused-cli app plan -f .fused/unified_app/customer-app.yaml
-fused-cli app apply -f .fused/unified_app/customer-app.yaml
+fused-cli app plan -f .fused/unified_app/customer-app.ts
+fused-cli app apply -f .fused/unified_app/customer-app.ts
 ```
 
 Each published version is fixed. Reusing a version number with changed code returns `app_version_immutable`. Use a new number for each change.
@@ -35,7 +39,7 @@ New requests go to that version. Your REST URL and token stay the same. Promotio
 You can also read the app name from your config:
 
 ```bash
-fused-cli app promote -f .fused/unified_app/customer-app.yaml --version 1.0.0
+fused-cli app promote -f .fused/unified_app/customer-app.ts --version 1.0.0
 ```
 
 Always pass the destination in `--version`. The config's `version` field does not choose the promotion target.
