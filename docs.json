@@ -640,5 +640,5 @@
       "harnest": "https://github.com/usefused/harnest"
     }
   },
-  "description": "Fused - Connect Your APIs Once, Use Everywhere. Bring internal, partner, and third-party APIs into Fused and control how your teams, apps, and AI agents use them."
+  "description": "Bring internal, partner, and third-party APIs into Fused. Reuse the same integrations across teams, side projects, and AI agents while staying in control of who can access what."
 }

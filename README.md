@@ -1,6 +1,6 @@
 # Fused documentation
 
-**Fused - Connect Your APIs Once, Use Everywhere**
+**Fused — Connect Your APIs Once, Use Everywhere.**
 
 Bring internal, partner, and third-party APIs into Fused. Reuse integrations across projects, teams, and AI agents while staying in control of who can access what. This repository contains the public guides and references for Fused and Harnest, built with Mintlify.
 
