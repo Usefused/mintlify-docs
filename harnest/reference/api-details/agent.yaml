@@ -11,8 +11,8 @@ Agent: &id001
     output_schema: Pydantic model for structured output, returned as `result`.
     history: '`"session"` (default) keeps earlier turns; `"turn"` isolates each invocation.'
     output_key: ADK only. Session state key that stores the agent's final reply. LangGraph agents reject it.
-    generate_content_config: ADK only. Generation settings passed to the model, as an ADK config or mapping. LangGraph
-      agents reject it.
+    generate_content_config: ADK generation settings, as an ADK config or mapping. Artifact compilation warns and ignores
+      this field for frameworks without generation-config support, including LangGraph.
     sandboxes: Names of the sandboxes this agent may use, such as `["python"]`.
     token_policy: Token budget and reporting policy for this agent. Child agents need their own.
     skill_selection: Selects which Agent Skills to load for each turn.

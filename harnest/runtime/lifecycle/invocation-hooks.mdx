@@ -56,13 +56,13 @@ Model hooks identify the calling agent in `agent_name`. User, session, and invoc
 
 Keep business operations in Agent Tools. Hooks should apply policy, observation, or transformation around those operations.
 
-## Portable or native?
+## Portable or framework-specific?
 
 | Requirement | Choose |
 |---|---|
 | Same policy on ADK and LangGraph | Portable hook |
-| ADK runner or plugin API | ADK native integration |
-| LangGraph middleware or graph runtime | LangGraph native integration |
+| ADK runner or plugin API | Framework extension returning an ADK `BasePlugin` |
+| LangGraph middleware or graph runtime | Framework extension returning a LangChain `AgentMiddleware` |
 
 <Card title="Framework extensions" icon="code" href="/harnest/runtime/lifecycle/framework-extensions">
   Isolate behavior that must use the selected framework directly.

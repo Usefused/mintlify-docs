@@ -58,11 +58,13 @@ Root and extension lifecycle files share one ordering: `order`, then dependency 
 | Manifest capability | Contribution from the extension |
 |---|---|
 | [`lifecycle.agent`](/harnest/reference/api/lifecycle#agent), `.model`, `.tool`, `.mcp`, `.http`, `.skills` | Portable interception and dynamic skill sources |
+| [`lifecycle.session`](/harnest/reference/api/lifecycle#session-created) | Session creation hooks |
 | `context.resources`, `.credentials`, `.continuations`, `.storage`, `.assets`, `.session`, `.skills`, `.mcp` | Scoped runtime access used by the extension |
 | `content.tools`, `.mcp`, `.skills`, `.subagents` | Managed-mode content |
-| [`storage.sessions`](/harnest/reference/api/lifecycle#storage-sessions), `.checkpoints`, `.assets`, `.custom` | Storage factories |
+| [`storage.sessions`](/harnest/reference/api/lifecycle#storage-sessions), `.checkpoints`, `.assets`, `.tasks`, `.cron`, `.memory`, `.custom` | Storage factories |
 | `http.routes` | Application HTTP routes |
-| `framework.extension` | Framework-specific integration |
+| `sandbox.provider` | [Sandbox provider factories](/harnest/build/sandboxing) |
+| `framework.extension` | [ADK plugins or LangChain middleware](/harnest/runtime/lifecycle/framework-extensions) |
 | `policy.output`, `telemetry.exporter` | Output policy or telemetry destinations |
 
 Declare only the rows the extension actually uses. Advanced mode still composes Harnest-owned boundaries, but it cannot intercept an opaque native path that bypasses Harnest.

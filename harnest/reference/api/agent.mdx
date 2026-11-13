@@ -118,7 +118,7 @@ Fields (`—` means no declared default):
 | `input_schema` | `PydanticModel \| None` | `None` | Pydantic model that validates request `input`. |
 | `output_key` | `str \| None` | `None` | ADK only. Session state key that stores the agent's final reply. LangGraph agents reject it. |
 | `output_schema` | `PydanticModel \| None` | `None` | Pydantic model for structured output, returned as `result`. |
-| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | ADK only. Generation settings passed to the model, as an ADK config or mapping. LangGraph agents reject it. |
+| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | ADK generation settings, as an ADK config or mapping. Artifact compilation warns and ignores this field for frameworks without generation-config support, including LangGraph. |
 | `history` | `Literal['session', 'turn']` | `'session'` | `"session"` (default) keeps earlier turns; `"turn"` isolates each invocation. |
 | `sandboxes` | `Sequence[str]` | `...` | Names of the sandboxes this agent may use, such as `["python"]`. |
 | `token_policy` | `TokenPolicy \| None` | `None` | Token budget and reporting policy for this agent. Child agents need their own. |
@@ -245,7 +245,7 @@ Fields (`—` means no declared default):
 | `input_schema` | `PydanticModel \| None` | `None` | Pydantic model that validates request `input`. |
 | `output_key` | `str \| None` | `None` | ADK only. Session state key that stores the agent's final reply. LangGraph agents reject it. |
 | `output_schema` | `PydanticModel \| None` | `None` | Pydantic model for structured output, returned as `result`. |
-| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | ADK only. Generation settings passed to the model, as an ADK config or mapping. LangGraph agents reject it. |
+| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | ADK generation settings, as an ADK config or mapping. Artifact compilation warns and ignores this field for frameworks without generation-config support, including LangGraph. |
 | `history` | `Literal['session', 'turn']` | `'session'` | `"session"` (default) keeps earlier turns; `"turn"` isolates each invocation. |
 | `sandboxes` | `Sequence[str]` | `...` | Names of the sandboxes this agent may use, such as `["python"]`. |
 | `token_policy` | `TokenPolicy \| None` | `None` | Token budget and reporting policy for this agent. Child agents need their own. |

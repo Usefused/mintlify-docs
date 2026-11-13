@@ -2,7 +2,7 @@
 icon: "arrows-rotate"
 title: "Lifecycle"
 sidebarTitle: "Overview"
-description: "Add application resources, invocation hooks, output policy, and native integrations."
+description: "Add application resources, invocation hooks, output policy, and framework extensions."
 ---
 
 Lifecycle hooks and resource factories manage behavior around the agent without turning that behavior into tools. Author them in root `lifecycle/`, or package reusable functionality as a [Harnest Extension](/harnest/build/extensions) with its own `lifecycle/` folder.
@@ -34,7 +34,7 @@ Lifecycle is root-owned. SubAgents cannot add private lifecycle hooks and factor
     Select public narration, tool activity, provider reasoning, and model metadata.
   </Card>
   <Card title="Framework extensions" icon="code" href="/harnest/runtime/lifecycle/framework-extensions">
-    Add ADK plugins or LangGraph middleware when portable hooks are not enough.
+    Add ADK plugins or LangChain middleware when portable hooks are not enough.
   </Card>
   <Card title="Harnest Extensions" icon="boxes-stacked" href="/harnest/build/extensions">
     Package typed SDK access and declared runtime contributions.
