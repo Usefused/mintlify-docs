@@ -51,10 +51,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str` | Required |
-| `descriptor` | `SkillDescriptor` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str` | Required | Name of the source that owns the skill. |
+| `descriptor` | `SkillDescriptor` | Required | The skill's metadata. |
 
 ```python
 from harnest.skills import CatalogSkill
@@ -115,15 +115,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `provider` | `str \| None` | `None` |
-| `instructions` | `str` | `'Select skills needed for the current task; skip unrelated skills.'` |
-| `input` | `SkillSelectionInput \| None` | `None` |
-| `max_skills` | `int` | `3` |
-| `max_candidates` | `int` | `30` |
-| `timeout_seconds` | `float` | `10` |
-| `fallback` | `SkillSelectionFallback` | `SkillSelectionFallback.DISCOVERY` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `provider` | `str \| None` | `None` | Registered decision provider to use. Required unless exactly one provider is registered. |
+| `instructions` | `str` | `'Select skills needed for the current task; skip unrelated skills.'` | Selection instructions sent with each candidate. |
+| `input` | `SkillSelectionInput \| None` | `None` | Function that returns the JSON input for the decision. Defaults to `{"task": context.task}`. |
+| `max_skills` | `int` | `3` | Maximum skills loaded automatically. |
+| `max_candidates` | `int` | `30` | Maximum skills considered from the catalog. |
+| `timeout_seconds` | `float` | `10` | Time limit for discovery, input, evaluation, and loading together. |
+| `fallback` | `SkillSelectionFallback` | `SkillSelectionFallback.DISCOVERY` | `DecisionSkillSelector.DISCOVERY` falls back to normal discovery on failure; `DecisionSkillSelector.ERROR` stops with `SkillSelectionError`. |
 
 ```python
 from harnest.skills import DecisionSkillSelector
@@ -143,9 +143,9 @@ FilesystemSkillSource(directories: Sequence[str | Path]) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `directories` | `Sequence[str \| Path]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `directories` | `Sequence[str \| Path]` | Required | Skill folders to serve. |
 
 ```python
 from harnest.skills import FilesystemSkillSource
@@ -171,12 +171,12 @@ Page a bounded local catalog in deterministic directory order.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `SkillContext` | Required |
-| `query` | `str \| None` | `None` |
-| `cursor` | `str \| None` | `None` |
-| `limit` | `int` | `50` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `SkillContext` | Required | The active agent and principal. Only skills they may see are returned. |
+| `query` | `str \| None` | `None` | Optional search keywords. |
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
+| `limit` | `int` | `50` | Maximum number of skills to return. |
 
 ```python
 from harnest.skills import FilesystemSkillSource
@@ -197,11 +197,11 @@ Read one static manifest after validating its pinned version.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `context` | `SkillContext` | Required |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `context` | `SkillContext` | Required | The active agent and principal. |
+| `version` | `str \| None` | `None` | Exact version to load, or `None` for the current version. |
 
 ```python
 from harnest.skills import FilesystemSkillSource
@@ -228,12 +228,12 @@ Read one regular UTF-8 file without escaping its skill directory.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `path` | `str` | Required |
-| `context` | `SkillContext` | Required |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `path` | `str` | Required | Relative path of a resource named in the skill's instructions. |
+| `context` | `SkillContext` | Required | The active agent and principal. |
+| `version` | `str \| None` | `None` | Version of the loaded skill, or `None` for the current version. |
 
 ```python
 from harnest.skills import FilesystemSkillSource
@@ -284,10 +284,10 @@ SkillAccess(scope: SkillScope, active: Any) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `SkillScope` | Required |
-| `active` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `SkillScope` | Required | The agent's skill scope. |
+| `active` | `Any` | Required | The active invocation context. |
 
 ```python
 from harnest.skills import SkillAccess
@@ -313,12 +313,12 @@ List metadata visible to this invocation without loading bodies.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| None` | `None` |
-| `query` | `str \| None` | `None` |
-| `cursor` | `str \| None` | `None` |
-| `limit` | `int` | `50` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| None` | `None` | Exact source from a previous result; `None` searches all sources. |
+| `query` | `str \| None` | `None` | Optional search keywords. |
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
+| `limit` | `int` | `50` | Maximum number of items to return. |
 
 ```python
 from harnest.skills import SkillAccess
@@ -339,11 +339,11 @@ Load one selected skill through this invocation's governed scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `source` | `str \| None` | `None` |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `source` | `str \| None` | `None` | Exact source returned for that skill. |
+| `version` | `str \| None` | `None` | Exact version, or `None` for the current version. |
 
 ```python
 from harnest.skills import SkillAccess
@@ -370,12 +370,12 @@ Load one resource through this invocation's governed scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `path` | `str` | Required |
-| `source` | `str \| None` | `None` |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `path` | `str` | Required | Relative path of a resource named in the skill's instructions. |
+| `source` | `str \| None` | `None` | Exact source returned for that skill. |
+| `version` | `str \| None` | `None` | Version of the loaded skill, or `None` for the current version. |
 
 ```python
 from harnest.skills import SkillAccess
@@ -408,11 +408,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `items` | `tuple[CatalogSkill, ...]` | Required |
-| `next_cursors` | `Mapping[str, str]` | `...` |
-| `truncated` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `items` | `tuple[CatalogSkill, ...]` | Required | Skills on this page. |
+| `next_cursors` | `Mapping[str, str]` | `...` | Next-page cursor per source. |
+| `truncated` | `bool` | `False` | Whether more skills exist than were returned. |
 
 ```python
 from harnest.skills import SkillCatalogPage
@@ -452,7 +452,7 @@ Obtain this object from the owning Harnest API; its constructor includes runtime
 ```python
 from harnest.skills import SkillContext
 
-context: SkillContext  # returned by Harnest, not constructed directly
+context: SkillContext  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -662,10 +662,10 @@ Resolve an explicitly exported application resource.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `expected_type` | `type[Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name the resource was published under. |
+| `expected_type` | `type[Any] \| None` | `None` | Type the resource must be. Raises `TypeError` when it is not. |
 
 ```python
 from harnest.skills import SkillContext
@@ -695,12 +695,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `name` | `str` | Required |
-| `description` | `str` | Required |
-| `version` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Skill ID. |
+| `name` | `str` | Required | Display name. |
+| `description` | `str` | Required | What the skill is for. Models use it to choose skills. |
+| `version` | `str` | Required | Skill version. |
 
 ```python
 from harnest.skills import SkillDescriptor
@@ -727,10 +727,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `descriptor` | `SkillDescriptor` | Required |
-| `instructions` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `descriptor` | `SkillDescriptor` | Required | The skill's metadata. |
+| `instructions` | `str` | Required | The skill's instructions. |
 
 ```python
 from harnest.skills import SkillDocument
@@ -791,10 +791,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `items` | `tuple[SkillDescriptor, ...]` | Required |
-| `next_cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `items` | `tuple[SkillDescriptor, ...]` | Required | Skills on this page. |
+| `next_cursor` | `str \| None` | `None` | Cursor for the next page, or `None` at the end. |
 
 ```python
 from harnest.skills import SkillPage
@@ -814,9 +814,9 @@ SkillRegistry(scopes: Mapping[str, SkillScope] | None = None) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scopes` | `Mapping[str, SkillScope] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scopes` | `Mapping[str, SkillScope] \| None` | `None` | Skill scopes by agent name. |
 
 ```python
 from harnest.skills import SkillRegistry
@@ -851,9 +851,9 @@ Return one immutable compiled scope for runtime-safe augmentation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `agent_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
 
 ```python
 from harnest.skills import SkillRegistry
@@ -874,9 +874,9 @@ Bind a registry view to one revocable invocation context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `active` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `active` | `Any` | Required | The active invocation context. |
 
 ```python
 from harnest.skills import SkillRegistry
@@ -906,12 +906,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `version` | `str` | Required |
-| `path` | `str` | Required |
-| `content` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | ID of the skill the resource belongs to. |
+| `version` | `str` | Required | Skill version. |
+| `path` | `str` | Required | Relative path of the resource. |
+| `content` | `str` | Required | UTF-8 content of the resource. |
 
 ```python
 from harnest.skills import SkillResource
@@ -948,9 +948,9 @@ SkillScope(sources: Mapping[str, SkillSource] | None = None) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `sources` | `Mapping[str, SkillSource] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `sources` | `Mapping[str, SkillSource] \| None` | `None` | Skill sources by name. |
 
 ```python
 from harnest.skills import SkillScope
@@ -1000,9 +1000,9 @@ Return a scope whose filesystem route also owns new immutable skills.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `directories` | `Sequence[str \| Path]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `directories` | `Sequence[str \| Path]` | Required | Skill folders to add. |
 
 ```python
 from harnest.skills import SkillScope
@@ -1030,13 +1030,13 @@ List one source page or merge first pages without per-skill queries.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `SkillContext` | Required |
-| `source` | `str \| None` | `None` |
-| `query` | `str \| None` | `None` |
-| `cursor` | `str \| None` | `None` |
-| `limit` | `int` | `50` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `SkillContext` | Required | The active agent and principal. |
+| `source` | `str \| None` | `None` | Only list this source; `None` merges the first page of every source. |
+| `query` | `str \| None` | `None` | Optional search keywords. |
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
+| `limit` | `int` | `50` | Maximum number of items to return. |
 
 ```python
 from harnest.skills import SkillScope
@@ -1063,12 +1063,12 @@ Load one document through an explicit or unambiguous source.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `context` | `SkillContext` | Required |
-| `source` | `str \| None` | `None` |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `context` | `SkillContext` | Required | The active agent and principal. |
+| `source` | `str \| None` | `None` | Source to load from. Required when the ID exists in several sources. |
+| `version` | `str \| None` | `None` | Exact version, or `None` for the current version. |
 
 ```python
 from harnest.skills import SkillScope
@@ -1096,13 +1096,13 @@ Load one bounded resource through an exact source route.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `path` | `str` | Required |
-| `context` | `SkillContext` | Required |
-| `source` | `str \| None` | `None` |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `path` | `str` | Required | Relative path of a resource named in the skill's instructions. |
+| `context` | `SkillContext` | Required | The active agent and principal. |
+| `source` | `str \| None` | `None` | Exact source to load from. |
+| `version` | `str \| None` | `None` | Version of the loaded skill, or `None` for the current version. |
 
 ```python
 from harnest.skills import SkillScope
@@ -1123,9 +1123,9 @@ Resolve the route used by context access and model-tool shorthand.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| None` | `None` | Requested source, or `None` to use the only available one. |
 
 ```python
 from harnest.skills import SkillScope
@@ -1211,12 +1211,12 @@ Return only descriptors visible to the active agent and principal.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `SkillContext` | Required |
-| `query` | `str \| None` | `None` |
-| `cursor` | `str \| None` | `None` |
-| `limit` | `int` | `50` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `SkillContext` | Required | The active agent and principal. Only skills they may see are returned. |
+| `query` | `str \| None` | `None` | Optional search keywords. |
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
+| `limit` | `int` | `50` | Maximum number of skills to return. |
 
 ```python
 from harnest.skills import SkillSource
@@ -1237,11 +1237,11 @@ Load one authorized versioned instruction document.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `context` | `SkillContext` | Required |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `context` | `SkillContext` | Required | The active agent and principal. |
+| `version` | `str \| None` | `None` | Exact version to load, or `None` for the current version. |
 
 ```python
 from harnest.skills import SkillSource
@@ -1268,12 +1268,12 @@ Load one supporting resource when this source exposes them.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `skill_id` | `str` | Required |
-| `path` | `str` | Required |
-| `context` | `SkillContext` | Required |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `skill_id` | `str` | Required | Exact skill ID returned by `list`. |
+| `path` | `str` | Required | Relative path of a resource named in the skill's instructions. |
+| `context` | `SkillContext` | Required | The active agent and principal. |
+| `version` | `str \| None` | `None` | Version of the loaded skill, or `None` for the current version. |
 
 ```python
 from harnest.skills import SkillSource

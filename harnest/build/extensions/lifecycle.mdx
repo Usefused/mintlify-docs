@@ -62,7 +62,7 @@ Root and extension lifecycle files share one ordering: `order`, then dependency 
 | `content.tools`, `.mcp`, `.skills`, `.subagents` | Managed-mode content |
 | [`storage.sessions`](/harnest/reference/api/lifecycle#storage-sessions), `.checkpoints`, `.assets`, `.custom` | Storage factories |
 | `http.routes` | Application HTTP routes |
-| `native.adk`, `native.langgraph` | Framework-native integration |
+| `framework.extension` | Framework-specific integration |
 | `policy.output`, `telemetry.exporter` | Output policy or telemetry destinations |
 
 Declare only the rows the extension actually uses. Advanced mode still composes Harnest-owned boundaries, but it cannot intercept an opaque native path that bypasses Harnest.

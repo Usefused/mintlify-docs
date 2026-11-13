@@ -1,0 +1,108 @@
+# Curated details for /harnest/reference/api/continuation. See task.yaml for the format.
+# Interface descriptions here are reused by every store that implements them.
+
+ContinuationStore.suspend_continuation:
+  params:
+    external_id: Provider-owned ID for the external work this run now waits on.
+
+ContinuationStore.get_continuation_by_external_id:
+  params:
+    provider: Name of the continuation provider that owns the external ID.
+
+ContinuationStore.get_provider_continuation:
+  params:
+    provider: Name of the continuation provider that owns the wait.
+
+ContinuationStore.list_pending_continuations:
+  params:
+    provider: Only return waits owned by this continuation provider.
+    limit: Maximum number of waits to return.
+
+ContinuationStore.resolve_continuation:
+  params:
+    provider: Name of the continuation provider resolving the wait.
+    schema_id: Stable ID of the schema the result was validated against.
+    result: Validated result of the external work. Leave unset when passing `failure`.
+    failure: Failure category when the external work failed, or `None` on success.
+
+ContinuationStore.claim_continuation:
+  params:
+    provider: Name of the continuation provider that owns the wait.
+
+ContinuationStore.arm_continuation:
+  params:
+    provider: Name of the continuation provider that owns the wait.
+
+ContinuationStore.cancel_continuation:
+  params:
+    provider: Name of the continuation provider that owns the wait.
+    failure: Failure category recorded on the cancelled wait.
+
+ContinuationFailure:
+  fields:
+    code: Provider-defined failure category.
+    retryable: Whether the external work may succeed if retried.
+
+ContinuationProvider:
+  params:
+    store: Store that persists continuations.
+    provider: Name of this continuation provider.
+
+ContinuationProvider.suspend:
+  params:
+    run_id: ID of the run that waits.
+    capability: Name of the capability that is waiting.
+    schema_id: Stable ID of the schema the result must match.
+    resume: Identity of the tool call to resume.
+    principal_grants: Agent Runtime Principal permissions to restore on resume.
+
+"*.get":
+  params: &run
+    run_id: ID of the waiting run.
+
+"*.get_pending":
+  params: *run
+
+"*.claim":
+  params: *run
+
+ContinuationProvider.complete:
+  params:
+    run_id: ID of the waiting run.
+    schema_id: Stable ID of the result schema.
+    result: Output of the external work.
+    validate: Function that validates the result before it is stored.
+
+ContinuationProvider.fail:
+  params:
+    run_id: ID of the waiting run.
+    schema_id: Stable ID of the result schema.
+
+ContinuationRecord:
+  fields:
+    run_id: ID of the waiting run.
+    provider: Name of the continuation provider.
+    capability: Name of the capability that is waiting.
+    schema_id: Stable ID of the result schema.
+    resume: Identity of the tool call to resume.
+    principal_grants: Agent Runtime Principal permissions to restore on resume.
+    status: State of the wait.
+    ready: Whether the run is ready to resume.
+    revision: Revision used for compare-and-swap updates.
+    result: Validated result, once resolved.
+    created_at: When the wait was created.
+    updated_at: When the wait last changed.
+
+audit_continuation:
+  params:
+    operation: Name of the operation.
+    outcome: '`"committed"` or `"failed"`.'
+    backend: Name of the storage backend.
+
+continuation_schema_id:
+  params:
+    schema: JSON Schema to fingerprint.
+
+external_id_key:
+  params:
+    provider: Name of the continuation provider.

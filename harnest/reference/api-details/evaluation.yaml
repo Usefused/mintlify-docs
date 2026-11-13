@@ -1,0 +1,27 @@
+metric:
+  params:
+    function: Your scorer. It receives a `MetricContext` and returns a `MetricScore`, one score per invocation,
+      or a native ADK result.
+  example: |
+    from harnest.evaluation import MetricScore, metric
+
+    @metric
+    def mentions_order(context) -> MetricScore:
+        ...
+MetricContext:
+  fields:
+    metric: The metric being scored, from the eval config.
+    actual: Invocations the agent produced.
+    expected: Expected invocations from the eval case, if any.
+    scenario: Conversation scenario for simulated cases, if any.
+MetricScore:
+  fields:
+    score: Finite score, or `None` when the case is unscored.
+    evidence: Short human-readable explanation.
+eval_config:
+  params:
+    suite: Eval files of the agent.
+    trajectory: '`"business"` or `"strict"` tool-trajectory policy.'
+require_eval_trajectory:
+  params:
+    trajectory: Policy name to check, `"business"` or `"strict"`.

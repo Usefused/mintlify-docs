@@ -29,10 +29,10 @@ async emit(name: str, value: Any) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `value` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Event name the client listens for. |
+| `value` | `Any` | Required | Public, JSON-safe display data, up to 64 KiB. |
 
 ```python
 from harnest.ui import emit

@@ -1,0 +1,89 @@
+CheckpointStore.begin_run:
+  params:
+    run_id: ID for the run. An existing active run for the session is recovered instead.
+CheckpointStore.get_checkpoint:
+  params:
+    namespace: Checkpoint namespace within the run. `""` is the root graph.
+CheckpointStore.list_checkpoints:
+  params:
+    namespace: Only return checkpoints in this namespace; `None` returns all namespaces.
+    before: Only return checkpoints older than this checkpoint ID.
+CheckpointStore.put:
+  params:
+    checkpoint: The checkpoint to persist.
+    expected_revision: Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch
+      raises `CheckpointConflictError`.
+CheckpointStore.get_writes_batch:
+  params:
+    checkpoint_ids: IDs of the checkpoints to read pending writes for.
+CheckpointStore.transition:
+  params:
+    expected_status: Status the run must have now. A mismatch raises `CheckpointConflictError`.
+    status: New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting`
+      → `running`/`failed`/`cancelled`.
+    pending_action: What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed
+      otherwise.
+A2ATaskPersistence.get_a2a_task:
+  params:
+    task_id: A2A task ID.
+A2ATaskPersistence.delete_a2a_task:
+  params:
+    task_id: A2A task ID.
+A2ATaskPersistence.list_a2a_tasks:
+  params:
+    status: Only return tasks in this A2A task state.
+    status_timestamp_after: Only return tasks whose status changed after this timestamp.
+    cursor_task_id: Task ID to start the page from, taken from the previous page.
+    limit: Maximum number of tasks to return.
+A2ATaskPage:
+  fields:
+    records: The tasks on this page.
+    total_size: Total number of matching tasks before paging.
+A2ATaskRecord:
+  fields:
+    task_id: A2A task ID.
+    context_id: A2A context ID that groups related tasks.
+    status: A2A task state.
+    payload: Serialized A2A task.
+    status_timestamp: When the task's status last changed.
+    created_at: When the record was created.
+    updated_at: When the record was last updated.
+CheckpointRecord:
+  fields:
+    run_id: ID of the run the checkpoint belongs to.
+    namespace: Checkpoint namespace within the run. `""` is the root graph.
+    type_name: Serialization type of `payload`.
+    payload: Serialized framework checkpoint.
+    metadata_type: Serialization type of `metadata`.
+    metadata: Serialized checkpoint metadata.
+    versions_type: Serialization type of `versions`.
+    versions: Serialized channel versions.
+    parent_checkpoint_id: ID of the previous checkpoint in the run.
+    revision: Revision used for compare-and-swap writes.
+    created_at: When the checkpoint was created.
+CheckpointWrite:
+  fields:
+    task_id: ID of the framework task that produced the write.
+    channel: Channel the write targets.
+    type_name: Serialization type of `payload`.
+    payload: Serialized value.
+    task_path: Path of the task within the graph.
+PendingAction:
+  fields:
+    type: '`"human_approval"`, `"client_tool"`, or `"external_continuation"`.'
+    action_id: ID of the approval, client-tool request, or continuation.
+    capability: Name of the capability that is waiting.
+RunRecord:
+  fields:
+    run_id: Run ID.
+    status: '`"running"`, `"waiting"`, `"completed"`, `"failed"`, or `"cancelled"`.'
+    revision: Revision used for compare-and-swap transitions.
+    pending_action: What a `waiting` run is waiting for.
+    created_at: When the run started.
+    updated_at: When the run last changed.
+RunScope:
+  fields:
+    run_id: Run ID.
+checkpoint_metadata:
+  params:
+    authority: The checkpoint store to describe.

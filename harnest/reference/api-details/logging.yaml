@@ -1,0 +1,39 @@
+# Curated details for /harnest/reference/api/logging. See task.yaml for the format.
+
+get_logger:
+  params:
+    name: Logger name within Harnest's agent logging namespace.
+    attributes: Attributes added to every record.
+
+Logger.bind:
+  params:
+    attributes: Attributes added to every record from the new logger.
+
+Logger.log:
+  params:
+    level: Standard `logging` level, such as `logging.INFO`.
+    event: Event name or message.
+    args: Values formatted into `event`.
+    exc_info: Exception information to attach.
+    attributes: Structured attributes for this record.
+
+"*.debug":
+  params: &log_params
+    event: Event name or message.
+    args: Values formatted into `event`.
+    attributes: Structured attributes for this record.
+
+"*.info":
+  params: *log_params
+
+"*.warning":
+  params: *log_params
+
+"*.error":
+  params: *log_params
+
+"*.critical":
+  params: *log_params
+
+"*.exception":
+  params: *log_params

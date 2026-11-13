@@ -84,10 +84,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `tokens` | `int` | Required |
-| `estimated` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `tokens` | `int` | Required | Number of tokens. |
+| `estimated` | `bool` | `True` | Whether the count is an estimate rather than provider-reported usage. |
 
 ```python
 from harnest.tokens import TokenCount
@@ -147,23 +147,23 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `enabled` | `bool` | `True` |
-| `observe` | `bool` | `True` |
-| `enforce` | `bool` | `False` |
-| `max_input_tokens` | `int \| None` | `None` |
-| `max_output_tokens` | `int \| None` | `None` |
-| `output_token_parameter` | `str \| None` | `None` |
-| `max_model_calls` | `int \| None` | `None` |
-| `context_window` | `int \| None` | `None` |
-| `reserve_output_tokens` | `int` | `0` |
-| `keep_recent_turns` | `int \| None` | `None` |
-| `max_tool_result_chars` | `int \| None` | `None` |
-| `request_transform` | `Callable[[TokenRequest], Any] \| None` | `None` |
-| `tool_selector` | `Callable[[TokenRequest], Any] \| None` | `None` |
-| `count_tokens` | `Callable[[TokenRequest], Any] \| None` | `None` |
-| `observer` | `Callable[[TokenReport], Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `True` | `False` turns off counting, observers, reductions, and enforcement. |
+| `observe` | `bool` | `True` | Emit reports to `observer`, or to the `harnest.tokens` logger. |
+| `enforce` | `bool` | `False` | Stop calls that exceed the configured budgets and apply the output ceiling. |
+| `max_input_tokens` | `int \| None` | `None` | Maximum counted input after reductions, including instructions and tool descriptions. |
+| `max_output_tokens` | `int \| None` | `None` | Output ceiling sent to the provider. A stricter existing limit is kept. |
+| `output_token_parameter` | `str \| None` | `None` | LangGraph only. Request parameter for the output ceiling, such as `max_tokens` or `max_completion_tokens`. |
+| `max_model_calls` | `int \| None` | `None` | Maximum model attempts per agent per invocation, including failed attempts. |
+| `context_window` | `int \| None` | `None` | Maximum counted input plus reserved output. |
+| `reserve_output_tokens` | `int` | `0` | Capacity reserved for the response. The larger of this and `max_output_tokens` is used. |
+| `keep_recent_turns` | `int \| None` | `None` | Keep only this many recent user turns and their exchanges. Instructions are always kept. |
+| `max_tool_result_chars` | `int \| None` | `None` | Character cap for each tool-response text, with a truncation marker. |
+| `request_transform` | `Callable[[TokenRequest], Any] \| None` | `None` | Function that returns a modified `TokenRequest` before the call. |
+| `tool_selector` | `Callable[[TokenRequest], Any] \| None` | `None` | Function that returns the tool names to expose on this call. |
+| `count_tokens` | `Callable[[TokenRequest], Any] \| None` | `None` | Function that returns a `TokenCount` for a request. |
+| `observer` | `Callable[[TokenReport], Any] \| None` | `None` | Function that receives each content-free `TokenReport`. |
 
 ```python
 from harnest.tokens import TokenPolicy
@@ -232,21 +232,21 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `agent_name` | `str` | Required |
-| `phase` | `str` | Required |
-| `model_calls` | `int` | Required |
-| `input_before` | `TokenCount \| None` | `None` |
-| `input_after` | `TokenCount \| None` | `None` |
-| `exceeded` | `tuple[str, ...]` | `()` |
-| `messages_removed` | `int` | `0` |
-| `tools_removed` | `int` | `0` |
-| `input_tokens` | `int \| None` | `None` |
-| `output_tokens` | `int \| None` | `None` |
-| `total_tokens` | `int \| None` | `None` |
-| `cached_input_tokens` | `int \| None` | `None` |
-| `reasoning_tokens` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
+| `phase` | `str` | Required | Point in the call the report describes. |
+| `model_calls` | `int` | Required | Model attempts so far in this invocation. |
+| `input_before` | `TokenCount \| None` | `None` | Input count before reductions. |
+| `input_after` | `TokenCount \| None` | `None` | Input count after reductions. |
+| `exceeded` | `tuple[str, ...]` | `()` | Budgets that were exceeded. |
+| `messages_removed` | `int` | `0` | Messages removed by reductions. |
+| `tools_removed` | `int` | `0` | Tools removed by `tool_selector`. |
+| `input_tokens` | `int \| None` | `None` | Provider-reported input tokens. |
+| `output_tokens` | `int \| None` | `None` | Provider-reported output tokens. |
+| `total_tokens` | `int \| None` | `None` | Provider-reported total tokens. |
+| `cached_input_tokens` | `int \| None` | `None` | Provider-reported cached input tokens. |
+| `reasoning_tokens` | `int \| None` | `None` | Provider-reported reasoning tokens. |
 
 ```python
 from harnest.tokens import TokenReport
@@ -291,15 +291,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `model` | `str` | Required |
-| `messages` | `tuple[dict[str, Any], ...]` | Required |
-| `system` | `Any` | `None` |
-| `tools` | `tuple[dict[str, Any], ...]` | `()` |
-| `settings` | `dict[str, Any]` | `...` |
-| `context_metadata` | `dict[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `model` | `str` | Required | Model ID. |
+| `messages` | `tuple[dict[str, Any], ...]` | Required | Messages in the framework's own shape. |
+| `system` | `Any` | `None` | System instructions. |
+| `tools` | `tuple[dict[str, Any], ...]` | `()` | Tool descriptions offered to the model. |
+| `settings` | `dict[str, Any]` | `...` | Generation settings. |
+| `context_metadata` | `dict[str, Any]` | `...` | Invocation metadata for strategies. |
 
 ```python
 from harnest.tokens import TokenRequest
@@ -324,10 +324,10 @@ token_policy_scope(policy: TokenPolicy | None, *, agent_name: str | None = None)
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `policy` | `TokenPolicy \| None` | Required |
-| `agent_name` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `policy` | `TokenPolicy \| None` | Required | Policy to apply in this block and its child tasks, or `None` to turn token policy off. |
+| `agent_name` | `str \| None` | `None` | Name of the agent or SubAgent involved, or `None` when not tied to one agent. |
 
 ```python
 from harnest.tokens import token_policy_scope

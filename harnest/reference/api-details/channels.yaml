@@ -1,0 +1,118 @@
+# Curated details for /harnest/reference/api/channels. See task.yaml for the format.
+# Interface descriptions here are reused by every adapter and store that implements them.
+
+ChannelAdapter.normalize_event:
+  params:
+    raw: Raw event payload from the platform.
+
+ChannelAdapter.send_reply:
+  params:
+    reply: The reply to send.
+
+ChannelStore.admit_event:
+  params:
+    event: Normalized event to admit. An identical event that was already admitted is returned instead.
+
+ChannelStore.get_event:
+  params:
+    provider_event_id: The platform's event ID, used for deduplication.
+
+ChannelStore.bind_session:
+  params:
+    conversation_id: Platform conversation ID, such as a channel or direct-message ID.
+
+ChannelStore.get_session_binding:
+  params:
+    conversation_id: Platform conversation ID, such as a channel or direct-message ID.
+
+ChannelStore.enqueue_reply:
+  params:
+    reply: The reply to queue before it is sent.
+
+ChannelStore.claim_replies:
+  params:
+    limit: Maximum number of pending replies to claim.
+
+ChannelStore.finish_reply:
+  params:
+    reply_id: ID of the claimed reply.
+    status: '`"sent"`, `"failed"`, or `"delivery_unknown"`.'
+    receipt: Opaque receipt returned by the adapter's `send_reply`.
+
+ChannelBinding:
+  fields:
+    extension: Name of the channel extension whose adapter handles this binding.
+    allowed_installations: Installation IDs this binding accepts. A worker rejects an empty list.
+    allowed_conversations: Conversation IDs this binding accepts. A worker rejects an empty list.
+    config: Adapter configuration passed to the extension.
+
+ChannelEvent:
+  fields:
+    provider_event_id: The platform's event ID, used for deduplication.
+    kind: Event kind, such as `"app_mention"`.
+    sender_id: Platform ID of the sender.
+    conversation_id: Platform conversation ID, such as a channel or direct-message ID.
+    message_id: Platform message ID.
+    occurred_at: When the event happened, in UTC epoch seconds.
+    delivery_id: Delivery ID from the platform, when it has one.
+    content: Message text.
+    reply_to: Where the reply should go, as platform-specific values.
+
+ChannelReply:
+  fields:
+    reply_id: Reply ID.
+    conversation_id: Conversation the reply goes to.
+    reply_to: Where the reply should go, as platform-specific values.
+    content: Reply text.
+    status: '`"pending"`, `"sent"`, `"failed"`, or `"delivery_unknown"`.'
+    receipt: Opaque receipt from the adapter after sending.
+    created_at: When the reply was queued, in UTC epoch seconds.
+    updated_at: When the reply last changed, in UTC epoch seconds.
+
+ChannelHTTPInvoker:
+  params:
+    client: HTTP client used to call the agent.
+    headers_for_actor: Function returning authentication headers for an actor ID.
+
+ChannelHTTPInvoker.__call__:
+  params:
+    event: The admitted event.
+    actor_id: ID of the actor the agent call is made for.
+
+ChannelWorker:
+  params:
+    binding_id: ID of the binding this worker serves.
+    binding: The channel binding policy.
+    store: Task store that holds admitted work.
+    invoke: Function that calls the agent for an event.
+    send: Function that sends a reply.
+    allowed_senders: Sender IDs whose messages are accepted. Must not be empty.
+    allowed_kinds: Event kinds that are accepted.
+    timeout: Time limit for one agent call, in seconds.
+    not_before: Ignore events that happened before this UTC epoch time.
+
+ChannelWorker.accepts:
+  params:
+    event: The event to check against the binding policy.
+
+ChannelWorker.admit:
+  params:
+    event: The event to admit as durable work.
+
+ChannelWorker.run:
+  params:
+    stop: Set this event to stop the worker.
+
+create_channel_adapter:
+  params:
+    extension: Name of the channel extension.
+    config: Adapter configuration from the binding.
+
+discover_channel_bindings:
+  params:
+    directory: The project's `channels/` folder.
+
+register_channel_adapter:
+  params:
+    extension: Unique name of the channel extension.
+    factory: Function that builds the adapter from its configuration.

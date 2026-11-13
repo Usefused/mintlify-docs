@@ -1,0 +1,28 @@
+# Curated details for /harnest/reference/api/auth. See task.yaml for the format.
+
+Authenticator.authenticate:
+  params:
+    connection: The incoming HTTP or WebSocket connection to authenticate.
+
+AuthPrincipal:
+  fields:
+    claims: Verified claims about the caller, such as tenant or roles.
+    credentials: Credentials for downstream services, by name.
+
+ConnectionContext:
+  fields:
+    transport: Transport, such as `http` or `websocket`.
+    method: HTTP method, or `None` for WebSocket.
+    path: Request path.
+    headers: Request headers.
+    cookies: Request cookies.
+    query: Query string parameters.
+
+install_authentication:
+  params:
+    app: The FastAPI application.
+    authenticator: Authenticator for protected routes, or `None` to leave them unauthenticated.
+
+principal_for:
+  params:
+    connection: The current request or WebSocket connection.

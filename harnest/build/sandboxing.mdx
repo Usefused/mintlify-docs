@@ -117,10 +117,6 @@ Names must be Python-style ASCII identifiers, at most 47 characters: start with 
 
 The root `sandbox/` catalog is available to all agents in the same project, including folder-owned, flat-file, graph, and code-defined SubAgents. Each agent must still declare its own `sandboxes` list: a parent's assignment never grants access to a child. A folder-owned SubAgent can add names in its own `sandbox/`; those names are local to that scope and its descendants and cannot duplicate an ancestor's names.
 
-<Note>
-  `Agent(sandbox=...)` has been removed. Put each provider in `sandbox/<name>.py`, assign `sandboxes=["<name>"]` to every allowed agent, and call `context.sandboxes["<name>"]` from an authored tool. A single sandbox uses the same one-element array.
-</Note>
-
 ### Docker scopes and budgets
 
 The default Docker sandbox starts a fresh container for each execution with networking disabled and bounded CPU, memory, processes, output, and scratch space. Choose [reuse scope and networking](/harnest/build/extensions/official/docker) only when your workload needs them; see [execution budgets](/harnest/reference/api/extensions-docker#execution-budgets) for defaults and image requirements.
@@ -216,7 +212,7 @@ a Harnest network policy. Reusable Harnest Extensions implementing a sandbox
 provider declare the `sandbox.provider` extension capability.
 
 <Note>
-  Named sandbox capabilities require the neutral `SandboxBackend` contract on both frameworks. Wrap a native-only provider in that contract before assigning it by name. The removed `Agent(sandbox=...)` argument is not a migration path.
+  Named sandboxes implement `SandboxBackend` on both frameworks. Wrap framework-specific providers in this contract before assigning them to an agent.
 </Note>
 
 ### Provider metadata
@@ -228,7 +224,7 @@ Declaration metadata reaches `request.metadata`. Provider result metadata reache
 Wrap the provider to return measured details as `SandboxResult` metadata. Keep secrets in configuration and declare SDK dependencies in `pyproject.toml`. Never implement isolation with host-side `exec()`, `eval()`, or an unisolated subprocess.
 
 <Warning>
-  Your authored tool controls whether provider metadata becomes model-visible. Do not return credentials, secrets, or private identifiers. Legacy model execution adapters expose result metadata automatically. In the legacy ADK code-execution loop, nonempty metadata wraps stdout as JSON with `stdout` and `metadata` keys because that native result has no metadata field. Empty metadata leaves stdout unchanged; stderr keeps ADK's native error behavior.
+  Your authored tool controls whether provider metadata becomes model-visible. Do not return credentials, secrets, or private identifiers. ADK code-execution adapters expose result metadata automatically: nonempty metadata wraps stdout as JSON with `stdout` and `metadata` keys. Empty metadata leaves stdout unchanged; stderr follows ADK's error handling.
 </Warning>
 
 ## Handle failed execution

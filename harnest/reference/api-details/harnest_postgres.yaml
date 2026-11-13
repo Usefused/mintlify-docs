@@ -1,0 +1,20 @@
+# Curated details for /harnest/reference/api/harnest_postgres. See task.yaml for the format.
+
+PostgresStore:
+  params:
+    dsn: PostgreSQL connection string.
+    pool_options: Options for the primary `asyncpg` pool, such as `min_size` and `max_size`.
+    lease_pool_options: Options for a separate pool for long-lived session leases. Omit it to share one pool.
+    setup_schema: Create Harnest's schema. Use `False` for a pre-provisioned schema.
+
+PostgresTaskStore:
+  params:
+    dsn: PostgreSQL connection string.
+    pool_options: Options for the `asyncpg` pool, such as `min_size` and `max_size`.
+    setup_schema: Create Harnest's schema. Use `False` for a pre-provisioned schema.
+
+PostgresMemoryStore:
+  params:
+    dsn: PostgreSQL connection string.
+    pool_options: Options for the `asyncpg` pool.
+    setup_schema: Create the `harnest_memories` table. Use `False` for a pre-provisioned table.

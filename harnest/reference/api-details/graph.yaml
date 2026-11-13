@@ -1,5 +1,3 @@
-# Curated details for /harnest/reference/api/graph. See task.yaml for the format.
-
 Graph:
   fields:
     name: Graph name. A valid Python identifier other than `user`.
@@ -7,6 +5,7 @@ Graph:
     edges: Edges between node names, starting from `Edge(START, ...)`.
     description: Short description of the graph.
     output_schema: Pydantic model that validates the final output.
+    max_concurrency: Maximum nodes that run at the same time. `None` uses the framework's default.
   example: |
     from harnest.graph import START, Edge, Graph
 
@@ -15,7 +14,6 @@ Graph:
         nodes={"respond": "responder"},
         edges=(Edge(START, "respond"),),
     )
-
 Edge:
   fields:
     source: Node the edge starts from, or `START`.
@@ -25,7 +23,6 @@ Edge:
     from harnest.graph import Edge
 
     edge = Edge("classify", "refunds", route="refund")
-
 Event:
   fields:
     output: Value passed to the next node.
@@ -36,7 +33,6 @@ Event:
     from harnest.graph import Event
 
     event = Event(output="cleaned text", route="ready")
-
 GraphContext:
   fields:
     state: Read-only session state.
@@ -46,15 +42,14 @@ GraphContext:
     def greet(value: str, context: GraphContext):
         name = context.state.get("customer_name")
         ...
-
 Join:
   example: |
     from harnest.graph import Join
 
     nodes = {"web": search_web, "docs": search_docs, "merge": Join()}
-
 START:
   example: |
     from harnest.graph import START, Edge
 
     edge = Edge(START, "first_node")
+Graph.build: {}

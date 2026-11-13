@@ -1,0 +1,28 @@
+compile_agent:
+  params: &id001
+    source: Agent folder to compile.
+    entrypoint: Module and attribute of the root, such as `"agent:root_agent"`.
+    mode: '`"managed"` or `"advanced"`.'
+compile_app:
+  params: *id001
+compile_application:
+  params: *id001
+compile_artifact:
+  params:
+    source: Agent folder to compile.
+    output: Folder to write the compiled artifact to.
+    entrypoint: Module and attribute of the root, such as `"agent:root_agent"`.
+    mode: '`"managed"` or `"advanced"`.'
+    cli_enabled: Allow the compiled artifact to be invoked from the command line.
+    bundle_selection: Apply the agent's compile-only bundle declarations.
+bundle_agent:
+  params:
+    anchor: Pass `__file__` from the agent module. Sibling resources are discovered next to it.
+    root: The root agent definition.
+discover_evals:
+  params:
+    anchor: Agent folder, or `__file__` from the agent module.
+EvalSuite:
+  fields:
+    eval_sets: Eval set files, sorted.
+    config: Shared evals/test_config.json, if present.

@@ -77,32 +77,26 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `agent_name` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `transport` | `str \| None` | Required |
-| `status` | `str` | Required |
-| `input_text` | `str` | Required |
-| `output_text` | `str` | Required |
-| `tool_calls` | `tuple[ToolActivity, ...]` | `()` |
-| `error_type` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `transport` | `str \| None` | Required | Transport that served the invocation. |
+| `status` | `str` | Required | Final invocation status. |
+| `input_text` | `str` | Required | Invocation input text. |
+| `output_text` | `str` | Required | Invocation output text. |
+| `tool_calls` | `tuple[ToolActivity, ...]` | `()` | Tool calls made during the invocation. |
+| `error_type` | `str \| None` | `None` | Error category, if the invocation failed. |
+| `metadata` | `Mapping[str, Any]` | `...` | Public invocation metadata. |
 
 ```python
 from harnest.eval_capture import CaptureEvent
 
 event = CaptureEvent(
-    agent_name=...,
-    invocation_id=...,
-    session_id=...,
-    user_id=...,
-    transport=...,
-    status=...,
-    input_text=...,
-    output_text=...,
+    agent_name=..., invocation_id=..., session_id=..., user_id=..., transport=...,
+    status=..., input_text=..., output_text=...,
 )
 ```
 
@@ -185,33 +179,27 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `captured_at` | `str` | Required |
-| `agent_name` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `reasons` | `tuple[str, ...]` | Required |
-| `status` | `str` | Required |
-| `input_text` | `str` | Required |
-| `output_text` | `str` | Required |
-| `tool_calls` | `tuple[ToolActivity, ...]` | `()` |
-| `error_type` | `str \| None` | `None` |
-| `content` | `Literal['omitted', 'redacted']` | `'omitted'` |
-| `schema_version` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Record ID. |
+| `captured_at` | `str` | Required | When the record was captured. |
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `reasons` | `tuple[str, ...]` | Required | Why it was captured, such as `"rule"` or `"sample"`. |
+| `status` | `str` | Required | Final invocation status. |
+| `input_text` | `str` | Required | Input text. Empty when `content` is `"omitted"`. |
+| `output_text` | `str` | Required | Output text. Empty when `content` is `"omitted"`. |
+| `tool_calls` | `tuple[ToolActivity, ...]` | `()` | Tool calls made during the invocation. |
+| `error_type` | `str \| None` | `None` | Error category, if the invocation failed. |
+| `content` | `Literal['omitted', 'redacted']` | `'omitted'` | `"omitted"` keeps structure only; `"redacted"` means your redactor ran on the content. |
+| `schema_version` | `int` | `1` | Record format version. |
 
 ```python
 from harnest.eval_capture import CaptureRecord
 
 record = CaptureRecord(
-    id=...,
-    captured_at=...,
-    agent_name=...,
-    invocation_id=...,
-    reasons=...,
-    status=...,
-    input_text=...,
-    output_text=...,
+    id=..., captured_at=..., agent_name=..., invocation_id=..., reasons=..., status=...,
+    input_text=..., output_text=...,
 )
 ```
 
@@ -246,9 +234,9 @@ Read a record, omitting content without an explicit content policy.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Mapping[str, Any]` | Required | Mapping written by `to_json()`. |
 
 ```python
 from harnest.eval_capture import CaptureRecord
@@ -325,9 +313,9 @@ Persist one structure-only or team-redacted record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CaptureRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CaptureRecord` | Required | The capture record to store. |
 
 ```python
 from harnest.eval_capture import CaptureStore
@@ -348,10 +336,10 @@ Return records captured at or after `since`, newest first.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `since` | `datetime \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `since` | `datetime \| None` | `None` | Only return records captured at or after this time; `None` applies no time filter. Results are newest first. |
+| `limit` | `int` | `100` | Maximum number of records to return. |
 
 ```python
 from harnest.eval_capture import CaptureStore
@@ -376,10 +364,10 @@ LocalCaptureStore(directory: str | Path, *, retention_days: int = 30) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `directory` | `str \| Path` | Required |
-| `retention_days` | `int` | `30` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `directory` | `str \| Path` | Required | Folder for the JSON Lines files, one per UTC day. |
+| `retention_days` | `int` | `30` | Days of files to keep. |
 
 ```python
 from harnest.eval_capture import LocalCaptureStore
@@ -437,9 +425,9 @@ Append one record to today's file, serialized across tasks.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CaptureRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CaptureRecord` | Required | The capture record to store. |
 
 ```python
 from harnest.eval_capture import LocalCaptureStore
@@ -460,10 +448,10 @@ Read records newest first, stopping at `limit`.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `since` | `datetime \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `since` | `datetime \| None` | `None` | Only return records captured at or after this time; `None` applies no time filter. Results are newest first. |
+| `limit` | `int` | `100` | Maximum number of records to return. |
 
 ```python
 from harnest.eval_capture import LocalCaptureStore
@@ -493,12 +481,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `arguments` | `Any` | `None` |
-| `result` | `Any` | `None` |
-| `error` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Tool name. |
+| `arguments` | `Any` | `None` | Tool arguments. |
+| `result` | `Any` | `None` | Tool result, if one arrived. |
+| `error` | `bool` | `False` | Whether the call failed. |
 
 ```python
 from harnest.eval_capture import ToolActivity
@@ -537,9 +525,9 @@ Rebuild one tool activity written by `to_json`.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Mapping[str, Any]` | Required | Mapping written by `to_json()`. |
 
 ```python
 from harnest.eval_capture import ToolActivity
@@ -553,9 +541,8 @@ activity = ToolActivity.from_json(value=...)
 
 Omit all input, output and tool payloads, preserving only structure.
 
-This existing helper name remains importable, but no longer guesses which
-substrings contain personal data. Register `@lifecycle.evals.redact` to
-retain content under a team-owned policy instead.
+Register `@lifecycle.evals.redact` with a team-owned policy to retain
+selected content.
 
 ```python
 default_redactor(record: CaptureRecord) -> CaptureRecord
@@ -563,9 +550,9 @@ default_redactor(record: CaptureRecord) -> CaptureRecord
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CaptureRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CaptureRecord` | Required | The capture record to store. |
 
 ```python
 from harnest.eval_capture import default_redactor
@@ -577,7 +564,7 @@ record = default_redactor(record=...)
 
 ## redact_text
 
-Omit an entire string; retained for import compatibility, not PII detection.
+Return an empty string, omitting the entire input.
 
 ```python
 redact_text(value: str) -> str
@@ -585,9 +572,9 @@ redact_text(value: str) -> str
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `str` | Required | Text to omit. |
 
 ```python
 from harnest.eval_capture import redact_text

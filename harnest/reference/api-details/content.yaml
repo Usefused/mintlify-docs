@@ -1,0 +1,133 @@
+# Curated details for /harnest/reference/api/content. See task.yaml for the format.
+# Field names are the Python names; the parameter tables show their camelCase aliases.
+
+AssetRef:
+  fields: &asset_fields
+    asset_id: ID of the stored bytes in the asset store.
+    store: Name of the asset store that holds the bytes.
+    media_type: MIME type, such as `"image/png"`.
+    size_bytes: Size of the content in bytes.
+    type: Content part type. Set automatically.
+    label: Optional display label, up to 128 characters.
+
+Image:
+  fields:
+    asset_id: ID of stored bytes. Supply exactly one of `assetId` or `data`.
+    store: Name of the asset store that holds the bytes.
+    data: Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`.
+    media_type: MIME type, such as `"image/png"`.
+    size_bytes: Size of the content in bytes.
+    type: Content part type. Set automatically.
+    width: Width in pixels.
+    height: Height in pixels.
+    animated: Whether the image is animated.
+    frame_count: Number of frames in an animated image.
+
+Audio:
+  fields:
+    asset_id: ID of stored bytes. Supply exactly one of `assetId` or `data`.
+    store: Name of the asset store that holds the bytes.
+    data: Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`.
+    media_type: MIME type, such as `"audio/mpeg"`.
+    size_bytes: Size of the content in bytes.
+    type: Content part type. Set automatically.
+    duration_seconds: Length in seconds.
+    sample_rate_hz: Sample rate in hertz.
+    channels: Number of audio channels.
+
+Video:
+  fields:
+    asset_id: ID of stored bytes. Supply exactly one of `assetId` or `data`.
+    store: Name of the asset store that holds the bytes.
+    data: Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`.
+    media_type: MIME type, such as `"video/mp4"`.
+    size_bytes: Size of the content in bytes.
+    type: Content part type. Set automatically.
+    width: Width in pixels.
+    height: Height in pixels.
+    duration_seconds: Length in seconds.
+    frame_rate: Frames per second.
+    has_audio: Whether the video has an audio track.
+
+File:
+  fields:
+    asset_id: ID of stored bytes. Supply exactly one of `assetId` or `data`.
+    store: Name of the asset store that holds the bytes.
+    data: Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`.
+    media_type: MIME type, such as `"application/pdf"`.
+    size_bytes: Size of the content in bytes.
+    type: Content part type. Set automatically.
+    name: Display file name.
+    page_count: Number of pages, for documents.
+
+Text:
+  fields:
+    type: Content part type. Set automatically.
+    text: The text.
+
+Data:
+  fields:
+    type: Content part type. Set automatically.
+    value: The typed JSON value.
+
+ImageConstraints:
+  params:
+    media_types: Allowed MIME types. `None` allows any image type.
+    max_bytes: Maximum size in bytes.
+    min_width: Minimum width in pixels.
+    max_width: Maximum width in pixels.
+    min_height: Minimum height in pixels.
+    max_height: Maximum height in pixels.
+    max_pixels: Maximum width × height.
+    min_aspect_ratio: Minimum width ÷ height.
+    max_aspect_ratio: Maximum width ÷ height.
+    animated: Require (`True`) or reject (`False`) animated images. `None` allows both.
+    max_frames: Maximum number of frames.
+
+AudioConstraints:
+  params:
+    media_types: Allowed MIME types. `None` allows any audio type.
+    max_bytes: Maximum size in bytes.
+    min_duration_seconds: Minimum length in seconds.
+    max_duration_seconds: Maximum length in seconds.
+    min_sample_rate_hz: Minimum sample rate in hertz.
+    max_sample_rate_hz: Maximum sample rate in hertz.
+    min_channels: Minimum number of channels.
+    max_channels: Maximum number of channels.
+
+VideoConstraints:
+  params:
+    media_types: Allowed MIME types. `None` allows any video type.
+    max_bytes: Maximum size in bytes.
+    min_duration_seconds: Minimum length in seconds.
+    max_duration_seconds: Maximum length in seconds.
+    min_width: Minimum width in pixels.
+    max_width: Maximum width in pixels.
+    min_height: Minimum height in pixels.
+    max_height: Maximum height in pixels.
+    max_pixels: Maximum width × height.
+    min_frame_rate: Minimum frames per second.
+    max_frame_rate: Maximum frames per second.
+
+FileConstraints:
+  params:
+    media_types: Allowed MIME types. `None` allows any file type.
+    max_bytes: Maximum size in bytes.
+    max_pages: Maximum number of pages.
+
+DataConstraints:
+  params:
+    media_types: Allowed MIME types for the serialized value.
+    max_bytes: Maximum serialized size in bytes.
+
+constraint_schema_extension:
+  params:
+    constraint: The constraint object to render.
+
+content_constraints:
+  params:
+    annotation: The type annotation to inspect.
+
+content_schema_extension:
+  params:
+    annotation: The type annotation to inspect.

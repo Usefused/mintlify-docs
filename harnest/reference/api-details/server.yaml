@@ -1,0 +1,40 @@
+# Curated details for /harnest/reference/api/server. See task.yaml for the format.
+
+HTTPServerConfig:
+  fields:
+    host: Bind host.
+    port: Bind port.
+    allow_remote: Consent to bind a non-loopback host.
+    request_timeout_seconds: Request time limit, in seconds.
+    max_concurrent_requests: Maximum requests processed at once.
+
+PlaygroundConfig:
+  fields:
+    enabled: Allow the Playground UI under local `harnest serve`.
+
+ServerLimits:
+  fields:
+    max_request_bytes: Maximum HTTP body and WebSocket frame size, in bytes.
+
+ServerConfig:
+  fields:
+    http: HTTP listener settings.
+    limits: Request size limits.
+    playground: Playground settings.
+    live: Enable WebSocket `/live` connections.
+    agent_principal: '`"required"` makes custom invocations bind an Agent Runtime Principal.'
+    openapi: Expose API documentation and the OpenAPI spec.
+    agui: Expose `POST /agui` and advertise AG-UI.
+
+ServerConfig.with_overrides:
+  params:
+    host: Bind host override.
+    port: Bind port override.
+    request_timeout_seconds: Request time limit override, in seconds.
+    max_concurrent_requests: Concurrency override.
+    allow_remote: Non-loopback bind consent override.
+
+load_server_config:
+  params:
+    path: Path to `server.yaml`.
+    environment: Environment used to resolve references. Defaults to the process environment.

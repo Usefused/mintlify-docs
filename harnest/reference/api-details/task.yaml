@@ -1,14 +1,7 @@
-# Curated details for /harnest/reference/api/task.
-# Keys are rendered headings (Symbol or Symbol.member). Each entry may set:
-#   params:  parameter descriptions shown in the collapsed table
-#   fields:  field descriptions, reused for constructor parameters
-#   example: a replacement example; keep it to the import plus one use
-# scripts/generate-harnest-reference.py validates every key, parameter, field,
-# and example import against the real API.
-
 task:
   params:
-    function: The decorated function. Filled in by bare `@task`; omit it when passing options. Needs a docstring and JSON-safe arguments.
+    function: The decorated function. Filled in by bare `@task`; omit it when passing options. Needs a docstring
+      and JSON-safe arguments.
     queue: Queue name, 1–64 characters, starting with a letter. Set it here, not on `.defer()`.
     max_retries: Retries after a failed run, from 0 to 100.
   example: |
@@ -18,7 +11,6 @@ task:
     async def build_report(account_id: str) -> dict:
         """Build one account report."""
         return {"account_id": account_id}
-
 TaskCallable.__call__:
   params:
     args: Positional arguments for the task function.
@@ -26,7 +18,6 @@ TaskCallable.__call__:
   example: |
     # build_report is your @task function
     report = await build_report(account_id="acct_123")  # runs inline, no queue
-
 TaskCallable.defer:
   params:
     args: Positional arguments for the task function.
@@ -36,7 +27,6 @@ TaskCallable.defer:
   example: |
     # build_report is your @task function
     handle = await build_report.defer(account_id="acct_123")
-
 TaskHandle:
   fields:
     id: Opaque queue job ID.
@@ -45,3 +35,57 @@ TaskHandle:
     from harnest.task import TaskHandle
 
     handle: TaskHandle = await build_report.defer(account_id="acct_123")
+TaskStore.claim_tasks:
+  params:
+    queues: Queue names to claim work from.
+    limit: Maximum number of jobs to claim in this batch.
+TaskStore.finish_task:
+  params:
+    status: '`"completed"`, `"failed"`, or `"pending"` (retry later). `"pending"` requires `retry_at`.'
+    result: JSON-safe result of a completed job.
+    failure_code: Short failure category for a failed job.
+    retry_at: When a `"pending"` job may run again, in UTC epoch seconds.
+TaskStore.enqueue_task:
+  params:
+    record: The job to persist. An identical submission returns the existing job.
+CompiledTask:
+  params:
+    name: Compiler-assigned task name.
+    source: Source file of the task.
+    definition: The task's queue and retry settings.
+    authored: The decorated task function.
+TaskCallable:
+  params:
+    definition: The task's queue and retry settings.
+TaskRecord:
+  fields:
+    task_name: Registered task name.
+    queue: Queue the job runs on.
+    arguments: JSON-safe task arguments. Cleared when the job finishes.
+    invocation: Invocation identity to restore when the job runs. Cleared when the job finishes.
+    agent_permissions: Agent Runtime Principal permissions to restore, if any.
+    trigger: What queued the job, such as `"agent"`, `"user"`, or `"cron"`.
+    status: '`"pending"`, `"running"`, `"completed"`, `"failed"`, or `"cancelled"`.'
+    scheduled_at: Earliest run time, in UTC epoch seconds.
+    max_retries: Retry limit.
+    attempt: Number of claims so far, starting at one.
+    lease_expires_at: When the current lease expires, in UTC epoch seconds.
+    result: Result of a completed job.
+    failure_code: Failure category of a failed job.
+    idempotency_key: Key that deduplicates submissions.
+    created_at: When the job was queued, in UTC epoch seconds.
+    updated_at: When the job last changed, in UTC epoch seconds.
+    cron_schedule_id: ID of the schedule that queued it, for cron occurrences.
+TaskDefinition:
+  fields:
+    function: The decorated function.
+    queue: Queue name from `@task(queue=...)`.
+    max_retries: Retry limit from `@task(max_retries=...)`.
+safe_task_result:
+  params:
+    value: A task result to normalize to strict JSON.
+PostgresTaskStore:
+  params:
+    dsn: PostgreSQL connection string.
+    pool_options: Options for the `asyncpg` pool, such as `min_size` and `max_size`.
+    setup_schema: Create Harnest's schema. Use `False` for a pre-provisioned schema.

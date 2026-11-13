@@ -11,7 +11,7 @@ A migration advances one consecutive schema version and returns proposed changes
 
 ## Rename a company property
 
-The [first pack release](/harnest/build/project-packs/create) writes an `owner` property. Replace its definition with this second release to use `team` instead:
+The [first pack release](/harnest/build/project-packs/create) writes an `owner` property. Replace its `pack.py` with this second release to use `team` instead, and increase `version` in `pack.yaml` when publishing the new pack release:
 
 ```python pack.py
 from enum import Enum
@@ -31,7 +31,6 @@ class Settings(BaseModel):
     environment: Environment
 
 pack = ProjectPack(
-    name="acme",
     schema_version=2,
     options=Options,
     config_file="acme-agent.yaml",
@@ -63,17 +62,19 @@ def migrate_ownership(context: ProjectContext) -> ChangePlan:
 The rename preserves the user's current value and unrelated properties. An occupied `team` destination blocks the migration rather than overwriting it. If `owner` is absent, the rename makes no change; the final `Settings` validation still requires a valid `team`.
 
 ```sh
-acme-agent upgrade support-bot
-acme-agent upgrade support-bot --apply
+harnest upgrade support-bot --pack ./acme-pack
+harnest upgrade support-bot --pack ./acme-pack --apply
 ```
 
-After a successful apply, the lock records version `2`. A subsequent upgrade does not rerun this migration.
+With the [branded command](/harnest/build/project-packs/cli#build-the-branded-command) installed, `acme-agent upgrade support-bot --apply` uses the same pack.
+
+After a successful apply, the lock records pack schema version `2`. A subsequent upgrade does not rerun this migration.
 
 ## Keep the migration chain complete
 
 For an installed pack at schema `3`, a project at schema `1` needs both `1 → 2` and `2 → 3`. Each callback sees the earlier step's staged results. Configuration validation runs after all required steps for that pack, so intermediate schemas can differ from the final model.
 
-A missing step, a project version newer than the installed pack, or a pack recorded in the lock but absent from the CLI blocks upgrade. Retain older migrations while you support projects created by those releases.
+A missing step, a project version newer than the installed pack, or a project pack recorded in the lock but omitted from the selected packs blocks upgrade. Retain older migrations while you support projects created by those releases.
 
 Upgrades do not automatically adopt new packs. An existing project without that pack's version requires a separately designed adoption workflow; there is no built-in adoption decorator or command.
 

@@ -35,11 +35,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `root` | `str` | Required |
-| `include` | `Sequence[str]` | `...` |
-| `exclude` | `Sequence[str]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `root` | `str` | Required | Folder containing agent directories. |
+| `include` | `Sequence[str]` | `...` | Glob patterns of agent directories to include. |
+| `exclude` | `Sequence[str]` | `...` | Glob patterns of agent directories to exclude. |
 
 ```python
 from harnest.orchestrator import AgentSource
@@ -59,11 +59,11 @@ Create a directory source with optional include and exclude globs.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `root` | `str` | Required |
-| `include` | `Sequence[str]` | `('*',)` |
-| `exclude` | `Sequence[str]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `root` | `str` | Required | Folder containing agent directories. |
+| `include` | `Sequence[str]` | `('*',)` | Glob patterns of agent directories to include. |
+| `exclude` | `Sequence[str]` | `()` | Glob patterns of agent directories to exclude. |
 
 ```python
 from harnest.orchestrator import AgentSource
@@ -97,12 +97,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `sources` | `Sequence[AgentSource \| str]` | Required |
-| `parallelism` | `int` | `4` |
-| `fail_fast` | `bool` | `False` |
-| `labels` | `Mapping[str, str]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `sources` | `Sequence[AgentSource \| str]` | Required | Agent sources. A string is a single agent directory. |
+| `parallelism` | `int` | `4` | Maximum agents to deploy at once, recorded in the plan. |
+| `fail_fast` | `bool` | `False` | Stop at the first failure, recorded in the plan. |
+| `labels` | `Mapping[str, str]` | `...` | Labels recorded in the plan. |
 
 ```python
 from harnest.orchestrator import Orchestrator
@@ -122,9 +122,9 @@ Build the JSON-compatible deployment plan for a project root.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `project_root` | `str \| Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `project_root` | `str \| Path` | Required | Project root that the sources are relative to. |
 
 ```python
 from harnest.orchestrator import Orchestrator
@@ -145,9 +145,9 @@ Serialize the deployment plan as stable, human-readable JSON.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `project_root` | `str \| Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `project_root` | `str \| Path` | Required | Project root that the sources are relative to. |
 
 ```python
 from harnest.orchestrator import Orchestrator
@@ -174,12 +174,12 @@ define_orchestrator(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `agents` | `Sequence[AgentSource \| str]` | Required |
-| `parallelism` | `int` | `4` |
-| `fail_fast` | `bool` | `False` |
-| `labels` | `Mapping[str, str] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `agents` | `Sequence[AgentSource \| str]` | Required | Agent sources. A string is a single agent directory. |
+| `parallelism` | `int` | `4` | Maximum agents to deploy at once, recorded in the plan. |
+| `fail_fast` | `bool` | `False` | Stop at the first failure, recorded in the plan. |
+| `labels` | `Mapping[str, str] \| None` | `None` | Labels recorded in the plan. |
 
 ```python
 from harnest.orchestrator import define_orchestrator

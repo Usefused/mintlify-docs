@@ -1,0 +1,27 @@
+# Curated details for /harnest/reference/api/store. See task.yaml for the format.
+
+PostgresStore:
+  params: &pg_combined
+    dsn: PostgreSQL connection string.
+    pool_options: Options for the primary `asyncpg` pool, such as `min_size` and `max_size`.
+    lease_pool_options: Options for a separate pool for long-lived session leases. Omit it to share one pool.
+    setup_schema: Create Harnest's schema. Use `False` for a pre-provisioned schema.
+
+RedisStore:
+  params: &redis_combined
+    url: Redis connection URL.
+    prefix: Prefix for every Redis key the store writes.
+    session_ttl_seconds: Expire sessions after this many seconds. `None` keeps them.
+    checkpoint_ttl_seconds: Expire checkpoint runs after this many seconds.
+    lease_wait_seconds: How long to wait for a session lease before giving up, in seconds.
+    client_options: Extra options for the Redis client.
+
+StorageRegistry:
+  params:
+    sessions: Session storage.
+    checkpoints: Checkpoint storage.
+    assets: Asset stores by name.
+    custom: Custom stores by name.
+    tasks: Task storage.
+    cron: Cron storage.
+    memory: Long-term memory storage.

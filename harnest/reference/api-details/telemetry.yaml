@@ -1,0 +1,48 @@
+# Curated details for /harnest/reference/api/telemetry. See task.yaml for the format.
+
+TelemetryExporter:
+  fields:
+    name: Name of the destination.
+    traces: OpenTelemetry span exporter, if any.
+    logs: OpenTelemetry log exporter, if any.
+
+TelemetryState:
+  fields:
+    service_name: Service name reported with telemetry.
+    enabled: Whether telemetry is configured.
+    tracer_provider: The tracer provider in use.
+    logger_provider: The logger provider in use.
+    owns_tracer_provider: Whether Harnest created the tracer provider.
+    owns_logger_provider: Whether Harnest created the logger provider.
+    span_processors: Span processors Harnest added.
+    log_processors: Log processors Harnest added.
+    shutdown_called: Whether shutdown has run.
+
+TelemetryState.force_flush:
+  params:
+    timeout_millis: Time limit for the flush, in milliseconds.
+
+configure_observability:
+  params:
+    service_name: Service name reported with telemetry.
+    service_version: Service version reported with telemetry.
+    span_exporter: Single span exporter to use.
+    log_exporter: Single log exporter to use.
+    exporters: Named telemetry destinations.
+    exporter_factories: Functions that build exporters at startup.
+    use_global_providers: Add Harnest's processors to existing global OpenTelemetry providers when they support it.
+    set_global_providers: Reuse capable global providers, or register Harnest's new providers as the global ones.
+
+get_tracer:
+  params:
+    name: Instrumentation name.
+    version: Instrumentation version.
+
+instrument_fastapi:
+  params:
+    app: The FastAPI application.
+    state: Telemetry state from `configure_observability`.
+
+resolve_telemetry_exporters:
+  params:
+    factories: Discovered exporter factory functions.

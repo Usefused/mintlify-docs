@@ -230,6 +230,13 @@ def public_parameters(value: object) -> list[inspect.Parameter]:
     return [p for p in sig.parameters.values() if p.name not in {'self', 'cls'} and not p.name.startswith('_')]
 
 
+def plain_type(annotation: object) -> object:
+    """Drop Annotated validation metadata, which is noise in a parameter table."""
+    while typing.get_origin(annotation) is typing.Annotated:
+        annotation = typing.get_args(annotation)[0]
+    return annotation
+
+
 def parameter_table(value: object, docs: dict[str, str]) -> list[str]:
     """Show what each parameter takes, whether it is required, and what it does."""
     params = public_parameters(value)
@@ -242,7 +249,7 @@ def parameter_table(value: object, docs: dict[str, str]) -> list[str]:
         prefix = {param.VAR_POSITIONAL: '*', param.VAR_KEYWORD: '**'}.get(param.kind, '')
         # Keyword-only is visible from `*` in the signature; positional-only is rare enough to label.
         kind = ' (positional-only)' if param.kind == param.POSITIONAL_ONLY else ''
-        annotation = code_cell(display(param.annotation)) if param.annotation is not param.empty else '—'
+        annotation = code_cell(display(plain_type(param.annotation))) if param.annotation is not param.empty else '—'
         if variadic:
             default = 'Optional'
         elif param.default is param.empty:
@@ -287,7 +294,7 @@ def var_name(class_name: str) -> str:
 
 
 def wrap(code: str, width: int = 88) -> str:
-    """Split a long single call onto one argument per line; examples stay readable."""
+    """Wrap long calls while keeping short arguments together."""
     lines = []
     for line in code.splitlines():
         match = re.match(r'^(\s*)(.*?\()(.*)(\)[^()]*)$', line)
@@ -296,7 +303,16 @@ def wrap(code: str, width: int = 88) -> str:
             continue
         indent, opening, inner, closing = match.groups()
         parts = [part.strip() for part in re.split(r',\s*(?![^\[\]{}()]*[\]})])', inner) if part.strip()]
-        lines += [indent + opening, *[f'{indent}    {part},' for part in parts], indent + closing]
+        # Pack arguments onto as few lines as fit, so long signatures stay compact.
+        lines.append(indent + opening)
+        current = ''
+        for part in parts:
+            candidate = (current + ' ' if current else '') + part + ','
+            if current and len(indent) + 4 + len(candidate) > width:
+                lines.append(f'{indent}    {current}')
+                candidate = part + ','
+            current = candidate
+        lines += [f'{indent}    {current}', indent + closing]
     return '\n'.join(lines)
 
 
@@ -354,8 +370,10 @@ def is_decorator(value: object) -> bool:
     annotation = return_annotation(value)
     text = display(annotation) if annotation is not inspect.Signature.empty else ''
     first = next(iter(public_parameters(value)), None)
-    takes_function = first is not None and first.default is None and first.name in {'function', 'func', 'fn'}
-    return 'Callable[' in text or takes_function
+    takes_function = first is not None and first.name in {'function', 'func', 'fn'}
+    # Callable[[F], F] is a decorator factory; Callable[..., Any] alone is just a wrapper.
+    returns_function = 'Callable' in text or isinstance(annotation, typing.TypeVar)
+    return 'Callable[[' in text or (takes_function and returns_function)
 
 
 # Modules whose guides import the module and use attribute access: `@lifecycle.resource`.
@@ -395,7 +413,7 @@ def use_lines(value: object, target: str) -> list[str]:
     if is_decorator(value):
         params = public_parameters(value)
         first = params[0] if params else None
-        function_first = first is not None and (first.name in {'function', 'func', 'fn'} or 'Callable' in display(first.annotation))
+        function_first = first is not None and first.name in {'function', 'func', 'fn'}
         # Bare `@decorator` when the decorated function is the only required argument.
         required = [p for p in params[1:] if p.default is p.empty and p.kind not in {p.VAR_POSITIONAL, p.VAR_KEYWORD}]
         if function_first and not required:
@@ -419,6 +437,17 @@ def protocol_like(value: type) -> bool:
     return bool(getattr(value, '_is_protocol', False)) or inspect.isabstract(value)
 
 
+def class_factory(value: type) -> tuple[str, object] | None:
+    """First public classmethod or staticmethod that returns an instance of the class."""
+    for name, member in vars(value).items():
+        if name.startswith('_') or not isinstance(member, (classmethod, staticmethod)):
+            continue
+        returned = return_annotation(member.__func__)
+        if returned is value or (isinstance(returned, str) and returned.strip("'\"") == value.__name__):
+            return name, member.__func__
+    return None
+
+
 def class_example(value: type, module: str, name: str, constructible: bool) -> list[str]:
     """Import a class and show the one way a caller normally meets it."""
     lines = [f'from {module} import {name}', '']
@@ -430,7 +459,10 @@ def class_example(value: type, module: str, name: str, constructible: bool) -> l
     if protocol_like(value):
         return lines + [f'class My{name}({name}):', '    ...']
     if not constructible:
-        return lines + [f'{var_name(name)}: {name}  # returned by Harnest, not constructed directly']
+        factory = class_factory(value)
+        if factory is not None:
+            return lines + [f'{var_name(name)} = {name}.{factory[0]}({call_args(factory[1])})']
+        return lines + [f'{var_name(name)}: {name}  # obtained from a Harnest API, not constructed directly']
     return lines + [f'{var_name(name)} = {name}({call_args(value)})']
 
 
@@ -488,16 +520,136 @@ def member_example(member: object, qualified: str, module: str, receiver: Receiv
     return '\n'.join(lines + use_lines(member, call_target))
 
 
+WILDCARDS_USED: set[str] = set()
+
+
 # Curated details for the page being generated, and the names actually rendered.
 PAGE_DETAILS: dict[str, dict] = {}
 RENDERED: dict[str, object] = {}
 
 
-def details_for(qualified: str, value: object, field_docs: dict[str, str] | None = None) -> tuple[dict[str, str], str]:
+# Descriptions shared across modules: api-details/_shared.yaml. Keys used during
+# generation are recorded so unused (stale) entries fail the build.
+SHARED: dict[str, dict] = {'params': {}, 'methods': {}}
+SHARED_USED: set[tuple[str, str]] = set()
+
+
+def type_key(annotation: object) -> str:
+    """Stable short type name for shared lookups: 'harnest.memory.MemoryScope' -> 'MemoryScope'."""
+    text = display(plain_type(annotation)).strip('\'"')
+    return re.sub(r'\b(?:[A-Za-z_]\w*\.)+([A-Za-z_]\w*)', r'\1', text)
+
+
+def shared_docs(value: object, qualified: str) -> dict[str, str]:
+    """Lowest-precedence descriptions: by parameter name, name@type, then method family."""
+    docs: dict[str, str] = {}
+    method = qualified.rsplit('.', 1)[-1]
+    family = SHARED['methods'].get(method) or {}
+    for param in public_parameters(value):
+        for kind, key, table in (('params', param.name, SHARED['params']),
+                                 ('params', param.name + '@' + type_key(param.annotation), SHARED['params'])):
+            if key in table:
+                docs[param.name] = table[key]
+                SHARED_USED.add((kind, key))
+        if param.name in family:
+            docs[param.name] = family[param.name]
+            SHARED_USED.add(('methods', method + '.' + param.name))
+    return docs
+
+
+# Every module's curated details, and the exported interfaces (protocols and
+# abstract classes), so implementations reuse their interface's descriptions.
+ALL_DETAILS: dict[str, dict] = {}
+INTERFACES: list[tuple[type, str]] = []
+
+
+def interface_methods(cls: type) -> set[str]:
+    return {k for k, v in members(cls).items() if inspect.isfunction(v) and not k.startswith('_')}
+
+
+def inherited_docs(owner: type | None, method: str) -> dict[str, str]:
+    """Descriptions from interfaces that `owner` subclasses or structurally implements."""
+    if owner is None:
+        return {}
+    docs: dict[str, str] = {}
+    available = set(dir(owner))
+    for interface, module in INTERFACES:
+        if interface is owner:
+            continue
+        methods = interface_methods(interface)
+        if method in methods and (issubclass(owner, interface) if not getattr(interface, '_is_protocol', False) else methods <= available):
+            function = members(interface)[method]
+            # The interface's own shared matches carry over even if the implementation's type is looser.
+            docs.update(shared_docs(function, f'{interface.__name__}.{method}'))
+            docs.update(doc_items(parse_doc(function)[1].get('Args', '')))
+            docs.update((ALL_DETAILS.get(module, {}).get(f'{interface.__name__}.{method}') or {}).get('params') or {})
+    return docs
+
+
+def read_yaml(path: Path) -> dict:
+    """Parse a details file, rejecting duplicate keys that YAML would silently overwrite."""
+    import yaml
+
+    class StrictLoader(yaml.SafeLoader):
+        pass
+
+    def mapping(loader: yaml.SafeLoader, node: yaml.MappingNode) -> dict:
+        keys = [loader.construct_object(key) for key, _ in node.value]
+        duplicates = sorted({key for key in keys if keys.count(key) > 1 and key != '<<'})
+        if duplicates:
+            raise ValueError(f'{path.name}: duplicate keys {duplicates}')
+        return loader.construct_mapping(node)
+
+    StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
+    return yaml.load(path.read_text(), Loader=StrictLoader) or {}
+
+
+def load_all_details(exports: dict[str, list[str]]) -> None:
+    """Load every module's details and collect exported interfaces before rendering."""
+    for module, names in exports.items():
+        path = DETAILS / (slug(module) + '.yaml')
+        ALL_DETAILS[module] = read_yaml(path) if path.exists() else {}
+        loaded = importlib.import_module(module)
+        for name in names:
+            value = getattr(loaded, name)
+            if inspect.isclass(value) and protocol_like(value) and not issubclass(value, BaseException):
+                INTERFACES.append((value, module))
+
+
+def load_shared() -> None:
+    """Load shared descriptions, rejecting unknown sections."""
+    path = DETAILS / '_shared.yaml'
+    if path.exists():
+        data = read_yaml(path)
+        unknown = set(data) - {'params', 'methods'}
+        if unknown:
+            raise ValueError(f'_shared.yaml has unknown sections {sorted(unknown)}')
+        SHARED['params'] = data.get('params') or {}
+        SHARED['methods'] = data.get('methods') or {}
+
+
+def validate_shared() -> None:
+    """Every shared entry must describe at least one rendered parameter."""
+    declared = {('params', key) for key in SHARED['params']}
+    declared |= {('methods', f'{method}.{param}') for method, params in SHARED['methods'].items() for param in params}
+    unused = sorted(f'{kind}: {key}' for kind, key in declared - SHARED_USED)
+    if unused:
+        raise ValueError('_shared.yaml entries match no rendered parameter: ' + ', '.join(unused))
+
+
+def details_for(qualified: str, value: object, field_docs: dict[str, str] | None = None, owner: type | None = None) -> tuple[dict[str, str], str]:
     """Merge parameter descriptions (curated wins) and pick a curated example."""
     _, sections = parse_doc(value)
     curated = PAGE_DETAILS.get(qualified) or {}
-    params = {**(field_docs or {}), **doc_items(sections.get('Args', '')), **(curated.get('params') or {})}
+    # Module-level wildcard `*.method` covers every rendered `<anything>.method` on the page.
+    wildcard_key = '*.' + qualified.rsplit('.', 1)[-1]
+    wildcard = PAGE_DETAILS.get(wildcard_key) or {}
+    if wildcard and '.' in qualified:
+        WILDCARDS_USED.add(wildcard_key)
+        curated = {**wildcard, **curated, 'params': {**(wildcard.get('params') or {}), **(curated.get('params') or {})}}
+    shared = shared_docs(value, qualified) if callable(value) else {}
+    inherited = inherited_docs(owner, qualified.rsplit('.', 1)[-1])
+    params = {**shared, **inherited, **(field_docs or {}), **doc_items(sections.get('Args', '')), **(curated.get('params') or {})}
     example = curated.get('example') or (doc_example(sections['Example']) if 'Example' in sections else '')
     RENDERED[qualified] = value
     return params, example.rstrip()
@@ -526,6 +678,9 @@ def class_field_docs(value: type, qualified: str) -> dict[str, str]:
         if getattr(model_field, 'description', None):
             docs.setdefault(name, model_field.description)
     docs.update((PAGE_DETAILS.get(qualified) or {}).get('fields') or {})
+    for name, model_field in getattr(value, 'model_fields', {}).items():
+        if model_field.alias and name in docs:
+            docs.setdefault(model_field.alias, docs[name])
     return docs
 
 
@@ -535,9 +690,22 @@ def load_details(module: str) -> None:
 
     PAGE_DETAILS.clear()
     RENDERED.clear()
+    WILDCARDS_USED.clear()
     path = DETAILS / (slug(module) + '.yaml')
     if path.exists():
-        PAGE_DETAILS.update(yaml.safe_load(path.read_text()) or {})
+        PAGE_DETAILS.update(read_yaml(path))
+
+
+def validate_wildcard(module: str, qualified: str, entry: dict) -> None:
+    """Reject wildcard details that silently miss every matching signature."""
+    if set(entry) - {'params'}:
+        raise ValueError(f'{module}: wildcard {qualified!r} can only set params')
+    suffix = qualified[1:]
+    names = {p.name for key, value in RENDERED.items() if key.endswith(suffix)
+             for p in public_parameters(value)}
+    unknown = set(entry.get('params') or {}) - names
+    if unknown:
+        raise ValueError(f'{module}: wildcard {qualified!r} documents unknown parameters {sorted(unknown)}')
 
 
 def validate_details(module: str) -> None:
@@ -547,6 +715,11 @@ def validate_details(module: str) -> None:
         unknown = set(entry) - {'params', 'example', 'fields'}
         if unknown:
             raise ValueError(f'{module}: {qualified} has unknown detail keys {sorted(unknown)}')
+        if qualified.startswith('*.'):
+            if qualified not in WILDCARDS_USED:
+                raise ValueError(f'{module}: wildcard {qualified!r} matches no rendered member')
+            validate_wildcard(module, qualified, entry)
+            continue
         if qualified not in RENDERED:
             raise ValueError(f'{module}: details name {qualified!r} is not a rendered public symbol')
         value = RENDERED[qualified]
@@ -640,7 +813,7 @@ def member_blocks(value: object, name: str, module: str, receiver: Receiver, dep
             continue
         if inspect.isfunction(member):
             output += ['### ' + qualified, '', '```python', signature(member, qualified) or qualified, '```', '', description(member), '']
-            params, example = details_for(qualified, member)
+            params, example = details_for(qualified, member, owner=value if inspect.isclass(value) else None)
             example = example or member_example(member, qualified, module, receiver, static=static, prop=False)
             output += expandable(member, qualified, example, params)
             continue
@@ -652,6 +825,10 @@ def member_blocks(value: object, name: str, module: str, receiver: Receiver, dep
                 output += ['```python', signature(member, qualified) or qualified, '```', '']
                 example = example or member_example(member, qualified + '.__call__', module, receiver, static=False, prop=False)
                 output += expandable(member, qualified, example, params)
+            elif receiver.instance or receiver.target:
+                # Attribute objects on a class: show how to reach them.
+                example = example or member_example(member, qualified, module, receiver, static=False, prop=True)
+                output += expandable(None, qualified, example, {})
             output += member_blocks(member, qualified, module, receiver, depth + 1)
     return output
 
@@ -760,6 +937,10 @@ def module_page(module: str, names: list[str]) -> str:
         # suggesting that execute is a method on the registry itself.
         access = 'context.sandboxes["name"]' if name == 'SandboxHandle' else name
         lines += ['## ' + name, '', 'Access this facade through `' + access + '`; its implementation type is not a public import.', '', description(value), '']
+        facade = FACADES.get(name)
+        if facade is not None:
+            setup = [*facade.preamble] + ([''] if len(facade.preamble) == 1 else [])
+            lines += expandable(None, name, '\n'.join(setup + [var_name(class_name) + ' = ' + facade.target]), {})
         lines += member_blocks(value, name, module, FACADES.get(name, Receiver(None, None)))
     validate_details(module)
     return '\n'.join(lines).rstrip() + '\n'
@@ -781,7 +962,10 @@ def main() -> None:
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
     exports = load_exports(args.source.resolve())
+    load_shared()
+    load_all_details(exports)
     pages = {slug(module) + '.mdx': module_page(module, names) for module, names in sorted(exports.items())}
+    validate_shared()
     pages['overview.mdx'] = overview(exports)
     stale = []
     for name, content in pages.items():

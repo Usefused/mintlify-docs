@@ -22,3 +22,7 @@
 | Lifetime | Cleared on consumption or cancellation; expired, cancelled, and consumed requests reject subsequent submissions |
 | Timeout | `timeout_seconds`, default `300` |
 | Durable tools | Rejected; private input cannot use a persisted tool continuation |
+
+## Framework construction
+
+Harnest compiles managed `Agent` definitions for the configured framework. Advanced integrations can call `Agent.build()` or `AgentDefinition.build()` during compilation or an active invocation.

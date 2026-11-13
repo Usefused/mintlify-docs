@@ -5,15 +5,17 @@ sidebarTitle: "Plans and recovery"
 description: "Use the planning API, track company schema versions, and handle conflicts or interrupted applies."
 ---
 
-Use the planner to review core and company changes together before modifying a project, or integrate it into your own CLI or automation.
+Use the planner to review core and company changes together before modifying a project, or integrate it into your own interface or automation. `harnest init` and `harnest upgrade` with `--pack` use the same planner.
 
 ## Plan through Python
 
 ```python
-from harnest.authoring import ProjectPlanner, apply_project_plan
-from acme_agent_pack.pack import pack
+from harnest.authoring import ProjectPlanner, apply_project_plan, load_pack
 
-planner = ProjectPlanner(packs=[pack])
+loaded = load_pack("./acme-pack")
+if loaded.project is None:
+    raise ValueError("This pack has no project hooks")
+planner = ProjectPlanner(packs=[loaded.project])
 plan = planner.plan_upgrade("support-bot")
 print(plan.render())
 
@@ -59,7 +61,7 @@ The JSON summary is for display, not an executable plan format. Keep the origina
   </Step>
 </Steps>
 
-Only explicitly installed pack objects execute. Project lock files cannot import packages. Callbacks are trusted Python, not a sandbox: keep them deterministic and free of external side effects, including during previews.
+The planner runs explicitly selected packs. Callbacks execute during previews; return changes through `ChangePlan` and avoid external side effects.
 
 ## Track versions and ownership
 
@@ -68,15 +70,17 @@ Commit both lock files:
 | File | Tracks |
 |---|---|
 | `harnest.lock` | Harnest project schema and framework metadata. |
-| `harnest-packs.lock` | Company pack schema versions and ownership hashes for generated files or fields. |
+| `harnest-packs.lock` | Pack schema versions, ownership hashes, and Studio resource installation receipts in lock version 2. |
 
-Ownership hashes allow managed updates to distinguish unchanged generated content from user edits. Option values are not recorded in the pack lock. Do not advance version numbers manually to skip migrations; doing so tells future upgrades that those changes already happened.
+`harnest-packs.lock` records project schema versions in `packs`, file and field ownership in `claims`, and Studio installation receipts in `resources`.
+
+Ownership hashes detect local edits to managed content. Harnest advances recorded schema versions after applying migrations; option values are excluded from the lock.
 
 ## Resolve blockers
 
 | Blocker | Next step |
 |---|---|
-| Generated content has local edits | Review and reconcile the edit with the pack's intended change. The current API has no force-overwrite switch. |
+| Generated content has local edits | Merge the local edit with the pack's proposed change, then replan. |
 | Two packs own overlapping fields or files | Narrow or redesign their ownership boundaries, then replan. |
 | Core migration touches pack-owned content | Review the core and company changes together and resolve ownership explicitly. |
 | Missing installed pack | Supply the installed pack recorded by the project. |
@@ -103,4 +107,4 @@ A process crash or disk failure can require manual recovery:
 
 The apply lock coordinates project-pack operations; it does not stop unrelated editors from writing. Keep the project free of concurrent edits while applying.
 
-YAML operations preserve values but not comments or formatting. File/directory conversions require manual migration. Company model validation does not replace the usual Harnest compile and test checks for the complete agent.
+YAML operations preserve values but not comments or formatting. File/directory conversions require manual migration. Run `harnest test` after applying changes.

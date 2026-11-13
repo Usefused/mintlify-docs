@@ -29,10 +29,10 @@ Tracer(name: str, version: str | None = None) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Instrumentation name. |
+| `version` | `str \| None` | `None` | Instrumentation version. |
 
 ```python
 from harnest.tracing import Tracer
@@ -52,10 +52,10 @@ Start and activate a span using the current telemetry provider.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `**kwargs` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Span name. |
+| `**kwargs` | `Any` | Optional | OpenTelemetry span options, such as `attributes`. |
 
 ```python
 from harnest.tracing import Tracer
@@ -76,10 +76,10 @@ Start a span without making it current in this execution context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `**kwargs` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Span name. |
+| `**kwargs` | `Any` | Optional | OpenTelemetry span options, such as `attributes`. |
 
 ```python
 from harnest.tracing import Tracer
@@ -118,10 +118,10 @@ get_tracer(name: str = 'agent', version: str | None = None) -> Tracer
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | `'agent'` |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | `'agent'` | Instrumentation name. |
+| `version` | `str \| None` | `None` | Instrumentation version. |
 
 ```python
 from harnest.tracing import get_tracer
@@ -147,17 +147,17 @@ span(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `attributes` | `Mapping[str, Any] \| None` | `None` |
-| `kind` | `Any \| None` | `None` |
-| `**attribute_values` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Span name, such as `"catalog.rank"`. |
+| `attributes` | `Mapping[str, Any] \| None` | `None` | Span attributes. |
+| `kind` | `Any \| None` | `None` | OpenTelemetry span kind. |
+| `**attribute_values` | `Any` | Optional | More attributes as keyword arguments, such as `candidate_count=12`. |
 
 ```python
 from harnest.tracing import span
 
-with span(name=...):
+with span("catalog.rank", candidate_count=12):
     ...
 ```
 
@@ -179,18 +179,18 @@ traced(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str \| None` | `None` |
-| `attributes` | `Mapping[str, Any] \| None` | `None` |
-| `kind` | `Any \| None` | `None` |
-| `**attribute_values` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str \| None` | `None` | Span name. Defaults to the function's qualified name. |
+| `attributes` | `Mapping[str, Any] \| None` | `None` | Span attributes. |
+| `kind` | `Any \| None` | `None` | OpenTelemetry span kind. |
+| `**attribute_values` | `Any` | Optional | More attributes as keyword arguments. |
 
 ```python
 from harnest.tracing import traced
 
-@traced()
-def my_function():
+@traced("catalog.lookup", attributes={"catalog.kind": "products"})
+def lookup(query: str):
     ...
 ```
 

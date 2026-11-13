@@ -1,6 +1,4 @@
-# Curated details for /harnest/reference/api/agent. See task.yaml for the format.
-
-Agent: &agent
+Agent: &id001
   fields:
     name: Name of the agent.
     model: Model the agent calls, for example `LiteLLMModel("openai/your-model")`.
@@ -12,14 +10,18 @@ Agent: &agent
     input_schema: Pydantic model that validates request `input`.
     output_schema: Pydantic model for structured output, returned as `result`.
     history: '`"session"` (default) keeps earlier turns; `"turn"` isolates each invocation.'
+    output_key: ADK only. Session state key that stores the agent's final reply. LangGraph agents reject it.
+    generate_content_config: ADK only. Generation settings passed to the model, as an ADK config or mapping. LangGraph
+      agents reject it.
+    sandboxes: Names of the sandboxes this agent may use, such as `["python"]`.
+    token_policy: Token budget and reporting policy for this agent. Child agents need their own.
+    skill_selection: Selects which Agent Skills to load for each turn.
   example: |
     from harnest.agent import Agent
     from harnest.model import LiteLLMModel
 
     root_agent = Agent(name="support", model=LiteLLMModel("openai/your-model"))
-
-AgentDefinition: *agent
-
+AgentDefinition: *id001
 tool:
   params:
     function: The decorated function. Filled in by bare `@tool`.
@@ -34,7 +36,6 @@ tool:
     def lookup_ticket(ticket_id: str) -> str:
         """Return the current ticket summary."""
         ...
-
 client_tool:
   params:
     function: The stub to decorate. Harnest never runs its body.
@@ -49,7 +50,6 @@ client_tool:
     def browser_open(url: str) -> dict[str, str]:
         """Open a URL in the connected browser."""
         ...
-
 client_input:
   params:
     input_schema: Pydantic model for the private value, passed as the handler's first parameter.
@@ -64,7 +64,6 @@ client_input:
     async def connect(private: ConnectionInput, service: str) -> None:
         """Connect a service with a client-supplied token."""
         ...
-
 instruction_file:
   params:
     anchor: Pass `__file__` so the path works in a deployed bundle.
@@ -73,7 +72,6 @@ instruction_file:
     from harnest.agent import instruction_file
 
     instruction = instruction_file(__file__)
-
 AgentRuntimePrincipal:
   fields:
     permissions: Permission names granted to this invocation.
@@ -82,7 +80,6 @@ AgentRuntimePrincipal:
     from harnest.agent import AgentRuntimePrincipal
 
     principal = AgentRuntimePrincipal.create(permissions={"tickets.read"})
-
 AgentRuntimePrincipal.create:
   params:
     permissions: Permission names your application authorizes.
@@ -90,7 +87,6 @@ AgentRuntimePrincipal.create:
     from harnest.agent import AgentRuntimePrincipal
 
     principal = AgentRuntimePrincipal.create(permissions={"tickets.read"})
-
 AgentRuntimePrincipal.restrict:
   params:
     permissions: Subset of the current grants. Adding a new name raises `AgentRuntimePermissionError`.
@@ -99,3 +95,67 @@ AgentRuntimePrincipal.restrict:
 
     principal: AgentRuntimePrincipal
     read_only = principal.restrict({"tickets.read"})
+'*.advanced':
+  params:
+    target: The framework-native root, subagent, or graph node to wrap.
+    name: Name for the wrapped node.
+    input_adapter: Converts the input text and state into the native input.
+    output_adapter: Converts the native output into Harnest's output.
+ToolCallRequest:
+  fields:
+    name: Name of the tool being called.
+    args: Positional arguments for the call.
+    kwargs: Keyword arguments for the call.
+ToolLifecycleContext:
+  params:
+    tool_name: Name of the tool being called.
+ClientToolExecution:
+  params:
+    store: Store that holds pending client-tool calls.
+    run: The invocation's approval run.
+ClientToolExecution.execute:
+  params:
+    name: Name of the client tool.
+    arguments: Arguments sent to the client.
+    output_schema: Pydantic model that validates the client's result.
+    timeout_seconds: Seconds to wait for the client's result.
+    private_input: Collect a private value for `@client_input` instead of a normal result.
+InMemoryClientToolStore:
+  params:
+    clock: Function returning the current time, for tests.
+    transient_media: Store for private media passed with results.
+    asset_stores: Asset stores by name, for results that contain stored media.
+InMemoryClientToolStore.suspend:
+  params:
+    run: The invocation's approval run.
+    name: Name of the client tool.
+    arguments: Arguments sent to the client.
+    output_schema: Pydantic model that validates the client's result.
+    timeout_seconds: Seconds to wait for the client's result.
+    private_input: Collect a private value for `@client_input` instead of a normal result.
+InMemoryClientToolStore.submit:
+  params:
+    request_id: ID of the pending client-tool request.
+    output: The client's result.
+InMemoryClientToolStore.run_for:
+  params:
+    pending: The pending client-tool call.
+InMemoryClientToolStore.cancel:
+  params:
+    request_id: ID of the pending client-tool request.
+PendingClientTool:
+  fields:
+    id: Request ID that the client answers.
+    call_id: ID of the tool call in the framework.
+    name: Name of the client tool.
+    arguments: Arguments sent to the client.
+    output_schema: Pydantic model that validates the result.
+    expires_at: When the request expires, in UTC epoch seconds.
+    run: The invocation's approval run.
+    future: Resolves with the client's result.
+    submitting: Whether a result is being submitted.
+    agui_tool_call_id: Matching AG-UI tool call ID, when the client uses AG-UI.
+    private_input: Whether this request collects a private value.
+client_tool_execution:
+  params:
+    execution: The client-tool execution capability to activate.

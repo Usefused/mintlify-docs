@@ -1,0 +1,10 @@
+ADKStore:
+  params:
+    session_service: ADK session service to own.
+ADKSessionStorage:
+  fields:
+    uri: ADK session service URI, such as a database URL.
+    database_kwargs: Extra options for the database session service.
+ADKSessionStorage.create_service:
+  params:
+    base_directory: Directory of the compiled application.

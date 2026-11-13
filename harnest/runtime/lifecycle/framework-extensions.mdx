@@ -1,0 +1,40 @@
+---
+icon: "plug"
+title: "Framework extensions"
+description: "Connect ADK plugins or LangGraph middleware to the framework selected by Harnest."
+---
+
+Use `@lifecycle.framework_extension` when portable lifecycle hooks cannot express the behavior you need. Harnest reads `spec.framework.name` from your project configuration and validates each factory's return value against that framework.
+
+| Configured framework | Factory returns |
+|---|---|
+| ADK | An ADK `BasePlugin` |
+| LangGraph | A LangChain `AgentMiddleware` |
+
+```python lifecycle/extension.py
+from harnest import lifecycle
+from google.adk.plugins.base_plugin import BasePlugin
+
+@lifecycle.framework_extension
+def audit_plugin():
+    return BasePlugin(name="audit")
+```
+
+This example belongs to an ADK project. For LangGraph, return your `AgentMiddleware` implementation from the same decorator. Extensions packaged as a Harnest Extension declare the `framework.extension` capability.
+
+## Ownership
+
+Harnest keeps authentication, transports, portable lifecycle policy, and storage ownership checks. The framework extension handles framework-specific callbacks. Keep portable behavior in ordinary lifecycle hooks so it can survive a framework switch.
+
+<Note>
+  Advanced LangGraph applications must attach middleware before compiling the graph and wrapping it with `Agent.advanced(...)`. Harnest cannot attach discovered middleware to an already compiled graph. Advanced ADK applications can accept discovered plugins through their application wrapper.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Invocation hooks" icon="arrows-rotate" href="/harnest/runtime/lifecycle/invocation-hooks">
+    Keep shared policy in portable hooks.
+  </Card>
+  <Card title="ADK and LangGraph" icon="code-branch" href="/harnest/runtime/adk-and-langgraph">
+    Choose and switch the project's framework.
+  </Card>
+</CardGroup>

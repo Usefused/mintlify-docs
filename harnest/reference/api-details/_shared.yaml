@@ -1,0 +1,114 @@
+# Parameter descriptions shared across every API page.
+#
+# Lowest precedence: a module's api-details file, a docstring Args: section, a
+# field description, or an implemented interface's description always wins.
+#
+# params:  `name` applies to every parameter with that name;
+#          `name@Type` applies only when the parameter's type matches (the type
+#          is shown with module prefixes removed, e.g. `scope@RunScope`).
+# methods: `method_name: {param: description}` for a method family that has the
+#          same meaning wherever that method name appears.
+#
+# Only add names whose meaning is identical everywhere they are used.
+# Generation fails if an entry here matches no rendered parameter.
+
+params:
+  # Ownership and identity
+  application_id: ID of the Harnest application. Stores use it to keep applications that share a database apart.
+  user_id: ID of the authenticated user who owns the data. Reads and writes are limited to this user.
+  user_id@str | None: ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user.
+  session_id: ID of the Harnest session (one conversation).
+  session_id@str | None: ID of the Harnest session (one conversation), or `None` when there is none.
+  invocation_id: ID of one agent invocation (one request or turn).
+  invocation_id@str | None: ID of one agent invocation, or `None` outside an invocation.
+  agent_name: Name of the agent or SubAgent involved.
+  agent_name@str | None: Name of the agent or SubAgent involved, or `None` when not tied to one agent.
+  scope@RunScope: Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it.
+  scope@MemoryScope: Application, user, and optional namespace that isolate these memories.
+  scope@AssetScope: User and session that own the asset.
+
+  # Paging
+  limit@int: Maximum number of items to return.
+  limit@int | None: Maximum number of items to return.
+  after@str | None: Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning.
+  after@tuple[float, str] | None: Cursor from the previous page as `(due time, schedule ID)`; `None` starts from the beginning.
+  cursor@str | None: Opaque cursor returned by the previous page; `None` starts from the beginning.
+
+  # Concurrency, time, and leases
+  expected_revision@int: Revision the record must still have. The write fails if another writer changed it first.
+  expected_revision@str | None: Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`.
+  now: Current time in UTC epoch seconds.
+  lease_seconds: How long the lease stays valid, in seconds.
+  lease_token: Token issued with the claim. Only the current lease holder can renew or finish the job.
+
+  # Queue, schedule, continuation, and checkpoint IDs
+  job_id: ID of the queued job (`TaskHandle.id`).
+  schedule_id: The schedule's `cron_` ID (`CronJob.id`).
+  continuation_id: ID of the pending continuation (one wait for externally completed work).
+  external_id: Provider-owned ID for the external work, such as a remote job or webhook ID.
+  checkpoint_id: ID of one checkpoint within the run.
+  checkpoint_id@str | None: ID of one checkpoint within the run; `None` selects the latest.
+  context_id@str | None: A2A context ID that groups related tasks, or `None` for all contexts.
+  failure@ContinuationFailure: Provider-defined failure category (`code` and `retryable`), without exception or payload text.
+  failure@ContinuationFailure | None: Provider-defined failure category, or `None` when the work succeeded.
+  writes@Sequence[CheckpointWrite]: Pending task writes to store for the checkpoint.
+
+  # Records passed to store methods
+  record@TaskRecord: The job to persist.
+  record@CronRecord: The complete schedule record.
+  record@ContinuationRecord: The continuation to persist.
+  record@A2ATaskRecord: The A2A task snapshot to persist.
+  record@MemoryRecord: The memory record to write.
+  record@CaptureRecord: The capture record to store.
+
+  # Channels
+  platform: Channel platform identifier, such as `"slack"`.
+  installation_id: ID of one installed channel connection, such as one Slack workspace.
+  thread_id@str | None: Platform thread ID inside the conversation, or `None` for the top level.
+
+  # Frameworks, hooks, and ordering
+  framework@str: Agent framework, `"adk"` or `"langgraph"`.
+  order: Ordering among registrations of the same kind. Lower values run first.
+  function@_Hook | None: The decorated function. Filled in by bare `@decorator` use; omit it when passing options.
+
+  # Session state
+  state_delta: Keys to merge into session state. Other keys are left unchanged.
+
+methods:
+  # MCP client transports (MCPClient and FusedMCPClient).
+  streamable_http: &mcp_http
+    url: URL of the MCP server endpoint.
+    headers: HTTP headers sent with every request, such as an `Authorization` header read from the environment.
+    tools: Only expose these remote tools. `None` exposes every tool the server lists.
+    prefix: Prefix added to this server's tool names to avoid collisions, such as `catalog`.
+    permission: Runtime permission required for every tool, resource, and prompt from this client.
+    tool_permissions: Extra runtime permission per named remote tool.
+    timeout_seconds: Time limit for MCP requests, in seconds.
+    sse_read_timeout_seconds: How long to wait for new events on the stream, in seconds.
+    lifecycle: Optional lifecycle that supplies credentials, certificates, or a custom HTTP client.
+    resources: Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources.
+    prompts: Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts.
+    max_content_bytes: Size limit for returned resource or prompt content, from 1 KiB to 16 MiB.
+    subscriptions: Resource subscriptions started with the serving runtime.
+  sse: *mcp_http
+  stdio:
+    command: Executable that starts the MCP server.
+    args: Arguments passed to the command.
+    env: Environment variables for the subprocess.
+    tools: Only expose these remote tools. `None` exposes every tool the server lists.
+    prefix: Prefix added to this server's tool names to avoid collisions, such as `catalog`.
+    permission: Runtime permission required for every tool, resource, and prompt from this client.
+    tool_permissions: Extra runtime permission per named remote tool.
+    timeout_seconds: Time limit for MCP requests, in seconds.
+    lifecycle: Optional lifecycle that supplies credentials or support resources.
+    resources: Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources.
+    prompts: Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts.
+    max_content_bytes: Size limit for returned resource or prompt content, from 1 KiB to 16 MiB.
+    subscriptions: Resource subscriptions started with the serving runtime.
+  required_permissions_for:
+    tool_name: Name of the remote tool.
+  # Lifecycle hook control flow (every *LifecycleContext and TransitionContext).
+  next:
+    replacement: Value to pass to the next stage. Omit it to continue unchanged.
+  finish:
+    result: Final result. Later stages and the protected operation are skipped.

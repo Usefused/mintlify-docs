@@ -86,9 +86,9 @@ callable_output_schema(function: Callable[..., Any]) -> PydanticModel | None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `Callable[..., Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `Callable[..., Any]` | Required | Tool function whose return annotation may name a Pydantic model. |
 
 ```python
 from harnest.structured import callable_output_schema
@@ -108,9 +108,9 @@ framework_metadata_field(schema: PydanticModel) -> str | None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `schema` | `PydanticModel` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schema` | `PydanticModel` | Required | Output model to inspect. |
 
 ```python
 from harnest.structured import framework_metadata_field
@@ -130,9 +130,9 @@ provider_output_schema(schema: PydanticModel) -> PydanticModel
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `schema` | `PydanticModel` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schema` | `PydanticModel` | Required | Authored output model. |
 
 ```python
 from harnest.structured import provider_output_schema
@@ -152,10 +152,10 @@ validate_output_schema(value: Any, *, field_name: str) -> PydanticModel | None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
-| `field_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | Value to check. |
+| `field_name` | `str` | Required | Name of the option being checked, used in errors. |
 
 ```python
 from harnest.structured import validate_output_schema
@@ -175,11 +175,11 @@ validate_output_value(schema: PydanticModel, value: Any, *, boundary: str) -> Ba
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `schema` | `PydanticModel` | Required |
-| `value` | `Any` | Required |
-| `boundary` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schema` | `PydanticModel` | Required | Output model. |
+| `value` | `Any` | Required | Output as a Python value or JSON text. |
+| `boundary` | `str` | Required | Name of the boundary, used in errors. |
 
 ```python
 from harnest.structured import validate_output_value
@@ -199,12 +199,12 @@ validate_runtime_output(schema: PydanticModel, value: Any, *, metadata: Any, bou
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `schema` | `PydanticModel` | Required |
-| `value` | `Any` | Required |
-| `metadata` | `Any` | Required |
-| `boundary` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schema` | `PydanticModel` | Required | Output model. |
+| `value` | `Any` | Required | Provider output. |
+| `metadata` | `Any` | Required | Framework metadata to inject into the declared field. |
+| `boundary` | `str` | Required | Name of the boundary, used in errors. |
 
 ```python
 from harnest.structured import validate_runtime_output

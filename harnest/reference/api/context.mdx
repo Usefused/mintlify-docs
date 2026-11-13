@@ -104,7 +104,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.context import AgentContext
 
-context: AgentContext  # returned by Harnest, not constructed directly
+context: AgentContext  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -119,10 +119,10 @@ Return one named capability without exposing the whole registry.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `expected_type` | `type[Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name the resource was published under. |
+| `expected_type` | `type[Any] \| None` | `None` | Type the resource must be. Raises `TypeError` when it is not. |
 
 ```python
 from harnest.context import AgentContext
@@ -227,21 +227,18 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `status` | `Literal['in_progress']` | Required |
-| `session_id` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `pending_action` | `Mapping[str, str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `status` | `Literal['in_progress']` | Required | Always `"in_progress"`. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `pending_action` | `Mapping[str, str]` | Required | What the turn is waiting for before it can resume. |
 
 ```python
 from harnest.context import AgentPendingResponse
 
 response = AgentPendingResponse(
-    status=...,
-    session_id=...,
-    invocation_id=...,
-    pending_action=...,
+    status=..., session_id=..., invocation_id=..., pending_action=...,
 )
 ```
 
@@ -296,25 +293,21 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `output_text` | `str` | Required |
-| `result` | `Any` | Required |
-| `events` | `tuple[RuntimeEvent, ...]` | Required |
-| `session_id` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `metadata` | `Mapping[str, Any]` | Required |
-| `usage` | `TokenUsage \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `output_text` | `str` | Required | Assistant answer text. |
+| `result` | `Any` | Required | Validated structured output, when the agent declares an output schema. |
+| `events` | `tuple[RuntimeEvent, ...]` | Required | Runtime events produced during the turn. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `metadata` | `Mapping[str, Any]` | Required | Response metadata. |
+| `usage` | `TokenUsage \| None` | `None` | Token usage for the turn, when the model reports it. |
 
 ```python
 from harnest.context import AgentResponse
 
 response = AgentResponse(
-    output_text=...,
-    result=...,
-    events=...,
-    session_id=...,
-    invocation_id=...,
+    output_text=..., result=..., events=..., session_id=..., invocation_id=...,
     metadata=...,
 )
 ```
@@ -358,7 +351,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.context import AgentSession
 
-session: AgentSession  # returned by Harnest, not constructed directly
+session: AgentSession  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -379,12 +372,12 @@ Run one non-streaming turn through the complete runtime pipeline.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `request_timeout` | `float \| None` | `None` |
-| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | Input for the turn, such as a message string or a typed input value. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Caller metadata attached to the invocation. |
+| `request_timeout` | `float \| None` | `None` | Time limit for the turn, in seconds. |
+| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` | Restricts which capabilities the agent may use during this turn. |
 
 ```python
 from harnest.context import AgentSession
@@ -411,12 +404,12 @@ Stream portable events and a final response with cancellation cleanup.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `request_timeout` | `float \| None` | `None` |
-| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | Input for the turn, such as a message string or a typed input value. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Caller metadata attached to the invocation. |
+| `request_timeout` | `float \| None` | `None` | Time limit for the turn, in seconds. |
+| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` | Restricts which capabilities the agent may use during this turn. |
 
 ```python
 from harnest.context import AgentSession
@@ -471,13 +464,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `kind` | `Literal['event', 'completed', 'pending']` | Required |
-| `sequence` | `int` | Required |
-| `event` | `RuntimeEvent \| None` | `None` |
-| `response` | `AgentResponse \| None` | `None` |
-| `pending` | `AgentPendingResponse \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `kind` | `Literal['event', 'completed', 'pending']` | Required | `"event"`, `"completed"`, or `"pending"`. |
+| `sequence` | `int` | Required | Position of this item in the stream. |
+| `event` | `RuntimeEvent \| None` | `None` | The runtime event, when `kind` is `"event"`. |
+| `response` | `AgentResponse \| None` | `None` | The final response, when `kind` is `"completed"`. |
+| `pending` | `AgentPendingResponse \| None` | `None` | The pending wait, when `kind` is `"pending"`. |
 
 ```python
 from harnest.context import AgentStreamItem
@@ -523,10 +516,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name the resource is published under. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest.context import ContextRegistration
@@ -589,15 +582,15 @@ LocalAgentRuntime(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `driver` | `RuntimeDriver` | Required |
-| `user_id` | `str` | Required |
-| `transport` | `str` | `'local'` |
-| `trigger` | `Literal['agent', 'cron', 'user']` | `'user'` |
-| `request_timeout` | `float` | `300` |
-| `identity_namespace` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `driver` | `RuntimeDriver` | Required | The compiled runtime driver to call. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `transport` | `str` | `'local'` | Transport name reported for these invocations. |
+| `trigger` | `Literal['agent', 'cron', 'user']` | `'user'` | What started the invocations, `"user"`, `"agent"`, or `"cron"`. |
+| `request_timeout` | `float` | `300` | Default time limit for each turn, in seconds. |
+| `identity_namespace` | `str \| None` | `None` | Namespace for deriving stable invocation identities, so retries reuse the same IDs. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata attached to every invocation. |
 
 ```python
 from harnest.context import LocalAgentRuntime
@@ -637,11 +630,11 @@ Create one persisted session under the configured local identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `state` | `Mapping[str, Any] \| None` | `None` |
-| `session_id` | `str \| None` | `None` |
-| `reuse_existing` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `state` | `Mapping[str, Any] \| None` | `None` | Initial session state. |
+| `session_id` | `str \| None` | `None` | ID of the Harnest session (one conversation), or `None` when there is none. |
+| `reuse_existing` | `bool` | `False` | Return the existing session instead of failing when `session_id` is already taken. |
 
 ```python
 from harnest.context import LocalAgentRuntime
@@ -662,9 +655,9 @@ Open an existing session without revealing another owner's records.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
 
 ```python
 from harnest.context import LocalAgentRuntime
@@ -685,10 +678,10 @@ MemoryContext(active: Any, namespace: str = 'default') -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `active` | `Any` | Required |
-| `namespace` | `str` | `'default'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `active` | `Any` | Required | The active invocation context. |
+| `namespace` | `str` | `'default'` | Memory collection to use. |
 
 ```python
 from harnest.context import MemoryContext
@@ -708,9 +701,9 @@ Select a logical collection without changing application/user ownership.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the memory collection. Ownership by application and user is unchanged. |
 
 ```python
 from harnest.context import MemoryContext
@@ -738,13 +731,13 @@ Deliberately save or replace a memory, recording invocation provenance.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `key` | `str` | Required |
-| `content` | `str` | Required |
-| `metadata` | `Optional[Mapping[str, Any]]` | `None` |
-| `expires_at` | `float \| None` | `None` |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `key` | `str` | Required | Key of the memory within the namespace. |
+| `content` | `str` | Required | Text to remember. |
+| `metadata` | `Optional[Mapping[str, Any]]` | `None` | Optional metadata stored with the memory. |
+| `expires_at` | `float \| None` | `None` | When the memory expires, as a future UTC epoch timestamp. `None` keeps it until deleted. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest.context import MemoryContext
@@ -765,9 +758,9 @@ Read a scoped key without adding it to model context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `key` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `key` | `str` | Required | Key of the memory within the namespace. |
 
 ```python
 from harnest.context import MemoryContext
@@ -788,10 +781,10 @@ List a bounded page of explicit memories across this user's sessions.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `limit` | `int` | `20` | Maximum number of items to return. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.context import MemoryContext
@@ -812,11 +805,11 @@ Search literal text on explicit request, without model calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `query` | `str` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `query` | `str` | Required | Text to find. Matching is literal and case-sensitive. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.context import MemoryContext
@@ -837,10 +830,10 @@ Explicitly forget a memory and its provider index references.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `key` | `str` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `key` | `str` | Required | Key of the memory within the namespace. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest.context import MemoryContext
@@ -862,7 +855,7 @@ Obtain this object from the owning Harnest API; its constructor includes runtime
 ```python
 from harnest.context import ScopedAssets
 
-assets: ScopedAssets  # returned by Harnest, not constructed directly
+assets: ScopedAssets  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -877,9 +870,9 @@ Select one named store without exposing its backing implementation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `store` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `store` | `str` | Required | Name of the asset store to use. |
 
 ```python
 from harnest.context import ScopedAssets
@@ -909,15 +902,15 @@ Persist streamed bytes and return a reference carrying store routing.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `media_type` | `str` | Required |
-| `chunks` | `AsyncIterable[bytes]` | Required |
-| `metadata` | `AssetMediaMetadata \| None` | `None` |
-| `retention_seconds` | `float \| None` | `None` |
-| `path` | `str \| None` | `None` |
-| `label` | `str \| None` | `None` |
-| `store` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `media_type` | `str` | Required | MIME type of the bytes, such as `"image/png"`. |
+| `chunks` | `AsyncIterable[bytes]` | Required | Async iterable of byte chunks to store, in order. |
+| `metadata` | `AssetMediaMetadata \| None` | `None` | Optional media details, such as width, height, duration, or page count. |
+| `retention_seconds` | `float \| None` | `None` | Delete the asset after this many seconds. `None` uses the store's default retention. |
+| `path` | `str \| None` | `None` | Storage-specific path hint. Must be a safe relative path. |
+| `label` | `str \| None` | `None` | Optional display label for the returned reference. |
+| `store` | `str \| None` | `None` | Asset store to write to. Defaults to the selected store, or `default`. |
 
 ```python
 from harnest.context import ScopedAssets
@@ -938,10 +931,10 @@ Return safe metadata for an owned asset or fail closed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reference` | `Any` | Required |
-| `store` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reference` | `Any` | Required | Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`. |
+| `store` | `str \| None` | `None` | Asset store to use. Defaults to the reference's store. |
 
 ```python
 from harnest.context import ScopedAssets
@@ -962,10 +955,10 @@ Stream owned bytes without exposing the backing storage object.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reference` | `Any` | Required |
-| `store` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reference` | `Any` | Required | Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`. |
+| `store` | `str \| None` | `None` | Asset store to use. Defaults to the reference's store. |
 
 ```python
 from harnest.context import ScopedAssets
@@ -986,11 +979,11 @@ Read a bounded asset for APIs that require an in-memory payload.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reference` | `Any` | Required |
-| `store` | `str \| None` | `None` |
-| `max_bytes` | `int` | `10485760` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reference` | `Any` | Required | Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`. |
+| `store` | `str \| None` | `None` | Asset store to use. Defaults to the reference's store. |
+| `max_bytes` | `int` | `10485760` | Largest asset to load into memory, in bytes. |
 
 ```python
 from harnest.context import ScopedAssets
@@ -1011,10 +1004,10 @@ Delete an owned asset without revealing another scope's content.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reference` | `Any` | Required |
-| `store` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reference` | `Any` | Required | Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`. |
+| `store` | `str \| None` | `None` | Asset store to use. Defaults to the reference's store. |
 
 ```python
 from harnest.context import ScopedAssets
@@ -1035,11 +1028,11 @@ Ask an explicitly URL-capable storage for a fresh temporary URL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reference` | `Any` | Required |
-| `expires_in` | `float` | Required |
-| `store` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reference` | `Any` | Required | Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`. |
+| `expires_in` | `float` | Required | How long the URL stays valid, in seconds. |
+| `store` | `str \| None` | `None` | Asset store to use. It must support temporary URLs. |
 
 ```python
 from harnest.context import ScopedAssets
@@ -1061,7 +1054,7 @@ Obtain this object from the owning Harnest API; its constructor includes runtime
 ```python
 from harnest.context import SessionContext
 
-context: SessionContext  # returned by Harnest, not constructed directly
+context: SessionContext  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -1076,10 +1069,10 @@ Return a detached value without exposing mutable store-owned state.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `key` | `str` | Required |
-| `default` | `Any` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `key` | `str` | Required | Key of the value. |
+| `default` | `Any` | `None` | Value returned when the key is not set. |
 
 ```python
 from harnest.context import SessionContext
@@ -1100,10 +1093,10 @@ Persist one value without projecting it into framework model state.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `key` | `str` | Required |
-| `value` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `key` | `str` | Required | Key of the value. |
+| `value` | `Any` | Required | JSON-safe value to store. |
 
 ```python
 from harnest.context import SessionContext
@@ -1124,9 +1117,9 @@ Persist a bounded mapping in one lease-owned write.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `values` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `values` | `Mapping[str, Any]` | Required | Keys and values to store in one write. |
 
 ```python
 from harnest.context import SessionContext
@@ -1147,9 +1140,9 @@ Delete one value and report whether the current namespace contained it.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `key` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `key` | `str` | Required | Key of the value. |
 
 ```python
 from harnest.context import SessionContext
@@ -1170,9 +1163,9 @@ Return a nested view so teams and plugins can avoid key collisions.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the nested view, used to avoid key collisions. |
 
 ```python
 from harnest.context import SessionContext
@@ -1228,10 +1221,10 @@ Return one named custom resource for concise authored access.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `expected_type` | `type[Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the custom store, as registered with `@lifecycle.storage.custom(name)`. |
+| `expected_type` | `type[Any] \| None` | `None` | Type the store must be. Raises `TypeError` when it is not. |
 
 ```python
 from harnest.context import StorageContext
@@ -1252,10 +1245,10 @@ Resolve a custom store while keeping the registry non-enumerable.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `expected_type` | `type[Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the custom store, as registered with `@lifecycle.storage.custom(name)`. |
+| `expected_type` | `type[Any] \| None` | `None` | Type the store must be. Raises `TypeError` when it is not. |
 
 ```python
 from harnest.context import StorageContext
@@ -1276,9 +1269,9 @@ activate_agent_scope(agent_name: str | None) -> Iterator[AgentContext | None]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `agent_name` | `str \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `agent_name` | `str \| None` | Required | Name of the agent or SubAgent involved, or `None` when not tied to one agent. |
 
 ```python
 from harnest.context import activate_agent_scope
@@ -1317,10 +1310,10 @@ derive_agent_context(active: AgentContext, *, agent_name: str) -> AgentContext
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `active` | `AgentContext` | Required |
-| `agent_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `active` | `AgentContext` | Required | The parent context. |
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
 
 ```python
 from harnest.context import derive_agent_context
@@ -1340,10 +1333,10 @@ provider(name: str, *, order: int = 0) -> Callable[[_ProviderT], _ProviderT]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name the resource is published under on the context. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest.context import provider
@@ -1365,10 +1358,10 @@ resource(name: str, expected_type: type[Any] | None = None) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `expected_type` | `type[Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name the resource was published under. |
+| `expected_type` | `type[Any] \| None` | `None` | Type the resource must be. Raises `TypeError` when it is not. |
 
 ```python
 from harnest.context import resource
@@ -1384,6 +1377,16 @@ Access this facade through `context.sandboxes["name"]`; its implementation type 
 
 A revocable agent-and-invocation-bound execution capability.
 
+<Accordion title="Example">
+
+```python
+from harnest import context
+
+handle = context.sandboxes["name"]
+```
+
+</Accordion>
+
 ### SandboxHandle.execute
 
 ```python
@@ -1394,10 +1397,10 @@ Execute tool-authored code with immutable provider policy and identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `code` | `str` | Required |
-| `input_files` | `tuple[SandboxFile, ...]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `code` | `str` | Required | Python code to run in the sandbox. |
+| `input_files` | `tuple[SandboxFile, ...]` | `()` | Files to place in the sandbox before running. |
 
 ```python
 from harnest import context
@@ -1417,10 +1420,10 @@ Keep blocking providers off the event loop and revoke cancelled work.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `code` | `str` | Required |
-| `input_files` | `tuple[SandboxFile, ...]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `code` | `str` | Required | Python code to run in the sandbox. |
+| `input_files` | `tuple[SandboxFile, ...]` | `()` | Files to place in the sandbox before running. |
 
 ```python
 from harnest import context

@@ -60,9 +60,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `FusedChannelConfig` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `config` | `FusedChannelConfig` | Required | The channel binding configuration. |
 
 ```python
 from harnest_fused import FusedChannelAdapter
@@ -101,9 +101,9 @@ Translate one raw provider payload using this binding's field mapping.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `raw` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `raw` | `Mapping[str, Any]` | Required | Raw event payload from the platform. |
 
 ```python
 from harnest_fused import FusedChannelAdapter
@@ -124,9 +124,9 @@ Call the configured Fused operation directly; never through model tool-use.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply` | `ChannelReply` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply` | `ChannelReply` | Required | The reply to send. |
 
 ```python
 from harnest_fused import FusedChannelAdapter
@@ -189,24 +189,20 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `mapping` | `FusedEventMapping` | Required |
-| `client` | `FusedMCPClient` | Required |
-| `reply_operation` | `str` | Required |
-| `reply_arguments` | `Mapping[str, str]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `mapping` | `FusedEventMapping` | Required | Field paths that turn the raw payload into a `ChannelEvent`. |
+| `client` | `FusedMCPClient` | Required | The Fused MCP client used for outbound calls. |
+| `reply_operation` | `str` | Required | MCP tool called to deliver a reply. |
+| `reply_arguments` | `Mapping[str, str]` | `...` | Argument values for that tool. Each is a literal string or a `ChannelReply` field reference such as `$text`. |
 
 ```python
 from harnest_fused import FusedChannelConfig
 
 config = FusedChannelConfig(
-    platform=...,
-    installation_id=...,
-    mapping=...,
-    client=...,
-    reply_operation=...,
+    platform=..., installation_id=..., mapping=..., client=..., reply_operation=...,
 )
 ```
 
@@ -222,11 +218,11 @@ FusedChannelReceiver(receiver: Any, worker: Any, normalize: Any) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `receiver` | `Any` | Required |
-| `worker` | `Any` | Required |
-| `normalize` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `receiver` | `Any` | Required | Generated Fused SDK receiver that you created. |
+| `worker` | `Any` | Required | Channel worker that admits events durably. |
+| `normalize` | `Any` | Required | Function that turns a payload into a `ChannelEvent`. |
 
 ```python
 from harnest_fused import FusedChannelReceiver
@@ -246,9 +242,9 @@ Subscribe to the generated enum's exact event value, never a wildcard.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event_name` | `str` | Required | Exact event value from the generated SDK enum. Wildcards are not allowed. |
 
 ```python
 from harnest_fused import FusedChannelReceiver
@@ -269,10 +265,10 @@ NACK failed persistence; rejected policy events have no durable side effects.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `payload` | `Mapping[str, Any]` | Required |
-| `context` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `payload` | `Mapping[str, Any]` | Required | Event payload from the subscription. |
+| `context` | `Mapping[str, Any]` | Required | Delivery context from the subscription. |
 
 ```python
 from harnest_fused import FusedChannelReceiver
@@ -339,27 +335,23 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `provider_event_id` | `str` | Required |
-| `kind` | `str` | Required |
-| `sender_id` | `str` | Required |
-| `conversation_id` | `str` | Required |
-| `message_id` | `str` | Required |
-| `occurred_at` | `str` | Required |
-| `content` | `str \| None` | `None` |
-| `thread_id` | `str \| None` | `None` |
-| `delivery_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `provider_event_id` | `str` | Required | Dotted path to the platform's event ID in the raw payload. |
+| `kind` | `str` | Required | Dotted path to the event kind. |
+| `sender_id` | `str` | Required | Dotted path to the sender's ID. |
+| `conversation_id` | `str` | Required | Dotted path to the conversation ID. |
+| `message_id` | `str` | Required | Dotted path to the message ID. |
+| `occurred_at` | `str` | Required | Dotted path to the event time. |
+| `content` | `str \| None` | `None` | Dotted path to the message text. |
+| `thread_id` | `str \| None` | `None` | Platform thread ID inside the conversation, or `None` for the top level. |
+| `delivery_id` | `str \| None` | `None` | Dotted path to the delivery ID. |
 
 ```python
 from harnest_fused import FusedEventMapping
 
 mapping = FusedEventMapping(
-    provider_event_id=...,
-    kind=...,
-    sender_id=...,
-    conversation_id=...,
-    message_id=...,
+    provider_event_id=..., kind=..., sender_id=..., conversation_id=..., message_id=...,
     occurred_at=...,
 )
 ```
@@ -376,11 +368,11 @@ Build one ChannelEvent by resolving every declared path against raw.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `raw` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `raw` | `Mapping[str, Any]` | Required | Raw platform payload. |
 
 ```python
 from harnest_fused import FusedEventMapping
@@ -434,7 +426,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest_fused import FusedMCPClient
 
-client: FusedMCPClient  # returned by Harnest, not constructed directly
+client = FusedMCPClient.from_openapi(name=...)
 ```
 
 </Accordion>
@@ -464,14 +456,14 @@ become a channel's event source alongside its outbound tool calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `*specs` | `OpenAPISpec \| str \| Path` | Optional |
-| `name` | `str` | Required |
-| `url_env` | `str \| None` | `None` |
-| `token_env` | `str \| None` | `None` |
-| `webhook_attachment` | `str \| None` | `None` |
-| `**client_options` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `*specs` | `OpenAPISpec \| str \| Path` | Optional | One or more `OpenAPISpec` values. A plain path or URL selects every operation of that spec. |
+| `name` | `str` | Required | Name of the Fused MCP server, such as `"business"`. |
+| `url_env` | `str \| None` | `None` | Environment variable that holds the server URL. Defaults to a name derived from `name`. |
+| `token_env` | `str \| None` | `None` | Environment variable that holds the Fused MCP execution token. Defaults to a name derived from `name`. |
+| `webhook_attachment` | `str \| None` | `None` | Name of a Fused webhook registration whose inbound events this server's resources also surface. |
+| `**client_options` | `Any` | Optional | Standard `MCPClient.streamable_http` options, such as `prefix` or `permission`. |
 
 ```python
 from harnest_fused import FusedMCPClient
@@ -505,21 +497,21 @@ Create an MCP client that starts and communicates with a subprocess.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `command` | `str` | Required |
-| `*args` | `str` | Optional |
-| `env` | `Mapping[str, str] \| None` | `None` |
-| `tools` | `Sequence[str] \| None` | `None` |
-| `prefix` | `str \| None` | `None` |
-| `permission` | `str \| None` | `None` |
-| `tool_permissions` | `Mapping[str, str] \| None` | `None` |
-| `timeout_seconds` | `float` | `30` |
-| `lifecycle` | `MCPClientLifecycle \| None` | `None` |
-| `resources` | `Sequence[str] \| None` | `None` |
-| `prompts` | `Sequence[str] \| None` | `None` |
-| `max_content_bytes` | `int` | `1048576` |
-| `subscriptions` | `Sequence[MCPSubscription]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `command` | `str` | Required | Executable that starts the MCP server. |
+| `*args` | `str` | Optional | Arguments passed to the command. |
+| `env` | `Mapping[str, str] \| None` | `None` | Environment variables for the subprocess. |
+| `tools` | `Sequence[str] \| None` | `None` | Only expose these remote tools. `None` exposes every tool the server lists. |
+| `prefix` | `str \| None` | `None` | Prefix added to this server's tool names to avoid collisions, such as `catalog`. |
+| `permission` | `str \| None` | `None` | Runtime permission required for every tool, resource, and prompt from this client. |
+| `tool_permissions` | `Mapping[str, str] \| None` | `None` | Extra runtime permission per named remote tool. |
+| `timeout_seconds` | `float` | `30` | Time limit for MCP requests, in seconds. |
+| `lifecycle` | `MCPClientLifecycle \| None` | `None` | Optional lifecycle that supplies credentials or support resources. |
+| `resources` | `Sequence[str] \| None` | `None` | Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources. |
+| `prompts` | `Sequence[str] \| None` | `None` | Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts. |
+| `max_content_bytes` | `int` | `1048576` | Size limit for returned resource or prompt content, from 1 KiB to 16 MiB. |
+| `subscriptions` | `Sequence[MCPSubscription]` | `()` | Resource subscriptions started with the serving runtime. |
 
 ```python
 from harnest_fused import FusedMCPClient
@@ -554,21 +546,21 @@ Create an MCP client using the Streamable HTTP transport.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `url` | `str` | Required |
-| `headers` | `Mapping[str, str] \| None` | `None` |
-| `tools` | `Sequence[str] \| None` | `None` |
-| `prefix` | `str \| None` | `None` |
-| `permission` | `str \| None` | `None` |
-| `tool_permissions` | `Mapping[str, str] \| None` | `None` |
-| `timeout_seconds` | `float` | `30` |
-| `sse_read_timeout_seconds` | `float` | `300` |
-| `lifecycle` | `MCPClientLifecycle \| None` | `None` |
-| `resources` | `Sequence[str] \| None` | `None` |
-| `prompts` | `Sequence[str] \| None` | `None` |
-| `max_content_bytes` | `int` | `1048576` |
-| `subscriptions` | `Sequence[MCPSubscription]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | `str` | Required | URL of the MCP server endpoint. |
+| `headers` | `Mapping[str, str] \| None` | `None` | HTTP headers sent with every request, such as an `Authorization` header read from the environment. |
+| `tools` | `Sequence[str] \| None` | `None` | Only expose these remote tools. `None` exposes every tool the server lists. |
+| `prefix` | `str \| None` | `None` | Prefix added to this server's tool names to avoid collisions, such as `catalog`. |
+| `permission` | `str \| None` | `None` | Runtime permission required for every tool, resource, and prompt from this client. |
+| `tool_permissions` | `Mapping[str, str] \| None` | `None` | Extra runtime permission per named remote tool. |
+| `timeout_seconds` | `float` | `30` | Time limit for MCP requests, in seconds. |
+| `sse_read_timeout_seconds` | `float` | `300` | How long to wait for new events on the stream, in seconds. |
+| `lifecycle` | `MCPClientLifecycle \| None` | `None` | Optional lifecycle that supplies credentials, certificates, or a custom HTTP client. |
+| `resources` | `Sequence[str] \| None` | `None` | Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources. |
+| `prompts` | `Sequence[str] \| None` | `None` | Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts. |
+| `max_content_bytes` | `int` | `1048576` | Size limit for returned resource or prompt content, from 1 KiB to 16 MiB. |
+| `subscriptions` | `Sequence[MCPSubscription]` | `()` | Resource subscriptions started with the serving runtime. |
 
 ```python
 from harnest_fused import FusedMCPClient
@@ -603,21 +595,21 @@ Create an MCP client using the legacy HTTP/SSE transport.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `url` | `str` | Required |
-| `headers` | `Mapping[str, str] \| None` | `None` |
-| `tools` | `Sequence[str] \| None` | `None` |
-| `prefix` | `str \| None` | `None` |
-| `permission` | `str \| None` | `None` |
-| `tool_permissions` | `Mapping[str, str] \| None` | `None` |
-| `timeout_seconds` | `float` | `30` |
-| `sse_read_timeout_seconds` | `float` | `300` |
-| `lifecycle` | `MCPClientLifecycle \| None` | `None` |
-| `resources` | `Sequence[str] \| None` | `None` |
-| `prompts` | `Sequence[str] \| None` | `None` |
-| `max_content_bytes` | `int` | `1048576` |
-| `subscriptions` | `Sequence[MCPSubscription]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | `str` | Required | URL of the MCP server endpoint. |
+| `headers` | `Mapping[str, str] \| None` | `None` | HTTP headers sent with every request, such as an `Authorization` header read from the environment. |
+| `tools` | `Sequence[str] \| None` | `None` | Only expose these remote tools. `None` exposes every tool the server lists. |
+| `prefix` | `str \| None` | `None` | Prefix added to this server's tool names to avoid collisions, such as `catalog`. |
+| `permission` | `str \| None` | `None` | Runtime permission required for every tool, resource, and prompt from this client. |
+| `tool_permissions` | `Mapping[str, str] \| None` | `None` | Extra runtime permission per named remote tool. |
+| `timeout_seconds` | `float` | `30` | Time limit for MCP requests, in seconds. |
+| `sse_read_timeout_seconds` | `float` | `300` | How long to wait for new events on the stream, in seconds. |
+| `lifecycle` | `MCPClientLifecycle \| None` | `None` | Optional lifecycle that supplies credentials, certificates, or a custom HTTP client. |
+| `resources` | `Sequence[str] \| None` | `None` | Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources. |
+| `prompts` | `Sequence[str] \| None` | `None` | Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts. |
+| `max_content_bytes` | `int` | `1048576` | Size limit for returned resource or prompt content, from 1 KiB to 16 MiB. |
+| `subscriptions` | `Sequence[MCPSubscription]` | `()` | Resource subscriptions started with the serving runtime. |
 
 ```python
 from harnest_fused import FusedMCPClient
@@ -630,22 +622,19 @@ client = FusedMCPClient.sse(url=...)
 ### FusedMCPClient.connect
 
 ```python
-FusedMCPClient.connect(*, framework: Literal['adk', 'langgraph'] = 'langgraph') -> Any
+FusedMCPClient.connect() -> AbstractAsyncContextManager[MCPResourceClient]
 ```
 
-Open a developer-owned read client using the configured lifecycle and credentials.
+Open a read client using Harnest's selected framework and credentials.
 
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `Literal['adk', 'langgraph']` | `'langgraph'` |
+<Accordion title="Example">
 
 ```python
 from harnest_fused import FusedMCPClient
 
 client: FusedMCPClient
-result = client.connect()
+async with client.connect():
+    ...
 ```
 
 </Accordion>
@@ -660,9 +649,9 @@ Combine an optional client requirement with one remote-tool requirement.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `tool_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `tool_name` | `str` | Required | Name of the remote tool. |
 
 ```python
 from harnest_fused import FusedMCPClient
@@ -673,13 +662,13 @@ result = client.required_permissions_for(tool_name=...)
 
 </Accordion>
 
-### FusedMCPClient.to_adk_toolset
+### FusedMCPClient.connection_options
 
 ```python
-FusedMCPClient.to_adk_toolset() -> Any
+FusedMCPClient.connection_options() -> dict[str, Any]
 ```
 
-Use native transport while preserving portable expansion and failure rules.
+Return this server's connection options without opening a session.
 
 <Accordion title="Example">
 
@@ -687,26 +676,7 @@ Use native transport while preserving portable expansion and failure rules.
 from harnest_fused import FusedMCPClient
 
 client: FusedMCPClient
-result = client.to_adk_toolset()
-```
-
-</Accordion>
-
-### FusedMCPClient.to_langgraph_connection
-
-```python
-FusedMCPClient.to_langgraph_connection() -> dict[str, Any]
-```
-
-Return a LangChain MCP adapter connection without opening it.
-
-<Accordion title="Example">
-
-```python
-from harnest_fused import FusedMCPClient
-
-client: FusedMCPClient
-result = client.to_langgraph_connection()
+result = client.connection_options()
 ```
 
 </Accordion>
@@ -732,14 +702,14 @@ The CLI displays its one-time execution token directly to the operator.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `description` | `str` | Required |
-| `bucket` | `str` | Required |
-| `version` | `str` | `'1.0.0'` |
-| `project` | `str \| Path` | `'.'` |
-| `cli` | `str` | `'fused-cli'` |
-| `timeout_seconds` | `float` | `1260` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `description` | `str` | Required | Description of what the MCP server does. Required. |
+| `bucket` | `str` | Required | Existing Fused bucket you are allowed to use. Required. |
+| `version` | `str` | `'1.0.0'` | MCP server version. Use a new version when changing a published server's configuration. |
+| `project` | `str \| Path` | `'.'` | Project directory. Local spec paths resolve against it. |
+| `cli` | `str` | `'fused-cli'` | The Fused CLI executable to run. |
+| `timeout_seconds` | `float` | `1260` | Time limit for each CLI subprocess, in seconds. |
 
 ```python
 from harnest_fused import FusedMCPClient
@@ -781,24 +751,20 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `client` | `MCPClient` | Required |
-| `url` | `str` | Required |
-| `url_env` | `str` | Required |
-| `token_env` | `str` | Required |
-| `config_path` | `Path` | Required |
-| `receipt_directory` | `Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `client` | `MCPClient` | Required | Ready-to-use `MCPClient` for the provisioned server. |
+| `url` | `str` | Required | Streamable HTTP URL of the exact server version. |
+| `url_env` | `str` | Required | Environment variable name for the URL. |
+| `token_env` | `str` | Required | Environment variable name for the execution token. Store the token from the CLI output there. |
+| `config_path` | `Path` | Required | Path of the written Fused MCP configuration. |
+| `receipt_directory` | `Path` | Required | Folder that holds the setup receipts. |
 
 ```python
 from harnest_fused import FusedSetupResult
 
 result = FusedSetupResult(
-    client=...,
-    url=...,
-    url_env=...,
-    token_env=...,
-    config_path=...,
+    client=..., url=..., url_env=..., token_env=..., config_path=...,
     receipt_directory=...,
 )
 ```
@@ -815,9 +781,9 @@ Create a standard client factory without overwriting authored code.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str \| Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str \| Path` | Required | Where to write the client file, such as `"mcp/business.py"`. An existing file is never overwritten. |
 
 ```python
 from harnest_fused import FusedSetupResult
@@ -842,12 +808,12 @@ FusedSlackReplySender(client: Any, *, app_id: str, operation: str, selector: Map
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `client` | `Any` | Required |
-| `app_id` | `str` | Required |
-| `operation` | `str` | Required |
-| `selector` | `Mapping[str, str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `client` | `Any` | Required | Fused SDK client authenticated with the app's execution token. |
+| `app_id` | `str` | Required | Fused app ID (a UUID). |
+| `operation` | `str` | Required | The exact Slack `chat.postMessage` operation selection. |
+| `selector` | `Mapping[str, str]` | Required | Connection selector. Must include `end_user_ref`. |
 
 ```python
 from harnest_fused import FusedSlackReplySender
@@ -867,9 +833,9 @@ Send once, suppress broadcasts/unfurls, and check provider-level success.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply` | `ChannelReply` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply` | `ChannelReply` | Required | The reply to send. |
 
 ```python
 from harnest_fused import FusedSlackReplySender
@@ -912,14 +878,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| Path` | Required |
-| `name` | `str \| None` | `None` |
-| `operations` | `Sequence[str] \| None` | `None` |
-| `version` | `str \| None` | `None` |
-| `auth` | `Mapping[str, str] \| None` | `None` |
-| `scopes` | `Sequence[str] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| Path` | Required | Local OpenAPI path, relative to the setup project, or an HTTP(S) URL. |
+| `name` | `str \| None` | `None` | Unique lowercase service slug. Defaults to the file name stem. |
+| `operations` | `Sequence[str] \| None` | `None` | Exact operation IDs to include. `None` includes every operation. |
+| `version` | `str \| None` | `None` | Provider version to use when the spec does not declare one. |
+| `auth` | `Mapping[str, str] \| None` | `None` | Fused credential selector with `type`, `name`, and optional `ref`. Credentials stay in Fused. |
+| `scopes` | `Sequence[str] \| None` | `None` | Provider connection scopes. |
 
 ```python
 from harnest_fused import OpenAPISpec
@@ -939,9 +905,9 @@ Project selection into Fused's single authoritative MCP config shape.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `version` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `version` | `str` | Required | Provider version to record in the selection. |
 
 ```python
 from harnest_fused import OpenAPISpec
@@ -965,11 +931,11 @@ slack_mention(payload: Mapping[str, Any], *, installation_id: str, app_id: str) 
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `payload` | `Mapping[str, Any]` | Required |
-| `installation_id` | `str` | Required |
-| `app_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `payload` | `Mapping[str, Any]` | Required | Verified Fused Slack event envelope. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `app_id` | `str` | Required | Fused app ID. Events for other apps are rejected. |
 
 ```python
 from harnest_fused import slack_mention

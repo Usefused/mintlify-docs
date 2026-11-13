@@ -1,0 +1,132 @@
+# Curated details for /harnest/reference/api/agent-approval. See task.yaml for the format.
+
+require_human_approval:
+  params:
+    message: Message shown to the approver. It can reference tool arguments, such as `"Approve deleting {customer_id}?"`.
+    timeout_seconds: Seconds to wait for a decision.
+    on_timeout: What happens when no decision arrives in time. Only `"deny"` is supported.
+    tools: On an MCP `client()` factory, only these remote tools need approval. `None` protects every tool.
+  example: |
+    from harnest.agent.approval import require_human_approval
+
+    @require_human_approval(message="Approve deleting {customer_id}?")
+    def delete_customer(customer_id: str):
+        """Delete one customer."""
+        ...
+
+request_human_approval:
+  params:
+    action: Stable, non-sensitive ID of the protected operation, such as `"typescript.execute"`.
+    message: Message shown to the approver.
+    arguments: Serializable values that bind the approval to this exact operation. Only their hash is kept.
+    timeout_seconds: Seconds to wait for a decision.
+    on_timeout: What happens when no decision arrives in time. Only `"deny"` is supported.
+  example: |
+    from harnest.agent.approval import request_human_approval
+
+    async with request_human_approval(action="typescript.execute", message="Run this code?"):
+        ...
+
+ApprovalPolicy:
+  fields:
+    message: Message shown to the approver.
+    timeout_seconds: Seconds to wait for a decision.
+    on_timeout: What happens when no decision arrives in time. Only `"deny"` is supported.
+    tools: Remote tools the policy protects. `None` protects every tool.
+
+ApprovalPolicy.applies_to:
+  params:
+    name: Name of the remote tool.
+
+ApprovalExecution:
+  params:
+    call_id: ID of the protected tool call.
+    grant: One-time approval grant for a resumed call.
+    store: Approval store for this invocation.
+    run: The invocation's approval run.
+
+ApprovalExecution.authorize:
+  params:
+    challenge: The approval challenge to authorize.
+
+InMemoryApprovalStore:
+  params:
+    clock: Function returning the current time, for tests.
+    max_pending: Maximum unresolved approvals held at once.
+    tombstone_seconds: How long a resolved approval is remembered, to reject replays.
+
+InMemoryApprovalStore.create_run:
+  params:
+    call_id: ID of the protected tool call.
+
+InMemoryApprovalStore.request:
+  params:
+    challenge: The approval challenge to register.
+    call_id: ID of the protected tool call.
+    invocation: The invocation that is waiting.
+
+InMemoryApprovalStore.suspend:
+  params:
+    run: The invocation's approval run.
+    challenge: The approval challenge to wait for.
+
+InMemoryApprovalStore.decide:
+  params:
+    approval_id: ID of the approval, from the `requires_action` response.
+    decision: '`"approve"` or `"deny"`.'
+    deliver: Resume the waiting invocation immediately.
+
+InMemoryApprovalStore.deliver_decision:
+  params: &pending_decision
+    pending: The pending approval.
+    decision: The committed decision.
+
+"*.run_for":
+  params: &pending_only
+    pending: The pending approval.
+
+InMemoryApprovalStore.assert_consumed:
+  params: *pending_only
+
+InMemoryApprovalStore.executed:
+  params: *pending_only
+
+InMemoryApprovalStore.failed:
+  params: *pending_only
+
+InMemoryApprovalStore.cancel_run:
+  params:
+    run: The invocation's approval run.
+
+approval_execution:
+  params:
+    execution: The approval capability to activate.
+
+approval_policy:
+  params:
+    value: The function or MCP `client()` factory to inspect.
+
+authorize_mcp:
+  params:
+    client_name: Name of the MCP client.
+    tool_name: Name of the remote tool.
+    arguments: The call's arguments.
+    policy: The client's approval policy.
+
+bind_tool_arguments:
+  params:
+    function: The tool function.
+    args: Positional arguments of the call.
+    kwargs: Keyword arguments of the call.
+
+record_approved_execution:
+  params:
+    grant: The one-time approval grant, if any.
+
+record_approved_failure:
+  params:
+    grant: The one-time approval grant, if any.
+
+wrap_approved_tool:
+  params:
+    function: The tool function to gate.

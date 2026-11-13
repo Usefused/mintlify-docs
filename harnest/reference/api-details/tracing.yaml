@@ -1,0 +1,44 @@
+# Curated details for /harnest/reference/api/tracing. See task.yaml for the format.
+
+get_tracer:
+  params:
+    name: Instrumentation name.
+    version: Instrumentation version.
+
+Tracer:
+  params:
+    name: Instrumentation name.
+    version: Instrumentation version.
+
+Tracer.start_as_current_span:
+  params: &span_start
+    name: Span name.
+    kwargs: OpenTelemetry span options, such as `attributes`.
+
+Tracer.start_span:
+  params: *span_start
+
+span:
+  params: &span_params
+    name: Span name, such as `"catalog.rank"`.
+    attributes: Span attributes.
+    kind: OpenTelemetry span kind.
+    attribute_values: More attributes as keyword arguments, such as `candidate_count=12`.
+  example: |
+    from harnest.tracing import span
+
+    with span("catalog.rank", candidate_count=12):
+        ...
+
+traced:
+  params:
+    name: Span name. Defaults to the function's qualified name.
+    attributes: Span attributes.
+    kind: OpenTelemetry span kind.
+    attribute_values: More attributes as keyword arguments.
+  example: |
+    from harnest.tracing import traced
+
+    @traced("catalog.lookup", attributes={"catalog.kind": "products"})
+    def lookup(query: str):
+        ...

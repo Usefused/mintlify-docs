@@ -1,0 +1,12 @@
+SessionStore.create:
+  params:
+    state: Initial session state.
+SessionLease.patch_state:
+  params:
+    delta: Keys to merge into session state. Other keys are left unchanged.
+SessionLease.replace_state:
+  params:
+    state: The complete new framework-owned state.
+SessionLease.replace_application_data:
+  params:
+    data: The complete new application-owned data.

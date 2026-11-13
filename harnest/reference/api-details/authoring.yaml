@@ -1,0 +1,129 @@
+ProjectPack:
+  params:
+    schema_version: Current pack schema version. Migrations step up to it one version at a time.
+    options: Pydantic model that validates the caller's pack options.
+    templates: Folder of packaged templates and files used by `from_template` and `from_file`.
+    config_file: Company configuration file in each project, such as `"acme-agent.yaml"`.
+    config_model: Pydantic model that validates that configuration file, including during upgrades.
+ProjectPack.initialize:
+  params:
+    function: The initializer. It receives a `ProjectContext` and returns a `ChangePlan`.
+ProjectPack.migration:
+  params:
+    from_version: Schema version the migration upgrades from.
+    to_version: Schema version it upgrades to. Must be `from_version + 1`.
+ChangePlan:
+  params:
+    operations: File and YAML operations, applied in order.
+ProjectContext:
+  fields:
+    name: Final path component of the project directory.
+    options: Validated pack options, or `None` when the pack declares none.
+    files: Staged file operations.
+    yaml: Staged YAML operations.
+ProjectChange:
+  fields:
+    kind: Kind of change.
+    path: Changed path, relative to the project.
+    owners: Names of the packs that made the change, or `harnest` for core changes.
+ProjectPlanner:
+  params:
+    packs: The project packs to apply.
+    harnest_command: Command used to run Harnest.
+ProjectPlanner.plan_init:
+  params:
+    directory: Absent or empty folder for the new project.
+    options: Pack options by pack name.
+    framework: '`"adk"` or `"langgraph"`.'
+    minimal: Create a minimal project.
+    template: Template to start from.
+    template_sha256: Expected SHA-256 of the template.
+    mode: '`"managed"` or `"advanced"`.'
+    example: Include the example agent.
+ProjectPlanner.plan_upgrade:
+  params:
+    directory: Project folder to upgrade.
+    options: Pack options by pack name.
+apply_project_plan:
+  params:
+    plan: The plan to apply. Stale plans are rejected.
+ProjectContext.files.read_text:
+  params:
+    path: File path, relative to the project.
+ProjectContext.files.write_text:
+  params:
+    path: File path, relative to the project.
+    content: Text to write.
+    policy: '`WritePolicy.IF_MISSING` creates only absent files; `WritePolicy.MANAGED` also replaces unchanged pack-owned
+      files.'
+ProjectContext.files.from_template:
+  params:
+    path: Destination path, relative to the project.
+    template: Template path, relative to the pack's `templates` folder.
+    values: Values for `$name` substitutions. Without them, the template is copied literally.
+    policy: '`WritePolicy.IF_MISSING` creates only absent files; `WritePolicy.MANAGED` also replaces unchanged pack-owned
+      files.'
+ProjectContext.files.from_file:
+  params:
+    path: Destination path, relative to the project.
+    source: Source path, relative to the pack's `templates` folder. Copied byte for byte.
+    policy: '`WritePolicy.IF_MISSING` creates only absent files; `WritePolicy.MANAGED` also replaces unchanged pack-owned
+      files.'
+ProjectContext.files.delete:
+  params:
+    path: File path, relative to the project. Removed only if the pack still owns unchanged content.
+ProjectContext.yaml.read:
+  params:
+    path: YAML file path, relative to the project.
+ProjectContext.yaml.set:
+  params:
+    path: YAML file path, relative to the project.
+    key: Path to the field, such as `("owner",)`.
+    value: JSON-compatible value.
+    policy: '`WritePolicy.IF_MISSING` sets only absent fields; `WritePolicy.MANAGED` also replaces unchanged pack-owned
+      values.'
+ProjectContext.yaml.rename_key:
+  params:
+    path: YAML file path, relative to the project.
+    source: Current path to the field.
+    destination: New path. An occupied destination is never overwritten.
+ProjectPack.command:
+  params:
+    name: Company command name, as a kebab-case identifier. Built-in Harnest command names are reserved.
+    help: Help text shown for the command.
+  example: |
+    from harnest.authoring import ProjectPack
+
+    pack = ProjectPack(schema_version=1)
+
+    @pack.command("check", help="Check company conventions")
+    def check(arguments: list[str]) -> int:
+        return 0
+load_pack:
+  params:
+    root: Pack folder containing pack.yaml and optional trusted pack.py hooks.
+    import_project: Import pack.py and bind its ProjectPack to the manifest identity. False reads only the manifest.
+  example: |
+    from harnest.authoring import load_pack
+
+    pack = load_pack("./packs/acme")
+load_packs:
+  params:
+    roots: Pack folders to load. Duplicate names are rejected.
+ProjectPlan:
+  fields:
+    root: Project folder the plan applies to.
+    changes: File changes in the combined core and pack plan.
+    blockers: Reasons that prevent applying the plan.
+    notes: Informational migration and initialization notes.
+    warnings: Compatibility or migration concerns to review before applying.
+PackManifest:
+  fields:
+    apiVersion: 'Manifest schema identifier: harnest.dev/pack/v1.'
+    name: Unique pack name and key in harnest-packs.lock.
+    version: Distribution version of the pack. Project migrations use ProjectPack.schema_version separately.
+    title: Human-readable title.
+    description: Description of what the pack supplies.
+    command: Branded executable name; defaults to the pack name.
+    requires: Harnest version constraints checked before pack code runs, and Studio version constraints checked when Studio is installed or launched.
+    studio: Optional Studio configuration, validated by Studio.

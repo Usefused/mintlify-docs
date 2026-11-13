@@ -89,9 +89,9 @@ Return non-empty chunks in source order.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `document` | `RAGDocument` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `document` | `RAGDocument` | Required | The document to split into passages. |
 
 ```python
 from harnest.extensions.rag import Chunker
@@ -131,9 +131,9 @@ Return one finite vector for every supplied text.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `texts` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `texts` | `Sequence[str]` | Required | Texts to embed. The result has one vector per text, in the same order. |
 
 ```python
 from harnest.extensions.rag import Embedder
@@ -168,10 +168,10 @@ FixedSizeChunker(*, size: int = 2000, overlap: int = 200) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `size` | `int` | `2000` |
-| `overlap` | `int` | `200` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `size` | `int` | `2000` | Target chunk size in characters, at least 128. |
+| `overlap` | `int` | `200` | Characters shared between neighbouring chunks. |
 
 ```python
 from harnest.extensions.rag import FixedSizeChunker
@@ -191,9 +191,9 @@ Return stable non-empty passages without dropping source text.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `document` | `RAGDocument` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `document` | `RAGDocument` | Required | The document to split into passages. |
 
 ```python
 from harnest.extensions.rag import FixedSizeChunker
@@ -214,9 +214,9 @@ MemoryBackend(*, max_chunks: int = 10000) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `max_chunks` | `int` | `10000` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `max_chunks` | `int` | `10000` | Maximum chunks held in memory. Data is lost when the process exits. |
 
 ```python
 from harnest.extensions.rag import MemoryBackend
@@ -274,11 +274,11 @@ Replace complete documents without exceeding configured capacity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `document_ids` | `Sequence[str]` | Required |
-| `chunks` | `Sequence[RAGChunk]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `document_ids` | `Sequence[str]` | Required | IDs of the documents being replaced. Their old chunks are removed. |
+| `chunks` | `Sequence[RAGChunk]` | Required | The complete new chunks for those documents. |
 
 ```python
 from harnest.extensions.rag import MemoryBackend
@@ -299,10 +299,10 @@ Delete matching document chunks inside one namespace.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `document_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `document_ids` | `Sequence[str]` | Required | IDs of the documents to delete. |
 
 ```python
 from harnest.extensions.rag import MemoryBackend
@@ -323,10 +323,10 @@ Return exact chunks in caller order and omit missing identities.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `chunk_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `chunk_ids` | `Sequence[str]` | Required | IDs of the chunks to fetch. No ranking is applied. |
 
 ```python
 from harnest.extensions.rag import MemoryBackend
@@ -347,9 +347,9 @@ Filter, score, sort, and limit the development corpus in memory.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `query` | `RAGQuery` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `query` | `RAGQuery` | Required | The search, including namespace, filters, and result limit. |
 
 ```python
 from harnest.extensions.rag import MemoryBackend
@@ -377,13 +377,13 @@ PostgresBackend(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str \| None` | `None` |
-| `table` | `str` | `'harnest_rag_chunks'` |
-| `pool` | `Any \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str \| None` | `None` | asyncpg connection string. Required unless you pass `pool`. |
+| `table` | `str` | `'harnest_rag_chunks'` | Table that stores the chunks. Must be a safe extension-owned name. |
+| `pool` | `Any \| None` | `None` | Existing asyncpg-compatible pool to borrow. Harnest does not close it. |
+| `setup_schema` | `bool` | `True` | Create the schema. With `False`, an operator-managed schema is validated instead. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Extra options for `asyncpg.create_pool`. |
 
 ```python
 from harnest.extensions.rag import PostgresBackend
@@ -441,11 +441,11 @@ Replace complete documents atomically so obsolete chunks cannot survive.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `document_ids` | `Sequence[str]` | Required |
-| `chunks` | `Sequence[RAGChunk]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `document_ids` | `Sequence[str]` | Required | IDs of the documents being replaced. Their old chunks are removed. |
+| `chunks` | `Sequence[RAGChunk]` | Required | The complete new chunks for those documents. |
 
 ```python
 from harnest.extensions.rag import PostgresBackend
@@ -466,10 +466,10 @@ Delete complete documents inside one namespace.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `document_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `document_ids` | `Sequence[str]` | Required | IDs of the documents to delete. |
 
 ```python
 from harnest.extensions.rag import PostgresBackend
@@ -490,10 +490,10 @@ Fetch exact chunks in caller order with ordering performed by PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `chunk_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `chunk_ids` | `Sequence[str]` | Required | IDs of the chunks to fetch. No ranking is applied. |
 
 ```python
 from harnest.extensions.rag import PostgresBackend
@@ -514,9 +514,9 @@ Filter, rank, order, and limit one query entirely in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `query` | `RAGQuery` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `query` | `RAGQuery` | Required | The search, including namespace, filters, and result limit. |
 
 ```python
 from harnest.extensions.rag import PostgresBackend
@@ -594,11 +594,11 @@ Atomically replace complete documents and remove obsolete chunks.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `document_ids` | `Sequence[str]` | Required |
-| `chunks` | `Sequence[RAGChunk]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `document_ids` | `Sequence[str]` | Required | IDs of the documents being replaced. Their old chunks are removed. |
+| `chunks` | `Sequence[RAGChunk]` | Required | The complete new chunks for those documents. |
 
 ```python
 from harnest.extensions.rag import RAGBackend
@@ -619,10 +619,10 @@ Delete documents only inside the supplied namespace.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `document_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `document_ids` | `Sequence[str]` | Required | IDs of the documents to delete. |
 
 ```python
 from harnest.extensions.rag import RAGBackend
@@ -643,10 +643,10 @@ Fetch exact chunks without performing relevance ranking.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `namespace` | `str` | Required |
-| `chunk_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `namespace` | `str` | Required | Namespace that isolates this set of documents. |
+| `chunk_ids` | `Sequence[str]` | Required | IDs of the chunks to fetch. No ranking is applied. |
 
 ```python
 from harnest.extensions.rag import RAGBackend
@@ -667,9 +667,9 @@ Apply filtering, ranking, ordering, and limiting in the backend.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `query` | `RAGQuery` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `query` | `RAGQuery` | Required | The search, including namespace, filters, and result limit. |
 
 ```python
 from harnest.extensions.rag import RAGBackend
@@ -712,16 +712,16 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `document_id` | `str` | Required |
-| `namespace` | `str` | Required |
-| `text` | `str` | Required |
-| `title` | `str \| None` | `None` |
-| `uri` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Scalar]` | `...` |
-| `embedding` | `tuple[float, ...] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Chunk ID. |
+| `document_id` | `str` | Required | ID of the document the chunk came from. |
+| `namespace` | `str` | Required | Namespace the chunk belongs to. |
+| `text` | `str` | Required | Chunk text. |
+| `title` | `str \| None` | `None` | Title of the source document. |
+| `uri` | `str \| None` | `None` | Source link of the document. |
+| `metadata` | `Mapping[str, Scalar]` | `...` | Flat scalar metadata used for filtering. |
+| `embedding` | `tuple[float, ...] \| None` | `None` | Embedding vector, when an embedder was configured. |
 
 ```python
 from harnest.extensions.rag import RAGChunk
@@ -757,13 +757,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `text` | `str` | Required |
-| `title` | `str \| None` | `None` |
-| `uri` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Scalar]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Stable document ID. Ingesting the same ID replaces the document. |
+| `text` | `str` | Required | Full document text. |
+| `title` | `str \| None` | `None` | Optional title stored with each chunk. |
+| `uri` | `str \| None` | `None` | Optional source link stored with each chunk. |
+| `metadata` | `Mapping[str, Scalar]` | `...` | Flat scalar metadata used for filtering. |
 
 ```python
 from harnest.extensions.rag import RAGDocument
@@ -806,9 +806,9 @@ Initialize application-scoped resources after dependencies start.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `'ExtensionStartContext'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `'ExtensionStartContext'` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.rag import RAGExtension
@@ -848,9 +848,9 @@ Adapt the managed invocation base to an extension-specific context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.rag import RAGExtension
@@ -893,13 +893,13 @@ Wrap any compatible backend in the shared ingestion and retrieval API.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `backend` | `RAGBackend` | Required |
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `backend` | `RAGBackend` | Required | The storage backend that holds chunks and runs searches. |
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation. |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
 
 ```python
 from harnest.extensions.rag import RAGExtension
@@ -927,13 +927,13 @@ Create a bounded in-memory service for development and unit tests.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
-| `max_chunks` | `int` | `10000` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation. |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
+| `max_chunks` | `int` | `10000` | Maximum chunks held in memory. Data is lost when the process exits. |
 
 ```python
 from harnest.extensions.rag import RAGExtension
@@ -965,17 +965,17 @@ Create a PostgreSQL-backed lexical, semantic, or hybrid service.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str \| None` | `None` |
-| `table` | `str` | `'harnest_rag_chunks'` |
-| `pool` | `Any \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str \| None` | `None` | asyncpg connection string. Required unless you pass `pool`. |
+| `table` | `str` | `'harnest_rag_chunks'` | Table that stores the chunks. Must be a safe extension-owned name. |
+| `pool` | `Any \| None` | `None` | Existing asyncpg-compatible pool to borrow. Harnest does not close it. |
+| `setup_schema` | `bool` | `True` | Create the schema. With `False`, an operator-managed schema is validated instead. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Extra options for `asyncpg.create_pool`. |
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation (for example, the current user ID). |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
 
 ```python
 from harnest.extensions.rag import RAGExtension
@@ -1003,10 +1003,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `chunk` | `RAGChunk` | Required |
-| `score` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `chunk` | `RAGChunk` | Required | The matching chunk. |
+| `score` | `float` | Required | Relevance score from the backend. |
 
 ```python
 from harnest.extensions.rag import RAGHit
@@ -1046,15 +1046,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `text` | `str` | Required |
-| `namespace` | `str` | Required |
-| `mode` | `SearchMode` | `<SearchMode.HYBRID: 'hybrid'>` |
-| `limit` | `int` | `8` |
-| `filters` | `Mapping[str, FilterValue]` | `...` |
-| `vector` | `tuple[float, ...] \| None` | `None` |
-| `min_score` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `text` | `str` | Required | Search text. |
+| `namespace` | `str` | Required | Namespace to search in. |
+| `mode` | `SearchMode` | `<SearchMode.HYBRID: 'hybrid'>` | Keyword, semantic, or hybrid search. |
+| `limit` | `int` | `8` | Maximum number of items to return. |
+| `filters` | `Mapping[str, FilterValue]` | `...` | Metadata filters. Each value is a scalar or a tuple of allowed scalars. |
+| `vector` | `tuple[float, ...] \| None` | `None` | Query embedding for semantic or hybrid search. |
+| `min_score` | `float \| None` | `None` | Drop hits that score below this value. |
 
 ```python
 from harnest.extensions.rag import RAGQuery
@@ -1081,13 +1081,13 @@ RAGService(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `backend` | `RAGBackend` | Required |
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `backend` | `RAGBackend` | Required | The storage backend that holds chunks and runs searches. |
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation. |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
 
 ```python
 from harnest.extensions.rag import RAGService
@@ -1200,10 +1200,10 @@ Chunk, optionally embed, and atomically audit one ingestion request.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `documents` | `Sequence[RAGDocument]` | Required |
-| `trigger` | `MutationTrigger` | `'user'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `documents` | `Sequence[RAGDocument]` | Required | Documents to chunk, embed, and store. Existing documents with the same IDs are replaced. |
+| `trigger` | `MutationTrigger` | `'user'` | Who initiated the change, `"user"` or `"agent"`. Recorded on the audit event. |
 
 ```python
 from harnest.extensions.rag import RAGService
@@ -1224,10 +1224,10 @@ Delete namespaced documents through the audited mutation boundary.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `document_ids` | `Sequence[str]` | Required |
-| `trigger` | `MutationTrigger` | `'user'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `document_ids` | `Sequence[str]` | Required | IDs of the documents to delete in the active namespace. |
+| `trigger` | `MutationTrigger` | `'user'` | Who initiated the change, `"user"` or `"agent"`. Recorded on the audit event. |
 
 ```python
 from harnest.extensions.rag import RAGService
@@ -1248,9 +1248,9 @@ Fetch exact namespaced chunks in backend-defined source order.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `chunk_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `chunk_ids` | `Sequence[str]` | Required | IDs of the chunks to fetch, without relevance ranking. |
 
 ```python
 from harnest.extensions.rag import RAGService
@@ -1278,13 +1278,13 @@ Embed when required and delegate bounded ranking to the backend.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `text` | `str` | Required |
-| `mode` | `SearchMode` | `<SearchMode.HYBRID: 'hybrid'>` |
-| `limit` | `int` | `8` |
-| `filters` | `Mapping[str, FilterValue] \| None` | `None` |
-| `min_score` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `text` | `str` | Required | Search text. |
+| `mode` | `SearchMode` | `<SearchMode.HYBRID: 'hybrid'>` | `SearchMode.KEYWORD`, `SEMANTIC`, or `HYBRID` (default). Semantic and hybrid need an embedder. |
+| `limit` | `int` | `8` | Maximum number of items to return. |
+| `filters` | `Mapping[str, FilterValue] \| None` | `None` | Metadata filters. Each value is a scalar or a tuple of allowed scalars. |
+| `min_score` | `float \| None` | `None` | Drop hits that score below this value. |
 
 ```python
 from harnest.extensions.rag import RAGService
@@ -1355,9 +1355,9 @@ Initialize application-scoped resources after dependencies start.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `'ExtensionStartContext'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `'ExtensionStartContext'` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.rag import extension
@@ -1395,9 +1395,9 @@ Adapt the managed invocation base to an extension-specific context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.rag import extension
@@ -1438,13 +1438,13 @@ Wrap any compatible backend in the shared ingestion and retrieval API.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `backend` | `RAGBackend` | Required |
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `backend` | `RAGBackend` | Required | The storage backend that holds chunks and runs searches. |
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation. |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
 
 ```python
 from harnest.extensions.rag import extension
@@ -1471,13 +1471,13 @@ Create a bounded in-memory service for development and unit tests.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
-| `max_chunks` | `int` | `10000` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation. |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
+| `max_chunks` | `int` | `10000` | Maximum chunks held in memory. Data is lost when the process exits. |
 
 ```python
 from harnest.extensions.rag import extension
@@ -1508,17 +1508,17 @@ Create a PostgreSQL-backed lexical, semantic, or hybrid service.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str \| None` | `None` |
-| `table` | `str` | `'harnest_rag_chunks'` |
-| `pool` | `Any \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str \| None` | `None` | asyncpg connection string. Required unless you pass `pool`. |
+| `table` | `str` | `'harnest_rag_chunks'` | Table that stores the chunks. Must be a safe extension-owned name. |
+| `pool` | `Any \| None` | `None` | Existing asyncpg-compatible pool to borrow. Harnest does not close it. |
+| `setup_schema` | `bool` | `True` | Create the schema. With `False`, an operator-managed schema is validated instead. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Extra options for `asyncpg.create_pool`. |
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation (for example, the current user ID). |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
 
 ```python
 from harnest.extensions.rag import extension
@@ -1550,9 +1550,9 @@ Initialize application-scoped resources after dependencies start.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `'ExtensionStartContext'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `'ExtensionStartContext'` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.rag import rag
@@ -1590,9 +1590,9 @@ Adapt the managed invocation base to an extension-specific context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.rag import rag
@@ -1633,13 +1633,13 @@ Wrap any compatible backend in the shared ingestion and retrieval API.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `backend` | `RAGBackend` | Required |
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `backend` | `RAGBackend` | Required | The storage backend that holds chunks and runs searches. |
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation. |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
 
 ```python
 from harnest.extensions.rag import rag
@@ -1666,13 +1666,13 @@ Create a bounded in-memory service for development and unit tests.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
-| `max_chunks` | `int` | `10000` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation. |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
+| `max_chunks` | `int` | `10000` | Maximum chunks held in memory. Data is lost when the process exits. |
 
 ```python
 from harnest.extensions.rag import rag
@@ -1703,17 +1703,17 @@ Create a PostgreSQL-backed lexical, semantic, or hybrid service.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str \| None` | `None` |
-| `table` | `str` | `'harnest_rag_chunks'` |
-| `pool` | `Any \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `embedder` | `Embedder \| None` | `None` |
-| `chunker` | `Chunker \| None` | `None` |
-| `namespace` | `NamespaceSource` | `'default'` |
-| `batch_size` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str \| None` | `None` | asyncpg connection string. Required unless you pass `pool`. |
+| `table` | `str` | `'harnest_rag_chunks'` | Table that stores the chunks. Must be a safe extension-owned name. |
+| `pool` | `Any \| None` | `None` | Existing asyncpg-compatible pool to borrow. Harnest does not close it. |
+| `setup_schema` | `bool` | `True` | Create the schema. With `False`, an operator-managed schema is validated instead. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Extra options for `asyncpg.create_pool`. |
+| `embedder` | `Embedder \| None` | `None` | Your embedding adapter. Without one, only keyword search is available. |
+| `chunker` | `Chunker \| None` | `None` | How documents are split. Defaults to `FixedSizeChunker()`. |
+| `namespace` | `NamespaceSource` | `'default'` | A fixed namespace, or a function returning one per operation (for example, the current user ID). |
+| `batch_size` | `int` | `100` | Number of chunk texts sent to the embedder per request. |
 
 ```python
 from harnest.extensions.rag import rag

@@ -39,16 +39,15 @@ icon: "code"
 | [`ModelMessage`](#modelmessage) | Class |
 | [`Next`](#next) | Class |
 | [`TransitionContext`](#transitioncontext) | Class |
-| [`adk_plugin`](#adk_plugin) | Function |
 | [`agent`](#agent) | Namespace |
 | [`authenticate`](#authenticate) | Namespace |
 | [`coverage`](#coverage) | Function |
 | [`credential_provider`](#credential_provider) | Namespace |
 | [`eval_capture_options`](#eval_capture_options) | Function |
 | [`evals`](#evals) | Namespace |
+| [`framework_extension`](#framework_extension) | Function |
 | [`http`](#http) | Namespace |
 | [`http_routes`](#http_routes) | Namespace |
-| [`langgraph_middleware`](#langgraph_middleware) | Function |
 | [`lifecycle_coverage`](#lifecycle_coverage) | Function |
 | [`mcp`](#mcp) | Namespace |
 | [`model`](#model) | Namespace |
@@ -118,10 +117,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `store` | `str` | Required |
-| `sample_rate` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `store` | `str` | Required | Name of the custom store that receives captures, registered with `@lifecycle.storage.custom(name)`. |
+| `sample_rate` | `float \| None` | `None` | Fraction of matching invocations to capture, from 0 to 1. `None` defers to the environment, then the default. |
 
 ```python
 from harnest.lifecycle import EvalCaptureOptions
@@ -147,9 +146,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | The final result that ends the chain. |
 
 ```python
 from harnest.lifecycle import Finish
@@ -189,25 +188,21 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `agent_name` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `metadata` | `Mapping[str, Any]` | `...` |
-| `attributes` | `MutableMapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `metadata` | `Mapping[str, Any]` | `...` | Public invocation metadata. |
+| `attributes` | `MutableMapping[str, Any]` | `...` | Mutable values that hooks in the same invocation can share. |
 
 ```python
 from harnest.lifecycle import LifecycleContext
 
 context = LifecycleContext(
-    framework=...,
-    agent_name=...,
-    invocation_id=...,
-    user_id=...,
-    session_id=...,
+    framework=..., agent_name=..., invocation_id=..., user_id=..., session_id=...,
 )
 ```
 
@@ -223,9 +218,9 @@ Continue normally or pass a replacement to the next interceptor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `replacement` | `Any` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `replacement` | `Any` | `UNCHANGED` | Value to pass to the next stage. Omit it to continue unchanged. |
 
 ```python
 from harnest.lifecycle import LifecycleContext
@@ -246,9 +241,9 @@ Return a final value without advancing to later execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | Final result. Later stages and the protected operation are skipped. |
 
 ```python
 from harnest.lifecycle import LifecycleContext
@@ -265,7 +260,7 @@ Stable report of lifecycle boundaries Harnest can actually guarantee.
 
 ```python
 LifecycleCoverage(
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
     mode: Literal['managed', 'advanced'],
     application: CoverageLevel,
     http: CoverageLevel,
@@ -286,7 +281,7 @@ Fields (`—` means no declared default):
 
 | Field | Type | Default |
 |---|---|---|
-| `framework` | `Literal['adk', 'langgraph']` | `—` |
+| `framework` | `FrameworkName` | `—` |
 | `mode` | `Literal['managed', 'advanced']` | `—` |
 | `application` | `CoverageLevel` | `—` |
 | `http` | `CoverageLevel` | `—` |
@@ -303,40 +298,29 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `Literal['adk', 'langgraph']` | Required |
-| `mode` | `Literal['managed', 'advanced']` | Required |
-| `application` | `CoverageLevel` | Required |
-| `http` | `CoverageLevel` | Required |
-| `invocation` | `CoverageLevel` | Required |
-| `credentials` | `CoverageLevel` | Required |
-| `session` | `CoverageLevel` | Required |
-| `assets` | `CoverageLevel` | Required |
-| `model` | `CoverageLevel` | Required |
-| `tool` | `CoverageLevel` | Required |
-| `mcp` | `CoverageLevel` | Required |
-| `agent` | `CoverageLevel` | Required |
-| `subagent` | `CoverageLevel` | Required |
-| `checkpoint` | `CoverageLevel` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `FrameworkName` | Required | — |
+| `mode` | `Literal['managed', 'advanced']` | Required | `"managed"` or `"advanced"`. |
+| `application` | `CoverageLevel` | Required | How fully Harnest governs application startup and shutdown. |
+| `http` | `CoverageLevel` | Required | How fully Harnest governs HTTP hooks. |
+| `invocation` | `CoverageLevel` | Required | How fully Harnest governs invocation hooks. |
+| `credentials` | `CoverageLevel` | Required | How fully Harnest governs credential resolution. |
+| `session` | `CoverageLevel` | Required | How fully Harnest governs session hooks. |
+| `assets` | `CoverageLevel` | Required | How fully Harnest governs asset access. |
+| `model` | `CoverageLevel` | Required | How fully Harnest governs model hooks. |
+| `tool` | `CoverageLevel` | Required | How fully Harnest governs tool hooks. |
+| `mcp` | `CoverageLevel` | Required | How fully Harnest governs MCP hooks. |
+| `agent` | `CoverageLevel` | Required | How fully Harnest governs agent hooks. |
+| `subagent` | `CoverageLevel` | Required | How fully Harnest governs SubAgent hooks. |
+| `checkpoint` | `CoverageLevel` | Required | How fully Harnest governs checkpointing. |
 
 ```python
 from harnest.lifecycle import LifecycleCoverage
 
 coverage = LifecycleCoverage(
-    framework=...,
-    mode=...,
-    application=...,
-    http=...,
-    invocation=...,
-    credentials=...,
-    session=...,
-    assets=...,
-    model=...,
-    tool=...,
-    mcp=...,
-    agent=...,
-    subagent=...,
+    framework=..., mode=..., application=..., http=..., invocation=..., credentials=...,
+    session=..., assets=..., model=..., tool=..., mcp=..., agent=..., subagent=...,
     checkpoint=...,
 )
 ```
@@ -353,9 +337,9 @@ Return one declared stage without exposing implementation state.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the stage, such as `"tool"`. |
 
 ```python
 from harnest.lifecycle import LifecycleCoverage
@@ -395,9 +379,9 @@ Record adapter-observed limits without changing mode defaults.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `overrides` | `Mapping[str, CoverageLevel]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `overrides` | `Mapping[str, CoverageLevel]` | Required | Coverage levels observed by the adapter, by stage name. |
 
 ```python
 from harnest.lifecycle import LifecycleCoverage
@@ -442,28 +426,23 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `phase` | `str` | Required |
-| `callback` | `Callable[..., Any]` | Required |
-| `order` | `int` | Required |
-| `relative_path` | `str` | Required |
-| `line` | `int` | Required |
-| `function_name` | `str` | Required |
-| `framework` | `str \| None` | `None` |
-| `context_name` | `str \| None` | `None` |
-| `registration_name` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `phase` | `str` | Required | Lifecycle phase, such as `tool.before`. |
+| `callback` | `Callable[..., Any]` | Required | The registered function. |
+| `order` | `int` | Required | Ordering among registrations of the same kind. Lower values run first. |
+| `relative_path` | `str` | Required | Source file of the function, relative to the project. |
+| `line` | `int` | Required | Line number of the function. |
+| `function_name` | `str` | Required | Name of the function. |
+| `framework` | `str \| None` | `None` | Framework the listener is limited to, or `None` for both. |
+| `context_name` | `str \| None` | `None` | Name of the context resource it publishes, if any. |
+| `registration_name` | `str \| None` | `None` | Registration name, for named roles. |
 
 ```python
 from harnest.lifecycle import LifecycleListener
 
 listener = LifecycleListener(
-    phase=...,
-    callback=...,
-    order=...,
-    relative_path=...,
-    line=...,
-    function_name=...,
+    phase=..., callback=..., order=..., relative_path=..., line=..., function_name=...,
 )
 ```
 
@@ -503,12 +482,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `phase` | `str` | Required |
-| `order` | `int` | Required |
-| `framework` | `str \| None` | `None` |
-| `name` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `phase` | `str` | Required | Lifecycle phase the decorator registers, such as `tool.before`. |
+| `order` | `int` | Required | Ordering among registrations of the same kind. Lower values run first. |
+| `framework` | `str \| None` | `None` | Framework the registration is limited to, or `None` for both. |
+| `name` | `str \| None` | `None` | Registration name, for named roles such as asset stores. |
 
 ```python
 from harnest.lifecycle import LifecycleRegistration
@@ -535,10 +514,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `model` | `str \| None` | Required |
-| `messages` | `tuple[ModelMessage, ...]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `model` | `str \| None` | Required | Model ID, when known. |
+| `messages` | `tuple[ModelMessage, ...]` | Required | Messages sent to the model. |
 
 ```python
 from harnest.lifecycle import ModelCallRequest
@@ -564,9 +543,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `text` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `text` | `str` | Required | Visible model output. |
 
 ```python
 from harnest.lifecycle import ModelCallResponse
@@ -602,13 +581,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `agent_name` | `str \| None` | `None` |
-| `invocation_id` | `str \| None` | `None` |
-| `user_id` | `str \| None` | `None` |
-| `session_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `agent_name` | `str \| None` | `None` | Name of the agent or SubAgent involved, or `None` when not tied to one agent. |
+| `invocation_id` | `str \| None` | `None` | ID of one agent invocation, or `None` outside an invocation. |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
+| `session_id` | `str \| None` | `None` | ID of the Harnest session (one conversation), or `None` when there is none. |
 
 ```python
 from harnest.lifecycle import ModelLifecycleContext
@@ -628,9 +607,9 @@ Continue normally or pass a replacement to the next interceptor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `replacement` | `Any` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `replacement` | `Any` | `UNCHANGED` | Value to pass to the next stage. Omit it to continue unchanged. |
 
 ```python
 from harnest.lifecycle import ModelLifecycleContext
@@ -651,9 +630,9 @@ Return a final value without advancing to later execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | Final result. Later stages and the protected operation are skipped. |
 
 ```python
 from harnest.lifecycle import ModelLifecycleContext
@@ -681,10 +660,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `role` | `str` | Required |
-| `text` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `role` | `str` | Required | Message role, such as `user` or `assistant`. |
+| `text` | `str` | Required | Message text. |
 
 ```python
 from harnest.lifecycle import ModelMessage
@@ -710,9 +689,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `ValueT \| _Unchanged` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `ValueT \| _Unchanged` | `UNCHANGED` | Replacement passed to the next stage, or unchanged. |
 
 ```python
 from harnest.lifecycle import Next
@@ -765,9 +744,9 @@ Continue normally or pass a replacement to the next interceptor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `replacement` | `Any` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `replacement` | `Any` | `UNCHANGED` | Value to pass to the next stage. Omit it to continue unchanged. |
 
 ```python
 from harnest.lifecycle import TransitionContext
@@ -788,40 +767,15 @@ Return a final value without advancing to later execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | Final result. Later stages and the protected operation are skipped. |
 
 ```python
 from harnest.lifecycle import TransitionContext
 
 context: TransitionContext
 result = context.finish(result=...)
-```
-
-</Accordion>
-
-## adk_plugin
-
-Register a native ADK plugin factory at the lifecycle boundary.
-
-```python
-adk_plugin(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
-```
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
-
-```python
-from harnest import lifecycle
-
-@lifecycle.adk_plugin
-def plugin():
-    ...  # return an ADK BasePlugin
 ```
 
 </Accordion>
@@ -848,10 +802,10 @@ agent.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callab
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -873,10 +827,10 @@ agent.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callabl
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -898,10 +852,10 @@ agent.on_event(function: _Hook | None = None, *, order: int = 0) -> _Hook | Call
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -923,10 +877,10 @@ agent.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Call
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -948,10 +902,10 @@ authenticate(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callab
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -973,11 +927,11 @@ coverage(framework: str, mode: str, *, overrides: Mapping[str, CoverageLevel] | 
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `mode` | `str` | Required |
-| `overrides` | `Mapping[str, CoverageLevel] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | Required | `"managed"` or `"advanced"`. |
+| `overrides` | `Mapping[str, CoverageLevel] \| None` | `None` | Coverage levels observed by the adapter, by stage name. |
 
 ```python
 from harnest import lifecycle
@@ -997,10 +951,10 @@ credential_provider(function: _Hook | None = None, *, order: int = 0) -> _Hook |
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1022,9 +976,9 @@ eval_capture_options(function: Any) -> EvalCaptureOptions | None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `Any` | Required | Function decorated with `@lifecycle.evals.capture`. |
 
 ```python
 from harnest import lifecycle
@@ -1063,10 +1017,10 @@ value drops the capture. Harnest does not detect personal data.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `store` | `str` | Required |
-| `sample_rate` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `store` | `str` | Required | Name of the custom store that receives captures, registered with `@lifecycle.storage.custom(name)`. |
+| `sample_rate` | `float \| None` | `None` | Fraction of matching invocations to capture, from 0 to 1. `None` defers to the environment, then the default. |
 
 ```python
 from harnest import lifecycle
@@ -1088,10 +1042,10 @@ evals.redact(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callab
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1099,6 +1053,35 @@ from harnest import lifecycle
 @lifecycle.evals.redact
 def redact_capture(record):
     ...
+```
+
+</Accordion>
+
+## framework_extension
+
+Register a zero-argument factory for one framework-specific extension.
+
+The factory returns the selected framework's framework extension type, for
+example an ADK `BasePlugin` or a LangChain `AgentMiddleware`; the
+compiler validates it against the project's framework.
+
+```python
+framework_extension(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
+```
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
+
+```python
+from harnest import lifecycle
+
+@lifecycle.framework_extension
+def extension():
+    ...  # return the configured framework's plugin or middleware
 ```
 
 </Accordion>
@@ -1125,10 +1108,10 @@ http.scope(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1150,10 +1133,10 @@ http.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callabl
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1175,10 +1158,10 @@ http.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1200,10 +1183,10 @@ http.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Calla
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1225,10 +1208,10 @@ http.agent_principal(function: _Hook | None = None, *, order: int = 0) -> _Hook 
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1237,8 +1220,7 @@ from harnest.auth import AuthPrincipal, ConnectionContext
 
 @lifecycle.http.agent_principal
 def grant(
-    connection: ConnectionContext,
-    principal: AuthPrincipal,
+    connection: ConnectionContext, principal: AuthPrincipal,
 ) -> AgentRuntimePrincipal:
     permissions = set()
     if principal.claims.get("can_refund") is True:
@@ -1258,10 +1240,10 @@ http_routes(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callabl
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1269,31 +1251,6 @@ from harnest import lifecycle
 @lifecycle.http_routes
 def http_routes(agent):
     ...  # return a FastAPI router
-```
-
-</Accordion>
-
-## langgraph_middleware
-
-Register a native LangGraph middleware factory at the lifecycle boundary.
-
-```python
-langgraph_middleware(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
-```
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
-
-```python
-from harnest import lifecycle
-
-@lifecycle.langgraph_middleware
-def middleware():
-    ...
 ```
 
 </Accordion>
@@ -1313,11 +1270,11 @@ lifecycle_coverage(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `mode` | `str` | Required |
-| `overrides` | `Mapping[str, CoverageLevel] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | Required | `"managed"` or `"advanced"`. |
+| `overrides` | `Mapping[str, CoverageLevel] \| None` | `None` | Coverage levels observed by the adapter, by stage name. |
 
 ```python
 from harnest import lifecycle
@@ -1349,10 +1306,10 @@ mcp.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1374,10 +1331,10 @@ mcp.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1399,10 +1356,10 @@ mcp.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callab
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1436,10 +1393,10 @@ model.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callab
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1461,10 +1418,10 @@ model.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callabl
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1486,10 +1443,10 @@ model.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Call
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1511,10 +1468,10 @@ output_policy(function: _Hook | None = None, *, order: int = 0) -> _Hook | Calla
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1536,9 +1493,9 @@ registrations_for(function: Any) -> tuple[LifecycleRegistration, ...]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `Any` | Required | A storage factory function. |
 
 ```python
 from harnest import lifecycle
@@ -1558,10 +1515,10 @@ resource(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1595,10 +1552,10 @@ session.created(function: _Hook | None = None, *, order: int = 0) -> _Hook | Cal
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1635,7 +1592,7 @@ Declare one named provider queried only during managed execution.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `str` | Required | Name of the runtime skill catalog. |
-| `order` | `int` | `0` | — |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1669,10 +1626,10 @@ storage.sessions(function: _Hook | None = None, *, order: int = 0) -> _Hook | Ca
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1694,10 +1651,10 @@ storage.checkpoints(function: _Hook | None = None, *, order: int = 0) -> _Hook |
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1719,10 +1676,10 @@ storage.tasks(function: _Hook | None = None, *, order: int = 0) -> _Hook | Calla
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1744,10 +1701,10 @@ storage.cron(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callab
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1769,10 +1726,10 @@ storage.memory(function: _Hook | None = None, *, order: int = 0) -> _Hook | Call
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1797,7 +1754,7 @@ Declare one named asset authority assembled into the registry.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `str` | Required | Asset store name. |
-| `order` | `int` | `0` | — |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1822,7 +1779,7 @@ Declare lifecycle-owned application storage under an explicit name.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | `str` | Required | Name the store is looked up by. |
-| `order` | `int` | `0` | — |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1844,10 +1801,10 @@ telemetry_exporter(function: _Hook | None = None, *, order: int = 0) -> _Hook | 
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1883,7 +1840,7 @@ tool.before(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callabl
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `function` | `_Hook \| None` | `None` | — |
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
 | `order` | `int` | `0` | Lower values run first. |
 
 ```python
@@ -1906,10 +1863,10 @@ tool.after(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle
@@ -1931,10 +1888,10 @@ tool.on_error(function: _Hook | None = None, *, order: int = 0) -> _Hook | Calla
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `_Hook \| None` | `None` |
-| `order` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
 
 ```python
 from harnest import lifecycle

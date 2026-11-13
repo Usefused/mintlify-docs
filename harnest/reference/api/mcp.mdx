@@ -13,6 +13,10 @@ icon: "code"
 
 The facade also exposes `inspect()`, `list_tools(cursor=None)`, `list_resources(cursor=None)`, `list_resource_templates(cursor=None)`, `list_prompts(cursor=None)`, and `get_prompt(name, arguments=None)`. Inspection and tool-catalogue listing are developer operations, not additional model tools.
 
+## Connection selection
+
+`MCPClient.connect()` and `FusedMCPClient.connect()` use the framework selected by Harnest during compilation or an active invocation. For standalone discovery, use `harnest mcp inspect CLIENT --project AGENT_DIR --json`.
+
 ## Exports
 
 | Name | Kind |
@@ -74,7 +78,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.mcp import MCPClient
 
-client: MCPClient  # returned by Harnest, not constructed directly
+client = MCPClient.from_openapi(source=...)
 ```
 
 </Accordion>
@@ -101,12 +105,12 @@ Requires the optional `harnest[openapi]` runtime dependency.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| Path` | Required |
-| `base_url` | `str \| None` | `None` |
-| `headers` | `Mapping[str, str] \| None` | `None` |
-| `**client_options` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| Path` | Required | Path or URL of the OpenAPI spec. |
+| `base_url` | `str \| None` | `None` | Base URL of the API, when it differs from the spec. |
+| `headers` | `Mapping[str, str] \| None` | `None` | HTTP headers sent to the API. |
+| `**client_options` | `Any` | Optional | Standard `stdio` options, such as `tools`, `prefix`, or `permission`. |
 
 ```python
 from harnest.mcp import MCPClient
@@ -140,21 +144,21 @@ Create an MCP client that starts and communicates with a subprocess.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `command` | `str` | Required |
-| `*args` | `str` | Optional |
-| `env` | `Mapping[str, str] \| None` | `None` |
-| `tools` | `Sequence[str] \| None` | `None` |
-| `prefix` | `str \| None` | `None` |
-| `permission` | `str \| None` | `None` |
-| `tool_permissions` | `Mapping[str, str] \| None` | `None` |
-| `timeout_seconds` | `float` | `30` |
-| `lifecycle` | `MCPClientLifecycle \| None` | `None` |
-| `resources` | `Sequence[str] \| None` | `None` |
-| `prompts` | `Sequence[str] \| None` | `None` |
-| `max_content_bytes` | `int` | `1048576` |
-| `subscriptions` | `Sequence[MCPSubscription]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `command` | `str` | Required | Executable that starts the MCP server. |
+| `*args` | `str` | Optional | Arguments passed to the command. |
+| `env` | `Mapping[str, str] \| None` | `None` | Environment variables for the subprocess. |
+| `tools` | `Sequence[str] \| None` | `None` | Only expose these remote tools. `None` exposes every tool the server lists. |
+| `prefix` | `str \| None` | `None` | Prefix added to this server's tool names to avoid collisions, such as `catalog`. |
+| `permission` | `str \| None` | `None` | Runtime permission required for every tool, resource, and prompt from this client. |
+| `tool_permissions` | `Mapping[str, str] \| None` | `None` | Extra runtime permission per named remote tool. |
+| `timeout_seconds` | `float` | `30` | Time limit for MCP requests, in seconds. |
+| `lifecycle` | `MCPClientLifecycle \| None` | `None` | Optional lifecycle that supplies credentials or support resources. |
+| `resources` | `Sequence[str] \| None` | `None` | Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources. |
+| `prompts` | `Sequence[str] \| None` | `None` | Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts. |
+| `max_content_bytes` | `int` | `1048576` | Size limit for returned resource or prompt content, from 1 KiB to 16 MiB. |
+| `subscriptions` | `Sequence[MCPSubscription]` | `()` | Resource subscriptions started with the serving runtime. |
 
 ```python
 from harnest.mcp import MCPClient
@@ -189,21 +193,21 @@ Create an MCP client using the Streamable HTTP transport.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `url` | `str` | Required |
-| `headers` | `Mapping[str, str] \| None` | `None` |
-| `tools` | `Sequence[str] \| None` | `None` |
-| `prefix` | `str \| None` | `None` |
-| `permission` | `str \| None` | `None` |
-| `tool_permissions` | `Mapping[str, str] \| None` | `None` |
-| `timeout_seconds` | `float` | `30` |
-| `sse_read_timeout_seconds` | `float` | `300` |
-| `lifecycle` | `MCPClientLifecycle \| None` | `None` |
-| `resources` | `Sequence[str] \| None` | `None` |
-| `prompts` | `Sequence[str] \| None` | `None` |
-| `max_content_bytes` | `int` | `1048576` |
-| `subscriptions` | `Sequence[MCPSubscription]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | `str` | Required | URL of the MCP server endpoint. |
+| `headers` | `Mapping[str, str] \| None` | `None` | HTTP headers sent with every request, such as an `Authorization` header read from the environment. |
+| `tools` | `Sequence[str] \| None` | `None` | Only expose these remote tools. `None` exposes every tool the server lists. |
+| `prefix` | `str \| None` | `None` | Prefix added to this server's tool names to avoid collisions, such as `catalog`. |
+| `permission` | `str \| None` | `None` | Runtime permission required for every tool, resource, and prompt from this client. |
+| `tool_permissions` | `Mapping[str, str] \| None` | `None` | Extra runtime permission per named remote tool. |
+| `timeout_seconds` | `float` | `30` | Time limit for MCP requests, in seconds. |
+| `sse_read_timeout_seconds` | `float` | `300` | How long to wait for new events on the stream, in seconds. |
+| `lifecycle` | `MCPClientLifecycle \| None` | `None` | Optional lifecycle that supplies credentials, certificates, or a custom HTTP client. |
+| `resources` | `Sequence[str] \| None` | `None` | Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources. |
+| `prompts` | `Sequence[str] \| None` | `None` | Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts. |
+| `max_content_bytes` | `int` | `1048576` | Size limit for returned resource or prompt content, from 1 KiB to 16 MiB. |
+| `subscriptions` | `Sequence[MCPSubscription]` | `()` | Resource subscriptions started with the serving runtime. |
 
 ```python
 from harnest.mcp import MCPClient
@@ -238,21 +242,21 @@ Create an MCP client using the legacy HTTP/SSE transport.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `url` | `str` | Required |
-| `headers` | `Mapping[str, str] \| None` | `None` |
-| `tools` | `Sequence[str] \| None` | `None` |
-| `prefix` | `str \| None` | `None` |
-| `permission` | `str \| None` | `None` |
-| `tool_permissions` | `Mapping[str, str] \| None` | `None` |
-| `timeout_seconds` | `float` | `30` |
-| `sse_read_timeout_seconds` | `float` | `300` |
-| `lifecycle` | `MCPClientLifecycle \| None` | `None` |
-| `resources` | `Sequence[str] \| None` | `None` |
-| `prompts` | `Sequence[str] \| None` | `None` |
-| `max_content_bytes` | `int` | `1048576` |
-| `subscriptions` | `Sequence[MCPSubscription]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | `str` | Required | URL of the MCP server endpoint. |
+| `headers` | `Mapping[str, str] \| None` | `None` | HTTP headers sent with every request, such as an `Authorization` header read from the environment. |
+| `tools` | `Sequence[str] \| None` | `None` | Only expose these remote tools. `None` exposes every tool the server lists. |
+| `prefix` | `str \| None` | `None` | Prefix added to this server's tool names to avoid collisions, such as `catalog`. |
+| `permission` | `str \| None` | `None` | Runtime permission required for every tool, resource, and prompt from this client. |
+| `tool_permissions` | `Mapping[str, str] \| None` | `None` | Extra runtime permission per named remote tool. |
+| `timeout_seconds` | `float` | `30` | Time limit for MCP requests, in seconds. |
+| `sse_read_timeout_seconds` | `float` | `300` | How long to wait for new events on the stream, in seconds. |
+| `lifecycle` | `MCPClientLifecycle \| None` | `None` | Optional lifecycle that supplies credentials, certificates, or a custom HTTP client. |
+| `resources` | `Sequence[str] \| None` | `None` | Allowed resource URIs. `None` allows discovery and reads; `[]` denies resources. |
+| `prompts` | `Sequence[str] \| None` | `None` | Allowed prompt names. `None` allows discovery and retrieval; `[]` denies prompts. |
+| `max_content_bytes` | `int` | `1048576` | Size limit for returned resource or prompt content, from 1 KiB to 16 MiB. |
+| `subscriptions` | `Sequence[MCPSubscription]` | `()` | Resource subscriptions started with the serving runtime. |
 
 ```python
 from harnest.mcp import MCPClient
@@ -265,22 +269,19 @@ client = MCPClient.sse(url=...)
 ### MCPClient.connect
 
 ```python
-MCPClient.connect(*, framework: Literal['adk', 'langgraph'] = 'langgraph') -> Any
+MCPClient.connect() -> AbstractAsyncContextManager[MCPResourceClient]
 ```
 
-Open a developer-owned read client using the configured lifecycle and credentials.
+Open a read client using Harnest's selected framework and credentials.
 
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `Literal['adk', 'langgraph']` | `'langgraph'` |
+<Accordion title="Example">
 
 ```python
 from harnest.mcp import MCPClient
 
 client: MCPClient
-result = client.connect()
+async with client.connect():
+    ...
 ```
 
 </Accordion>
@@ -295,9 +296,9 @@ Combine an optional client requirement with one remote-tool requirement.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `tool_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `tool_name` | `str` | Required | Name of the remote tool. |
 
 ```python
 from harnest.mcp import MCPClient
@@ -308,13 +309,13 @@ result = client.required_permissions_for(tool_name=...)
 
 </Accordion>
 
-### MCPClient.to_adk_toolset
+### MCPClient.connection_options
 
 ```python
-MCPClient.to_adk_toolset() -> Any
+MCPClient.connection_options() -> dict[str, Any]
 ```
 
-Use native transport while preserving portable expansion and failure rules.
+Return this server's connection options without opening a session.
 
 <Accordion title="Example">
 
@@ -322,26 +323,7 @@ Use native transport while preserving portable expansion and failure rules.
 from harnest.mcp import MCPClient
 
 client: MCPClient
-result = client.to_adk_toolset()
-```
-
-</Accordion>
-
-### MCPClient.to_langgraph_connection
-
-```python
-MCPClient.to_langgraph_connection() -> dict[str, Any]
-```
-
-Return a LangChain MCP adapter connection without opening it.
-
-<Accordion title="Example">
-
-```python
-from harnest.mcp import MCPClient
-
-client: MCPClient
-result = client.to_langgraph_connection()
+result = client.connection_options()
 ```
 
 </Accordion>
@@ -370,12 +352,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `transport` | `Literal['stdio', 'sse', 'streamable-http']` | Required |
-| `framework` | `MCPFramework` | Required |
-| `url` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the MCP client. |
+| `transport` | `Literal['stdio', 'sse', 'streamable-http']` | Required | `"stdio"`, `"sse"`, or `"streamable-http"`. |
+| `framework` | `MCPFramework` | Required | Agent framework using the client. |
+| `url` | `str` | Required | Server URL for HTTP transports. |
 
 ```python
 from harnest.mcp import MCPClientContext
@@ -417,9 +399,9 @@ Initialize credential, certificate, or gateway support resources.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `MCPClientContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `MCPClientContext` | Required | Identity of the MCP client. |
 
 ```python
 from harnest.mcp import MCPClientLifecycle
@@ -440,10 +422,10 @@ Return a proxy-aware `httpx.AsyncClient` with safe diagnostics.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `options` | `MCPHTTPClientOptions` | Required |
-| `context` | `MCPClientContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `options` | `MCPHTTPClientOptions` | Required | Headers, timeout, and auth the adapter needs on the client. |
+| `context` | `MCPClientContext` | Required | Identity of the MCP client. |
 
 ```python
 from harnest.mcp import MCPClientLifecycle
@@ -464,9 +446,9 @@ Release application-level resources created by `start`.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `MCPClientContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `MCPClientContext` | Required | Identity of the MCP client. |
 
 ```python
 from harnest.mcp import MCPClientLifecycle
@@ -522,9 +504,9 @@ Return one named managed client for concise context access.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the MCP client, matching its `mcp/<name>.py` file. |
 
 ```python
 from harnest.mcp import MCPContext
@@ -545,9 +527,9 @@ Return one named client or fail without enumerating capabilities.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the MCP client, matching its `mcp/<name>.py` file. |
 
 ```python
 from harnest.mcp import MCPContext
@@ -593,11 +575,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `headers` | `Mapping[str, str]` | Required |
-| `timeout` | `Any` | `None` |
-| `auth` | `Any` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `headers` | `Mapping[str, str]` | Required | Headers to send on every request. |
+| `timeout` | `Any` | `None` | Timeout to apply to the client. |
+| `auth` | `Any` | `None` | Authentication handler to apply to the client. |
 
 ```python
 from harnest.mcp import MCPHTTPClientOptions
@@ -634,9 +616,9 @@ MCPLifecyclePipeline(listeners: Sequence[LifecycleListener]) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `listeners` | `Sequence[LifecycleListener]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `listeners` | `Sequence[LifecycleListener]` | Required | The registered MCP lifecycle hooks, in order. |
 
 ```python
 from harnest.mcp import MCPLifecyclePipeline
@@ -660,11 +642,11 @@ Run one call, allowing explicit short-circuit and safe recovery.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `MCPToolCallRequest` | Required |
-| `handler` | `Callable[[MCPToolCallRequest], Awaitable[Any]]` | Required |
-| `context` | `MCPToolLifecycleContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `MCPToolCallRequest` | Required | The remote tool call. |
+| `handler` | `Callable[[MCPToolCallRequest], Awaitable[Any]]` | Required | Function that performs the remote call. |
+| `context` | `MCPToolLifecycleContext` | Required | Identity of the remote tool call. |
 
 ```python
 from harnest.mcp import MCPLifecyclePipeline
@@ -685,10 +667,10 @@ MCPResourceClient(configured: Any, *, framework: str = 'langgraph') -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `configured` | `Any` | Required |
-| `framework` | `str` | `'langgraph'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `configured` | `Any` | Required | — |
+| `framework` | `str` | `'langgraph'` | Agent framework, `"adk"` or `"langgraph"`. |
 
 ```python
 from harnest.mcp import MCPResourceClient
@@ -727,9 +709,9 @@ List one page of remote tool schemas under the configured tool policy.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import MCPResourceClient
@@ -750,9 +732,9 @@ Return one bounded page with the server's opaque nextCursor unchanged.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import MCPResourceClient
@@ -773,9 +755,9 @@ Discover parameterized resource URIs without fetching their contents.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import MCPResourceClient
@@ -796,9 +778,9 @@ Discover prompt descriptions and declared arguments.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import MCPResourceClient
@@ -819,9 +801,9 @@ Read an explicitly selected URI through MCP, never through a local file API.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `uri` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `uri` | `str` | Required | Resource URI. It must be allowed by the client's `resources` setting. |
 
 ```python
 from harnest.mcp import MCPResourceClient
@@ -842,10 +824,10 @@ Retrieve prompt messages as untrusted data for explicit caller use.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `arguments` | `Mapping[str, str] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Prompt name. It must be allowed by the client's `prompts` setting. |
+| `arguments` | `Mapping[str, str] \| None` | `None` | Prompt arguments. |
 
 ```python
 from harnest.mcp import MCPResourceClient
@@ -897,12 +879,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `client_name` | `str` | Required |
-| `uri` | `str` | Required |
-| `resource` | `Mapping[str, Any]` | Required |
-| `reason` | `Literal['start', 'update', 'reconnect']` | `'update'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `client_name` | `str` | Required | Name of the MCP client that received the update. |
+| `uri` | `str` | Required | URI of the resource. |
+| `resource` | `Mapping[str, Any]` | Required | The resource value that was read. |
+| `reason` | `Literal['start', 'update', 'reconnect']` | `'update'` | `"start"`, `"update"`, or `"reconnect"`. |
 
 ```python
 from harnest.mcp import MCPResourceEvent
@@ -940,14 +922,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `uri` | `str` | Required |
-| `handler` | `Callable[[MCPResourceEvent], Awaitable[None]]` | Required |
-| `method` | `Literal['resources/subscribe', 'subscriptions/listen']` | `'resources/subscribe'` |
-| `read_on_start` | `bool` | `True` |
-| `read_on_reconnect` | `bool` | `True` |
-| `handler_timeout_seconds` | `float` | `30` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `uri` | `str` | Required | Resource URI to subscribe to. |
+| `handler` | `Callable[[MCPResourceEvent], Awaitable[None]]` | Required | Async function called with each `MCPResourceEvent`. It has no user or session context. |
+| `method` | `Literal['resources/subscribe', 'subscriptions/listen']` | `'resources/subscribe'` | `"resources/subscribe"` (default) or `"subscriptions/listen"` for stateless Streamable HTTP servers. |
+| `read_on_start` | `bool` | `True` | Read the resource once when the subscription starts. |
+| `read_on_reconnect` | `bool` | `True` | Read the resource again after a reconnect. |
+| `handler_timeout_seconds` | `float` | `30` | Time limit for one handler call, in seconds. |
 
 ```python
 from harnest.mcp import MCPSubscription
@@ -990,9 +972,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `arguments` | `Mapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `arguments` | `Mapping[str, Any]` | `...` | Arguments for the remote tool. A `before` hook can replace them. |
 
 ```python
 from harnest.mcp import MCPToolCallRequest
@@ -1032,27 +1014,22 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `agent_name` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `client_name` | `str` | Required |
-| `tool_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `client_name` | `str` | Required | Name of the MCP client. |
+| `tool_name` | `str` | Required | Name of the remote tool. |
 
 ```python
 from harnest.mcp import MCPToolLifecycleContext
 
 context = MCPToolLifecycleContext(
-    framework=...,
-    agent_name=...,
-    invocation_id=...,
-    user_id=...,
-    session_id=...,
-    client_name=...,
-    tool_name=...,
+    framework=..., agent_name=..., invocation_id=..., user_id=..., session_id=...,
+    client_name=..., tool_name=...,
 )
 ```
 
@@ -1068,9 +1045,9 @@ Continue normally or pass a replacement to the next interceptor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `replacement` | `Any` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `replacement` | `Any` | `UNCHANGED` | Value to pass to the next stage. Omit it to continue unchanged. |
 
 ```python
 from harnest.mcp import MCPToolLifecycleContext
@@ -1091,9 +1068,9 @@ Return a final value without advancing to later execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | Final result. Later stages and the protected operation are skipped. |
 
 ```python
 from harnest.mcp import MCPToolLifecycleContext
@@ -1138,7 +1115,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.mcp import ManagedMCPClient
 
-client: ManagedMCPClient  # returned by Harnest, not constructed directly
+client: ManagedMCPClient  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -1172,9 +1149,9 @@ List one resource page without reading its contents.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import ManagedMCPClient
@@ -1195,9 +1172,9 @@ List remote tool metadata within this invocation's permission scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import ManagedMCPClient
@@ -1218,9 +1195,9 @@ List one page of parameterized resource URIs.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import ManagedMCPClient
@@ -1241,9 +1218,9 @@ List prompt descriptions and arguments without rendering messages.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cursor` | `str \| None` | `None` | Opaque cursor returned by the previous page; `None` starts from the beginning. |
 
 ```python
 from harnest.mcp import ManagedMCPClient
@@ -1264,9 +1241,9 @@ Read an allowed MCP URI through the same audit and permission boundary.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `uri` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `uri` | `str` | Required | Resource URI. It must be allowed by the client's `resources` setting. |
 
 ```python
 from harnest.mcp import ManagedMCPClient
@@ -1287,10 +1264,10 @@ Return prompt messages as data, never as higher-priority instructions.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `arguments` | `Mapping[str, str] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Prompt name. It must be allowed by the client's `prompts` setting. |
+| `arguments` | `Mapping[str, str] \| None` | `None` | Prompt arguments. |
 
 ```python
 from harnest.mcp import ManagedMCPClient
@@ -1311,10 +1288,10 @@ Dispatch one discovered tool through its governed shared path.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `arguments` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the discovered remote tool. |
+| `arguments` | `Mapping[str, Any] \| None` | `None` | Tool arguments. |
 
 ```python
 from harnest.mcp import ManagedMCPClient

@@ -1,0 +1,30 @@
+ResumeArtifact:
+  fields:
+    framework_invocation_id: Framework invocation ID of the suspended call.
+    tool_call_id: Framework ID of the suspended tool call.
+    tool_name: Name of the suspended tool.
+    version: Format version of the artifact.
+ResumeArtifact.from_mapping:
+  params:
+    value: Persisted artifact fields.
+FrameworkDurableCall:
+  params:
+    artifact: Identity of the suspended tool call.
+FrameworkDurableCall.submission_key:
+  params:
+    run_id: ID of the run.
+    provider: Name of the continuation provider.
+    capability: Name of the waiting capability.
+FrameworkDurableCall.suspend:
+  params:
+    pending: The pending continuation to wait on.
+FrameworkResumeInput:
+  fields:
+    artifact: Identity of the call to resume.
+    value: Value to resume the call with.
+framework_durable_call:
+  params:
+    artifact: Identity of the durable tool call.
+is_durable_tool:
+  params:
+    value: The function to check.

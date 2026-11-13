@@ -1,0 +1,52 @@
+# Curated details for /harnest/reference/api/testing. See task.yaml for the format.
+
+run_agent_tests:
+  params:
+    source: Agent folder to test.
+    include_smoke: Also run `tests/smoke/` tests, which may call live models and services.
+    include_evals: Also run the agent's evals.
+    eval_trajectory: '`"business"` or `"strict"` tool-trajectory policy for evals.'
+    no_output: Suppress progress output.
+    eval_output: File to write eval results to.
+    mode: '`"managed"` or `"advanced"`.'
+    cli_enabled: Allow command-line invocation of the compiled test artifact.
+
+SmokeClient:
+  params:
+    client: HTTP client connected to the running agent.
+
+SmokeClient.respond:
+  params: &smoke
+    input: Message to send.
+    metadata: Public request metadata.
+
+SmokeClient.stream:
+  params: *smoke
+
+ChannelStoreConformanceMixin.channel_event:
+  params:
+    provider_event_id: Event ID for the test event.
+    changes: Fields to override.
+
+ChannelStoreConformanceMixin.channel_reply:
+  params:
+    reply_id: Reply ID for the test reply.
+    changes: Fields to override.
+
+MemoryStoreConformanceMixin.record:
+  params:
+    key: Key for the test record.
+    changes: Fields to override.
+
+"*.task_record":
+  params: &changes
+    changes: Fields to override.
+
+"*.cron_record":
+  params: *changes
+
+"*.claim":
+  params: *changes
+
+"*.finish":
+  params: *changes

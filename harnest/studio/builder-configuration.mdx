@@ -44,10 +44,10 @@ export HARNEST_BUILDER_MAX_TOKENS=16000
 harnest studio
 ```
 
-Saved browser choices override these defaults. Studio restarts its private assistant when the model or budgets change and derives longer runtime and HTTP deadlines from the selected timeout. Provider credentials remain server-side.
+Saved browser choices override these defaults. Studio restarts its builder when the model or budgets change.
 
 ## Supply defaults through a company pack
 
-A [company Studio Pack](/harnest/studio/packs#configure-the-studio-builder-for-your-team) can supply some or all builder settings, including the model, base URL, API-key environment variable name, bundled CA certificates, and budgets. Teams receive these defaults when they launch your packaged Studio.
+Your [pack's Studio section](/harnest/studio/packs#configure-the-studio-builder-for-your-team) can supply some or all builder settings, including the model, base URL, API-key environment variable name, bundled CA certificates, and budgets. Teams receive these defaults when they launch Studio with your pack, for example `acme studio`.
 
 Local environment settings override pack defaults. Model and budget choices saved in Studio override launch defaults for subsequent requests. Keep actual credentials on each device or in your organization's credential system.

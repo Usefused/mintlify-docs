@@ -1,0 +1,14 @@
+# Curated details for /harnest/reference/api/compatibility. See task.yaml for the format.
+
+FrameworkCompatibility:
+  fields:
+    distribution: Python distribution of the framework, such as `google-adk`.
+    versions: Supported version range.
+    install_extra: Harnest extra that installs the framework.
+
+ResolvedFrameworkCompatibility:
+  fields:
+    harnest_version: Harnest version used for the compilation.
+    distribution: Python distribution of the framework.
+    distribution_version: Installed framework version.
+    supported_versions: Supported version range.

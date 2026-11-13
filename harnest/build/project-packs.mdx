@@ -1,45 +1,65 @@
 ---
 icon: "box"
-title: "Company project packs"
+title: "Harnest packs"
 sidebarTitle: "Overview"
-description: "Build an internal agent product with company scaffolds, typed settings, and versioned migrations."
+description: "Ship your company's agent defaults, migrations, commands, and Studio setup as one pack."
 ---
 
-A **project pack** teaches Harnest how your company creates and upgrades agent repositories. Package your defaults, templates, and migrations once, then expose them through your own CLI or a custom interface.
+A **pack** bundles company scaffolding, typed settings, versioned migrations, commands, and Studio setup. Teams use it with `harnest init`, `harnest upgrade`, or `harnest studio` and `--pack DIR`, or through the pack's own command, such as `acme`.
 
-Install packs in your authoring environment. Their scaffolding and migration dependencies do not need to be installed in deployed agents. Use a [Harnest Extension](/harnest/build/extensions) for capabilities that run inside the agent.
+Packs are authoring code. Their dependencies are not installed in deployed agents. Use a [Harnest Extension](/harnest/build/extensions) for capabilities that run inside the agent.
+
+## What a pack contains
+
+A pack is one folder:
+
+```text
+acme-pack/
+  pack.yaml        # name, version, command, and the optional Studio sub-pack
+  pack.py          # optional: init and migration hooks, company commands
+  templates/       # optional: files your hooks copy into agents
+  assets/          # optional: Studio UI files
+```
+
+| File | What it holds | Runs code? |
+|---|---|---|
+| `pack.yaml` | Identity, version ranges, the branded `command`, and an optional `studio:` sub-pack with builder defaults, UI, and installable resources. | No. Harnest and Studio read it as data. |
+| `pack.py` | `pack = ProjectPack(schema_version=...)` with `@pack.initialize`, `@pack.migration`, and `@pack.command`. | Imported for project planning, pack validation, wheel building, and company commands. Studio catalog loading reads only the manifest and declared assets. |
 
 <CardGroup cols={2}>
   <Card title="Create a pack" icon="box" href="/harnest/build/project-packs/create">
-    Define pack identity, typed options, and company configuration.
+    Generate a starter, then define identity, options, and configuration.
   </Card>
-  <Card title="Build a company CLI" icon="terminal" href="/harnest/build/project-packs/cli">
-    Expose init, upgrade, and your own commands.
+  <Card title="Run and ship a pack" icon="terminal" href="/harnest/build/project-packs/cli">
+    Use `--pack`, build the branded command, and add company commands.
   </Card>
 </CardGroup>
 
-## Create a starter
+## Try it
 
 ```bash
 harnest pack init acme --output ./acme-pack
+harnest init ./sales --pack ./acme-pack
+harnest pack build ./acme-pack --output ./dist
 ```
 
-This creates `pack.py`, an editable `harnest-compile.yaml`, and sample team documentation. Run `python ./acme-pack/pack.py init ./sales` to create an agent with those defaults. See [generate a starter pack](/harnest/build/project-packs/create#generate-a-starter-pack) for setup and customization.
+The wheel installs the branded `acme` command for use as `acme init ./sales`.
 
 ## Supported decorators
 
-Project packs support two decorators. Both register synchronous functions that return a [`ChangePlan`](/harnest/reference/api/authoring#changeplan); they propose changes during planning rather than applying them to the live project.
+Initialization and migration hooks are synchronous functions that return a [`ChangePlan`](/harnest/reference/api/authoring#changeplan). Harnest applies the proposed changes after planning succeeds.
 
 | Decorator | Purpose | When it runs |
 |---|---|---|
 | [`@pack.initialize`](/harnest/build/project-packs/initialize) | Create company files and defaults. | When planning a new project, including a dry run. |
 | [`@pack.migration(from_version=1, to_version=2)`](/harnest/build/project-packs/migrations) | Move an existing project to the next company schema. | When planning an upgrade that crosses that version. |
+| [`@pack.command("check")`](/harnest/build/project-packs/cli#add-a-company-command) | Add a command to the pack's branded executable. | When someone runs `acme check`. |
 
-There are no separate before/after init, apply, or rollback decorators. Harnest owns applying and recovering the proposed changes.
+Company command handlers receive argument strings and return an exit code; they execute immediately outside the project transaction. Harnest owns applying and recovering proposed changes.
 
 ## How changes reach the project
 
-Harnest prepares its scaffold or core migrations in a temporary copy. Packs then propose their changes in the order you supply them. The planner validates company configuration and reports conflicts in one combined preview.
+Harnest prepares its scaffold or core migrations in a temporary copy. Packs then propose their changes in the order you pass them. The planner validates company configuration and reports conflicts in one combined preview.
 
 <CardGroup cols={2}>
   <Card title="Files, YAML, and templates" icon="file-code" href="/harnest/build/project-packs/changes">

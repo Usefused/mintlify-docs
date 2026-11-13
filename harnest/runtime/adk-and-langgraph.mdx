@@ -55,20 +55,20 @@ Preserve `agent.py`; do not run `init` over the project.
 
 ## Switch frameworks
 
-Changing `spec.framework.name` is simple. Validating the behavior is the migration.
+Switch a managed project by changing `spec.framework.name` and validating its framework-dependent behavior.
 
 <Steps>
   <Step title="Establish the current baseline">
     Preserve the source and run the existing unit tests.
   </Step>
-  <Step title="Find native dependencies">
-    Inspect `agent.py`, native extensions, custom graph nodes, nested SubAgents, sandboxes, eval assets, and active checkpoints.
+  <Step title="Find framework-specific dependencies">
+    Inspect `agent.py`, framework extensions, custom graph nodes, nested SubAgents, sandboxes, eval assets, and active checkpoints.
   </Step>
   <Step title="Change the framework">
     Update only `spec.framework.name`. Do not add Harnest-owned framework packages to `pyproject.toml`.
   </Step>
   <Step title="Test the target">
-    Run `harnest test AGENT_DIR`, any authorized smoke tests, and `harnest serve AGENT_DIR`.
+    Run `harnest test AGENT_DIR` and your smoke tests against the target framework. Check tool calls, persisted state, and recovery against the existing behavior.
   </Step>
 </Steps>
 
@@ -92,3 +92,13 @@ Durable managed tools use each framework's native suspension boundary. Review th
 ## Version compatibility
 
 Harnest installs a tested framework version and records it in the manifest. Upgrade Harnest to adopt a newer version; do not override it in `pyproject.toml`.
+
+## Build using the configured framework
+
+Harnest selects the framework before importing `agent.py`, library modules, and lifecycle factories. Managed projects export model connectors and agent or graph definitions. Advanced integrations obtain framework objects through `model.build()`, `agent.build()`, or `graph.build()`. `resolve_model(model)` and `bundle_agent(__file__, agent)` use the same selection.
+
+These helpers require Harnest compilation or an active invocation.
+
+For an advanced graph backed by a Harnest store, use `store.framework_checkpointer()` when compiling the graph. Return that same store from your lifecycle storage factory. Framework-owned persistence uses `ADKStore` from `harnest.frameworks.adk` or `LangGraphStore` from `harnest.frameworks.langgraph` instead.
+
+Python hosts load an exposed framework application with `load_framework_app()`. When embedding the server, use `session_store=` for a portable store or `framework_session_storage=` for a supported framework storage factory.

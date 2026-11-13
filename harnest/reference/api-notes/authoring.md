@@ -2,12 +2,13 @@
 
 ## Pack configuration
 
+[`load_pack`](#load_pack) imports `pack.py` and binds its `ProjectPack` to the identity declared in `pack.yaml`.
+
 | Property | Required | Contract |
 |---|---|---|
-| `name` | Yes | A unique kebab-case identifier beginning with a letter, up to 63 characters. `harnest` is reserved. |
-| `schema_version` | Yes | A positive integer identifying the company configuration schema. Track it separately from your package release version. |
-| `options` | No | A Pydantic model for caller-supplied inputs. |
-| `templates` | No | A directory containing inert UTF-8 [templates](/harnest/build/project-packs/changes#templates). |
+| `schema_version` | Yes | A positive integer identifying the company configuration schema. Track it separately from the `version` in `pack.yaml`. |
+| `options` | No | A Pydantic model for values passed with `--option`. |
+| `templates` | No | A directory of inert UTF-8 [templates](/harnest/build/project-packs/changes#templates). Relative paths resolve against the pack folder. |
 | `config_file` | With `config_model` | The project-relative company configuration path. |
 | `config_model` | With `config_file` | A Pydantic model that validates the resulting configuration mapping. |
 
@@ -70,7 +71,7 @@ def migrate(context: ProjectContext) -> ChangePlan:
 | Function | A synchronous callable accepting `ProjectContext` and returning `ChangePlan`. |
 | Registration | One migration per source version. Duplicate registrations are rejected. |
 | Timing | Runs during upgrade planning, including previews. |
-| New projects | Skip historical migrations; their initializer must create the current schema directly. |
+| New projects | Their initializer creates the current schema; migrations run only on existing projects. |
 
 ## Plan results
 
@@ -79,5 +80,7 @@ def migrate(context: ProjectContext) -> ChangePlan:
 | `root` | The resolved target directory. |
 | `changes` | Net file changes: `ChangeKind.CREATE`, `UPDATE`, or `DELETE`, with paths and owners. |
 | `blockers` | Problems that prevent the entire plan from applying. |
+| `warnings` | Release warnings from Harnest's core upgrade, such as breaking changes that affect this agent. |
+| `notes` | Optional migration guidance from Harnest's core upgrade. |
 | `render()` | A readable combined summary. |
 | `public()` | A JSON-compatible summary without file contents or option values. |

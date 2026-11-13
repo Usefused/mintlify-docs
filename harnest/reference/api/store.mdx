@@ -131,11 +131,11 @@ Create one process-local tenant-scoped session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Initial session state. |
 
 ```python
 from harnest.store import MemoryStore
@@ -156,10 +156,10 @@ Read one process-local tenant-scoped session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import MemoryStore
@@ -180,11 +180,11 @@ List an ordered keyset page without materializing unrelated users.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int \| None` | `None` | Maximum number of items to return. |
 
 ```python
 from harnest.store import MemoryStore
@@ -205,11 +205,11 @@ Merge a state delta into a process-local session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
 
 ```python
 from harnest.store import MemoryStore
@@ -230,10 +230,10 @@ Delete one process-local session after its active lease exits.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import MemoryStore
@@ -254,10 +254,10 @@ Hold exclusive access to one process-local session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import MemoryStore
@@ -288,13 +288,13 @@ await store.close()
 
 </Accordion>
 
-### MemoryStore.as_langgraph_checkpointer
+### MemoryStore.framework_checkpointer
 
 ```python
-MemoryStore.as_langgraph_checkpointer() -> Any
+MemoryStore.framework_checkpointer() -> Any
 ```
 
-Return one stable native saver for advanced LangGraph construction.
+Adapt this store for an advanced target using Harnest's selected framework.
 
 <Accordion title="Example">
 
@@ -302,7 +302,7 @@ Return one stable native saver for advanced LangGraph construction.
 from harnest.store import MemoryStore
 
 store: MemoryStore
-result = store.as_langgraph_checkpointer()
+result = store.framework_checkpointer()
 ```
 
 </Accordion>
@@ -317,9 +317,9 @@ Upsert one owner-scoped snapshot without allowing context reassignment.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `A2ATaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `A2ATaskRecord` | Required | The A2A task snapshot to persist. |
 
 ```python
 from harnest.store import MemoryStore
@@ -340,11 +340,11 @@ Read one snapshot only through its complete ownership key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.store import MemoryStore
@@ -374,15 +374,15 @@ Return a stable inclusive-cursor page for the process-local backend.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `context_id` | `str \| None` | `None` |
-| `status` | `int \| None` | `None` |
-| `status_timestamp_after` | `str \| None` | `None` |
-| `cursor_task_id` | `str \| None` | `None` |
-| `limit` | `int` | `51` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `status` | `int \| None` | `None` | Only return tasks in this A2A task state. |
+| `status_timestamp_after` | `str \| None` | `None` | Only return tasks whose status changed after this timestamp. |
+| `cursor_task_id` | `str \| None` | `None` | Task ID to start the page from, taken from the previous page. |
+| `limit` | `int` | `51` | Maximum number of tasks to return. |
 
 ```python
 from harnest.store import MemoryStore
@@ -403,11 +403,11 @@ Delete exactly one owner-scoped A2A snapshot.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.store import MemoryStore
@@ -427,7 +427,7 @@ async MemoryStore.begin_run(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
 ) -> RunRecord
 ```
 
@@ -435,24 +435,20 @@ Claim the session for one idempotent invocation run.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID for the run. An existing active run for the session is recovered instead. |
+| `framework` | `FrameworkName` | Required | — |
 
 ```python
 from harnest.store import MemoryStore
 
 store: MemoryStore
 record = await store.begin_run(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -468,9 +464,9 @@ Read one process-local run through its complete ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.store import MemoryStore
@@ -496,11 +492,11 @@ Load an exact checkpoint or the newest checkpoint in a namespace.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str \| None` | `None` |
-| `namespace` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str \| None` | `None` | ID of one checkpoint within the run; `None` selects the latest. |
+| `namespace` | `str` | `''` | Checkpoint namespace within the run. `""` is the root graph. |
 
 ```python
 from harnest.store import MemoryStore
@@ -527,12 +523,12 @@ Yield a bounded newest-first checkpoint history.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `namespace` | `str \| None` | `None` |
-| `before` | `str \| None` | `None` |
-| `limit` | `int` | `20` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `namespace` | `str \| None` | `None` | Only return checkpoints in this namespace; `None` returns all namespaces. |
+| `before` | `str \| None` | `None` | Only return checkpoints older than this checkpoint ID. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
 
 ```python
 from harnest.store import MemoryStore
@@ -554,11 +550,11 @@ Persist a checkpoint only when its expected revision still matches.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpoint` | `CheckpointRecord` | Required |
-| `scope` | `RunScope` | Required |
-| `expected_revision` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint` | `CheckpointRecord` | Required | The checkpoint to persist. |
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_revision` | `int \| None` | Required | Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch raises `CheckpointConflictError`. |
 
 ```python
 from harnest.store import MemoryStore
@@ -579,11 +575,11 @@ Add pending writes idempotently by task and channel.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
-| `writes` | `Sequence[CheckpointWrite]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `writes` | `Sequence[CheckpointWrite]` | Required | Pending task writes to store for the checkpoint. |
 
 ```python
 from harnest.store import MemoryStore
@@ -604,10 +600,10 @@ Read process-local pending writes for one owned checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
 
 ```python
 from harnest.store import MemoryStore
@@ -628,10 +624,10 @@ Load writes for several checkpoints without per-checkpoint calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_ids` | `Sequence[str]` | Required | IDs of the checkpoints to read pending writes for. |
 
 ```python
 from harnest.store import MemoryStore
@@ -658,12 +654,12 @@ Apply one valid compare-and-swap run-state transition.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `expected_status` | `RunStatus` | Required |
-| `status` | `RunStatus` | Required |
-| `pending_action` | `PendingAction \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_status` | `RunStatus` | Required | Status the run must have now. A mismatch raises `CheckpointConflictError`. |
+| `status` | `RunStatus` | Required | New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting` → `running`/`failed`/`cancelled`. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed otherwise. |
 
 ```python
 from harnest.store import MemoryStore
@@ -684,10 +680,10 @@ Atomically register provider work and move its owned run to waiting.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `Any` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `Any` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work this run now waits on. |
 
 ```python
 from harnest.store import MemoryStore
@@ -708,10 +704,10 @@ Return one record only when every run ownership field matches.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.store import MemoryStore
@@ -732,20 +728,18 @@ Return an exact continuation together with its provider external ID.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.store import MemoryStore
 
 store: MemoryStore
 result = await store.get_provider_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
+    scope=..., provider=..., continuation_id=...,
 )
 ```
 
@@ -761,20 +755,18 @@ Resolve one provider identity through the same indexed ownership key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the external ID. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.store import MemoryStore
 
 store: MemoryStore
 result = await store.get_continuation_by_external_id(
-    application_id=...,
-    provider=...,
-    external_id=...,
+    application_id=..., provider=..., external_id=...,
 )
 ```
 
@@ -796,12 +788,12 @@ Return a bounded provider page for local reconciliation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Only return waits owned by this continuation provider. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of waits to return. |
 
 ```python
 from harnest.store import MemoryStore
@@ -830,24 +822,21 @@ Commit a provider result or failure with one status compare-and-swap.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure` | `Any` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider resolving the wait. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result was validated against. |
+| `result` | `Any` | `None` | Validated result of the external work. Leave unset when passing `failure`. |
+| `failure` | `Any` | `None` | Failure category when the external work failed, or `None` on success. |
 
 ```python
 from harnest.store import MemoryStore
 
 store: MemoryStore
 result = await store.resolve_continuation(
-    scope=...,
-    provider=...,
-    external_id=...,
-    schema_id=...,
+    scope=..., provider=..., external_id=..., schema_id=...,
 )
 ```
 
@@ -870,24 +859,20 @@ Fail one pending continuation and cancel its exact waiting run.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `failure` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `failure` | `Any` | Required | Failure category recorded on the cancelled wait. |
 
 ```python
 from harnest.store import MemoryStore
 
 store: MemoryStore
 result = await store.cancel_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
-    failure=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=..., failure=...,
 )
 ```
 
@@ -909,22 +894,19 @@ Claim an outcome and return the waiting run to running atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.store import MemoryStore
 
 store: MemoryStore
 result = await store.claim_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -946,22 +928,19 @@ Arm a provider wait after its native suspension is checkpointed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.store import MemoryStore
 
 store: MemoryStore
 result = await store.arm_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -977,9 +956,9 @@ Delete a run and every private checkpoint owned by it.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.store import MemoryStore
@@ -1017,12 +996,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str` | Required |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `lease_pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str` | Required | PostgreSQL connection string. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Options for the primary `asyncpg` pool, such as `min_size` and `max_size`. |
+| `lease_pool_options` | `Mapping[str, Any] \| None` | `None` | Options for a separate pool for long-lived session leases. Omit it to share one pool. |
+| `setup_schema` | `bool` | `True` | Create Harnest's schema. Use `False` for a pre-provisioned schema. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1032,13 +1011,13 @@ store = PostgresStore(dsn=...)
 
 </Accordion>
 
-### PostgresStore.as_langgraph_checkpointer
+### PostgresStore.framework_checkpointer
 
 ```python
-PostgresStore.as_langgraph_checkpointer() -> Any
+PostgresStore.framework_checkpointer() -> Any
 ```
 
-Return one stable native saver for advanced LangGraph construction.
+Adapt this store for an advanced target using Harnest's selected framework.
 
 <Accordion title="Example">
 
@@ -1046,7 +1025,7 @@ Return one stable native saver for advanced LangGraph construction.
 from harnest.store import PostgresStore
 
 store: PostgresStore
-result = store.as_langgraph_checkpointer()
+result = store.framework_checkpointer()
 ```
 
 </Accordion>
@@ -1080,11 +1059,11 @@ Create one tenant-scoped session without overwriting conflicts.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Initial session state. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1105,10 +1084,10 @@ Read one tenant-scoped session from PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1129,11 +1108,11 @@ Apply tenant filtering and optional keyset pagination in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int \| None` | `None` | Maximum number of items to return. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1154,9 +1133,9 @@ Upsert an owner-scoped protobuf snapshot with immutable context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `A2ATaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `A2ATaskRecord` | Required | The A2A task snapshot to persist. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1177,11 +1156,11 @@ Read one A2A task using its complete application and owner scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1211,15 +1190,15 @@ Apply A2A filters, ordering, and keyset pagination in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `context_id` | `str \| None` | `None` |
-| `status` | `int \| None` | `None` |
-| `status_timestamp_after` | `str \| None` | `None` |
-| `cursor_task_id` | `str \| None` | `None` |
-| `limit` | `int` | `51` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `status` | `int \| None` | `None` | Only return tasks in this A2A task state. |
+| `status_timestamp_after` | `str \| None` | `None` | Only return tasks whose status changed after this timestamp. |
+| `cursor_task_id` | `str \| None` | `None` | Task ID to start the page from, taken from the previous page. |
+| `limit` | `int` | `51` | Maximum number of tasks to return. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1240,11 +1219,11 @@ Delete one exact A2A owner record without revealing foreign tasks.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1265,11 +1244,11 @@ Atomically merge a state delta in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1290,10 +1269,10 @@ Delete one tenant-scoped session and report whether it existed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1314,10 +1293,10 @@ Hold a cross-replica advisory lock for one session execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1338,7 +1317,7 @@ async PostgresStore.begin_run(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
 ) -> RunRecord
 ```
 
@@ -1346,24 +1325,20 @@ Create an idempotent run while allowing one active run per session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID for the run. An existing active run for the session is recovered instead. |
+| `framework` | `FrameworkName` | Required | — |
 
 ```python
 from harnest.store import PostgresStore
 
 store: PostgresStore
 record = await store.begin_run(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -1379,9 +1354,9 @@ Read one PostgreSQL checkpoint run through its ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1407,11 +1382,11 @@ Load an exact or newest checkpoint entirely in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str \| None` | `None` |
-| `namespace` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str \| None` | `None` | ID of one checkpoint within the run; `None` selects the latest. |
+| `namespace` | `str` | `''` | Checkpoint namespace within the run. `""` is the root graph. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1438,12 +1413,12 @@ Push checkpoint filtering, ordering, cursor, and limit into SQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `namespace` | `str \| None` | `None` |
-| `before` | `str \| None` | `None` |
-| `limit` | `int` | `20` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `namespace` | `str \| None` | `None` | Only return checkpoints in this namespace; `None` returns all namespaces. |
+| `before` | `str \| None` | `None` | Only return checkpoints older than this checkpoint ID. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1465,11 +1440,11 @@ Allocate a serialized revision and write only on matching CAS state.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpoint` | `CheckpointRecord` | Required |
-| `scope` | `RunScope` | Required |
-| `expected_revision` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint` | `CheckpointRecord` | Required | The checkpoint to persist. |
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_revision` | `int \| None` | Required | Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch raises `CheckpointConflictError`. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1490,11 +1465,11 @@ Insert pending writes as one set and ignore existing identities.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
-| `writes` | `Sequence[CheckpointWrite]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `writes` | `Sequence[CheckpointWrite]` | Required | Pending task writes to store for the checkpoint. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1515,10 +1490,10 @@ Read pending writes for one owned PostgreSQL checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1539,10 +1514,10 @@ Fetch pending writes for several checkpoints in one query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_ids` | `Sequence[str]` | Required | IDs of the checkpoints to read pending writes for. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1563,10 +1538,10 @@ Atomically persist a provider wait and mark its owned run waiting.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work this run now waits on. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1587,10 +1562,10 @@ Load one continuation with its complete ownership predicate in SQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.store import PostgresStore
@@ -1611,20 +1586,18 @@ Load one exact provider wait and its private external identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.store import PostgresStore
 
 store: PostgresStore
 continuation = await store.get_provider_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
+    scope=..., provider=..., continuation_id=...,
 )
 ```
 
@@ -1645,20 +1618,18 @@ Use the unique provider key so replica callbacks never scan waits.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the external ID. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.store import PostgresStore
 
 store: PostgresStore
 continuation = await store.get_continuation_by_external_id(
-    application_id=...,
-    provider=...,
-    external_id=...,
+    application_id=..., provider=..., external_id=...,
 )
 ```
 
@@ -1680,12 +1651,12 @@ Push provider reconciliation filtering and pagination into PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Only return waits owned by this continuation provider. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of waits to return. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1714,24 +1685,21 @@ Commit one validated provider outcome with an indexed SQL CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure` | `ContinuationFailure \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider resolving the wait. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result was validated against. |
+| `result` | `Any` | `None` | Validated result of the external work. Leave unset when passing `failure`. |
+| `failure` | `ContinuationFailure \| None` | `None` | Failure category when the external work failed, or `None` on success. |
 
 ```python
 from harnest.store import PostgresStore
 
 store: PostgresStore
 record = await store.resolve_continuation(
-    scope=...,
-    provider=...,
-    external_id=...,
-    schema_id=...,
+    scope=..., provider=..., external_id=..., schema_id=...,
 )
 ```
 
@@ -1753,22 +1721,19 @@ Claim an outcome and resume its run in one PostgreSQL statement.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.store import PostgresStore
 
 store: PostgresStore
 record = await store.claim_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -1791,24 +1756,20 @@ Fail a pending continuation and cancel its waiting run atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `failure` | `ContinuationFailure` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `failure` | `ContinuationFailure` | Required | Failure category recorded on the cancelled wait. |
 
 ```python
 from harnest.store import PostgresStore
 
 store: PostgresStore
 record = await store.cancel_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
-    failure=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=..., failure=...,
 )
 ```
 
@@ -1830,22 +1791,19 @@ Arm one wait with a SQL CAS after native checkpoint persistence.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.store import PostgresStore
 
 store: PostgresStore
 record = await store.arm_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -1867,12 +1825,12 @@ Apply a validated status transition with one SQL compare-and-swap.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `expected_status` | `RunStatus` | Required |
-| `status` | `RunStatus` | Required |
-| `pending_action` | `PendingAction \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_status` | `RunStatus` | Required | Status the run must have now. A mismatch raises `CheckpointConflictError`. |
+| `status` | `RunStatus` | Required | New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting` → `running`/`failed`/`cancelled`. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed otherwise. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1893,9 +1851,9 @@ Delete a run and cascade its private checkpoint data.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.store import PostgresStore
@@ -1955,15 +1913,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `url` | `str` | Required |
-| `prefix` | `str` | `'harnest'` |
-| `session_ttl_seconds` | `int \| None` | `None` |
-| `checkpoint_ttl_seconds` | `int` | `604800` |
-| `lease_seconds` | `int` | `60` |
-| `lease_wait_seconds` | `float` | `30` |
-| `client_options` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | `str` | Required | Redis connection URL. |
+| `prefix` | `str` | `'harnest'` | Prefix for every Redis key the store writes. |
+| `session_ttl_seconds` | `int \| None` | `None` | Expire sessions after this many seconds. `None` keeps them. |
+| `checkpoint_ttl_seconds` | `int` | `604800` | Expire checkpoint runs after this many seconds. |
+| `lease_seconds` | `int` | `60` | How long the lease stays valid, in seconds. |
+| `lease_wait_seconds` | `float` | `30` | How long to wait for a session lease before giving up, in seconds. |
+| `client_options` | `Mapping[str, Any] \| None` | `None` | Extra options for the Redis client. |
 
 ```python
 from harnest.store import RedisStore
@@ -1973,13 +1931,13 @@ store = RedisStore(url=...)
 
 </Accordion>
 
-### RedisStore.as_langgraph_checkpointer
+### RedisStore.framework_checkpointer
 
 ```python
-RedisStore.as_langgraph_checkpointer() -> Any
+RedisStore.framework_checkpointer() -> Any
 ```
 
-Return one stable native saver for advanced LangGraph construction.
+Adapt this store for an advanced target using Harnest's selected framework.
 
 <Accordion title="Example">
 
@@ -1987,7 +1945,7 @@ Return one stable native saver for advanced LangGraph construction.
 from harnest.store import RedisStore
 
 store: RedisStore
-result = store.as_langgraph_checkpointer()
+result = store.framework_checkpointer()
 ```
 
 </Accordion>
@@ -2021,11 +1979,11 @@ Create one tenant-scoped session with an atomic Lua mutation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Initial session state. |
 
 ```python
 from harnest.store import RedisStore
@@ -2046,10 +2004,10 @@ Read one tenant-scoped session from Redis.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import RedisStore
@@ -2070,11 +2028,11 @@ Read one lexicographically ordered keyset page with one MGET.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int \| None` | `None` | Maximum number of items to return. |
 
 ```python
 from harnest.store import RedisStore
@@ -2095,9 +2053,9 @@ Atomically update one A2A record and all of its query indexes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `A2ATaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `A2ATaskRecord` | Required | The A2A task snapshot to persist. |
 
 ```python
 from harnest.store import RedisStore
@@ -2118,11 +2076,11 @@ Read one task through its digested application and owner key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.store import RedisStore
@@ -2152,15 +2110,15 @@ Use one prefiltered sorted index and one batched record read.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `context_id` | `str \| None` | `None` |
-| `status` | `int \| None` | `None` |
-| `status_timestamp_after` | `str \| None` | `None` |
-| `cursor_task_id` | `str \| None` | `None` |
-| `limit` | `int` | `51` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `status` | `int \| None` | `None` | Only return tasks in this A2A task state. |
+| `status_timestamp_after` | `str \| None` | `None` | Only return tasks whose status changed after this timestamp. |
+| `cursor_task_id` | `str \| None` | `None` | Task ID to start the page from, taken from the previous page. |
+| `limit` | `int` | `51` | Maximum number of tasks to return. |
 
 ```python
 from harnest.store import RedisStore
@@ -2181,11 +2139,11 @@ Delete a record and every selected-list index with optimistic CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.store import RedisStore
@@ -2206,11 +2164,11 @@ Atomically merge state while preserving session expiry policy.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
 
 ```python
 from harnest.store import RedisStore
@@ -2231,10 +2189,10 @@ Delete a session and its user index entry atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import RedisStore
@@ -2255,10 +2213,10 @@ Hold and renew a token-bound distributed lease for one execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.store import RedisStore
@@ -2279,7 +2237,7 @@ async RedisStore.begin_run(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
 ) -> RunRecord
 ```
 
@@ -2287,24 +2245,20 @@ Create an idempotent run while allowing one active run per session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID for the run. An existing active run for the session is recovered instead. |
+| `framework` | `FrameworkName` | Required | — |
 
 ```python
 from harnest.store import RedisStore
 
 store: RedisStore
 record = await store.begin_run(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -2320,9 +2274,9 @@ Read one Redis checkpoint run through its ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.store import RedisStore
@@ -2343,11 +2297,11 @@ Resolve an exact or newest checkpoint through its Redis index.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str \| None` | `None` |
-| `namespace` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str \| None` | `None` | ID of one checkpoint within the run; `None` selects the latest. |
+| `namespace` | `str` | `''` | Checkpoint namespace within the run. `""` is the root graph. |
 
 ```python
 from harnest.store import RedisStore
@@ -2374,12 +2328,12 @@ Read bounded checkpoint history from sorted-set indexes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `namespace` | `str \| None` | `None` |
-| `before` | `str \| None` | `None` |
-| `limit` | `int` | `20` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `namespace` | `str \| None` | `None` | Only return checkpoints in this namespace; `None` returns all namespaces. |
+| `before` | `str \| None` | `None` | Only return checkpoints older than this checkpoint ID. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
 
 ```python
 from harnest.store import RedisStore
@@ -2401,11 +2355,11 @@ Persist checkpoint data and revision indexes with one Lua CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpoint` | `CheckpointRecord` | Required |
-| `scope` | `RunScope` | Required |
-| `expected_revision` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint` | `CheckpointRecord` | Required | The checkpoint to persist. |
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_revision` | `int \| None` | Required | Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch raises `CheckpointConflictError`. |
 
 ```python
 from harnest.store import RedisStore
@@ -2426,11 +2380,11 @@ Add pending writes idempotently with one Lua operation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
-| `writes` | `Sequence[CheckpointWrite]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `writes` | `Sequence[CheckpointWrite]` | Required | Pending task writes to store for the checkpoint. |
 
 ```python
 from harnest.store import RedisStore
@@ -2451,10 +2405,10 @@ Read pending writes for one owned Redis checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
 
 ```python
 from harnest.store import RedisStore
@@ -2475,10 +2429,10 @@ Fetch several pending-write hashes in one Redis round trip.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_ids` | `Sequence[str]` | Required | IDs of the checkpoints to read pending writes for. |
 
 ```python
 from harnest.store import RedisStore
@@ -2499,10 +2453,10 @@ Atomically persist a provider wait and move its run to waiting.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work this run now waits on. |
 
 ```python
 from harnest.store import RedisStore
@@ -2523,10 +2477,10 @@ Read one private record only when all ownership fields match.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.store import RedisStore
@@ -2547,20 +2501,18 @@ Load an exact provider envelope only while its owned run exists.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.store import RedisStore
 
 store: RedisStore
 continuation = await store.get_provider_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
+    scope=..., provider=..., continuation_id=...,
 )
 ```
 
@@ -2576,20 +2528,18 @@ Resolve a callback through its provider-owned Redis index.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the external ID. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.store import RedisStore
 
 store: RedisStore
 continuation = await store.get_continuation_by_external_id(
-    application_id=...,
-    provider=...,
-    external_id=...,
+    application_id=..., provider=..., external_id=...,
 )
 ```
 
@@ -2611,12 +2561,12 @@ Load one indexed provider page with a single batched value read.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Only return waits owned by this continuation provider. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of waits to return. |
 
 ```python
 from harnest.store import RedisStore
@@ -2645,24 +2595,21 @@ Resolve an indexed provider callback with an atomic status CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure` | `ContinuationFailure \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider resolving the wait. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result was validated against. |
+| `result` | `Any` | `None` | Validated result of the external work. Leave unset when passing `failure`. |
+| `failure` | `ContinuationFailure \| None` | `None` | Failure category when the external work failed, or `None` on success. |
 
 ```python
 from harnest.store import RedisStore
 
 store: RedisStore
 record = await store.resolve_continuation(
-    scope=...,
-    provider=...,
-    external_id=...,
-    schema_id=...,
+    scope=..., provider=..., external_id=..., schema_id=...,
 )
 ```
 
@@ -2684,22 +2631,19 @@ Claim a provider outcome and resume its run with one Lua CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.store import RedisStore
 
 store: RedisStore
 record = await store.claim_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -2722,24 +2666,20 @@ Cancel one exact waiting run and fail its continuation in one script.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `failure` | `ContinuationFailure` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `failure` | `ContinuationFailure` | Required | Failure category recorded on the cancelled wait. |
 
 ```python
 from harnest.store import RedisStore
 
 store: RedisStore
 record = await store.cancel_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
-    failure=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=..., failure=...,
 )
 ```
 
@@ -2761,22 +2701,19 @@ Arm one persisted wait after the framework commits its checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.store import RedisStore
 
 store: RedisStore
 record = await store.arm_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -2798,12 +2735,12 @@ Apply one status compare-and-swap and release terminal ownership.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `expected_status` | `RunStatus` | Required |
-| `status` | `RunStatus` | Required |
-| `pending_action` | `PendingAction \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_status` | `RunStatus` | Required | Status the run must have now. A mismatch raises `CheckpointConflictError`. |
+| `status` | `RunStatus` | Required | New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting` → `running`/`failed`/`cancelled`. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed otherwise. |
 
 ```python
 from harnest.store import RedisStore
@@ -2824,9 +2761,9 @@ Make run data unreachable immediately and let private blobs expire.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.store import RedisStore
@@ -2862,7 +2799,7 @@ One normalized storage boundary consumed by compiler and runtime adapters.
 
 ```python
 StorageRegistry(
-    sessions: SessionStore | ADKStore | None = None,
+    sessions: SessionStore | FrameworkStorage | None = None,
     checkpoints: CheckpointAuthority | None = None,
     assets: Mapping[str, AssetStore] = ...,
     custom: Mapping[str, CustomStorage] = ...,
@@ -2876,7 +2813,7 @@ Fields (`—` means no declared default):
 
 | Field | Type | Default |
 |---|---|---|
-| `sessions` | `SessionStore \| ADKStore \| None` | `None` |
+| `sessions` | `SessionStore \| FrameworkStorage \| None` | `None` |
 | `checkpoints` | `CheckpointAuthority \| None` | `None` |
 | `assets` | `Mapping[str, AssetStore]` | `dict()` |
 | `custom` | `Mapping[str, CustomStorage]` | `dict()` |
@@ -2886,15 +2823,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `sessions` | `SessionStore \| ADKStore \| None` | `None` |
-| `checkpoints` | `CheckpointAuthority \| None` | `None` |
-| `assets` | `Mapping[str, AssetStore]` | `...` |
-| `custom` | `Mapping[str, CustomStorage]` | `...` |
-| `tasks` | `TaskStore \| None` | `None` |
-| `cron` | `CronStore \| None` | `None` |
-| `memory` | `MemoryStore \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `sessions` | `SessionStore \| FrameworkStorage \| None` | `None` | Session storage. |
+| `checkpoints` | `CheckpointAuthority \| None` | `None` | Checkpoint storage. |
+| `assets` | `Mapping[str, AssetStore]` | `...` | Asset stores by name. |
+| `custom` | `Mapping[str, CustomStorage]` | `...` | Custom stores by name. |
+| `tasks` | `TaskStore \| None` | `None` | Task storage. |
+| `cron` | `CronStore \| None` | `None` | Cron storage. |
+| `memory` | `MemoryStore \| None` | `None` | Long-term memory storage. |
 
 ```python
 from harnest.store import StorageRegistry

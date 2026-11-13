@@ -1,0 +1,71 @@
+# Curated details for /harnest/reference/api/extensions-docker. See task.yaml for the format.
+# `*.name` entries cover every `<object>.name` on this page (docker., extension., DockerExtension.).
+
+"*.sandbox":
+  params: &sandbox_params
+    image: Registry image to run, ideally pinned by digest. Supply exactly one of `image` or `docker_path`; it must provide `python3`.
+    docker_path: Local Docker build context to build the image from. Supply exactly one of `image` or `docker_path`.
+    base_url: Docker daemon URL. Defaults to the Docker SDK's configuration.
+    network_policy: Egress policy. Defaults to `SandboxNetworkPolicy.none()`; only `none()` and `unrestricted(block_private_networks=False)` are supported.
+    services: Service containers on a private network shared with the sandbox, up to eight.
+    network: The private bridge that joins the sandbox and its services.
+    timeout_seconds: Time limit in seconds, covering queueing, startup, and execution.
+    options: Parsing and retry options used by the ADK framework adapter. Does not change Docker limits.
+    max_output_bytes: Combined stdout and stderr limit, enforced while streaming.
+    scope: When containers are reused. `EXECUTION` (default) is fresh per call; `INVOCATION` and `SESSION` reuse within that identity.
+    budget: CPU, memory, process, and scratch-space limits. Defaults to 1 CPU, 512 MiB, 64 processes, and 64 MiB of `/tmp`.
+    max_scopes: Maximum retained invocation or session containers. The least recently used one is evicted first.
+    metadata: Metadata forwarded to the provider with each request.
+
+docker_sandbox:
+  params: *sandbox_params
+
+"*.service":
+  params: &service_params
+    name: Service name, also its DNS name on the private network. A unique lowercase DNS label.
+    image: Registry image for the service. Supply exactly one of `image` or `docker_path`.
+    docker_path: Local Docker build context for the service. Supply exactly one of `image` or `docker_path`.
+    command: Command and arguments to run, up to 64 arguments.
+    environment: Environment variables for the service, up to 64 entries.
+    ports: Ports the service listens on inside the private network, up to 32. They are never published on the host.
+    aliases: Extra DNS names for the service, up to 16.
+    readiness: Health check the sandbox waits for before running code.
+    budget: CPU, memory, process, and scratch-space limits for this service.
+
+DockerService:
+  fields: *service_params
+
+"*.network":
+  params: &network_params
+    internal: Keep the bridge internal, without external egress. `False` requires `SandboxNetworkPolicy.unrestricted()` and gives every container that egress.
+
+DockerNetwork:
+  fields: *network_params
+
+"*.readiness":
+  params: &readiness_params
+    command: Health command to run inside the service, such as `["redis-cli", "ping"]`.
+    interval_seconds: Seconds between attempts.
+    timeout_seconds: Seconds each attempt may take.
+    retries: Attempts before the service counts as failed, from 1 to 100.
+    start_period_seconds: Grace period in seconds before failed attempts count.
+
+DockerReadiness:
+  fields: *readiness_params
+
+"*.start":
+  params:
+    context: Startup context the runtime passes to the extension.
+
+"*.create_context":
+  params:
+    context: The managed invocation context to adapt.
+
+"*.require":
+  params:
+    policy: Network policy to check. Raises when this provider cannot enforce it.
+
+DockerSandboxProvider:
+  params:
+    backend: The Docker execution backend.
+    network_policy: The network policy this provider enforces.

@@ -117,25 +117,20 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `source` | `str` | Required |
-| `schedule` | `str` | Required |
-| `timezone` | `str` | Required |
-| `task` | `CompiledTask` | Required |
-| `arguments` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Compiler-assigned schedule name. |
+| `source` | `str` | Required | Source file of the schedule. |
+| `schedule` | `str` | Required | Five-field UTC cron expression. |
+| `timezone` | `str` | Required | Always `"UTC"`. |
+| `task` | `CompiledTask` | Required | The task the schedule queues. |
+| `arguments` | `Mapping[str, Any]` | Required | Keyword arguments for each occurrence. |
 
 ```python
 from harnest.cron import CompiledCron
 
 cron = CompiledCron(
-    name=...,
-    source=...,
-    schedule=...,
-    timezone=...,
-    task=...,
-    arguments=...,
+    name=..., source=..., schedule=..., timezone=..., task=..., arguments=...,
 )
 ```
 
@@ -240,9 +235,7 @@ Fields (`—` means no declared default):
 from harnest import cron
 
 job = await cron.create(
-    key="weekly-report",
-    expression="0 9 * * 1",
-    task="build_report",
+    key="weekly-report", expression="0 9 * * 1", task="build_report",
 )
 ```
 
@@ -415,38 +408,32 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `schedule_id` | `str` | Required |
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `key` | `str` | Required |
-| `expression` | `str` | Required |
-| `task_name` | `str` | Required |
-| `arguments` | `Mapping[str, Any]` | Required |
-| `next_run_at` | `float` | Required |
-| `status` | `str` | `'active'` |
-| `revision` | `int` | `0` |
-| `timezone` | `str` | `'UTC'` |
-| `created_at` | `float` | `0.0` |
-| `updated_at` | `float` | `0.0` |
-| `max_runs` | `int \| None` | `None` |
-| `max_consecutive_failures` | `int \| None` | `None` |
-| `run_count` | `int` | `0` |
-| `consecutive_failures` | `int` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `key` | `str` | Required | Stable key for the user's schedule. |
+| `expression` | `str` | Required | Five-field UTC cron expression. |
+| `task_name` | `str` | Required | Registered name of the scheduled task. |
+| `arguments` | `Mapping[str, Any]` | Required | Keyword arguments for each occurrence. |
+| `next_run_at` | `float` | Required | Next scheduled time, in UTC epoch seconds. |
+| `status` | `str` | `'active'` | `"active"`, `"paused"`, or `"cancelled"`. |
+| `revision` | `int` | `0` | Revision used for compare-and-swap updates. |
+| `timezone` | `str` | `'UTC'` | Always `"UTC"`. |
+| `created_at` | `float` | `0.0` | When the schedule was created, in UTC epoch seconds. |
+| `updated_at` | `float` | `0.0` | When the schedule last changed, in UTC epoch seconds. |
+| `max_runs` | `int \| None` | `None` | Occurrence limit, or `None`. |
+| `max_consecutive_failures` | `int \| None` | `None` | Failure limit, or `None`. |
+| `run_count` | `int` | `0` | Occurrences queued so far. |
+| `consecutive_failures` | `int` | `0` | Final failures since the last success. |
 
 ```python
 from harnest.cron import CronRecord
 
 record = CronRecord(
-    schedule_id=...,
-    application_id=...,
-    user_id=...,
-    key=...,
-    expression=...,
-    task_name=...,
-    arguments=...,
-    next_run_at=...,
+    schedule_id=..., application_id=..., user_id=..., key=..., expression=...,
+    task_name=..., arguments=..., next_run_at=...,
 )
 ```
 
@@ -543,9 +530,9 @@ Different definitions and conflicting schedule IDs raise conflict.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The complete schedule record. |
 
 ```python
 from harnest.cron import CronStore
@@ -566,11 +553,11 @@ Read one owner-scoped schedule without disclosing other owners.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest.cron import CronStore
@@ -597,12 +584,12 @@ Return schedules after the ID cursor; limit must be from 1 to 1000.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.cron import CronStore
@@ -627,10 +614,10 @@ Missing records raise KeyError; state/revision conflicts raise conflict.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The schedule with its replacement mutable fields. |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.cron import CronStore
@@ -651,11 +638,11 @@ Remove only an owner-scoped schedule; missing/foreign returns false.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest.cron import CronStore
@@ -682,12 +669,12 @@ Page active due schedules by time then ID; limit is from 1 to 1000.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `now` | `float` | Required |
-| `after` | `tuple[float, str] \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `after` | `tuple[float, str] \| None` | `None` | Cursor from the previous page as `(due time, schedule ID)`; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.cron import CronStore
@@ -722,28 +709,23 @@ create another task. Advance revision within the same transaction.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `due_at` | `float` | Required |
-| `next_run_at` | `float` | Required |
-| `task` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `due_at` | `float` | Required | Scheduled time of this occurrence. Must equal the schedule's current `next_run_at`. |
+| `next_run_at` | `float` | Required | Next scheduled time after this occurrence. Must be later than `due_at`. |
+| `task` | `TaskRecord` | Required | The job to enqueue for this occurrence. Must match the schedule's owner, target, and arguments. |
 
 ```python
 from harnest.cron import CronStore
 
 store: CronStore
 record = await store.commit_cron_occurrence(
-    application_id=...,
-    user_id=...,
-    schedule_id=...,
-    expected_revision=...,
-    due_at=...,
-    next_run_at=...,
-    task=...,
+    application_id=..., user_id=..., schedule_id=..., expected_revision=..., due_at=...,
+    next_run_at=..., task=...,
 )
 ```
 
@@ -836,9 +818,7 @@ async create(
 from harnest import cron
 
 job = await cron.create(
-    key="weekly-report",
-    expression="0 9 * * 1",
-    task="build_report",
+    key="weekly-report", expression="0 9 * * 1", task="build_report",
 )
 ```
 

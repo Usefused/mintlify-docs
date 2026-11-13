@@ -9,6 +9,10 @@ icon: "code"
 
 [All Python modules](/harnest/reference/api/overview) · [Import and compatibility guidance](/harnest/build/python-imports)
 
+## Application loaders and storage
+
+`load_compiled_application()` returns Harnest's compiled application record. `load_framework_app()` returns an exposed framework application object. Server embedding uses `session_store=` for portable storage or `framework_session_storage=` for a supported framework storage factory; lifecycle-owned storage cannot be combined with a second injected authority.
+
 ## Exports
 
 | Name | Kind |
@@ -28,8 +32,8 @@ icon: "code"
 | [`create_fastapi_app`](#create_fastapi_app) | Function |
 | [`load_agent_card`](#load_agent_card) | Function |
 | [`load_compiled_agent`](#load_compiled_agent) | Function |
-| [`load_compiled_app`](#load_compiled_app) | Function |
 | [`load_compiled_application`](#load_compiled_application) | Function |
+| [`load_framework_app`](#load_framework_app) | Function |
 | [`run_agent_message`](#run_agent_message) | Function |
 
 ## AgentExecutionTimeout
@@ -87,19 +91,19 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `name` | `str` | Required |
-| `description` | `str` | Required |
-| `card` | `Mapping[str, Any]` | Required |
-| `framework` | `str \| None` | `None` |
-| `mode` | `str \| None` | `None` |
-| `extra_endpoints` | `Mapping[str, str]` | `...` |
-| `input_schema` | `Any` | `None` |
-| `output_schema` | `Any` | `None` |
-| `lifecycle_coverage` | `Mapping[str, str]` | `...` |
-| `agent_principal_projection_complete` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Agent ID. |
+| `name` | `str` | Required | Agent name. |
+| `description` | `str` | Required | Agent description. |
+| `card` | `Mapping[str, Any]` | Required | The agent's A2A Agent Card. |
+| `framework` | `str \| None` | `None` | `"adk"` or `"langgraph"`. |
+| `mode` | `str \| None` | `None` | `"managed"` or `"advanced"`. |
+| `extra_endpoints` | `Mapping[str, str]` | `...` | Additional endpoints the agent serves, by name. |
+| `input_schema` | `Any` | `None` | JSON Schema of typed input, if declared. |
+| `output_schema` | `Any` | `None` | JSON Schema of structured output, if declared. |
+| `lifecycle_coverage` | `Mapping[str, str]` | `...` | Coverage level per lifecycle stage. |
+| `agent_principal_projection_complete` | `bool` | `False` | Whether every capability can be filtered by an Agent Runtime Principal. |
 
 ```python
 from harnest.runtime import AgentInfo
@@ -158,26 +162,22 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `input` | `Any` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `metadata` | `Mapping[str, Any]` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
-| `transport` | `str \| None` | `None` |
-| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `input` | `Any` | Required | The invocation input, as text or typed input. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `metadata` | `Mapping[str, Any]` | Required | Public request metadata. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
+| `transport` | `str \| None` | `None` | Transport that received the request, such as `http` or `local`. |
+| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` | Limits which capabilities the agent may use. |
 
 ```python
 from harnest.runtime import InvocationRequest
 
 request = InvocationRequest(
-    input=...,
-    user_id=...,
-    session_id=...,
-    invocation_id=...,
-    metadata=...,
+    input=..., user_id=..., session_id=..., invocation_id=..., metadata=...,
     state_delta=...,
 )
 ```
@@ -210,23 +210,19 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `text` | `str` | Required |
-| `events` | `Sequence[RuntimeEvent]` | Required |
-| `result` | `Any` | Required |
-| `session_id` | `str` | Required |
-| `metadata` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `text` | `str` | Required | Assistant answer text. |
+| `events` | `Sequence[RuntimeEvent]` | Required | Events produced during the invocation. |
+| `result` | `Any` | Required | Validated structured output, if declared. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `metadata` | `Mapping[str, Any]` | Required | Response metadata. |
 
 ```python
 from harnest.runtime import InvocationResult
 
 result = InvocationResult(
-    text=...,
-    events=...,
-    result=...,
-    session_id=...,
-    metadata=...,
+    text=..., events=..., result=..., session_id=..., metadata=...,
 )
 ```
 
@@ -276,7 +272,7 @@ Fields (`—` means no declared default):
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `sessionId` | `str \| None` | `None` | — |
+| `sessionId` | `str \| None` | `None` | Existing session ID from a previous response or POST /sessions. Omit to create a new session. |
 | `stream` | `bool` | `False` | Set true for text/event-stream (SSE); false returns one JSON response. |
 | `metadata` | `dict[str, Any]` | `...` | Optional caller metadata. Does not set authentication or user identity. |
 | `input` | `str` | Required | Non-empty message to send to the agent. |
@@ -333,11 +329,11 @@ Create one identity-scoped session or report a conflict.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Initial session state. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -358,10 +354,10 @@ Resolve one session without revealing another identity's records.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -382,11 +378,11 @@ List a bounded identity-scoped page after an optional key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int \| None` | `None` | Maximum number of items to return. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -407,10 +403,10 @@ Return an owned transcript while preserving native metadata.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -431,11 +427,11 @@ Apply one state delta inside the session ownership boundary.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -456,10 +452,10 @@ Delete one owned session and report whether it existed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -480,9 +476,9 @@ Run one complete non-streaming portable invocation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `InvocationRequest` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `InvocationRequest` | Required | The invocation to run to completion. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -503,9 +499,9 @@ Yield normalized events for one portable invocation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `InvocationRequest` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `InvocationRequest` | Required | The invocation to run, streaming its events. |
 
 ```python
 from harnest.runtime import RuntimeDriver
@@ -592,13 +588,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `role` | `str` | Required |
-| `content` | `Any` | Required |
-| `created_at` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Message ID. |
+| `role` | `str` | Required | Message role, such as `user` or `assistant`. |
+| `content` | `Any` | Required | Message content. |
+| `created_at` | `str \| None` | `None` | When the message was created. |
+| `metadata` | `Mapping[str, Any]` | `...` | Framework-owned metadata, kept unchanged. |
 
 ```python
 from harnest.runtime import SessionMessage
@@ -638,15 +634,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
-| `created_at` | `str \| None` | `None` |
-| `updated_at` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any]` | `...` |
-| `application_data` | `Mapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Session ID. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Session state. |
+| `created_at` | `str \| None` | `None` | When the session was created. |
+| `updated_at` | `str \| None` | `None` | When the session last changed. |
+| `metadata` | `Mapping[str, Any]` | `...` | Session metadata. |
+| `application_data` | `Mapping[str, Any]` | `...` | Application-owned data stored with the session. |
 
 ```python
 from harnest.runtime import SessionRecord
@@ -673,29 +669,29 @@ create_fastapi_app(
     live_enabled: bool = True,
     agui_enabled: bool = True,
     agent_principal_required: bool = False,
-    adk_session_storage: ADKSessionStorage | None = None,
-    langgraph_session_store: SessionStore | None = None,
+    session_store: SessionStore | None = None,
+    framework_session_storage: Any | None = None,
     authenticator: Authenticator | None = None,
 ) -> Any
 ```
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `artifact` | `str \| Path` | Required |
-| `bind_host` | `str` | `'127.0.0.1'` |
-| `request_timeout` | `float` | `300` |
-| `max_concurrency` | `int` | `8` |
-| `max_request_bytes` | `int` | `1048576` |
-| `playground_enabled` | `bool` | `True` |
-| `openapi_enabled` | `bool` | `True` |
-| `live_enabled` | `bool` | `True` |
-| `agui_enabled` | `bool` | `True` |
-| `agent_principal_required` | `bool` | `False` |
-| `adk_session_storage` | `ADKSessionStorage \| None` | `None` |
-| `langgraph_session_store` | `SessionStore \| None` | `None` |
-| `authenticator` | `Authenticator \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `artifact` | `str \| Path` | Required | Path to the compiled agent artifact. |
+| `bind_host` | `str` | `'127.0.0.1'` | Host the server binds to. |
+| `request_timeout` | `float` | `300` | Request time limit, in seconds. |
+| `max_concurrency` | `int` | `8` | Maximum requests processed at once. |
+| `max_request_bytes` | `int` | `1048576` | Maximum HTTP body and WebSocket frame size, in bytes. |
+| `playground_enabled` | `bool` | `True` | Serve the Playground UI when its assets are present. |
+| `openapi_enabled` | `bool` | `True` | Expose API documentation and the OpenAPI spec. |
+| `live_enabled` | `bool` | `True` | Enable the `/live` WebSocket endpoint. |
+| `agui_enabled` | `bool` | `True` | Expose `POST /agui` and advertise AG-UI. |
+| `agent_principal_required` | `bool` | `False` | Require custom invocations to bind an Agent Runtime Principal. |
+| `session_store` | `SessionStore \| None` | `None` | Harnest session store for serving. |
+| `framework_session_storage` | `Any \| None` | `None` | Session storage factory for the selected framework. |
+| `authenticator` | `Authenticator \| None` | `None` | Authenticator for incoming connections. |
 
 ```python
 from harnest.runtime import create_fastapi_app
@@ -715,9 +711,9 @@ load_agent_card(artifact: str | Path) -> dict[str, Any]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `artifact` | `str \| Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `artifact` | `str \| Path` | Required | Path to the compiled agent artifact. |
 
 ```python
 from harnest.runtime import load_agent_card
@@ -737,36 +733,14 @@ load_compiled_agent(artifact: str | Path) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `artifact` | `str \| Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `artifact` | `str \| Path` | Required | Path to the compiled agent artifact. |
 
 ```python
 from harnest.runtime import load_compiled_agent
 
 result = load_compiled_agent(artifact=...)
-```
-
-</Accordion>
-
-## load_compiled_app
-
-Load the native ADK App from an ADK compiled artifact.
-
-```python
-load_compiled_app(artifact: str | Path) -> Any
-```
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `artifact` | `str \| Path` | Required |
-
-```python
-from harnest.runtime import load_compiled_app
-
-result = load_compiled_app(artifact=...)
 ```
 
 </Accordion>
@@ -781,14 +755,36 @@ load_compiled_application(artifact: str | Path) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `artifact` | `str \| Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `artifact` | `str \| Path` | Required | Path to the compiled agent artifact. |
 
 ```python
 from harnest.runtime import load_compiled_application
 
 result = load_compiled_application(artifact=...)
+```
+
+</Accordion>
+
+## load_framework_app
+
+Load the framework-specific application object from a compiled artifact.
+
+```python
+load_framework_app(artifact: str | Path) -> Any
+```
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `artifact` | `str \| Path` | Required | Path to the compiled agent artifact. |
+
+```python
+from harnest.runtime import load_framework_app
+
+result = load_framework_app(artifact=...)
 ```
 
 </Accordion>
@@ -809,12 +805,12 @@ async run_agent_message(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `artifact` | `str \| Path` | Required |
-| `message` | `str` | Required |
-| `request_timeout` | `float` | `300` |
-| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `artifact` | `str \| Path` | Required | Path to the compiled agent artifact. |
+| `message` | `str` | Required | The message to send. |
+| `request_timeout` | `float` | `300` | Request time limit, in seconds. |
+| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` | Limits which capabilities the agent may use. |
 
 ```python
 from harnest.runtime import run_agent_message

@@ -77,10 +77,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `code` | `str` | Required |
-| `retryable` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `code` | `str` | Required | Provider-defined failure category. |
+| `retryable` | `bool` | `False` | Whether the external work may succeed if retried. |
 
 ```python
 from harnest.continuation import ContinuationFailure
@@ -100,11 +100,11 @@ ContinuationProvider(store: ContinuationStore, *, application_id: str, provider:
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `store` | `ContinuationStore` | Required |
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `store` | `ContinuationStore` | Required | Store that persists continuations. |
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of this continuation provider. |
 
 ```python
 from harnest.continuation import ContinuationProvider
@@ -149,29 +149,24 @@ Atomically persist a wait and transition its owned run to waiting.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `external_id` | `str` | Required |
-| `capability` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `resume` | `ResumeArtifact` | Required |
-| `principal_grants` | `PrincipalGrantSnapshot \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID of the run that waits. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `capability` | `str` | Required | Name of the capability that is waiting. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result must match. |
+| `resume` | `ResumeArtifact` | Required | Identity of the tool call to resume. |
+| `principal_grants` | `PrincipalGrantSnapshot \| None` | `None` | Agent Runtime Principal permissions to restore on resume. |
 
 ```python
 from harnest.continuation import ContinuationProvider
 
 provider: ContinuationProvider
 record = await provider.suspend(
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    external_id=...,
-    capability=...,
-    schema_id=...,
-    resume=...,
+    user_id=..., session_id=..., run_id=..., external_id=..., capability=...,
+    schema_id=..., resume=...,
 )
 ```
 
@@ -187,9 +182,9 @@ Resolve one provider-owned external identity with an indexed lookup.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.continuation import ContinuationProvider
@@ -210,22 +205,19 @@ Read one continuation only through its complete ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID of the waiting run. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.continuation import ContinuationProvider
 
 provider: ContinuationProvider
 record = await provider.get(
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    continuation_id=...,
+    user_id=..., session_id=..., run_id=..., continuation_id=...,
 )
 ```
 
@@ -247,22 +239,19 @@ Read provider-private identity through complete run ownership.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID of the waiting run. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.continuation import ContinuationProvider
 
 provider: ContinuationProvider
 continuation = await provider.get_pending(
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    continuation_id=...,
+    user_id=..., session_id=..., run_id=..., continuation_id=...,
 )
 ```
 
@@ -278,10 +267,10 @@ Read one bounded indexed page for provider startup reconciliation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.continuation import ContinuationProvider
@@ -311,27 +300,22 @@ Validate provider output before committing its private result.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | Required |
-| `validate` | `ContinuationValidator` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID of the waiting run. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the result schema. |
+| `result` | `Any` | Required | Output of the external work. |
+| `validate` | `ContinuationValidator` | Required | Function that validates the result before it is stored. |
 
 ```python
 from harnest.continuation import ContinuationProvider
 
 provider: ContinuationProvider
 record = await provider.complete(
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    external_id=...,
-    schema_id=...,
-    result=...,
+    user_id=..., session_id=..., run_id=..., external_id=..., schema_id=..., result=...,
     validate=...,
 )
 ```
@@ -356,25 +340,21 @@ Commit a validated payload-free provider failure category.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `failure` | `ContinuationFailure` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID of the waiting run. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the result schema. |
+| `failure` | `ContinuationFailure` | Required | Provider-defined failure category (`code` and `retryable`), without exception or payload text. |
 
 ```python
 from harnest.continuation import ContinuationProvider
 
 provider: ContinuationProvider
 record = await provider.fail(
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    external_id=...,
-    schema_id=...,
+    user_id=..., session_id=..., run_id=..., external_id=..., schema_id=...,
     failure=...,
 )
 ```
@@ -398,24 +378,20 @@ Claim a completed outcome once and return its private value.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID of the waiting run. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.continuation import ContinuationProvider
 
 provider: ContinuationProvider
 record = await provider.claim(
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    continuation_id=...,
-    expected_revision=...,
+    user_id=..., session_id=..., run_id=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -431,9 +407,9 @@ Mark a wait resumable only after its framework checkpoint is durable.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
 
 ```python
 from harnest.continuation import ContinuationProvider
@@ -454,10 +430,10 @@ Cancel one exact provider wait without dispatching a framework resume.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
-| `failure` | `ContinuationFailure` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
+| `failure` | `ContinuationFailure` | Required | Provider-defined failure category (`code` and `retryable`), without exception or payload text. |
 
 ```python
 from harnest.continuation import ContinuationProvider
@@ -518,38 +494,32 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `continuation_id` | `str` | Required |
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `capability` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `resume` | `ResumeArtifact \| None` | `None` |
-| `principal_grants` | `PrincipalGrantSnapshot \| None` | `None` |
-| `status` | `ContinuationStatus` | `'pending'` |
-| `ready` | `bool` | `False` |
-| `revision` | `int` | `0` |
-| `result` | `Any` | `None` |
-| `failure` | `ContinuationFailure \| None` | `None` |
-| `created_at` | `str` | `...` |
-| `updated_at` | `str` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID of the waiting run. |
+| `provider` | `str` | Required | Name of the continuation provider. |
+| `capability` | `str` | Required | Name of the capability that is waiting. |
+| `schema_id` | `str` | Required | Stable ID of the result schema. |
+| `resume` | `ResumeArtifact \| None` | `None` | Identity of the tool call to resume. |
+| `principal_grants` | `PrincipalGrantSnapshot \| None` | `None` | Agent Runtime Principal permissions to restore on resume. |
+| `status` | `ContinuationStatus` | `'pending'` | State of the wait. |
+| `ready` | `bool` | `False` | Whether the run is ready to resume. |
+| `revision` | `int` | `0` | Revision used for compare-and-swap updates. |
+| `result` | `Any` | `None` | Validated result, once resolved. |
+| `failure` | `ContinuationFailure \| None` | `None` | Provider-defined failure category, or `None` when the work succeeded. |
+| `created_at` | `str` | `...` | When the wait was created. |
+| `updated_at` | `str` | `...` | When the wait last changed. |
 
 ```python
 from harnest.continuation import ContinuationRecord
 
 record = ContinuationRecord(
-    continuation_id=...,
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    provider=...,
-    capability=...,
-    schema_id=...,
+    continuation_id=..., application_id=..., user_id=..., session_id=..., run_id=...,
+    provider=..., capability=..., schema_id=...,
 )
 ```
 
@@ -628,10 +598,10 @@ Persist a new provider wait and atomically suspend its run.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work this run now waits on. |
 
 ```python
 from harnest.continuation import ContinuationStore
@@ -652,10 +622,10 @@ Read a continuation through its complete run ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.continuation import ContinuationStore
@@ -681,20 +651,18 @@ Resolve one provider-owned external identifier.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the external ID. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.continuation import ContinuationStore
 
 store: ContinuationStore
 continuation = await store.get_continuation_by_external_id(
-    application_id=...,
-    provider=...,
-    external_id=...,
+    application_id=..., provider=..., external_id=...,
 )
 ```
 
@@ -710,20 +678,18 @@ Read one continuation together with its provider-private identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.continuation import ContinuationStore
 
 store: ContinuationStore
 continuation = await store.get_provider_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
+    scope=..., provider=..., continuation_id=...,
 )
 ```
 
@@ -745,12 +711,12 @@ Return a bounded page of waits awaiting provider reconciliation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Only return waits owned by this continuation provider. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of waits to return. |
 
 ```python
 from harnest.continuation import ContinuationStore
@@ -779,24 +745,21 @@ Commit a validated provider result or failure for a pending wait.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure` | `ContinuationFailure \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider resolving the wait. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result was validated against. |
+| `result` | `Any` | `None` | Validated result of the external work. Leave unset when passing `failure`. |
+| `failure` | `ContinuationFailure \| None` | `None` | Failure category when the external work failed, or `None` on success. |
 
 ```python
 from harnest.continuation import ContinuationStore
 
 store: ContinuationStore
 record = await store.resolve_continuation(
-    scope=...,
-    provider=...,
-    external_id=...,
-    schema_id=...,
+    scope=..., provider=..., external_id=..., schema_id=...,
 )
 ```
 
@@ -818,22 +781,19 @@ Claim a pending wait using its expected revision.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.continuation import ContinuationStore
 
 store: ContinuationStore
 record = await store.claim_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -855,22 +815,19 @@ Mark a resolved wait ready to resume using revision-based CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.continuation import ContinuationStore
 
 store: ContinuationStore
 record = await store.arm_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -893,24 +850,20 @@ Cancel a wait with a durable failure using revision-based CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `failure` | `ContinuationFailure` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `failure` | `ContinuationFailure` | Required | Failure category recorded on the cancelled wait. |
 
 ```python
 from harnest.continuation import ContinuationStore
 
 store: ContinuationStore
 record = await store.cancel_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
-    failure=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=..., failure=...,
 )
 ```
 
@@ -950,10 +903,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.continuation import ProviderPendingContinuation
@@ -973,11 +926,11 @@ audit_continuation(operation: str, outcome: Literal['committed', 'failed'], back
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `operation` | `str` | Required |
-| `outcome` | `Literal['committed', 'failed']` | Required |
-| `backend` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `operation` | `str` | Required | Name of the operation. |
+| `outcome` | `Literal['committed', 'failed']` | Required | `"committed"` or `"failed"`. |
+| `backend` | `str` | Required | Name of the storage backend. |
 
 ```python
 from harnest.continuation import audit_continuation
@@ -997,9 +950,9 @@ continuation_schema_id(schema: Mapping[str, Any]) -> str
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `schema` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schema` | `Mapping[str, Any]` | Required | JSON Schema to fingerprint. |
 
 ```python
 from harnest.continuation import continuation_schema_id
@@ -1019,10 +972,10 @@ external_id_key(provider: str, external_id: str) -> str
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `provider` | `str` | Required | Name of the continuation provider. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.continuation import external_id_key

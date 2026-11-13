@@ -36,7 +36,7 @@ async def check_tool(context, request):
 
 Return [context.next()](/harnest/reference/api/lifecycle#lifecyclecontext-next) to continue, optionally with a replacement value. Return [context.finish(result)](/harnest/reference/api/lifecycle#lifecyclecontext-finish) to end the chain with a final result.
 
-Tool, MCP, and HTTP `before` and `after` interceptors require explicit control flow. Agent and model hooks accept legacy return values, but explicit transitions keep policy readable and portable.
+Tool, MCP, and HTTP `before` and `after` interceptors require explicit transitions. Agent and model hooks also accept returned values; use transitions for consistent control flow across hook types.
 
 Error hooks normally return `context.next()`. An MCP error hook can use `finish(...)` only for a recoverable provider failure; it cannot bypass approval or cancellation.
 
@@ -64,6 +64,6 @@ Keep business operations in Agent Tools. Hooks should apply policy, observation,
 | ADK runner or plugin API | ADK native integration |
 | LangGraph middleware or graph runtime | LangGraph native integration |
 
-<Card title="Native integrations" icon="code" href="/harnest/runtime/lifecycle/native-integrations">
+<Card title="Framework extensions" icon="code" href="/harnest/runtime/lifecycle/framework-extensions">
   Isolate behavior that must use the selected framework directly.
 </Card>

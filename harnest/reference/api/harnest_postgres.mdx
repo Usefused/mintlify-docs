@@ -32,11 +32,11 @@ PostgresMemoryStore(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str` | Required |
-| `pool_options` | `Optional[Mapping[str, Any]]` | `None` |
-| `setup_schema` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str` | Required | PostgreSQL connection string. |
+| `pool_options` | `Optional[Mapping[str, Any]]` | `None` | Options for the `asyncpg` pool. |
+| `setup_schema` | `bool` | `True` | Create the `harnest_memories` table. Use `False` for a pre-provisioned table. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -56,9 +56,9 @@ Erase one explicit namespace through trusted application code only.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -79,10 +79,10 @@ Erase an explicitly authorized owner without registering any endpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -108,11 +108,11 @@ Sweep a bounded key page without exposing another user's collection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `limit` | `int` | `100` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `100` | Maximum number of keys to sweep in this call. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -137,10 +137,10 @@ Validate before atomically persisting a deliberate memory write.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `harnest.memory.MemoryRecord` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `harnest.memory.MemoryRecord` | Required | The memory record to write. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -161,10 +161,10 @@ Read only an explicitly scoped live record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `key` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -190,11 +190,11 @@ Page records without loading an unbounded provider collection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -221,12 +221,12 @@ Retrieve explicit literal text matches without model or embedding calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `query` | `str` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `query` | `str` | Required | Text to find. Matching is literal and case-sensitive, not semantic. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -252,11 +252,11 @@ Remove memory and its indexes with an optional atomic revision fence.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `key` | `str` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest_postgres import PostgresMemoryStore
@@ -329,12 +329,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str` | Required |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `lease_pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str` | Required | PostgreSQL connection string. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Options for the primary `asyncpg` pool, such as `min_size` and `max_size`. |
+| `lease_pool_options` | `Mapping[str, Any] \| None` | `None` | Options for a separate pool for long-lived session leases. Omit it to share one pool. |
+| `setup_schema` | `bool` | `True` | Create Harnest's schema. Use `False` for a pre-provisioned schema. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -392,9 +392,9 @@ Create a schedule once without reactivating an existing cancelled key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The complete schedule record. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -415,11 +415,11 @@ Read a schedule only within its application and owner scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -446,12 +446,12 @@ Apply owner filtering and keyset pagination in the database.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -472,10 +472,10 @@ Replace one schedule conditionally, preserving its immutable identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The schedule with its replacement mutable fields. |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -496,11 +496,11 @@ Delete a schedule using the same owner predicate as reads.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -527,12 +527,12 @@ Page due schedules in database order without loading inactive rows.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `now` | `float` | Required |
-| `after` | `tuple[float, str] \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `after` | `tuple[float, str] \| None` | `None` | Cursor from the previous page as `(due time, schedule ID)`; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -562,28 +562,23 @@ Atomically enqueue an occurrence and advance its schedule revision.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `due_at` | `float` | Required |
-| `next_run_at` | `float` | Required |
-| `task` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `due_at` | `float` | Required | Scheduled time of this occurrence. Must equal the schedule's current `next_run_at`. |
+| `next_run_at` | `float` | Required | Next scheduled time after this occurrence. Must be later than `due_at`. |
+| `task` | `TaskRecord` | Required | The job to enqueue for this occurrence. Must match the schedule's owner, target, and arguments. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 record = await store.commit_cron_occurrence(
-    application_id=...,
-    user_id=...,
-    schedule_id=...,
-    expected_revision=...,
-    due_at=...,
-    next_run_at=...,
-    task=...,
+    application_id=..., user_id=..., schedule_id=..., expected_revision=..., due_at=...,
+    next_run_at=..., task=...,
 )
 ```
 
@@ -599,9 +594,9 @@ Persist an immutable task identity, returning exact idempotent retries.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `TaskRecord` | Required | The job to persist. An identical submission returns the existing job. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -622,11 +617,11 @@ Read a scoped job; omitted user scope is reserved for trusted workers.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `user_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -654,23 +649,20 @@ Claim disjoint batches and retire exhausted attempts after crashes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `queues` | `tuple[str, ...]` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `queues` | `tuple[str, ...]` | Required | Queue names to claim work from. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
+| `limit` | `int` | `1` | Maximum number of jobs to claim in this batch. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 result = await store.claim_tasks(
-    application_id=...,
-    queues=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., queues=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -693,24 +685,20 @@ Renew only an unexpired attempt still owned by the calling worker.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 result = await store.renew_task_lease(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., job_id=..., lease_token=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -736,27 +724,23 @@ Fence completion and retries; terminal transitions erase private input.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `status` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure_code` | `str \| None` | `None` |
-| `retry_at` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `status` | `str` | Required | `"completed"`, `"failed"`, or `"pending"` (retry later). `"pending"` requires `retry_at`. |
+| `result` | `Any` | `None` | JSON-safe result of a completed job. |
+| `failure_code` | `str \| None` | `None` | Short failure category for a failed job. |
+| `retry_at` | `float \| None` | `None` | When a `"pending"` job may run again, in UTC epoch seconds. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 result = await store.finish_task(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    status=...,
+    application_id=..., job_id=..., lease_token=..., now=..., status=...,
 )
 ```
 
@@ -772,12 +756,12 @@ Cancel an owned nonterminal job and revoke any running attempt.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `now` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -804,12 +788,12 @@ Push owner, cursor, projection, ordering, and limit into one database query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -836,12 +820,12 @@ Read a bounded metadata projection with owner filtering in one SQL query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -852,13 +836,13 @@ result = await store.list_cron_metadata(application_id=..., user_id=...)
 
 </Accordion>
 
-### PostgresStore.as_langgraph_checkpointer
+### PostgresStore.framework_checkpointer
 
 ```python
-PostgresStore.as_langgraph_checkpointer() -> Any
+PostgresStore.framework_checkpointer() -> Any
 ```
 
-Return one stable native saver for advanced LangGraph construction.
+Adapt this store for an advanced target using Harnest's selected framework.
 
 <Accordion title="Example">
 
@@ -866,7 +850,7 @@ Return one stable native saver for advanced LangGraph construction.
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
-result = store.as_langgraph_checkpointer()
+result = store.framework_checkpointer()
 ```
 
 </Accordion>
@@ -881,11 +865,11 @@ Create one tenant-scoped session without overwriting conflicts.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Initial session state. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -906,10 +890,10 @@ Read one tenant-scoped session from PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -930,11 +914,11 @@ Apply tenant filtering and optional keyset pagination in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int \| None` | `None` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -955,9 +939,9 @@ Upsert an owner-scoped protobuf snapshot with immutable context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `A2ATaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `A2ATaskRecord` | Required | The A2A task snapshot to persist. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -978,11 +962,11 @@ Read one A2A task using its complete application and owner scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1012,15 +996,15 @@ Apply A2A filters, ordering, and keyset pagination in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `context_id` | `str \| None` | `None` |
-| `status` | `int \| None` | `None` |
-| `status_timestamp_after` | `str \| None` | `None` |
-| `cursor_task_id` | `str \| None` | `None` |
-| `limit` | `int` | `51` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `status` | `int \| None` | `None` | Only return tasks in this A2A task state. |
+| `status_timestamp_after` | `str \| None` | `None` | Only return tasks whose status changed after this timestamp. |
+| `cursor_task_id` | `str \| None` | `None` | Task ID to start the page from, taken from the previous page. |
+| `limit` | `int` | `51` | Maximum number of tasks to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1041,11 +1025,11 @@ Delete one exact A2A owner record without revealing foreign tasks.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1066,11 +1050,11 @@ Atomically merge a state delta in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1091,10 +1075,10 @@ Delete one tenant-scoped session and report whether it existed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1115,10 +1099,10 @@ Hold a cross-replica advisory lock for one session execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1139,7 +1123,7 @@ async PostgresStore.begin_run(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
 ) -> RunRecord
 ```
 
@@ -1147,24 +1131,20 @@ Create an idempotent run while allowing one active run per session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID for the run. An existing active run for the session is recovered instead. |
+| `framework` | `FrameworkName` | Required | — |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 record = await store.begin_run(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -1180,9 +1160,9 @@ Read one PostgreSQL checkpoint run through its ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1208,11 +1188,11 @@ Load an exact or newest checkpoint entirely in PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str \| None` | `None` |
-| `namespace` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str \| None` | `None` | ID of one checkpoint within the run; `None` selects the latest. |
+| `namespace` | `str` | `''` | Checkpoint namespace within the run. `""` is the root graph. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1239,12 +1219,12 @@ Push checkpoint filtering, ordering, cursor, and limit into SQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `namespace` | `str \| None` | `None` |
-| `before` | `str \| None` | `None` |
-| `limit` | `int` | `20` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `namespace` | `str \| None` | `None` | Only return checkpoints in this namespace; `None` returns all namespaces. |
+| `before` | `str \| None` | `None` | Only return checkpoints older than this checkpoint ID. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1266,11 +1246,11 @@ Allocate a serialized revision and write only on matching CAS state.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpoint` | `CheckpointRecord` | Required |
-| `scope` | `RunScope` | Required |
-| `expected_revision` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint` | `CheckpointRecord` | Required | The checkpoint to persist. |
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_revision` | `int \| None` | Required | Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch raises `CheckpointConflictError`. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1291,11 +1271,11 @@ Insert pending writes as one set and ignore existing identities.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
-| `writes` | `Sequence[CheckpointWrite]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `writes` | `Sequence[CheckpointWrite]` | Required | Pending task writes to store for the checkpoint. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1316,10 +1296,10 @@ Read pending writes for one owned PostgreSQL checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1340,10 +1320,10 @@ Fetch pending writes for several checkpoints in one query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_ids` | `Sequence[str]` | Required | IDs of the checkpoints to read pending writes for. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1364,10 +1344,10 @@ Atomically persist a provider wait and mark its owned run waiting.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work this run now waits on. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1388,10 +1368,10 @@ Load one continuation with its complete ownership predicate in SQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1412,20 +1392,18 @@ Load one exact provider wait and its private external identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 continuation = await store.get_provider_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
+    scope=..., provider=..., continuation_id=...,
 )
 ```
 
@@ -1446,20 +1424,18 @@ Use the unique provider key so replica callbacks never scan waits.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the external ID. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 continuation = await store.get_continuation_by_external_id(
-    application_id=...,
-    provider=...,
-    external_id=...,
+    application_id=..., provider=..., external_id=...,
 )
 ```
 
@@ -1481,12 +1457,12 @@ Push provider reconciliation filtering and pagination into PostgreSQL.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Only return waits owned by this continuation provider. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of waits to return. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1515,24 +1491,21 @@ Commit one validated provider outcome with an indexed SQL CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure` | `ContinuationFailure \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider resolving the wait. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result was validated against. |
+| `result` | `Any` | `None` | Validated result of the external work. Leave unset when passing `failure`. |
+| `failure` | `ContinuationFailure \| None` | `None` | Failure category when the external work failed, or `None` on success. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 record = await store.resolve_continuation(
-    scope=...,
-    provider=...,
-    external_id=...,
-    schema_id=...,
+    scope=..., provider=..., external_id=..., schema_id=...,
 )
 ```
 
@@ -1554,22 +1527,19 @@ Claim an outcome and resume its run in one PostgreSQL statement.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 record = await store.claim_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -1592,24 +1562,20 @@ Fail a pending continuation and cancel its waiting run atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `failure` | `ContinuationFailure` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `failure` | `ContinuationFailure` | Required | Failure category recorded on the cancelled wait. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 record = await store.cancel_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
-    failure=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=..., failure=...,
 )
 ```
 
@@ -1631,22 +1597,19 @@ Arm one wait with a SQL CAS after native checkpoint persistence.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest_postgres import PostgresStore
 
 store: PostgresStore
 record = await store.arm_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -1668,12 +1631,12 @@ Apply a validated status transition with one SQL compare-and-swap.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `expected_status` | `RunStatus` | Required |
-| `status` | `RunStatus` | Required |
-| `pending_action` | `PendingAction \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_status` | `RunStatus` | Required | Status the run must have now. A mismatch raises `CheckpointConflictError`. |
+| `status` | `RunStatus` | Required | New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting` → `running`/`failed`/`cancelled`. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed otherwise. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1694,9 +1657,9 @@ Delete a run and cascade its private checkpoint data.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest_postgres import PostgresStore
@@ -1725,11 +1688,11 @@ PostgresTaskStore(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str` | Required |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str` | Required | PostgreSQL connection string. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Options for the `asyncpg` pool, such as `min_size` and `max_size`. |
+| `setup_schema` | `bool` | `True` | Create Harnest's schema. Use `False` for a pre-provisioned schema. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -1787,9 +1750,9 @@ Create a schedule once without reactivating an existing cancelled key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The complete schedule record. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -1810,11 +1773,11 @@ Read a schedule only within its application and owner scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -1841,12 +1804,12 @@ Apply owner filtering and keyset pagination in the database.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -1867,10 +1830,10 @@ Replace one schedule conditionally, preserving its immutable identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The schedule with its replacement mutable fields. |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -1891,11 +1854,11 @@ Delete a schedule using the same owner predicate as reads.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -1922,12 +1885,12 @@ Page due schedules in database order without loading inactive rows.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `now` | `float` | Required |
-| `after` | `tuple[float, str] \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `after` | `tuple[float, str] \| None` | `None` | Cursor from the previous page as `(due time, schedule ID)`; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -1957,28 +1920,23 @@ Atomically enqueue an occurrence and advance its schedule revision.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `due_at` | `float` | Required |
-| `next_run_at` | `float` | Required |
-| `task` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `due_at` | `float` | Required | Scheduled time of this occurrence. Must equal the schedule's current `next_run_at`. |
+| `next_run_at` | `float` | Required | Next scheduled time after this occurrence. Must be later than `due_at`. |
+| `task` | `TaskRecord` | Required | The job to enqueue for this occurrence. Must match the schedule's owner, target, and arguments. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
 
 store: PostgresTaskStore
 record = await store.commit_cron_occurrence(
-    application_id=...,
-    user_id=...,
-    schedule_id=...,
-    expected_revision=...,
-    due_at=...,
-    next_run_at=...,
-    task=...,
+    application_id=..., user_id=..., schedule_id=..., expected_revision=..., due_at=...,
+    next_run_at=..., task=...,
 )
 ```
 
@@ -1994,9 +1952,9 @@ Persist an immutable task identity, returning exact idempotent retries.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `TaskRecord` | Required | The job to persist. An identical submission returns the existing job. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -2017,11 +1975,11 @@ Read a scoped job; omitted user scope is reserved for trusted workers.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `user_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -2049,23 +2007,20 @@ Claim disjoint batches and retire exhausted attempts after crashes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `queues` | `tuple[str, ...]` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `queues` | `tuple[str, ...]` | Required | Queue names to claim work from. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
+| `limit` | `int` | `1` | Maximum number of jobs to claim in this batch. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
 
 store: PostgresTaskStore
 result = await store.claim_tasks(
-    application_id=...,
-    queues=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., queues=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -2088,24 +2043,20 @@ Renew only an unexpired attempt still owned by the calling worker.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
 
 store: PostgresTaskStore
 result = await store.renew_task_lease(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., job_id=..., lease_token=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -2131,27 +2082,23 @@ Fence completion and retries; terminal transitions erase private input.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `status` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure_code` | `str \| None` | `None` |
-| `retry_at` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `status` | `str` | Required | `"completed"`, `"failed"`, or `"pending"` (retry later). `"pending"` requires `retry_at`. |
+| `result` | `Any` | `None` | JSON-safe result of a completed job. |
+| `failure_code` | `str \| None` | `None` | Short failure category for a failed job. |
+| `retry_at` | `float \| None` | `None` | When a `"pending"` job may run again, in UTC epoch seconds. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
 
 store: PostgresTaskStore
 result = await store.finish_task(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    status=...,
+    application_id=..., job_id=..., lease_token=..., now=..., status=...,
 )
 ```
 
@@ -2167,12 +2114,12 @@ Cancel an owned nonterminal job and revoke any running attempt.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `now` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -2199,12 +2146,12 @@ Push owner, cursor, projection, ordering, and limit into one database query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresTaskStore
@@ -2231,12 +2178,12 @@ Read a bounded metadata projection with owner filtering in one SQL query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_postgres import PostgresTaskStore

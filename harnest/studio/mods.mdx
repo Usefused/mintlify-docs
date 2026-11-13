@@ -1,6 +1,6 @@
 ---
 title: "Customize Studio"
-description: "Use Studio Packs to change themes, panel layouts, and views, or supply a trusted replacement shell."
+description: "Use the Studio section of your pack to change themes, panel layouts, and views, or supply a trusted replacement shell."
 ---
 
 Studio loads its default interface from the bundled `fused-studio` pack, maintained by Fused. Your packs use the same versioned manifest, asset snapshots, contribution slots, and module lifecycle. The host owns authentication and recovery; packs own the visible interface.
@@ -13,18 +13,18 @@ Install the [bundled coding-agent skills](/harnest/build/agent-skills#authoring-
 harnest skills install --target codex --project .
 ```
 
-Use `$harnest-studio` for workspace, company-pack, and builder configuration. Use `$harnest-studio-ui` for visual changes, including a Tailwind or Panda CSS section replacement. The skills include manifest guidance, build boundaries, validation, and recovery checks. They configure Studio; they are separate from runtime Agent Skills or a pack's builder guidance.
+Use `$harnest-studio` for workspace, company-pack, and builder configuration. Use `$harnest-studio-ui` for visual changes, including a Tailwind or Panda CSS section replacement.
 
 ## Choose your customization
 
 | Customization | Contract | Execution |
 | --- | --- | --- |
-| Colors and typography | `ui.themes` | Validated literal tokens |
-| Panel placement and visibility | `ui.layouts` | Declarative configuration |
-| Welcome view, workspace tabs, inspector sections | `ui.contributions` with `mode: frame` | Isolated HTML |
-| Full shell or modules using Studio commands | `ui.contributions` with `mode: module` | Explicitly trusted JavaScript |
+| Colors and typography | `studio.ui.themes` | Validated literal tokens |
+| Panel placement and visibility | `studio.ui.layouts` | Declarative configuration |
+| Welcome view, workspace tabs, inspector sections | `studio.ui.contributions` with `mode: frame` | Isolated HTML |
+| Full shell or modules using Studio commands | `studio.ui.contributions` with `mode: module` | Explicitly trusted JavaScript |
 
-UI contributions belong to Studio. They are not installed into your agent project and do not become agent tools or builder instructions. A pack may contain both UI contributions and the [project resources](/harnest/studio/packs) used to build agents.
+UI contributions load into Studio. A pack can also supply [project resources](/harnest/studio/packs) for installation into agents.
 
 ## Choose a CSS framework
 
@@ -32,37 +32,38 @@ Studio consumes built HTML, CSS, and JavaScript. Each pack owns its build tools,
 
 | Scope | Required configuration | CSS boundary |
 | --- | --- | --- |
-| One isolated section | `mode: frame`, HTML `entry` in `ui.assets`, and `replaces` for an existing view | Compile CSS and embed it in the HTML. The frame contains framework resets and selectors. No trust flag is needed. |
-| One section with Studio commands | `mode: module`, JavaScript `entry` and imported assets in `ui.assets`, plus `--trust-ui-pack NAME` | Styles in `ui.styles` apply to the whole page. Scope selectors and avoid a global reset. |
+| One isolated section | `mode: frame`, HTML `entry` in `studio.ui.assets`, and `replaces` for an existing view | Compile CSS and embed it in the HTML. The frame contains framework resets and selectors. No trust flag is needed. |
+| One section with Studio commands | `mode: module`, JavaScript `entry` and imported assets in `studio.ui.assets`, plus `--trust-ui-pack NAME` | Styles in `studio.ui.styles` apply to the whole page. Scope selectors and avoid a global reset. |
 | Entire shell | Trusted module with `slot: shell` and `replaces: fused-studio/shell` | Your shell owns its components and styling. Register the slots and commands its other contributions use. |
 
-Follow [Replace one section with Tailwind](/harnest/studio/tailwind) for a buildable example, exact configuration, and the file-by-file change record. Use the same compiled-asset boundary with another framework.
+See [Replace one section with Tailwind](/harnest/studio/tailwind) for a complete build example.
 
 ## Load a theme and layout
 
-Add a `ui` section to an ordinary Studio Pack:
+Add `studio.ui` to the pack manifest:
 
-```yaml studio-pack.yaml
-apiVersion: harnest.dev/studio-pack/v1
+```yaml pack.yaml
+apiVersion: harnest.dev/pack/v1
 name: company-ui
 version: 1.0.0
 title: Company Studio
-resources: []
-ui:
-  apiVersion: harnest.dev/studio-ui/v1
-  themes:
-    - id: blue
-      title: Company blue
-      tokens:
-        accent: '#76b7ff'
-        accent-ink: '#081729'
-        bg: '#0c1424'
-        panel: '#142238'
-  layouts:
-    - id: assistant-first
-      title: Assistant on the left
-      order: [inspector, workspace, sidebar]
-      hidden: []
+studio:
+  resources: []
+  ui:
+    apiVersion: harnest.dev/studio-ui/v1
+    themes:
+      - id: blue
+        title: Company blue
+        tokens:
+          accent: '#76b7ff'
+          accent-ink: '#081729'
+          bg: '#0c1424'
+          panel: '#142238'
+    layouts:
+      - id: assistant-first
+        title: Assistant on the left
+        order: [inspector, workspace, sidebar]
+        hidden: []
 ```
 
 ```bash
@@ -82,17 +83,18 @@ The default shell keeps guided actions under **Steps**. Click **Focus** to hide 
 Declare each asset explicitly under the pack's `assets/` directory. HTML panels use inline CSS and JavaScript; external resource loads are blocked by the panel's content security policy.
 
 ```yaml
-ui:
-  apiVersion: harnest.dev/studio-ui/v1
-  assets: [assets/welcome.html]
-  contributions:
-    - id: welcome
-      title: Company welcome
-      slot: welcome
-      mode: frame
-      entry: assets/welcome.html
-      replaces: fused-studio/welcome
-      permissions: [state.connection]
+studio:
+  ui:
+    apiVersion: harnest.dev/studio-ui/v1
+    assets: [assets/welcome.html]
+    contributions:
+      - id: welcome
+        title: Company welcome
+        slot: welcome
+        mode: frame
+        entry: assets/welcome.html
+        replaces: fused-studio/welcome
+        permissions: [state.connection]
 ```
 
 ```html assets/welcome.html
@@ -134,27 +136,28 @@ The bundled pack exposes `fused-studio/shell`, `fused-studio/welcome`, `fused-st
 
 ## Write a trusted module
 
-Modules export `activate(studio, host)` and may return a cleanup function. The entrypoint and every imported module or HTML fragment must be listed in `ui.assets`. Stylesheets listed in `ui.styles` also require trust.
+Modules export `activate(studio, host)` and may return a cleanup function. The entrypoint and every imported module or HTML fragment must be listed in `studio.ui.assets`. Stylesheets listed in `studio.ui.styles` also require trust.
 
-```yaml studio-pack.yaml
-apiVersion: harnest.dev/studio-pack/v1
+```yaml pack.yaml
+apiVersion: harnest.dev/pack/v1
 name: company-ui
 version: 1.0.0
 title: Company Studio
-resources: []
-ui:
-  apiVersion: harnest.dev/studio-ui/v1
-  assets: [assets/summary.js, assets/summary.css]
-  styles: [assets/summary.css]
-  contributions:
-    - id: summary
-      title: Project summary
-      slot: inspector.sections
-      mode: module
-      entry: assets/summary.js
+studio:
+  resources: []
+  ui:
+    apiVersion: harnest.dev/studio-ui/v1
+    assets: [assets/summary.js, assets/summary.css]
+    styles: [assets/summary.css]
+    contributions:
+      - id: summary
+        title: Project summary
+        slot: inspector.sections
+        mode: module
+        entry: assets/summary.js
 ```
 
-`assets/summary.css` must exist before validation or launch. For a replacement welcome module, change `slot` to `welcome` and add `replaces: fused-studio/welcome`. For a replacement shell, use `slot: shell` and `replaces: fused-studio/shell`. The referenced JavaScript must implement that view; changing a slot does not generate a shell.
+`assets/summary.css` must exist before validation or launch. For a replacement welcome module, change `slot` to `welcome` and add `replaces: fused-studio/welcome`. For a replacement shell, use `slot: shell` and `replaces: fused-studio/shell`.
 
 ```js assets/summary.js
 export function activate(studio, host) {
@@ -200,7 +203,7 @@ A replacement shell declares its regions using `data-studio-region="sidebar"`, `
 Export the UI types from the Harnest installation that will run your pack:
 
 ```bash
-harnest studio pack types --output ./types
+harnest pack types --output ./types
 npm install --save-dev ./types/harnest-studio-ui-0.1.0.tgz
 ```
 
@@ -262,10 +265,12 @@ JSON requests use paths relative to `/api/`, while `transport` takes `/api/...`.
 
 The existing [pack validation and company wheel commands](/harnest/studio/packs) include UI manifests and their exact asset snapshots. Assets use content-revision URLs, and edits to publisher files take effect after restarting Studio. Existing Studio and Harnest compatibility requirements still apply. Each pack can snapshot up to 128 UI assets, with a 1 MiB limit per file and an 8 MiB total UI limit. Referenced assets must be supported UTF-8 text; symlinks and path traversal are rejected.
 
-Use **Restore default UI** to reload the bundled interface without custom UI contributions. The host also displays this recovery link if composition fails. To bypass all external packs, including missing or malformed pack directories, launch:
+Use **Restore default UI** (`?safe-ui=1`) to reload the bundled interface without custom UI contributions. The host also displays this recovery link if composition fails. To bypass all external packs, including missing or malformed pack directories, launch Harnest directly without any `--pack` arguments:
 
 ```bash
-harnest studio --safe-ui
+harnest studio --workspace ./agents
 ```
 
-Browser recovery leaves your saved appearance preferences intact. The safe launch flag excludes external packs entirely for that launch, including their agent resources and builder defaults.
+A missing or malformed pack stops Studio at launch. Run `harnest pack validate DIR` to identify the problem, then fix it or omit that pack.
+
+Browser recovery leaves your saved appearance preferences intact. Omitting packs also excludes their agent resources and builder defaults.

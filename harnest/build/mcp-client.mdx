@@ -112,7 +112,13 @@ async def load_context(uri: str):
 
 See the [MCP discovery operation reference](/harnest/reference/api/mcp#discovery-operations). Trusted operations enforce permissions and invocation lifetime even when hidden from the model. Unsupported catalogues are empty; unsupported reads fail. Prompt arguments are strings, and returned messages are reference data.
 
-Outside an invocation, use a developer-owned connection:
+Inspect a configured client without invoking a model through Harnest's project-aware CLI:
+
+```bash
+harnest mcp inspect catalog --project AGENT_DIR --json
+```
+
+Within an active Harnest invocation, custom code can own a connection using the same selected framework:
 
 ```python
 from harnest.mcp import MCPClient
@@ -126,11 +132,11 @@ async def inspect_catalog():
         return await client.inspect()
 ```
 
-`connect()` uses the LangGraph lifecycle identity by default; pass `framework="adk"` when sharing an ADK-owned lifecycle. Resource/prompt requests are independently scoped; do not rely on per-session server state shared with tool calls.
+`connect()` uses the framework selected by the current Harnest compilation or invocation. Calls outside that context fail before acquiring credentials. Use `harnest mcp inspect` for standalone discovery. Resource and prompt requests have separate scopes from tool calls.
 
 Streamable HTTP tries protocol `2026-07-28` discovery, falling back to SDK initialization for unsupported or older servers. Authentication, header-validation, and transport failures do not trigger fallback. Inspect the selected `protocolVersion` with `harnest mcp inspect CLIENT --json`.
 
-Tool calls are sent once; Harnest does not automatically replay them after a disconnect or an input-required response. Interactive multi-round-trip input handling is not supported on the newer HTTP path yet. Stdio and legacy SSE continue using the installed SDK's supported protocol versions.
+Tool calls are sent once; Harnest does not automatically replay them after a disconnect or an input-required response. Streamable HTTP does not support interactive multi-round-trip input. Stdio and SSE use the installed SDK's protocol versions.
 
 ### Restrict retrieval
 

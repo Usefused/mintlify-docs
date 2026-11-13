@@ -45,6 +45,10 @@
     {
       "source": "/harnest",
       "destination": "/harnest/overview"
+    },
+    {
+      "source": "/harnest/runtime/lifecycle/native-integrations",
+      "destination": "/harnest/runtime/lifecycle/framework-extensions"
     }
   ],
   "favicon": "https://media.brand.dev/1bebb410-f7fb-43b3-b789-6dd6c0d59d42.svg",
@@ -396,7 +400,7 @@
                       "harnest/runtime/lifecycle/invocation-hooks",
                       "harnest/runtime/lifecycle/output-policy",
                       "harnest/runtime/lifecycle/application-resources",
-                      "harnest/runtime/lifecycle/native-integrations"
+                      "harnest/runtime/lifecycle/framework-extensions"
                     ]
                   },
                   "harnest/runtime/agent-runtime-principals",
@@ -430,7 +434,7 @@
                     ]
                   },
                   {
-                    "group": "Project packs",
+                    "group": "Packs",
                     "icon": "box",
                     "expanded": false,
                     "pages": [
@@ -532,6 +536,8 @@
                 "pages": [
                   "harnest/reference/api/assets",
                   "harnest/reference/api/checkpoint",
+                  "harnest/reference/api/frameworks-adk",
+                  "harnest/reference/api/frameworks-langgraph",
                   "harnest/reference/api/session",
                   "harnest/reference/api/memory",
                   "harnest/reference/api/store",

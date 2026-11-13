@@ -33,7 +33,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.logging import Logger
 
-logger: Logger  # returned by Harnest, not constructed directly
+logger: Logger  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -63,9 +63,9 @@ Return a logger carrying immutable attributes on every record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `**attributes` | `Any` | Optional | Attributes added to every record from the new logger. |
 
 ```python
 from harnest.logging import Logger
@@ -86,13 +86,13 @@ Emit a structured event at an explicit standard logging level.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `level` | `int` | Required |
-| `event` | `str` | Required |
-| `*args` | `Any` | Optional |
-| `exc_info` | `Any` | `None` |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `level` | `int` | Required | Standard `logging` level, such as `logging.INFO`. |
+| `event` | `str` | Required | Event name or message. |
+| `*args` | `Any` | Optional | Values formatted into `event`. |
+| `exc_info` | `Any` | `None` | Exception information to attach. |
+| `**attributes` | `Any` | Optional | Structured attributes for this record. |
 
 ```python
 from harnest.logging import Logger
@@ -113,11 +113,11 @@ Emit a structured debug event.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `str` | Required |
-| `*args` | `Any` | Optional |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `str` | Required | Event name or message. |
+| `*args` | `Any` | Optional | Values formatted into `event`. |
+| `**attributes` | `Any` | Optional | Structured attributes for this record. |
 
 ```python
 from harnest.logging import Logger
@@ -138,11 +138,11 @@ Emit a structured informational event.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `str` | Required |
-| `*args` | `Any` | Optional |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `str` | Required | Event name or message. |
+| `*args` | `Any` | Optional | Values formatted into `event`. |
+| `**attributes` | `Any` | Optional | Structured attributes for this record. |
 
 ```python
 from harnest.logging import Logger
@@ -163,11 +163,11 @@ Emit a structured warning event.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `str` | Required |
-| `*args` | `Any` | Optional |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `str` | Required | Event name or message. |
+| `*args` | `Any` | Optional | Values formatted into `event`. |
+| `**attributes` | `Any` | Optional | Structured attributes for this record. |
 
 ```python
 from harnest.logging import Logger
@@ -188,11 +188,11 @@ Emit a structured error event.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `str` | Required |
-| `*args` | `Any` | Optional |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `str` | Required | Event name or message. |
+| `*args` | `Any` | Optional | Values formatted into `event`. |
+| `**attributes` | `Any` | Optional | Structured attributes for this record. |
 
 ```python
 from harnest.logging import Logger
@@ -213,11 +213,11 @@ Emit a structured critical event.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `str` | Required |
-| `*args` | `Any` | Optional |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `str` | Required | Event name or message. |
+| `*args` | `Any` | Optional | Values formatted into `event`. |
+| `**attributes` | `Any` | Optional | Structured attributes for this record. |
 
 ```python
 from harnest.logging import Logger
@@ -238,11 +238,11 @@ Emit an error event carrying the active exception traceback.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `str` | Required |
-| `*args` | `Any` | Optional |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `str` | Required | Event name or message. |
+| `*args` | `Any` | Optional | Values formatted into `event`. |
+| `**attributes` | `Any` | Optional | Structured attributes for this record. |
 
 ```python
 from harnest.logging import Logger
@@ -263,10 +263,10 @@ get_logger(name: str = 'agent', **attributes: Any) -> Logger
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | `'agent'` |
-| `**attributes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | `'agent'` | Logger name within Harnest's agent logging namespace. |
+| `**attributes` | `Any` | Optional | Attributes added to every record. |
 
 ```python
 from harnest.logging import get_logger

@@ -105,10 +105,10 @@ Model precedence is an explicit `judgeModel`, then the required `OPENAI_MODEL`. 
 }
 ```
 
-Replace `my-judge-model` with a model served by your endpoint. The judge reuses a compatible agent transport when available. See [model environment](/harnest/build/models-and-libraries/configure-a-model) for endpoint and credential setup.
+The judge model must be served by your endpoint. It reuses a compatible agent transport when available. See [model environment](/harnest/build/models-and-libraries/configure-a-model) for endpoint and credential setup.
 
 <Warning>
-  Harnest runs each eval set once. That `num_runs=1` safeguard does not replace `judgeModelOptions.numSamples`: a judge-backed metric can still call its judge several times for one invocation. Lower the sample count deliberately when cost matters, and raise it when judge stability matters more.
+  Harnest runs each eval set once (`num_runs=1`). `judgeModelOptions.numSamples` controls the number of judge samples within that run, affecting cost and scoring stability.
 </Warning>
 
 ## Configure rubric metrics

@@ -46,13 +46,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `host` | `str` | `'127.0.0.1'` |
-| `port` | `int` | `1907` |
-| `allow_remote` | `bool` | `False` |
-| `request_timeout_seconds` | `float` | `300` |
-| `max_concurrent_requests` | `int` | `8` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `host` | `str` | `'127.0.0.1'` | Bind host. |
+| `port` | `int` | `1907` | Bind port. |
+| `allow_remote` | `bool` | `False` | Consent to bind a non-loopback host. |
+| `request_timeout_seconds` | `float` | `300` | Request time limit, in seconds. |
+| `max_concurrent_requests` | `int` | `8` | Maximum requests processed at once. |
 
 ```python
 from harnest.server import HTTPServerConfig
@@ -78,9 +78,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `enabled` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `True` | Allow the Playground UI under local `harnest serve`. |
 
 ```python
 from harnest.server import PlaygroundConfig
@@ -120,15 +120,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `http` | `HTTPServerConfig` | `HTTPServerConfig(host='127.0.0.1', port=1907, allow_remote=False, request_timeout_seconds=300, max_concurrent_requests=8)` |
-| `limits` | `ServerLimits` | `ServerLimits(max_request_bytes=1048576)` |
-| `playground` | `PlaygroundConfig` | `PlaygroundConfig(enabled=True)` |
-| `live` | `bool` | `False` |
-| `agent_principal` | `Literal['optional', 'required']` | `'optional'` |
-| `openapi` | `bool` | `True` |
-| `agui` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `http` | `HTTPServerConfig` | `HTTPServerConfig(host='127.0.0.1', port=1907, allow_remote=False, request_timeout_seconds=300, max_concurrent_requests=8)` | HTTP listener settings. |
+| `limits` | `ServerLimits` | `ServerLimits(max_request_bytes=1048576)` | Request size limits. |
+| `playground` | `PlaygroundConfig` | `PlaygroundConfig(enabled=True)` | Playground settings. |
+| `live` | `bool` | `False` | Enable WebSocket `/live` connections. |
+| `agent_principal` | `Literal['optional', 'required']` | `'optional'` | `"required"` makes custom invocations bind an Agent Runtime Principal. |
+| `openapi` | `bool` | `True` | Expose API documentation and the OpenAPI spec. |
+| `agui` | `bool` | `True` | Expose `POST /agui` and advertise AG-UI. |
 
 ```python
 from harnest.server import ServerConfig
@@ -155,13 +155,13 @@ Apply the compiled launcher's explicit operational overrides.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `host` | `str \| None` | `None` |
-| `port` | `int \| None` | `None` |
-| `request_timeout_seconds` | `float \| None` | `None` |
-| `max_concurrent_requests` | `int \| None` | `None` |
-| `allow_remote` | `bool \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `host` | `str \| None` | `None` | Bind host override. |
+| `port` | `int \| None` | `None` | Bind port override. |
+| `request_timeout_seconds` | `float \| None` | `None` | Request time limit override, in seconds. |
+| `max_concurrent_requests` | `int \| None` | `None` | Concurrency override. |
+| `allow_remote` | `bool \| None` | `None` | Non-loopback bind consent override. |
 
 ```python
 from harnest.server import ServerConfig
@@ -205,9 +205,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `max_request_bytes` | `int` | `1048576` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `max_request_bytes` | `int` | `1048576` | Maximum HTTP body and WebSocket frame size, in bytes. |
 
 ```python
 from harnest.server import ServerLimits
@@ -227,10 +227,10 @@ load_server_config(path: str | Path, *, environment: Mapping[str, str] | None = 
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str \| Path` | Required |
-| `environment` | `Mapping[str, str] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str \| Path` | Required | Path to `server.yaml`. |
+| `environment` | `Mapping[str, str] \| None` | `None` | Environment used to resolve references. Defaults to the process environment. |
 
 ```python
 from harnest.server import load_server_config

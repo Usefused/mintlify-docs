@@ -11,12 +11,13 @@ icon: "code"
 
 ## Pack configuration
 
+[`load_pack`](#load_pack) imports `pack.py` and binds its `ProjectPack` to the identity declared in `pack.yaml`.
+
 | Property | Required | Contract |
 |---|---|---|
-| `name` | Yes | A unique kebab-case identifier beginning with a letter, up to 63 characters. `harnest` is reserved. |
-| `schema_version` | Yes | A positive integer identifying the company configuration schema. Track it separately from your package release version. |
-| `options` | No | A Pydantic model for caller-supplied inputs. |
-| `templates` | No | A directory containing inert UTF-8 [templates](/harnest/build/project-packs/changes#templates). |
+| `schema_version` | Yes | A positive integer identifying the company configuration schema. Track it separately from the `version` in `pack.yaml`. |
+| `options` | No | A Pydantic model for values passed with `--option`. |
+| `templates` | No | A directory of inert UTF-8 [templates](/harnest/build/project-packs/changes#templates). Relative paths resolve against the pack folder. |
 | `config_file` | With `config_model` | The project-relative company configuration path. |
 | `config_model` | With `config_file` | A Pydantic model that validates the resulting configuration mapping. |
 
@@ -79,7 +80,7 @@ def migrate(context: ProjectContext) -> ChangePlan:
 | Function | A synchronous callable accepting `ProjectContext` and returning `ChangePlan`. |
 | Registration | One migration per source version. Duplicate registrations are rejected. |
 | Timing | Runs during upgrade planning, including previews. |
-| New projects | Skip historical migrations; their initializer must create the current schema directly. |
+| New projects | Their initializer creates the current schema; migrations run only on existing projects. |
 
 ## Plan results
 
@@ -88,6 +89,8 @@ def migrate(context: ProjectContext) -> ChangePlan:
 | `root` | The resolved target directory. |
 | `changes` | Net file changes: `ChangeKind.CREATE`, `UPDATE`, or `DELETE`, with paths and owners. |
 | `blockers` | Problems that prevent the entire plan from applying. |
+| `warnings` | Release warnings from Harnest's core upgrade, such as breaking changes that affect this agent. |
+| `notes` | Optional migration guidance from Harnest's core upgrade. |
 | `render()` | A readable combined summary. |
 | `public()` | A JSON-compatible summary without file contents or option values. |
 
@@ -97,7 +100,9 @@ def migrate(context: ProjectContext) -> ChangePlan:
 |---|---|
 | [`ChangeKind`](#changekind) | Class |
 | [`ChangePlan`](#changeplan) | Class |
-| [`ProjectCLI`](#projectcli) | Class |
+| [`Pack`](#pack) | Class |
+| [`PackCommand`](#packcommand) | Class |
+| [`PackManifest`](#packmanifest) | Class |
 | [`ProjectChange`](#projectchange) | Class |
 | [`ProjectContext`](#projectcontext) | Class |
 | [`ProjectError`](#projecterror) | Class |
@@ -106,6 +111,8 @@ def migrate(context: ProjectContext) -> ChangePlan:
 | [`ProjectPlanner`](#projectplanner) | Class |
 | [`WritePolicy`](#writepolicy) | Class |
 | [`apply_project_plan`](#apply_project_plan) | Function |
+| [`load_pack`](#load_pack) | Function |
+| [`load_packs`](#load_packs) | Function |
 
 ## ChangeKind
 
@@ -147,9 +154,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `*operations` | `_Operation` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `*operations` | `_Operation` | Optional | File and YAML operations, applied in order. |
 
 ```python
 from harnest.authoring import ChangePlan
@@ -159,118 +166,163 @@ plan = ChangePlan()
 
 </Accordion>
 
-## ProjectCLI
+## Pack
 
-Embed init/upgrade planning and custom commands in a company-owned executable.
+One loaded pack. `project` is None when the pack has no pack.py.
 
 ```python
-ProjectCLI(
-    name: str,
-    packs: Sequence[ProjectPack],
-    *,
-    harnest_command: Sequence[str] = ('harnest',),
-) -> None
+Pack(root: Path, manifest: PackManifest, project: ProjectPack | None) -> None
 ```
+
+Fields (`—` means no declared default):
+
+| Field | Type | Default |
+|---|---|---|
+| `root` | `Path` | `—` |
+| `manifest` | `PackManifest` | `—` |
+| `project` | `ProjectPack \| None` | `—` |
 
 <Accordion title="Parameters and example">
 
 | Parameter | Type | Default |
 |---|---|---|
-| `name` | `str` | Required |
-| `packs` | `Sequence[ProjectPack]` | Required |
-| `harnest_command` | `Sequence[str]` | `('harnest',)` |
+| `root` | `Path` | Required |
+| `manifest` | `PackManifest` | Required |
+| `project` | `ProjectPack \| None` | Required |
 
 ```python
-from harnest.authoring import ProjectCLI
+from harnest.authoring import Pack
 
-cli = ProjectCLI(name=..., packs=...)
+pack = Pack(root=..., manifest=..., project=...)
 ```
 
 </Accordion>
 
-### ProjectCLI.add_command
+### Pack.name
+
+The pack name from pack.yaml; also its lock key.
+
+<Accordion title="Example">
 
 ```python
-ProjectCLI.add_command(name: str, handler: Callable[[argparse.Namespace], int], *, help: str = '') -> argparse.ArgumentParser
+from harnest.authoring import Pack
+
+pack: Pack
+value = pack.name
 ```
 
-Register a company command and return its parser for company-specific flags.
+</Accordion>
+
+### Pack.studio
+
+The raw `studio:` section, validated by Studio when it loads the pack.
+
+<Accordion title="Example">
+
+```python
+from harnest.authoring import Pack
+
+pack: Pack
+value = pack.studio
+```
+
+</Accordion>
+
+## PackCommand
+
+One company command exposed by the pack's branded executable.
+
+```python
+PackCommand(name: str, handler: CommandHandler, help: str = '') -> None
+```
+
+Fields (`—` means no declared default):
+
+| Field | Type | Default |
+|---|---|---|
+| `name` | `str` | `—` |
+| `handler` | `CommandHandler` | `—` |
+| `help` | `str` | `''` |
 
 <Accordion title="Parameters and example">
 
 | Parameter | Type | Default |
 |---|---|---|
 | `name` | `str` | Required |
-| `handler` | `Callable[[argparse.Namespace], int]` | Required |
+| `handler` | `CommandHandler` | Required |
 | `help` | `str` | `''` |
 
 ```python
-from harnest.authoring import ProjectCLI
+from harnest.authoring import PackCommand
 
-cli: ProjectCLI
-result = cli.add_command(name=..., handler=...)
+command = PackCommand(name=..., handler=...)
 ```
 
 </Accordion>
 
-### ProjectCLI.add_studio
+## PackManifest
+
+The inert pack.yaml contract; the `studio` section is validated by Studio.
 
 ```python
-ProjectCLI.add_studio(
+PackManifest(
     *,
-    command: list[str] | tuple[str, ...],
-    packs: Sequence[Path] = (),
-    trusted_ui: Sequence[str] = (),
-    init_args: Sequence[str] = (),
+    apiVersion: Literal['harnest.dev/pack/v1'],
+    name: str,
+    version: str,
+    title: Annotated[str, MinLen(min_length=1), MaxLen(max_length=120)],
+    description: Annotated[str, MaxLen(max_length=4000)] = '',
+    command: str | None = None,
+    requires: harnest.authoring.PackRequirements = ...,
+    studio: dict[str, Any] | None = None,
 ) -> None
 ```
 
-Expose Studio and core commands through an explicit company executable argv.
+Fields (`—` means no declared default):
+
+| Field | Type | Default |
+|---|---|---|
+| `apiVersion` | `Literal['harnest.dev/pack/v1']` | `—` |
+| `name` | `str` | `—` |
+| `version` | `str` | `—` |
+| `title` | `str` | `—` |
+| `description` | `str` | `''` |
+| `command` | `str \| None` | `None` |
+| `requires` | `PackRequirements` | `PackRequirements()` |
+| `studio` | `dict[str, Any] \| None` | `None` |
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `command` | `list[str] \| tuple[str, ...]` | Required |
-| `packs` | `Sequence[Path]` | `()` |
-| `trusted_ui` | `Sequence[str]` | `()` |
-| `init_args` | `Sequence[str]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `apiVersion` | `Literal['harnest.dev/pack/v1']` | Required | Manifest schema identifier: harnest.dev/pack/v1. |
+| `name` | `str` | Required | Unique pack name and key in harnest-packs.lock. |
+| `version` | `str` | Required | Distribution version of the pack. Project migrations use ProjectPack.schema_version separately. |
+| `title` | `str` | Required | Human-readable title. |
+| `description` | `str` | `''` | Description of what the pack supplies. |
+| `command` | `str \| None` | `None` | Branded executable name; defaults to the pack name. |
+| `requires` | `harnest.authoring.PackRequirements` | `...` | Harnest version constraints checked before pack code runs, and Studio version constraints checked when Studio is installed or launched. |
+| `studio` | `dict[str, Any] \| None` | `None` | Optional Studio configuration, validated by Studio. |
 
 ```python
-from harnest.authoring import ProjectCLI
+from harnest.authoring import PackManifest
 
-cli: ProjectCLI
-cli.add_studio(command=...)
+manifest = PackManifest(apiVersion=..., name=..., version=..., title=...)
 ```
 
 </Accordion>
 
-### ProjectCLI.run
+### PackManifest.command_name
+
+The branded executable name; defaults to the pack name.
+
+<Accordion title="Example">
 
 ```python
-ProjectCLI.run(
-    arguments: Sequence[str] | None = None,
-    *,
-    stdout: TextIO | None = None,
-    stderr: TextIO | None = None,
-) -> int
-```
+from harnest.authoring import PackManifest
 
-Execute one command and return a process exit code; never exit the caller.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `arguments` | `Sequence[str] \| None` | `None` |
-| `stdout` | `TextIO \| None` | `None` |
-| `stderr` | `TextIO \| None` | `None` |
-
-```python
-from harnest.authoring import ProjectCLI
-
-cli: ProjectCLI
-result = cli.run()
+manifest: PackManifest
+value = manifest.command_name
 ```
 
 </Accordion>
@@ -293,11 +345,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `kind` | `ChangeKind` | Required |
-| `path` | `str` | Required |
-| `owners` | `tuple[str, ...]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `kind` | `ChangeKind` | Required | Kind of change. |
+| `path` | `str` | Required | Changed path, relative to the project. |
+| `owners` | `tuple[str, ...]` | Required | Names of the packs that made the change, or `harnest` for core changes. |
 
 ```python
 from harnest.authoring import ProjectChange
@@ -326,12 +378,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `options` | `BaseModel \| None` | Required |
-| `files` | `ProjectFiles` | Required |
-| `yaml` | `ProjectYAML` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Final path component of the project directory. |
+| `options` | `BaseModel \| None` | Required | Validated pack options, or `None` when the pack declares none. |
+| `files` | `ProjectFiles` | Required | Staged file operations. |
+| `yaml` | `ProjectYAML` | Required | Staged YAML operations. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -360,11 +412,10 @@ except ProjectError as error:
 
 ## ProjectPack
 
-Company-owned scaffolding and consecutive schema migrations, never auto-discovered.
+Project hooks of one Harnest pack; identity comes from the pack's pack.yaml.
 
 ```python
 ProjectPack(
-    name: str,
     schema_version: int,
     *,
     options: type[BaseModel] | None = None,
@@ -376,19 +427,57 @@ ProjectPack(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `schema_version` | `int` | Required |
-| `options` | `type[BaseModel] \| None` | `None` |
-| `templates` | `str \| Path \| None` | `None` |
-| `config_file` | `str \| None` | `None` |
-| `config_model` | `type[BaseModel] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schema_version` | `int` | Required | Current pack schema version. Migrations step up to it one version at a time. |
+| `options` | `type[BaseModel] \| None` | `None` | Pydantic model that validates the caller's pack options. |
+| `templates` | `str \| Path \| None` | `None` | Folder of packaged templates and files used by `from_template` and `from_file`. |
+| `config_file` | `str \| None` | `None` | Company configuration file in each project, such as `"acme-agent.yaml"`. |
+| `config_model` | `type[BaseModel] \| None` | `None` | Pydantic model that validates that configuration file, including during upgrades. |
 
 ```python
 from harnest.authoring import ProjectPack
 
-pack = ProjectPack(name=..., schema_version=...)
+pack = ProjectPack(schema_version=...)
+```
+
+</Accordion>
+
+### ProjectPack.commands
+
+Return company commands in registration order.
+
+<Accordion title="Example">
+
+```python
+from harnest.authoring import ProjectPack
+
+pack: ProjectPack
+value = pack.commands
+```
+
+</Accordion>
+
+### ProjectPack.bind
+
+```python
+ProjectPack.bind(name: str, root: Path) -> 'ProjectPack'
+```
+
+Attach pack.yaml identity and resolve relative templates against the pack root.
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default |
+|---|---|---|
+| `name` | `str` | Required |
+| `root` | `Path` | Required |
+
+```python
+from harnest.authoring import ProjectPack
+
+pack: ProjectPack
+pack = pack.bind(name=..., root=...)
 ```
 
 </Accordion>
@@ -403,9 +492,9 @@ Register the single initializer used only when creating a new project.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `Hook` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `Hook` | Required | The initializer. It receives a `ProjectContext` and returns a `ChangePlan`. |
 
 ```python
 from harnest.authoring import ProjectPack
@@ -428,10 +517,10 @@ Register one consecutive migration; upgrades never rerun initialization.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `from_version` | `int` | Required |
-| `to_version` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `from_version` | `int` | Required | Schema version the migration upgrades from. |
+| `to_version` | `int` | Required | Schema version it upgrades to. Must be `from_version + 1`. |
 
 ```python
 from harnest.authoring import ProjectPack
@@ -440,6 +529,33 @@ pack: ProjectPack
 @pack.migration(from_version=..., to_version=...)
 def my_function():
     ...
+```
+
+</Accordion>
+
+### ProjectPack.command
+
+```python
+ProjectPack.command(name: str, *, help: str = '') -> Callable[[CommandHandler], CommandHandler]
+```
+
+Register a company command; the handler receives its arguments and returns an exit code.
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Company command name, as a kebab-case identifier. Built-in Harnest command names are reserved. |
+| `help` | `str` | `''` | Help text shown for the command. |
+
+```python
+from harnest.authoring import ProjectPack
+
+pack = ProjectPack(schema_version=1)
+
+@pack.command("check", help="Check company conventions")
+def check(arguments: list[str]) -> int:
+    return 0
 ```
 
 </Accordion>
@@ -457,13 +573,15 @@ Fields (`—` means no declared default):
 | `root` | `Path` | `—` |
 | `changes` | `tuple[ProjectChange, ...]` | `—` |
 | `blockers` | `tuple[str, ...]` | `—` |
+| `notes` | `tuple[str, ...]` | `()` |
+| `warnings` | `tuple[str, ...]` | `()` |
 
 <Accordion title="Example">
 
 ```python
 from harnest.authoring import ProjectPlan
 
-plan: ProjectPlan  # returned by Harnest, not constructed directly
+plan: ProjectPlan  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -516,10 +634,10 @@ ProjectPlanner(packs: Sequence[ProjectPack], *, harnest_command: Sequence[str] =
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `packs` | `Sequence[ProjectPack]` | Required |
-| `harnest_command` | `Sequence[str]` | `('harnest',)` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `packs` | `Sequence[ProjectPack]` | Required | The project packs to apply. |
+| `harnest_command` | `Sequence[str]` | `('harnest',)` | Command used to run Harnest. |
 
 ```python
 from harnest.authoring import ProjectPlanner
@@ -549,16 +667,16 @@ Prepare a scaffold or template, then apply pack hooks in a disposable project.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `directory` | `str \| Path` | Required |
-| `options` | `Mapping[str, Mapping[str, Any]] \| None` | `None` |
-| `framework` | `str \| None` | `None` |
-| `minimal` | `bool` | `False` |
-| `template` | `str \| None` | `None` |
-| `template_sha256` | `str \| None` | `None` |
-| `mode` | `str \| None` | `None` |
-| `example` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `directory` | `str \| Path` | Required | Absent or empty folder for the new project. |
+| `options` | `Mapping[str, Mapping[str, Any]] \| None` | `None` | Pack options by pack name. |
+| `framework` | `str \| None` | `None` | `"adk"` or `"langgraph"`. |
+| `minimal` | `bool` | `False` | Create a minimal project. |
+| `template` | `str \| None` | `None` | Template to start from. |
+| `template_sha256` | `str \| None` | `None` | Expected SHA-256 of the template. |
+| `mode` | `str \| None` | `None` | `"managed"` or `"advanced"`. |
+| `example` | `bool` | `False` | Include the example agent. |
 
 ```python
 from harnest.authoring import ProjectPlanner
@@ -583,10 +701,10 @@ Compose core migration and pack migration proposals without live writes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `directory` | `str \| Path` | Required |
-| `options` | `Mapping[str, Mapping[str, Any]] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `directory` | `str \| Path` | Required | Project folder to upgrade. |
+| `options` | `Mapping[str, Mapping[str, Any]] \| None` | `None` | Pack options by pack name. |
 
 ```python
 from harnest.authoring import ProjectPlanner
@@ -630,9 +748,9 @@ apply_project_plan(plan: ProjectPlan) -> Path | None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `plan` | `ProjectPlan` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `plan` | `ProjectPlan` | Required | The plan to apply. Stale plans are rejected. |
 
 ```python
 from harnest.authoring import apply_project_plan
@@ -642,11 +760,67 @@ result = apply_project_plan(plan=...)
 
 </Accordion>
 
+## load_pack
+
+Load a pack folder; pack.py runs only when `import_project` is true.
+
+```python
+load_pack(root: str | Path, *, import_project: bool = True) -> Pack
+```
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `root` | `str \| Path` | Required | Pack folder containing pack.yaml and optional trusted pack.py hooks. |
+| `import_project` | `bool` | `True` | Import pack.py and bind its ProjectPack to the manifest identity. False reads only the manifest. |
+
+```python
+from harnest.authoring import load_pack
+
+pack = load_pack("./packs/acme")
+```
+
+</Accordion>
+
+## load_packs
+
+Load several packs in the caller's order and reject duplicate names.
+
+```python
+load_packs(roots: Sequence[str | Path]) -> tuple[Pack, ...]
+```
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `roots` | `Sequence[str \| Path]` | Required | Pack folders to load. Duplicate names are rejected. |
+
+```python
+from harnest.authoring import load_packs
+
+result = load_packs(roots=...)
+```
+
+</Accordion>
+
 ## ProjectContext.files
 
 Access this facade through `ProjectContext.files`; its implementation type is not a public import.
 
 Read snapshot files and declare text/template changes without writing them.
+
+<Accordion title="Example">
+
+```python
+from harnest.authoring import ProjectContext
+
+context: ProjectContext
+files = context.files
+```
+
+</Accordion>
 
 ### ProjectContext.files.read_text
 
@@ -658,9 +832,9 @@ Read an existing staged UTF-8 file.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | File path, relative to the project. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -686,11 +860,11 @@ Propose text creation or a baseline-checked managed replacement.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
-| `content` | `str` | Required |
-| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | File path, relative to the project. |
+| `content` | `str` | Required | Text to write. |
+| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` | `WritePolicy.IF_MISSING` creates only absent files; `WritePolicy.MANAGED` also replaces unchanged pack-owned files. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -717,12 +891,12 @@ Render an inert UTF-8 dollar template using only explicit substitutions.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
-| `template` | `str` | Required |
-| `values` | `Mapping[str, str] \| None` | `None` |
-| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | Destination path, relative to the project. |
+| `template` | `str` | Required | Template path, relative to the pack's `templates` folder. |
+| `values` | `Mapping[str, str] \| None` | `None` | Values for `$name` substitutions. Without them, the template is copied literally. |
+| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` | `WritePolicy.IF_MISSING` creates only absent files; `WritePolicy.MANAGED` also replaces unchanged pack-owned files. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -748,11 +922,11 @@ Copy a packaged document or binary asset unchanged through tracked file ownershi
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
-| `source` | `str` | Required |
-| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | Destination path, relative to the project. |
+| `source` | `str` | Required | Source path, relative to the pack's `templates` folder. Copied byte for byte. |
+| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` | `WritePolicy.IF_MISSING` creates only absent files; `WritePolicy.MANAGED` also replaces unchanged pack-owned files. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -773,9 +947,9 @@ Propose removal only if the pack still owns unchanged generated content.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | File path, relative to the project. Removed only if the pack still owns unchanged content. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -792,6 +966,17 @@ Access this facade through `ProjectContext.yaml`; its implementation type is not
 
 Declare field-level YAML edits; unrelated values survive serialization.
 
+<Accordion title="Example">
+
+```python
+from harnest.authoring import ProjectContext
+
+context: ProjectContext
+yaml = context.yaml
+```
+
+</Accordion>
+
 ### ProjectContext.yaml.read
 
 ```python
@@ -802,9 +987,9 @@ Return a detached configuration mapping suitable for migration decisions.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | YAML file path, relative to the project. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -831,12 +1016,12 @@ Propose a JSON-compatible field value with explicit overwrite policy.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
-| `key` | `tuple[str, ...]` | Required |
-| `value` | `Any` | Required |
-| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | YAML file path, relative to the project. |
+| `key` | `tuple[str, ...]` | Required | Path to the field, such as `("owner",)`. |
+| `value` | `Any` | Required | JSON-compatible value. |
+| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` | `WritePolicy.IF_MISSING` sets only absent fields; `WritePolicy.MANAGED` also replaces unchanged pack-owned values. |
 
 ```python
 from harnest.authoring import ProjectContext
@@ -857,11 +1042,11 @@ Move a user's existing value without overwriting an occupied destination.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `path` | `str` | Required |
-| `source` | `tuple[str, ...]` | Required |
-| `destination` | `tuple[str, ...]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | YAML file path, relative to the project. |
+| `source` | `tuple[str, ...]` | Required | Current path to the field. |
+| `destination` | `tuple[str, ...]` | Required | New path. An occupied destination is never overwritten. |
 
 ```python
 from harnest.authoring import ProjectContext

@@ -1,5 +1,3 @@
-# Curated details for /harnest/reference/api/model. See task.yaml for the format.
-
 LiteLLMModel:
   params:
     model: LiteLLM model ID in `provider/model` form.
@@ -11,7 +9,6 @@ LiteLLMModel:
     from harnest.model import LiteLLMModel
 
     model = LiteLLMModel("openai/your-model", api_base="https://models.example.invalid/v1")
-
 LiteLLMModel.from_openai_environment:
   params:
     default_model: Model ID used when `OPENAI_MODEL` is not set.
@@ -23,7 +20,44 @@ LiteLLMModel.from_openai_environment:
     from harnest.model import LiteLLMModel
 
     model = LiteLLMModel.from_openai_environment()  # reads OPENAI_MODEL and OPENAI_BASE_URL
-
-LiteLLMModel.build_for:
+LiteLLMContext:
   params:
-    framework: '`"adk"` or `"langgraph"`.'
+    model: LiteLLM model ID.
+    transport: Provider client from `create_transport`, if any.
+'*.create_transport':
+  params: &id001
+    context: Model and framework of this model instance.
+'*.close':
+  params: *id001
+'*.before_request':
+  params:
+    request: LiteLLM completion arguments. Change them in place or return a replacement.
+    context: Model and framework of this model instance.
+'*.after_response':
+  params:
+    response: LiteLLM response. Return a replacement for non-streaming responses.
+    context: Model and framework of this model instance.
+'*.on_error':
+  params:
+    error: The failure, re-raised after this hook.
+    context: Model and framework of this model instance.
+ModelCallRequest:
+  fields:
+    model: Model ID, when known.
+    messages: Messages sent to the model.
+ModelCallResponse:
+  fields:
+    text: Visible model output.
+ModelMessage:
+  fields:
+    role: Message role, such as `user` or `assistant`.
+    text: Message text.
+resolve_model:
+  params:
+    model: A model ID, Harnest connector, or model object supported by the selected framework.
+LiteLLMModel.build:
+  example: |
+    from harnest.model import LiteLLMModel
+
+    # In agent.py, imported by Harnest during compilation:
+    model = LiteLLMModel("openai/your-model").build()

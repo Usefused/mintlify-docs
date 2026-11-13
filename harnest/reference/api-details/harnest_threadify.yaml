@@ -1,0 +1,84 @@
+# Curated details for /harnest/reference/api/harnest_threadify. See task.yaml for the format.
+
+Threadify:
+  params:
+    service_name: Service name reported to Threadify, such as `"support-agent"`.
+    api_key_env: Environment variable that holds the Threadify API key.
+    filter: Which spans and attributes are exported. Defaults to `BusinessFilter()`.
+    business_tools: Tool names whose outcomes are recorded. Other tools are not exported.
+    otlp_endpoint: Standard OTLP/HTTP traces endpoint. When set, spans go there instead of the native SDK transport.
+    otlp_headers: Headers sent to the OTLP endpoint.
+    connection_options: Extra options for the Threadify SDK connection.
+    timeout: Time limit in seconds for connecting and flushing.
+    max_sessions: Maximum number of session links kept in memory.
+
+BusinessFilter:
+  fields:
+    spans: Span name patterns to export. `business.*` matches your own business spans.
+    attributes: Exact attribute names allowed on exported spans. Wildcards are rejected.
+    max_string_length: Longer string attribute values are truncated to this length.
+
+BusinessFilter.sanitize:
+  params:
+    span: Span to filter.
+    service_name: Service name to report.
+
+Threadify.workflow:
+  params:
+    key: Business key you have verified, such as an order ID.
+    contract: Name of the workflow contract.
+    role: Role this service plays in the workflow.
+    label: Optional display label.
+    refs: Optional references to attach to the thread.
+
+Threadify.join_workflow:
+  params:
+    thread_id: Thread ID returned by the workflow owner.
+    role: Role this service plays in the workflow.
+
+Threadify.step:
+  params:
+    name: Name of the business step.
+    attributes: Scalar attributes. Only names allowed by the filter are exported.
+
+Threadify.session_created:
+  params:
+    info: The agent that created the session.
+    session: The new session.
+
+Threadify.before_invocation:
+  params:
+    lifecycle_context: Lifecycle context of the invocation.
+    request: The invocation request.
+
+Threadify.request_scope:
+  params:
+    http_context: Lifecycle context of the HTTP request.
+    request: The HTTP request.
+
+Threadify.after_http:
+  params:
+    http_context: Lifecycle context of the HTTP request.
+    response: Head of the HTTP response.
+
+Threadify.tool_completed:
+  params:
+    active: Lifecycle context of the tool call.
+    result: The tool result. It is not exported.
+
+Threadify.tool_failed:
+  params:
+    active: Lifecycle context of the tool call.
+    error: The tool error. Only its failure category is exported.
+
+Threadify.annotate:
+  params:
+    span: The recording span to annotate.
+
+Threadify.export_spans:
+  params:
+    spans: Spans to export.
+
+Threadify.__aexit__:
+  params:
+    exc: Exception details from the `async with` block, if any.

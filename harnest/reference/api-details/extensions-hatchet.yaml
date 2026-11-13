@@ -1,0 +1,38 @@
+# Curated details for /harnest/reference/api/extensions-hatchet. See task.yaml for the format.
+
+"*.run":
+  params: &run_params
+    workflow_name: Name of the Hatchet workflow to run, such as `"build-report"`.
+    job_input: JSON-safe input for the workflow.
+
+"*.run_and_wait":
+  params: *run_params
+
+"*.status":
+  params: &job_params
+    job: The run returned by `run`.
+
+"*.wait":
+  params: *job_params
+
+"*.cancel":
+  params: *job_params
+
+"*.start":
+  params:
+    start_context: Startup context the runtime passes to the extension.
+
+"*.create_context":
+  params:
+    base: The managed invocation context to adapt.
+
+HatchetRun:
+  fields:
+    run_id: Hatchet's ID for the run.
+    workflow_name: Name of the workflow that was run.
+    correlation_id: ID of the Harnest invocation that submitted the run.
+
+HatchetContext:
+  params:
+    extension_name: Name of the installed extension.
+    owner: The extension instance that created this context.

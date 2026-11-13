@@ -64,9 +64,9 @@ Return the built-in anonymous principal for every connection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `connection` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `connection` | `Any` | Required | The incoming HTTP or WebSocket connection to authenticate. |
 
 ```python
 from harnest.auth import AnonymousAuthenticator
@@ -99,11 +99,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `claims` | `Mapping[str, Any]` | `...` |
-| `credentials` | `Mapping[str, Credential]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `claims` | `Mapping[str, Any]` | `...` | Verified claims about the caller, such as tenant or roles. |
+| `credentials` | `Mapping[str, Credential]` | `...` | Credentials for downstream services, by name. |
 
 ```python
 from harnest.auth import AuthPrincipal
@@ -163,9 +163,9 @@ Return the authenticated principal for one incoming connection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `connection` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `connection` | `Any` | Required | The incoming HTTP or WebSocket connection to authenticate. |
 
 ```python
 from harnest.auth import Authenticator
@@ -204,25 +204,20 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `transport` | `str` | Required |
-| `method` | `str \| None` | Required |
-| `path` | `str` | Required |
-| `headers` | `Mapping[str, str]` | Required |
-| `cookies` | `Mapping[str, str]` | Required |
-| `query` | `Mapping[str, str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `transport` | `str` | Required | Transport, such as `http` or `websocket`. |
+| `method` | `str \| None` | Required | HTTP method, or `None` for WebSocket. |
+| `path` | `str` | Required | Request path. |
+| `headers` | `Mapping[str, str]` | Required | Request headers. |
+| `cookies` | `Mapping[str, str]` | Required | Request cookies. |
+| `query` | `Mapping[str, str]` | Required | Query string parameters. |
 
 ```python
 from harnest.auth import ConnectionContext
 
 context = ConnectionContext(
-    transport=...,
-    method=...,
-    path=...,
-    headers=...,
-    cookies=...,
-    query=...,
+    transport=..., method=..., path=..., headers=..., cookies=..., query=...,
 )
 ```
 
@@ -238,10 +233,10 @@ install_authentication(app: Any, authenticator: Authenticator | None) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `app` | `Any` | Required |
-| `authenticator` | `Authenticator \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `app` | `Any` | Required | The FastAPI application. |
+| `authenticator` | `Authenticator \| None` | Required | Authenticator for protected routes, or `None` to leave them unauthenticated. |
 
 ```python
 from harnest.auth import install_authentication
@@ -261,9 +256,9 @@ principal_for(connection: Any) -> AuthPrincipal
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `connection` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `connection` | `Any` | Required | The current request or WebSocket connection. |
 
 ```python
 from harnest.auth import principal_for

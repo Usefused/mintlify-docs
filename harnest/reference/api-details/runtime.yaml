@@ -1,0 +1,79 @@
+RuntimeDriver.create_session:
+  params:
+    state: Initial session state.
+RuntimeDriver.invoke:
+  params:
+    request: The invocation to run to completion.
+RuntimeDriver.stream:
+  params:
+    request: The invocation to run, streaming its events.
+AgentInfo:
+  fields:
+    id: Agent ID.
+    name: Agent name.
+    description: Agent description.
+    card: The agent's A2A Agent Card.
+    framework: '`"adk"` or `"langgraph"`.'
+    mode: '`"managed"` or `"advanced"`.'
+    extra_endpoints: Additional endpoints the agent serves, by name.
+    input_schema: JSON Schema of typed input, if declared.
+    output_schema: JSON Schema of structured output, if declared.
+    lifecycle_coverage: Coverage level per lifecycle stage.
+    agent_principal_projection_complete: Whether every capability can be filtered by an Agent Runtime Principal.
+InvocationRequest:
+  fields:
+    input: The invocation input, as text or typed input.
+    metadata: Public request metadata.
+    transport: Transport that received the request, such as `http` or `local`.
+    agent_principal: Limits which capabilities the agent may use.
+InvocationResult:
+  fields:
+    text: Assistant answer text.
+    events: Events produced during the invocation.
+    result: Validated structured output, if declared.
+    metadata: Response metadata.
+SessionMessage:
+  fields:
+    id: Message ID.
+    role: Message role, such as `user` or `assistant`.
+    content: Message content.
+    created_at: When the message was created.
+    metadata: Framework-owned metadata, kept unchanged.
+SessionRecord:
+  fields:
+    id: Session ID.
+    state: Session state.
+    created_at: When the session was created.
+    updated_at: When the session last changed.
+    metadata: Session metadata.
+    application_data: Application-owned data stored with the session.
+create_fastapi_app:
+  params:
+    artifact: Path to the compiled agent artifact.
+    bind_host: Host the server binds to.
+    request_timeout: Request time limit, in seconds.
+    max_concurrency: Maximum requests processed at once.
+    max_request_bytes: Maximum HTTP body and WebSocket frame size, in bytes.
+    playground_enabled: Serve the Playground UI when its assets are present.
+    openapi_enabled: Expose API documentation and the OpenAPI spec.
+    live_enabled: Enable the `/live` WebSocket endpoint.
+    agui_enabled: Expose `POST /agui` and advertise AG-UI.
+    agent_principal_required: Require custom invocations to bind an Agent Runtime Principal.
+    authenticator: Authenticator for incoming connections.
+    framework_session_storage: Session storage factory for the selected framework.
+    session_store: Harnest session store for serving.
+load_agent_card:
+  params: &id001
+    artifact: Path to the compiled agent artifact.
+load_compiled_agent:
+  params: *id001
+load_compiled_application:
+  params: *id001
+run_agent_message:
+  params:
+    artifact: Path to the compiled agent artifact.
+    message: The message to send.
+    request_timeout: Request time limit, in seconds.
+    agent_principal: Limits which capabilities the agent may use.
+load_framework_app:
+  params: *id001

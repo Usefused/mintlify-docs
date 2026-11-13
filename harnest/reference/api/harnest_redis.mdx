@@ -26,10 +26,10 @@ RedisMemoryStore(url: str, *, prefix: str = 'harnest-memory') -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `url` | `str` | Required |
-| `prefix` | `str` | `'harnest-memory'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | `str` | Required | Redis connection URL. |
+| `prefix` | `str` | `'harnest-memory'` | Prefix for every Redis key the store writes. Durability requires persistent Redis. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -49,9 +49,9 @@ Erase one explicit namespace through trusted application code only.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -72,10 +72,10 @@ Erase an explicitly authorized owner without registering any endpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -101,11 +101,11 @@ Sweep a bounded key page without exposing another user's collection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `limit` | `int` | `100` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `100` | Maximum number of keys to sweep in this call. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -126,10 +126,10 @@ Validate before atomically persisting a deliberate memory write.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `harnest.memory.MemoryRecord` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `harnest.memory.MemoryRecord` | Required | The memory record to write. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -150,10 +150,10 @@ Read only an explicitly scoped live record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `key` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -179,11 +179,11 @@ Page records without loading an unbounded provider collection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -210,12 +210,12 @@ Retrieve explicit literal text matches without model or embedding calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `query` | `str` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `query` | `str` | Required | Text to find. Matching is literal and case-sensitive, not semantic. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -241,11 +241,11 @@ Remove memory and its indexes with an optional atomic revision fence.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `key` | `str` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest_redis import RedisMemoryStore
@@ -325,15 +325,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `url` | `str` | Required |
-| `prefix` | `str` | `'harnest'` |
-| `session_ttl_seconds` | `int \| None` | `None` |
-| `checkpoint_ttl_seconds` | `int` | `604800` |
-| `lease_seconds` | `int` | `60` |
-| `lease_wait_seconds` | `float` | `30` |
-| `client_options` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | `str` | Required | Redis connection URL. |
+| `prefix` | `str` | `'harnest'` | Prefix for every Redis key the store writes. |
+| `session_ttl_seconds` | `int \| None` | `None` | Expire sessions after this many seconds. `None` keeps them. |
+| `checkpoint_ttl_seconds` | `int` | `604800` | Expire checkpoint runs after this many seconds. |
+| `lease_seconds` | `int` | `60` | How long the lease stays valid, in seconds. |
+| `lease_wait_seconds` | `float` | `30` | How long to wait for a session lease before giving up, in seconds. |
+| `client_options` | `Mapping[str, Any] \| None` | `None` | Extra options for the Redis client. |
 
 ```python
 from harnest_redis import RedisStore
@@ -391,9 +391,9 @@ Atomically persist schedule identity, owner index, and due index.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The complete schedule record. |
 
 ```python
 from harnest_redis import RedisStore
@@ -414,11 +414,11 @@ Read one schedule using an owner predicate evaluated by Redis.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest_redis import RedisStore
@@ -445,12 +445,12 @@ Return a bounded lexicographic owner-index page in one Redis call.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_redis import RedisStore
@@ -471,10 +471,10 @@ Replace mutable schedule fields with revision and terminal fencing.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The schedule with its replacement mutable fields. |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest_redis import RedisStore
@@ -495,11 +495,11 @@ Remove one owner's record and its identity/query indexes atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest_redis import RedisStore
@@ -526,12 +526,12 @@ Read due schedules from a time/ID index with stable keyset bounds.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `now` | `float` | Required |
-| `after` | `tuple[float, str] \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `after` | `tuple[float, str] \| None` | `None` | Cursor from the previous page as `(due time, schedule ID)`; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_redis import RedisStore
@@ -561,28 +561,23 @@ Enqueue and advance a fenced occurrence within one Lua transaction.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `due_at` | `float` | Required |
-| `next_run_at` | `float` | Required |
-| `task` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `due_at` | `float` | Required | Scheduled time of this occurrence. Must equal the schedule's current `next_run_at`. |
+| `next_run_at` | `float` | Required | Next scheduled time after this occurrence. Must be later than `due_at`. |
+| `task` | `TaskRecord` | Required | The job to enqueue for this occurrence. Must match the schedule's owner, target, and arguments. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 record = await store.commit_cron_occurrence(
-    application_id=...,
-    user_id=...,
-    schedule_id=...,
-    expected_revision=...,
-    due_at=...,
-    next_run_at=...,
-    task=...,
+    application_id=..., user_id=..., schedule_id=..., expected_revision=..., due_at=...,
+    next_run_at=..., task=...,
 )
 ```
 
@@ -598,9 +593,9 @@ Persist a job once per scoped key, retaining immutable fingerprints.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `TaskRecord` | Required | The job to persist. An identical submission returns the existing job. |
 
 ```python
 from harnest_redis import RedisStore
@@ -621,11 +616,11 @@ Apply owner scope inside Redis before returning a single record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `user_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
 
 ```python
 from harnest_redis import RedisStore
@@ -653,23 +648,20 @@ Claim bounded indexed work and recover expired attempts atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `queues` | `tuple[str, ...]` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `queues` | `tuple[str, ...]` | Required | Queue names to claim work from. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
+| `limit` | `int` | `1` | Maximum number of jobs to claim in this batch. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 result = await store.claim_tasks(
-    application_id=...,
-    queues=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., queues=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -692,24 +684,20 @@ Renew only the matching unexpired attempt's fenced queue lease.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 result = await store.renew_task_lease(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., job_id=..., lease_token=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -735,27 +723,23 @@ Commit a fenced result or delayed retry and scrub terminal payloads.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `status` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure_code` | `str \| None` | `None` |
-| `retry_at` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `status` | `str` | Required | `"completed"`, `"failed"`, or `"pending"` (retry later). `"pending"` requires `retry_at`. |
+| `result` | `Any` | `None` | JSON-safe result of a completed job. |
+| `failure_code` | `str \| None` | `None` | Short failure category for a failed job. |
+| `retry_at` | `float \| None` | `None` | When a `"pending"` job may run again, in UTC epoch seconds. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 result = await store.finish_task(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    status=...,
+    application_id=..., job_id=..., lease_token=..., now=..., status=...,
 )
 ```
 
@@ -771,12 +755,12 @@ Cancel scoped work and invalidate running claims in one mutation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `now` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
 
 ```python
 from harnest_redis import RedisStore
@@ -787,13 +771,13 @@ result = await store.cancel_task(application_id=..., user_id=..., job_id=..., no
 
 </Accordion>
 
-### RedisStore.as_langgraph_checkpointer
+### RedisStore.framework_checkpointer
 
 ```python
-RedisStore.as_langgraph_checkpointer() -> Any
+RedisStore.framework_checkpointer() -> Any
 ```
 
-Return one stable native saver for advanced LangGraph construction.
+Adapt this store for an advanced target using Harnest's selected framework.
 
 <Accordion title="Example">
 
@@ -801,7 +785,7 @@ Return one stable native saver for advanced LangGraph construction.
 from harnest_redis import RedisStore
 
 store: RedisStore
-result = store.as_langgraph_checkpointer()
+result = store.framework_checkpointer()
 ```
 
 </Accordion>
@@ -816,11 +800,11 @@ Create one tenant-scoped session with an atomic Lua mutation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Initial session state. |
 
 ```python
 from harnest_redis import RedisStore
@@ -841,10 +825,10 @@ Read one tenant-scoped session from Redis.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_redis import RedisStore
@@ -865,11 +849,11 @@ Read one lexicographically ordered keyset page with one MGET.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int \| None` | `None` | Maximum number of items to return. |
 
 ```python
 from harnest_redis import RedisStore
@@ -890,9 +874,9 @@ Atomically update one A2A record and all of its query indexes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `A2ATaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `A2ATaskRecord` | Required | The A2A task snapshot to persist. |
 
 ```python
 from harnest_redis import RedisStore
@@ -913,11 +897,11 @@ Read one task through its digested application and owner key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest_redis import RedisStore
@@ -947,15 +931,15 @@ Use one prefiltered sorted index and one batched record read.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `context_id` | `str \| None` | `None` |
-| `status` | `int \| None` | `None` |
-| `status_timestamp_after` | `str \| None` | `None` |
-| `cursor_task_id` | `str \| None` | `None` |
-| `limit` | `int` | `51` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `status` | `int \| None` | `None` | Only return tasks in this A2A task state. |
+| `status_timestamp_after` | `str \| None` | `None` | Only return tasks whose status changed after this timestamp. |
+| `cursor_task_id` | `str \| None` | `None` | Task ID to start the page from, taken from the previous page. |
+| `limit` | `int` | `51` | Maximum number of tasks to return. |
 
 ```python
 from harnest_redis import RedisStore
@@ -976,11 +960,11 @@ Delete a record and every selected-list index with optimistic CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1001,11 +985,11 @@ Atomically merge state while preserving session expiry policy.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1026,10 +1010,10 @@ Delete a session and its user index entry atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1050,10 +1034,10 @@ Hold and renew a token-bound distributed lease for one execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1074,7 +1058,7 @@ async RedisStore.begin_run(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
 ) -> RunRecord
 ```
 
@@ -1082,24 +1066,20 @@ Create an idempotent run while allowing one active run per session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID for the run. An existing active run for the session is recovered instead. |
+| `framework` | `FrameworkName` | Required | — |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 record = await store.begin_run(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -1115,9 +1095,9 @@ Read one Redis checkpoint run through its ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1138,11 +1118,11 @@ Resolve an exact or newest checkpoint through its Redis index.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str \| None` | `None` |
-| `namespace` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str \| None` | `None` | ID of one checkpoint within the run; `None` selects the latest. |
+| `namespace` | `str` | `''` | Checkpoint namespace within the run. `""` is the root graph. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1169,12 +1149,12 @@ Read bounded checkpoint history from sorted-set indexes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `namespace` | `str \| None` | `None` |
-| `before` | `str \| None` | `None` |
-| `limit` | `int` | `20` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `namespace` | `str \| None` | `None` | Only return checkpoints in this namespace; `None` returns all namespaces. |
+| `before` | `str \| None` | `None` | Only return checkpoints older than this checkpoint ID. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1196,11 +1176,11 @@ Persist checkpoint data and revision indexes with one Lua CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpoint` | `CheckpointRecord` | Required |
-| `scope` | `RunScope` | Required |
-| `expected_revision` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint` | `CheckpointRecord` | Required | The checkpoint to persist. |
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_revision` | `int \| None` | Required | Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch raises `CheckpointConflictError`. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1221,11 +1201,11 @@ Add pending writes idempotently with one Lua operation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
-| `writes` | `Sequence[CheckpointWrite]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `writes` | `Sequence[CheckpointWrite]` | Required | Pending task writes to store for the checkpoint. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1246,10 +1226,10 @@ Read pending writes for one owned Redis checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1270,10 +1250,10 @@ Fetch several pending-write hashes in one Redis round trip.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_ids` | `Sequence[str]` | Required | IDs of the checkpoints to read pending writes for. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1294,10 +1274,10 @@ Atomically persist a provider wait and move its run to waiting.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `ContinuationRecord` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `ContinuationRecord` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work this run now waits on. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1318,10 +1298,10 @@ Read one private record only when all ownership fields match.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest_redis import RedisStore
@@ -1342,20 +1322,18 @@ Load an exact provider envelope only while its owned run exists.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 continuation = await store.get_provider_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
+    scope=..., provider=..., continuation_id=...,
 )
 ```
 
@@ -1371,20 +1349,18 @@ Resolve a callback through its provider-owned Redis index.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the external ID. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 continuation = await store.get_continuation_by_external_id(
-    application_id=...,
-    provider=...,
-    external_id=...,
+    application_id=..., provider=..., external_id=...,
 )
 ```
 
@@ -1406,12 +1382,12 @@ Load one indexed provider page with a single batched value read.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Only return waits owned by this continuation provider. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of waits to return. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1440,24 +1416,21 @@ Resolve an indexed provider callback with an atomic status CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure` | `ContinuationFailure \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider resolving the wait. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result was validated against. |
+| `result` | `Any` | `None` | Validated result of the external work. Leave unset when passing `failure`. |
+| `failure` | `ContinuationFailure \| None` | `None` | Failure category when the external work failed, or `None` on success. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 record = await store.resolve_continuation(
-    scope=...,
-    provider=...,
-    external_id=...,
-    schema_id=...,
+    scope=..., provider=..., external_id=..., schema_id=...,
 )
 ```
 
@@ -1479,22 +1452,19 @@ Claim a provider outcome and resume its run with one Lua CAS.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 record = await store.claim_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -1517,24 +1487,20 @@ Cancel one exact waiting run and fail its continuation in one script.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `failure` | `ContinuationFailure` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `failure` | `ContinuationFailure` | Required | Failure category recorded on the cancelled wait. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 record = await store.cancel_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
-    failure=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=..., failure=...,
 )
 ```
 
@@ -1556,22 +1522,19 @@ Arm one persisted wait after the framework commits its checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest_redis import RedisStore
 
 store: RedisStore
 record = await store.arm_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -1593,12 +1556,12 @@ Apply one status compare-and-swap and release terminal ownership.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `expected_status` | `RunStatus` | Required |
-| `status` | `RunStatus` | Required |
-| `pending_action` | `PendingAction \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_status` | `RunStatus` | Required | Status the run must have now. A mismatch raises `CheckpointConflictError`. |
+| `status` | `RunStatus` | Required | New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting` → `running`/`failed`/`cancelled`. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed otherwise. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1619,9 +1582,9 @@ Make run data unreachable immediately and let private blobs expire.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1644,16 +1607,16 @@ async RedisStore.list_task_metadata(
 ) -> dict[str, Any]
 ```
 
-Index legacy jobs incrementally and project one owner page inside Redis.
+Return a page of the owner's task metadata, indexing jobs incrementally.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_redis import RedisStore
@@ -1680,12 +1643,12 @@ Project one indexed owner page in Redis without transferring private arguments.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest_redis import RedisStore

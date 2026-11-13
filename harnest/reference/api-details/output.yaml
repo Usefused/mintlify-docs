@@ -1,0 +1,36 @@
+# Curated details for /harnest/reference/api/output. See task.yaml for the format.
+
+OutputPolicy:
+  fields:
+    subagent_messages: Publish intermediate SubAgent narration.
+    tool_activity: Publish tool calls and results.
+    thinking: Publish provider-exposed reasoning.
+    decision_results: Publish decision results.
+    agent_metadata: '`NORMALIZED` (default) model and usage metadata, `SUPPRESS` to hide it, or `RAW` for native metadata.'
+    persist_raw_agent_metadata: Store raw metadata in checkpoints. Requires `AgentMetadataMode.RAW`.
+
+OutputPolicy.includes_intermediate_message:
+  params:
+    has_tool_calls: Whether the message is attached to a tool call.
+
+OutputPolicy.includes_event:
+  params:
+    event_type: Type of the event.
+
+AgentMetadata:
+  fields:
+    usage: Token usage reported by the provider.
+    model: Model that answered.
+    provider: Provider that served the model.
+    finish_reason: Why generation stopped.
+    raw: Framework metadata, in `RAW` mode.
+
+TokenUsage:
+  fields:
+    input_tokens: Input tokens reported by the provider.
+    output_tokens: Output tokens reported by the provider.
+    total_tokens: Total tokens reported by the provider.
+
+TokenUsage.from_dict:
+  params:
+    value: Counts with camelCase or snake_case names.

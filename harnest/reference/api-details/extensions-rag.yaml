@@ -1,0 +1,140 @@
+# Curated details for /harnest/reference/api/extensions-rag. See task.yaml for the format.
+# Interface descriptions here are reused by every implementation.
+
+Chunker.split:
+  params:
+    document: The document to split into passages.
+
+Embedder.embed:
+  params:
+    texts: Texts to embed. The result has one vector per text, in the same order.
+
+RAGBackend.replace:
+  params:
+    namespace: Namespace that isolates this set of documents.
+    document_ids: IDs of the documents being replaced. Their old chunks are removed.
+    chunks: The complete new chunks for those documents.
+
+RAGBackend.delete:
+  params:
+    namespace: Namespace that isolates this set of documents.
+    document_ids: IDs of the documents to delete.
+
+RAGBackend.fetch:
+  params:
+    namespace: Namespace that isolates this set of documents.
+    chunk_ids: IDs of the chunks to fetch. No ranking is applied.
+
+RAGBackend.search:
+  params:
+    query: The search, including namespace, filters, and result limit.
+
+"*.postgres":
+  params: &postgres_params
+    dsn: asyncpg connection string. Required unless you pass `pool`.
+    table: Table that stores the chunks. Must be a safe extension-owned name.
+    pool: Existing asyncpg-compatible pool to borrow. Harnest does not close it.
+    setup_schema: Create the schema. With `False`, an operator-managed schema is validated instead.
+    pool_options: Extra options for `asyncpg.create_pool`.
+    embedder: Your embedding adapter. Without one, only keyword search is available.
+    chunker: How documents are split. Defaults to `FixedSizeChunker()`.
+    namespace: A fixed namespace, or a function returning one per operation (for example, the current user ID).
+    batch_size: Number of chunk texts sent to the embedder per request.
+
+PostgresBackend:
+  params:
+    dsn: asyncpg connection string. Required unless you pass `pool`.
+    table: Table that stores the chunks. Must be a safe extension-owned name.
+    pool: Existing asyncpg-compatible pool to borrow. Harnest does not close it.
+    setup_schema: Create the schema. With `False`, an operator-managed schema is validated instead.
+    pool_options: Extra options for `asyncpg.create_pool`.
+
+"*.memory":
+  params: &memory_params
+    embedder: Your embedding adapter. Without one, only keyword search is available.
+    chunker: How documents are split. Defaults to `FixedSizeChunker()`.
+    namespace: A fixed namespace, or a function returning one per operation.
+    batch_size: Number of chunk texts sent to the embedder per request.
+    max_chunks: Maximum chunks held in memory. Data is lost when the process exits.
+
+MemoryBackend:
+  params:
+    max_chunks: Maximum chunks held in memory. Data is lost when the process exits.
+
+"*.service":
+  params: &service_params
+    backend: The storage backend that holds chunks and runs searches.
+    embedder: Your embedding adapter. Without one, only keyword search is available.
+    chunker: How documents are split. Defaults to `FixedSizeChunker()`.
+    namespace: A fixed namespace, or a function returning one per operation.
+    batch_size: Number of chunk texts sent to the embedder per request.
+
+RAGService:
+  params: *service_params
+
+RAGService.ingest:
+  params:
+    documents: Documents to chunk, embed, and store. Existing documents with the same IDs are replaced.
+    trigger: Who initiated the change, `"user"` or `"agent"`. Recorded on the audit event.
+
+RAGService.delete:
+  params:
+    document_ids: IDs of the documents to delete in the active namespace.
+    trigger: Who initiated the change, `"user"` or `"agent"`. Recorded on the audit event.
+
+RAGService.fetch:
+  params:
+    chunk_ids: IDs of the chunks to fetch, without relevance ranking.
+
+RAGService.search:
+  params:
+    text: Search text.
+    mode: '`SearchMode.KEYWORD`, `SEMANTIC`, or `HYBRID` (default). Semantic and hybrid need an embedder.'
+    filters: Metadata filters. Each value is a scalar or a tuple of allowed scalars.
+    min_score: Drop hits that score below this value.
+
+"*.start":
+  params:
+    context: Startup context the runtime passes to the extension.
+
+"*.create_context":
+  params:
+    context: The managed invocation context to adapt.
+
+FixedSizeChunker:
+  params:
+    size: Target chunk size in characters, at least 128.
+    overlap: Characters shared between neighbouring chunks.
+
+RAGDocument:
+  fields:
+    id: Stable document ID. Ingesting the same ID replaces the document.
+    text: Full document text.
+    title: Optional title stored with each chunk.
+    uri: Optional source link stored with each chunk.
+    metadata: Flat scalar metadata used for filtering.
+
+RAGChunk:
+  fields:
+    id: Chunk ID.
+    document_id: ID of the document the chunk came from.
+    namespace: Namespace the chunk belongs to.
+    text: Chunk text.
+    title: Title of the source document.
+    uri: Source link of the document.
+    metadata: Flat scalar metadata used for filtering.
+    embedding: Embedding vector, when an embedder was configured.
+
+RAGHit:
+  fields:
+    chunk: The matching chunk.
+    score: Relevance score from the backend.
+
+RAGQuery:
+  fields:
+    text: Search text.
+    namespace: Namespace to search in.
+    mode: Keyword, semantic, or hybrid search.
+    filters: Metadata filters. Each value is a scalar or a tuple of allowed scalars.
+    vector: Query embedding for semantic or hybrid search.
+    min_score: Drop hits that score below this value.

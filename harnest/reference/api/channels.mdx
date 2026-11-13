@@ -89,9 +89,9 @@ Parse one provider payload into a ChannelEvent without any I/O.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `raw` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `raw` | `Mapping[str, Any]` | Required | Raw event payload from the platform. |
 
 ```python
 from harnest.channels import ChannelAdapter
@@ -112,9 +112,9 @@ Send content through the transport and return an opaque receipt.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply` | `ChannelReply` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply` | `ChannelReply` | Required | The reply to send. |
 
 ```python
 from harnest.channels import ChannelAdapter
@@ -224,13 +224,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `extension` | `str` | Required |
-| `allowed_installations` | `tuple[str, ...]` | `()` |
-| `allowed_conversations` | `tuple[str, ...]` | `()` |
-| `config` | `Mapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `extension` | `str` | Required | Name of the channel extension whose adapter handles this binding. |
+| `allowed_installations` | `tuple[str, ...]` | `()` | Installation IDs this binding accepts. A worker rejects an empty list. |
+| `allowed_conversations` | `tuple[str, ...]` | `()` | Conversation IDs this binding accepts. A worker rejects an empty list. |
+| `config` | `Mapping[str, Any]` | `...` | Adapter configuration passed to the extension. |
 
 ```python
 from harnest.channels import ChannelBinding
@@ -302,33 +302,27 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `provider_event_id` | `str` | Required |
-| `kind` | `str` | Required |
-| `sender_id` | `str` | Required |
-| `conversation_id` | `str` | Required |
-| `message_id` | `str` | Required |
-| `occurred_at` | `float` | Required |
-| `delivery_id` | `str` | `''` |
-| `thread_id` | `str \| None` | `None` |
-| `content` | `str` | `''` |
-| `reply_to` | `Mapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `provider_event_id` | `str` | Required | The platform's event ID, used for deduplication. |
+| `kind` | `str` | Required | Event kind, such as `"app_mention"`. |
+| `sender_id` | `str` | Required | Platform ID of the sender. |
+| `conversation_id` | `str` | Required | Platform conversation ID, such as a channel or direct-message ID. |
+| `message_id` | `str` | Required | Platform message ID. |
+| `occurred_at` | `float` | Required | When the event happened, in UTC epoch seconds. |
+| `delivery_id` | `str` | `''` | Delivery ID from the platform, when it has one. |
+| `thread_id` | `str \| None` | `None` | Platform thread ID inside the conversation, or `None` for the top level. |
+| `content` | `str` | `''` | Message text. |
+| `reply_to` | `Mapping[str, Any]` | `...` | Where the reply should go, as platform-specific values. |
 
 ```python
 from harnest.channels import ChannelEvent
 
 event = ChannelEvent(
-    platform=...,
-    installation_id=...,
-    provider_event_id=...,
-    kind=...,
-    sender_id=...,
-    conversation_id=...,
-    message_id=...,
-    occurred_at=...,
+    platform=..., installation_id=..., provider_event_id=..., kind=..., sender_id=...,
+    conversation_id=..., message_id=..., occurred_at=...,
 )
 ```
 
@@ -347,10 +341,10 @@ ChannelHTTPInvoker(client: Any, headers_for_actor: Any) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `client` | `Any` | Required |
-| `headers_for_actor` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `client` | `Any` | Required | HTTP client used to call the agent. |
+| `headers_for_actor` | `Any` | Required | Function returning authentication headers for an actor ID. |
 
 ```python
 from harnest.channels import ChannelHTTPInvoker
@@ -370,11 +364,11 @@ Create/reuse the scoped session and refuse approval or incomplete responses.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `ChannelEvent` | Required |
-| `session_id` | `str` | Required |
-| `actor_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `ChannelEvent` | Required | The admitted event. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `actor_id` | `str` | Required | ID of the actor the agent call is made for. |
 
 ```python
 from harnest.channels import ChannelHTTPInvoker
@@ -424,28 +418,24 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply_id` | `str` | Required |
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `conversation_id` | `str` | Required |
-| `reply_to` | `Mapping[str, Any]` | Required |
-| `content` | `str` | Required |
-| `status` | `str` | `'pending'` |
-| `receipt` | `Mapping[str, Any] \| None` | `None` |
-| `created_at` | `float` | `0.0` |
-| `updated_at` | `float` | `0.0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply_id` | `str` | Required | Reply ID. |
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `conversation_id` | `str` | Required | Conversation the reply goes to. |
+| `reply_to` | `Mapping[str, Any]` | Required | Where the reply should go, as platform-specific values. |
+| `content` | `str` | Required | Reply text. |
+| `status` | `str` | `'pending'` | `"pending"`, `"sent"`, `"failed"`, or `"delivery_unknown"`. |
+| `receipt` | `Mapping[str, Any] \| None` | `None` | Opaque receipt from the adapter after sending. |
+| `created_at` | `float` | `0.0` | When the reply was queued, in UTC epoch seconds. |
+| `updated_at` | `float` | `0.0` | When the reply last changed, in UTC epoch seconds. |
 
 ```python
 from harnest.channels import ChannelReply
 
 reply = ChannelReply(
-    reply_id=...,
-    platform=...,
-    installation_id=...,
-    conversation_id=...,
-    reply_to=...,
+    reply_id=..., platform=..., installation_id=..., conversation_id=..., reply_to=...,
     content=...,
 )
 ```
@@ -527,9 +517,9 @@ newly admitted event.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `ChannelEvent` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `ChannelEvent` | Required | Normalized event to admit. An identical event that was already admitted is returned instead. |
 
 ```python
 from harnest.channels import ChannelStore
@@ -550,11 +540,11 @@ Read one admitted event by its deduplication identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `provider_event_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `provider_event_id` | `str` | Required | The platform's event ID, used for deduplication. |
 
 ```python
 from harnest.channels import ChannelStore
@@ -582,23 +572,20 @@ Idempotently record which Harnest session owns a conversation scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `conversation_id` | `str` | Required |
-| `thread_id` | `str \| None` | Required |
-| `session_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `conversation_id` | `str` | Required | Platform conversation ID, such as a channel or direct-message ID. |
+| `thread_id` | `str \| None` | Required | Platform thread ID inside the conversation, or `None` for the top level. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
 
 ```python
 from harnest.channels import ChannelStore
 
 store: ChannelStore
 await store.bind_session(
-    platform=...,
-    installation_id=...,
-    conversation_id=...,
-    thread_id=...,
+    platform=..., installation_id=..., conversation_id=..., thread_id=...,
     session_id=...,
 )
 ```
@@ -621,22 +608,19 @@ Read the session bound to a conversation scope, if any.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `conversation_id` | `str` | Required |
-| `thread_id` | `str \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `conversation_id` | `str` | Required | Platform conversation ID, such as a channel or direct-message ID. |
+| `thread_id` | `str \| None` | Required | Platform thread ID inside the conversation, or `None` for the top level. |
 
 ```python
 from harnest.channels import ChannelStore
 
 store: ChannelStore
 result = await store.get_session_binding(
-    platform=...,
-    installation_id=...,
-    conversation_id=...,
-    thread_id=...,
+    platform=..., installation_id=..., conversation_id=..., thread_id=...,
 )
 ```
 
@@ -652,9 +636,9 @@ Durably queue one reply before the adapter sends it.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply` | `ChannelReply` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply` | `ChannelReply` | Required | The reply to queue before it is sent. |
 
 ```python
 from harnest.channels import ChannelStore
@@ -675,11 +659,11 @@ Claim a bounded batch of pending replies for one sender to send.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `limit` | `int` | `1` | Maximum number of pending replies to claim. |
 
 ```python
 from harnest.channels import ChannelStore
@@ -700,11 +684,11 @@ Record a claimed reply's terminal outcome; unknown IDs return false.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply_id` | `str` | Required |
-| `status` | `str` | Required |
-| `receipt` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply_id` | `str` | Required | ID of the claimed reply. |
+| `status` | `str` | Required | `"sent"`, `"failed"`, or `"delivery_unknown"`. |
+| `receipt` | `Mapping[str, Any] \| None` | `None` | Opaque receipt returned by the adapter's `send_reply`. |
 
 ```python
 from harnest.channels import ChannelStore
@@ -758,29 +742,24 @@ ChannelWorker(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `binding_id` | `str` | Required |
-| `binding` | `ChannelBinding` | Required |
-| `store` | `TaskStore` | Required |
-| `invoke` | `Any` | Required |
-| `send` | `Any` | Required |
-| `allowed_senders` | `tuple[str, ...]` | Required |
-| `allowed_kinds` | `tuple[str, ...]` | `('app_mention',)` |
-| `timeout` | `float` | `120` |
-| `not_before` | `float` | `0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `binding_id` | `str` | Required | ID of the binding this worker serves. |
+| `binding` | `ChannelBinding` | Required | The channel binding policy. |
+| `store` | `TaskStore` | Required | Task store that holds admitted work. |
+| `invoke` | `Any` | Required | Function that calls the agent for an event. |
+| `send` | `Any` | Required | Function that sends a reply. |
+| `allowed_senders` | `tuple[str, ...]` | Required | Sender IDs whose messages are accepted. Must not be empty. |
+| `allowed_kinds` | `tuple[str, ...]` | `('app_mention',)` | Event kinds that are accepted. |
+| `timeout` | `float` | `120` | Time limit for one agent call, in seconds. |
+| `not_before` | `float` | `0` | Ignore events that happened before this UTC epoch time. |
 
 ```python
 from harnest.channels import ChannelWorker
 
 worker = ChannelWorker(
-    application_id=...,
-    binding_id=...,
-    binding=...,
-    store=...,
-    invoke=...,
-    send=...,
+    application_id=..., binding_id=..., binding=..., store=..., invoke=..., send=...,
     allowed_senders=...,
 )
 ```
@@ -797,9 +776,9 @@ Recheck policy at intake and execution, including work retained before changes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `ChannelEvent` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `ChannelEvent` | Required | The event to check against the binding policy. |
 
 ```python
 from harnest.channels import ChannelWorker
@@ -820,9 +799,9 @@ Commit input and dispatch intent in one atomic, idempotent task admission.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `ChannelEvent` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `ChannelEvent` | Required | The event to admit as durable work. |
 
 ```python
 from harnest.channels import ChannelWorker
@@ -862,9 +841,9 @@ Drain bounded work until shutdown; the receiver must stop before this worker.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `stop` | `asyncio.Event` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `stop` | `asyncio.Event` | Required | Set this event to stop the worker. |
 
 ```python
 from harnest.channels import ChannelWorker
@@ -941,9 +920,9 @@ Commit an isolated event snapshot keyed by its deduplication identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event` | `ChannelEvent` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event` | `ChannelEvent` | Required | Normalized event to admit. An identical event that was already admitted is returned instead. |
 
 ```python
 from harnest.channels import MemoryChannelStore
@@ -964,11 +943,11 @@ Read one detached event snapshot by its deduplication identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `provider_event_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `provider_event_id` | `str` | Required | The platform's event ID, used for deduplication. |
 
 ```python
 from harnest.channels import MemoryChannelStore
@@ -996,23 +975,20 @@ Record the session owning a conversation scope without overwriting it.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `conversation_id` | `str` | Required |
-| `thread_id` | `str \| None` | Required |
-| `session_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `conversation_id` | `str` | Required | Platform conversation ID, such as a channel or direct-message ID. |
+| `thread_id` | `str \| None` | Required | Platform thread ID inside the conversation, or `None` for the top level. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
 
 ```python
 from harnest.channels import MemoryChannelStore
 
 store: MemoryChannelStore
 await store.bind_session(
-    platform=...,
-    installation_id=...,
-    conversation_id=...,
-    thread_id=...,
+    platform=..., installation_id=..., conversation_id=..., thread_id=...,
     session_id=...,
 )
 ```
@@ -1035,22 +1011,19 @@ Read the session bound to a conversation scope, if any.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `conversation_id` | `str` | Required |
-| `thread_id` | `str \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `conversation_id` | `str` | Required | Platform conversation ID, such as a channel or direct-message ID. |
+| `thread_id` | `str \| None` | Required | Platform thread ID inside the conversation, or `None` for the top level. |
 
 ```python
 from harnest.channels import MemoryChannelStore
 
 store: MemoryChannelStore
 result = await store.get_session_binding(
-    platform=...,
-    installation_id=...,
-    conversation_id=...,
-    thread_id=...,
+    platform=..., installation_id=..., conversation_id=..., thread_id=...,
 )
 ```
 
@@ -1066,9 +1039,9 @@ Queue one detached reply snapshot for later claim and send.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply` | `ChannelReply` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply` | `ChannelReply` | Required | The reply to queue before it is sent. |
 
 ```python
 from harnest.channels import MemoryChannelStore
@@ -1089,11 +1062,11 @@ Return a bounded scoped batch of pending replies, oldest first.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `platform` | `str` | Required |
-| `installation_id` | `str` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `platform` | `str` | Required | Channel platform identifier, such as `"slack"`. |
+| `installation_id` | `str` | Required | ID of one installed channel connection, such as one Slack workspace. |
+| `limit` | `int` | `1` | Maximum number of pending replies to claim. |
 
 ```python
 from harnest.channels import MemoryChannelStore
@@ -1119,11 +1092,11 @@ Record a terminal outcome for one previously enqueued reply.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply_id` | `str` | Required |
-| `status` | `str` | Required |
-| `receipt` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply_id` | `str` | Required | ID of the claimed reply. |
+| `status` | `str` | Required | `"sent"`, `"failed"`, or `"delivery_unknown"`. |
+| `receipt` | `Mapping[str, Any] \| None` | `None` | Opaque receipt returned by the adapter's `send_reply`. |
 
 ```python
 from harnest.channels import MemoryChannelStore
@@ -1144,10 +1117,10 @@ create_channel_adapter(extension: str, config: Mapping[str, Any]) -> ChannelAdap
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `extension` | `str` | Required |
-| `config` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `extension` | `str` | Required | Name of the channel extension. |
+| `config` | `Mapping[str, Any]` | Required | Adapter configuration from the binding. |
 
 ```python
 from harnest.channels import create_channel_adapter
@@ -1170,9 +1143,9 @@ discover_channel_bindings(directory: Path) -> tuple[ChannelBinding, ...]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `directory` | `Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `directory` | `Path` | Required | The project's `channels/` folder. |
 
 ```python
 from harnest.channels import discover_channel_bindings
@@ -1192,10 +1165,10 @@ register_channel_adapter(extension: str, factory: ChannelAdapterFactory) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `extension` | `str` | Required |
-| `factory` | `ChannelAdapterFactory` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `extension` | `str` | Required | Unique name of the channel extension. |
+| `factory` | `ChannelAdapterFactory` | Required | Function that builds the adapter from its configuration. |
 
 ```python
 from harnest.channels import register_channel_adapter

@@ -49,10 +49,10 @@ HatchetContext(extension_name: str, owner: 'HatchetExtension') -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `extension_name` | `str` | Required |
-| `owner` | `'HatchetExtension'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `extension_name` | `str` | Required | Name of the installed extension. |
+| `owner` | `'HatchetExtension'` | Required | The extension instance that created this context. |
 
 ```python
 from harnest.extensions.hatchet import HatchetContext
@@ -117,10 +117,10 @@ Submit external work without waiting in the agent request.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import HatchetContext
@@ -141,9 +141,9 @@ Read one external job status through invocation credentials.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import HatchetContext
@@ -164,9 +164,9 @@ Suspend this tool continuation until Hatchet reaches a terminal state.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import HatchetContext
@@ -187,10 +187,10 @@ Preflight durable suspension before submitting external work.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import HatchetContext
@@ -211,9 +211,9 @@ Request cancellation while leaving worker shutdown to its owner.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import HatchetContext
@@ -252,9 +252,9 @@ Register validation before restoring pending provider monitors.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `start_context` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `start_context` | `Any` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.hatchet import HatchetExtension
@@ -294,9 +294,9 @@ Create a fresh revocable view after extension startup succeeds.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `base` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `base` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.hatchet import HatchetExtension
@@ -332,10 +332,10 @@ Submit work through the context active in the current invocation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import HatchetExtension
@@ -356,9 +356,9 @@ Read job status through the active typed context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import HatchetExtension
@@ -379,9 +379,9 @@ Suspend and resume the active authored tool continuation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import HatchetExtension
@@ -402,10 +402,10 @@ Submit only after the current invocation proves it can suspend.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import HatchetExtension
@@ -426,9 +426,9 @@ Cancel an external run through the active typed context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import HatchetExtension
@@ -457,11 +457,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `run_id` | `str` | Required |
-| `workflow_name` | `str` | Required |
-| `correlation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `run_id` | `str` | Required | Hatchet's ID for the run. |
+| `workflow_name` | `str` | Required | Name of the workflow that was run. |
+| `correlation_id` | `str` | Required | ID of the Harnest invocation that submitted the run. |
 
 ```python
 from harnest.extensions.hatchet import HatchetRun
@@ -519,9 +519,9 @@ Register validation before restoring pending provider monitors.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `start_context` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `start_context` | `Any` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.hatchet import hatchet
@@ -559,9 +559,9 @@ Create a fresh revocable view after extension startup succeeds.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `base` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `base` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.hatchet import hatchet
@@ -595,10 +595,10 @@ Submit work through the context active in the current invocation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import hatchet
@@ -618,9 +618,9 @@ Read job status through the active typed context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import hatchet
@@ -640,9 +640,9 @@ Suspend and resume the active authored tool continuation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import hatchet
@@ -662,10 +662,10 @@ Submit only after the current invocation proves it can suspend.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import hatchet
@@ -685,9 +685,9 @@ Cancel an external run through the active typed context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import hatchet
@@ -719,9 +719,9 @@ Register validation before restoring pending provider monitors.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `start_context` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `start_context` | `Any` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.hatchet import extension
@@ -759,9 +759,9 @@ Create a fresh revocable view after extension startup succeeds.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `base` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `base` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.hatchet import extension
@@ -795,10 +795,10 @@ Submit work through the context active in the current invocation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import extension
@@ -818,9 +818,9 @@ Read job status through the active typed context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import extension
@@ -840,9 +840,9 @@ Suspend and resume the active authored tool continuation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import extension
@@ -862,10 +862,10 @@ Submit only after the current invocation proves it can suspend.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `workflow_name` | `str` | Required |
-| `job_input` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `workflow_name` | `str` | Required | Name of the Hatchet workflow to run, such as `"build-report"`. |
+| `job_input` | `Mapping[str, Any]` | Required | JSON-safe input for the workflow. |
 
 ```python
 from harnest.extensions.hatchet import extension
@@ -885,9 +885,9 @@ Cancel an external run through the active typed context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job` | `HatchetRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job` | `HatchetRun` | Required | The run returned by `run`. |
 
 ```python
 from harnest.extensions.hatchet import extension

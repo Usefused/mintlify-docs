@@ -87,7 +87,7 @@ The decorator's `max_retries` controls retries of one occurrence. The schedule f
 
 ## Continue an existing conversation
 
-A dynamic cron job can carry an existing session ID in its arguments. Inside the scheduled task, call [`context.agent.open_session(session_id)`](/harnest/reference/api/context#contextagent-open_session) and invoke the agent to add a later turn to that same conversation. The session must still exist and belong to the schedule's user.
+A dynamic cron job can carry an existing session ID in its arguments. Inside the scheduled task, call [`context.agent.open_session(session_id)`](/harnest/reference/api/context#localagentruntime-open_session) and invoke the agent to add a later turn to that same conversation. The session must still exist and belong to the schedule's user.
 
 ```python
 from harnest import context, cron

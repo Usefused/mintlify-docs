@@ -1,0 +1,139 @@
+# Curated details for /harnest/reference/api/skills. See task.yaml for the format.
+# Interface descriptions here are reused by every skill source.
+
+SkillSource.list:
+  params:
+    context: The active agent and principal. Only skills they may see are returned.
+    query: Optional search keywords.
+    limit: Maximum number of skills to return.
+
+SkillSource.load:
+  params:
+    skill_id: Exact skill ID returned by `list`.
+    context: The active agent and principal.
+    version: Exact version to load, or `None` for the current version.
+
+SkillSource.load_resource:
+  params:
+    skill_id: Exact skill ID returned by `list`.
+    path: Relative path of a resource named in the skill's instructions.
+    context: The active agent and principal.
+    version: Version of the loaded skill, or `None` for the current version.
+
+DecisionSkillSelector:
+  params:
+    provider: Registered decision provider to use. Required unless exactly one provider is registered.
+    instructions: Selection instructions sent with each candidate.
+    input: 'Function that returns the JSON input for the decision. Defaults to `{"task": context.task}`.'
+    max_skills: Maximum skills loaded automatically.
+    max_candidates: Maximum skills considered from the catalog.
+    timeout_seconds: Time limit for discovery, input, evaluation, and loading together.
+    fallback: '`DecisionSkillSelector.DISCOVERY` falls back to normal discovery on failure; `DecisionSkillSelector.ERROR` stops with `SkillSelectionError`.'
+
+FilesystemSkillSource:
+  params:
+    directories: Skill folders to serve.
+
+SkillAccess:
+  params:
+    scope: The agent's skill scope.
+    active: The active invocation context.
+
+SkillAccess.list:
+  params:
+    source: Exact source from a previous result; `None` searches all sources.
+    query: Optional search keywords.
+
+SkillAccess.load:
+  params: &skill_load
+    skill_id: Exact skill ID returned by `list`.
+    source: Exact source returned for that skill.
+    version: Exact version, or `None` for the current version.
+
+SkillAccess.load_resource:
+  params:
+    skill_id: Exact skill ID returned by `list`.
+    path: Relative path of a resource named in the skill's instructions.
+    source: Exact source returned for that skill.
+    version: Version of the loaded skill, or `None` for the current version.
+
+SkillScope:
+  params:
+    sources: Skill sources by name.
+
+SkillScope.with_filesystem_directories:
+  params:
+    directories: Skill folders to add.
+
+SkillScope.list:
+  params:
+    context: The active agent and principal.
+    source: Only list this source; `None` merges the first page of every source.
+    query: Optional search keywords.
+
+SkillScope.load:
+  params:
+    skill_id: Exact skill ID returned by `list`.
+    context: The active agent and principal.
+    source: Source to load from. Required when the ID exists in several sources.
+    version: Exact version, or `None` for the current version.
+
+SkillScope.load_resource:
+  params:
+    skill_id: Exact skill ID returned by `list`.
+    path: Relative path of a resource named in the skill's instructions.
+    context: The active agent and principal.
+    source: Exact source to load from.
+    version: Version of the loaded skill, or `None` for the current version.
+
+SkillScope.selected_source:
+  params:
+    source: Requested source, or `None` to use the only available one.
+
+SkillRegistry:
+  params:
+    scopes: Skill scopes by agent name.
+
+SkillRegistry.access:
+  params:
+    active: The active invocation context.
+
+SkillContext.resource:
+  params:
+    name: Name the resource was published under.
+    expected_type: Type the resource must be. Raises `TypeError` when it is not.
+
+CatalogSkill:
+  fields:
+    source: Name of the source that owns the skill.
+    descriptor: The skill's metadata.
+
+SkillDescriptor:
+  fields:
+    id: Skill ID.
+    name: Display name.
+    description: What the skill is for. Models use it to choose skills.
+    version: Skill version.
+
+SkillDocument:
+  fields:
+    descriptor: The skill's metadata.
+    instructions: The skill's instructions.
+
+SkillResource:
+  fields:
+    skill_id: ID of the skill the resource belongs to.
+    version: Skill version.
+    path: Relative path of the resource.
+    content: UTF-8 content of the resource.
+
+SkillPage:
+  fields:
+    items: Skills on this page.
+    next_cursor: Cursor for the next page, or `None` at the end.
+
+SkillCatalogPage:
+  fields:
+    items: Skills on this page.
+    next_cursors: Next-page cursor per source.
+    truncated: Whether more skills exist than were returned.

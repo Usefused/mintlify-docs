@@ -139,7 +139,7 @@ Queued execution requires configured storage and an active compiled runtime. Cal
 
 A task can invoke the compiled root agent without an HTTP call through [`context.agent.create_session()`](/harnest/reference/api/context#localagentruntime-create_session) and [`AgentSession.invoke()`](/harnest/reference/api/context#agentsession-invoke). Pass a stable session `key` when retries should derive the same child session and invocation identities.
 
-To continue an existing conversation, use [`context.agent.open_session(session_id)`](/harnest/reference/api/context#contextagent-open_session) inside the task. It opens only sessions owned by the task's user, including the session that queued the task. Choose the destination explicitly; `defer()` does not select one. For example, a one-time reminder can carry the current session ID into a delayed task:
+To continue an existing conversation, use [`context.agent.open_session(session_id)`](/harnest/reference/api/context#localagentruntime-open_session) inside the task. It opens only sessions owned by the task's user, including the session that queued the task. Choose the destination explicitly; `defer()` does not select one. For example, a one-time reminder can carry the current session ID into a delayed task:
 
 ```python
 # In a tool that queues the reminder:

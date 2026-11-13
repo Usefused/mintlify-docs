@@ -1,0 +1,49 @@
+# Curated details for /harnest/reference/api/eval_capture. See task.yaml for the format.
+
+CaptureStore.list:
+  params:
+    since: Only return records captured at or after this time; `None` applies no time filter. Results are newest first.
+    limit: Maximum number of records to return.
+
+CaptureEvent:
+  fields:
+    transport: Transport that served the invocation.
+    status: Final invocation status.
+    input_text: Invocation input text.
+    output_text: Invocation output text.
+    tool_calls: Tool calls made during the invocation.
+    error_type: Error category, if the invocation failed.
+    metadata: Public invocation metadata.
+
+CaptureRecord:
+  fields:
+    id: Record ID.
+    captured_at: When the record was captured.
+    reasons: Why it was captured, such as `"rule"` or `"sample"`.
+    status: Final invocation status.
+    input_text: Input text. Empty when `content` is `"omitted"`.
+    output_text: Output text. Empty when `content` is `"omitted"`.
+    tool_calls: Tool calls made during the invocation.
+    error_type: Error category, if the invocation failed.
+    content: '`"omitted"` keeps structure only; `"redacted"` means your redactor ran on the content.'
+    schema_version: Record format version.
+
+"*.from_json":
+  params:
+    value: Mapping written by `to_json()`.
+
+LocalCaptureStore:
+  params:
+    directory: Folder for the JSON Lines files, one per UTC day.
+    retention_days: Days of files to keep.
+
+ToolActivity:
+  fields:
+    name: Tool name.
+    arguments: Tool arguments.
+    result: Tool result, if one arrived.
+    error: Whether the call failed.
+
+redact_text:
+  params:
+    value: Text to omit.

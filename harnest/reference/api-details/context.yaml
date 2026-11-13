@@ -1,0 +1,171 @@
+# Curated details for /harnest/reference/api/context. See task.yaml for the format.
+
+AgentContext.resource:
+  params: &resource_params
+    name: Name the resource was published under.
+    expected_type: Type the resource must be. Raises `TypeError` when it is not.
+
+resource:
+  params: *resource_params
+
+StorageContext.resource:
+  params:
+    name: Name of the custom store, as registered with `@lifecycle.storage.custom(name)`.
+    expected_type: Type the store must be. Raises `TypeError` when it is not.
+
+StorageContext.__call__:
+  params:
+    name: Name of the custom store, as registered with `@lifecycle.storage.custom(name)`.
+    expected_type: Type the store must be. Raises `TypeError` when it is not.
+
+provider:
+  params:
+    name: Name the resource is published under on the context.
+
+ContextRegistration:
+  fields:
+    name: Name the resource is published under.
+
+AgentSession.invoke:
+  params: &invoke_params
+    value: Input for the turn, such as a message string or a typed input value.
+    metadata: Caller metadata attached to the invocation.
+    request_timeout: Time limit for the turn, in seconds.
+    agent_principal: Restricts which capabilities the agent may use during this turn.
+
+AgentSession.stream:
+  params: *invoke_params
+
+AgentResponse:
+  fields:
+    output_text: Assistant answer text.
+    result: Validated structured output, when the agent declares an output schema.
+    events: Runtime events produced during the turn.
+    metadata: Response metadata.
+    usage: Token usage for the turn, when the model reports it.
+
+AgentPendingResponse:
+  fields:
+    status: Always `"in_progress"`.
+    pending_action: What the turn is waiting for before it can resume.
+
+AgentStreamItem:
+  fields:
+    kind: '`"event"`, `"completed"`, or `"pending"`.'
+    sequence: Position of this item in the stream.
+    event: The runtime event, when `kind` is `"event"`.
+    response: The final response, when `kind` is `"completed"`.
+    pending: The pending wait, when `kind` is `"pending"`.
+
+LocalAgentRuntime:
+  params:
+    driver: The compiled runtime driver to call.
+    transport: Transport name reported for these invocations.
+    trigger: What started the invocations, `"user"`, `"agent"`, or `"cron"`.
+    request_timeout: Default time limit for each turn, in seconds.
+    identity_namespace: Namespace for deriving stable invocation identities, so retries reuse the same IDs.
+    metadata: Metadata attached to every invocation.
+
+LocalAgentRuntime.create_session:
+  params:
+    state: Initial session state.
+    reuse_existing: Return the existing session instead of failing when `session_id` is already taken.
+
+MemoryContext:
+  params:
+    active: The active invocation context.
+    namespace: Memory collection to use.
+
+MemoryContext.namespace:
+  params:
+    name: Name of the memory collection. Ownership by application and user is unchanged.
+
+MemoryContext.put:
+  params:
+    key: Key of the memory within the namespace.
+    content: Text to remember.
+    metadata: Optional metadata stored with the memory.
+    expires_at: When the memory expires, as a future UTC epoch timestamp. `None` keeps it until deleted.
+
+MemoryContext.get:
+  params:
+    key: Key of the memory within the namespace.
+
+MemoryContext.search:
+  params:
+    query: Text to find. Matching is literal and case-sensitive.
+
+MemoryContext.delete:
+  params:
+    key: Key of the memory within the namespace.
+
+ScopedAssets.__call__:
+  params:
+    store: Name of the asset store to use.
+
+ScopedAssets.save:
+  params:
+    media_type: MIME type of the bytes, such as `"image/png"`.
+    chunks: Async iterable of byte chunks to store, in order.
+    metadata: Optional media details, such as width, height, duration, or page count.
+    retention_seconds: Delete the asset after this many seconds. `None` uses the store's default retention.
+    path: Storage-specific path hint. Must be a safe relative path.
+    label: Optional display label for the returned reference.
+    store: Asset store to write to. Defaults to the selected store, or `default`.
+
+ScopedAssets.stat:
+  params: &asset_ref
+    reference: Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`.
+    store: Asset store to use. Defaults to the reference's store.
+
+ScopedAssets.open:
+  params: *asset_ref
+
+ScopedAssets.delete:
+  params: *asset_ref
+
+ScopedAssets.get:
+  params:
+    reference: Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`.
+    store: Asset store to use. Defaults to the reference's store.
+    max_bytes: Largest asset to load into memory, in bytes.
+
+ScopedAssets.url:
+  params:
+    reference: Asset ID, or any object with an `asset_id`, such as an `AssetRef` or `Image`.
+    expires_in: How long the URL stays valid, in seconds.
+    store: Asset store to use. It must support temporary URLs.
+
+SessionContext.get:
+  params:
+    key: Key of the value.
+    default: Value returned when the key is not set.
+
+SessionContext.set:
+  params:
+    key: Key of the value.
+    value: JSON-safe value to store.
+
+SessionContext.update:
+  params:
+    values: Keys and values to store in one write.
+
+SessionContext.delete:
+  params:
+    key: Key of the value.
+
+SessionContext.namespace:
+  params:
+    name: Name of the nested view, used to avoid key collisions.
+
+derive_agent_context:
+  params:
+    active: The parent context.
+
+SandboxHandle.execute:
+  params: &sandbox_exec
+    code: Python code to run in the sandbox.
+    input_files: Files to place in the sandbox before running.
+
+SandboxHandle.aexecute:
+  params: *sandbox_exec

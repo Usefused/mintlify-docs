@@ -113,10 +113,10 @@ Build deterministic safe event input independently of provider details.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `provider_event_id` | `str` | `'evt'` |
-| `**changes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `provider_event_id` | `str` | `'evt'` | Event ID for the test event. |
+| `**changes` | `Any` | Optional | Fields to override. |
 
 ```python
 from harnest.testing import ChannelStoreConformanceMixin
@@ -137,10 +137,10 @@ Build one queued reply targeting this scope's default conversation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `reply_id` | `str` | `'reply'` |
-| `**changes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `reply_id` | `str` | `'reply'` | Reply ID for the test reply. |
+| `**changes` | `Any` | Optional | Fields to override. |
 
 ```python
 from harnest.testing import ChannelStoreConformanceMixin
@@ -293,10 +293,10 @@ Build a valid explicit write without coupling tests to a datastore.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `key` | `str` | `'preference'` |
-| `**changes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `key` | `str` | `'preference'` | Key for the test record. |
+| `**changes` | `Any` | Optional | Fields to override. |
 
 ```python
 from harnest.testing import MemoryStoreConformanceMixin
@@ -507,9 +507,9 @@ SmokeClient(client: Any) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `client` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `client` | `Any` | Required | HTTP client connected to the running agent. |
 
 ```python
 from harnest.testing import SmokeClient
@@ -534,11 +534,11 @@ Invoke the neutral response endpoint and return its JSON object.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `input` | `str` | Required |
-| `session_id` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `input` | `str` | Required | Message to send. |
+| `session_id` | `str \| None` | `None` | ID of the Harnest session (one conversation), or `None` when there is none. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Public request metadata. |
 
 ```python
 from harnest.testing import SmokeClient
@@ -564,11 +564,11 @@ Invoke the streaming endpoint and return parsed server-sent events.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `input` | `str` | Required |
-| `session_id` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `input` | `str` | Required | Message to send. |
+| `session_id` | `str \| None` | `None` | ID of the Harnest session (one conversation), or `None` when there is none. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Public request metadata. |
 
 ```python
 from harnest.testing import SmokeClient
@@ -648,10 +648,10 @@ Build deterministic safe job input independently of provider details.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job_id` | `str` | `'job'` |
-| `**changes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job_id` | `str` | `'job'` | ID of the queued job (`TaskHandle.id`). |
+| `**changes` | `Any` | Optional | Fields to override. |
 
 ```python
 from harnest.testing import TaskStoreConformanceMixin
@@ -672,10 +672,10 @@ Build one due user schedule with stable ownership and definition.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `schedule_id` | `str` | `'cron'` |
-| `**changes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `schedule_id` | `str` | `'cron'` | The schedule's `cron_` ID (`CronJob.id`). |
+| `**changes` | `Any` | Optional | Fields to override. |
 
 ```python
 from harnest.testing import TaskStoreConformanceMixin
@@ -696,9 +696,9 @@ Claim one bounded batch through the shared worker contract.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `**changes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `**changes` | `Any` | Optional | Fields to override. |
 
 ```python
 from harnest.testing import TaskStoreConformanceMixin
@@ -719,10 +719,10 @@ Read a task as the selected owner.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job_id` | `str` | `'job'` |
-| `user_id` | `str` | `'alice'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job_id` | `str` | `'job'` | ID of the queued job (`TaskHandle.id`). |
+| `user_id` | `str` | `'alice'` | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.testing import TaskStoreConformanceMixin
@@ -743,10 +743,10 @@ Finish the exact lease with deterministic test timestamps.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `TaskRecord` | Required |
-| `**changes` | `Any` | Optional |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `TaskRecord` | Required | The job to persist. |
+| `**changes` | `Any` | Optional | Fields to override. |
 
 ```python
 from harnest.testing import TaskStoreConformanceMixin
@@ -1082,17 +1082,17 @@ run_agent_tests(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| Path` | Required |
-| `include_smoke` | `bool` | `False` |
-| `include_evals` | `bool` | `False` |
-| `eval_trajectory` | `str` | `'business'` |
-| `no_output` | `bool` | `False` |
-| `eval_output` | `Path \| None` | `None` |
-| `framework` | `str` | `'adk'` |
-| `mode` | `str` | `'managed'` |
-| `cli_enabled` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| Path` | Required | Agent folder to test. |
+| `include_smoke` | `bool` | `False` | Also run `tests/smoke/` tests, which may call live models and services. |
+| `include_evals` | `bool` | `False` | Also run the agent's evals. |
+| `eval_trajectory` | `str` | `'business'` | `"business"` or `"strict"` tool-trajectory policy for evals. |
+| `no_output` | `bool` | `False` | Suppress progress output. |
+| `eval_output` | `Path \| None` | `None` | File to write eval results to. |
+| `framework` | `str` | `'adk'` | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | `'managed'` | `"managed"` or `"advanced"`. |
+| `cli_enabled` | `bool` | `False` | Allow command-line invocation of the compiled test artifact. |
 
 ```python
 from harnest.testing import run_agent_tests

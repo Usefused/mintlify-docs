@@ -68,9 +68,9 @@ Erase one explicit namespace through trusted application code only.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -91,10 +91,10 @@ Erase an explicitly authorized owner without registering any endpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -120,11 +120,11 @@ Sweep a bounded key page without exposing another user's collection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `limit` | `int` | `100` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `100` | Maximum number of keys to sweep in this call. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -145,10 +145,10 @@ Validate before atomically persisting a deliberate memory write.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `harnest.memory.MemoryRecord` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `harnest.memory.MemoryRecord` | Required | The memory record to write. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -169,10 +169,10 @@ Read only an explicitly scoped live record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `key` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -193,11 +193,11 @@ Page records without loading an unbounded provider collection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -224,12 +224,12 @@ Retrieve explicit literal text matches without model or embedding calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `query` | `str` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `query` | `str` | Required | Text to find. Matching is literal and case-sensitive, not semantic. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -255,11 +255,11 @@ Remove memory and its indexes with an optional atomic revision fence.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `harnest.memory.MemoryScope` | Required |
-| `key` | `str` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `harnest.memory.MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest.memory import InMemoryStore
@@ -325,10 +325,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `deleted` | `int` | Required |
-| `next_cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `deleted` | `int` | Required | Records removed in this sweep. |
+| `next_cursor` | `str \| None` | `None` | Pass as `after` to continue, even when `deleted` is zero. `None` at the end. |
 
 ```python
 from harnest.memory import MemoryCleanupPage
@@ -372,10 +372,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `items` | `tuple[MemoryRecord, ...]` | Required |
-| `next_cursor` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `items` | `tuple[MemoryRecord, ...]` | Required | Memories on this page. |
+| `next_cursor` | `str \| None` | `None` | Pass as `after` for the next page, even when this page is empty. `None` at the end. |
 
 ```python
 from harnest.memory import MemoryPage
@@ -422,17 +422,17 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `MemoryScope` | Required |
-| `key` | `str` | Required |
-| `content` | `str` | Required |
-| `metadata` | `Mapping[str, Any]` | `...` |
-| `source` | `Mapping[str, str]` | `...` |
-| `revision` | `str` | `''` |
-| `created_at` | `float` | `0.0` |
-| `updated_at` | `float` | `0.0` |
-| `expires_at` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory within its namespace. |
+| `content` | `str` | Required | Remembered text. |
+| `metadata` | `Mapping[str, Any]` | `...` | Metadata stored with the memory. |
+| `source` | `Mapping[str, str]` | `...` | Provenance of the write, such as the invocation that saved it. |
+| `revision` | `str` | `''` | Revision for conditional writes and deletes. |
+| `created_at` | `float` | `0.0` | When the memory was first written, in UTC epoch seconds. |
+| `updated_at` | `float` | `0.0` | When the memory last changed, in UTC epoch seconds. |
+| `expires_at` | `float \| None` | `None` | When the memory expires, in UTC epoch seconds, or `None`. |
 
 ```python
 from harnest.memory import MemoryRecord
@@ -460,11 +460,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `namespace` | `str` | `'default'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `namespace` | `str` | `'default'` | Logical collection within the application and user. |
 
 ```python
 from harnest.memory import MemoryScope
@@ -565,10 +565,10 @@ live record, otherwise raise MemoryConflictError, including after deletion.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `MemoryRecord` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `MemoryRecord` | Required | The memory record to write. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest.memory import MemoryStore
@@ -589,10 +589,10 @@ Read one live record by its fully scoped key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `MemoryScope` | Required |
-| `key` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
 
 ```python
 from harnest.memory import MemoryStore
@@ -613,11 +613,11 @@ Page live records in ascending key order; limit is 1 through 100.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `MemoryScope` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.memory import MemoryStore
@@ -642,12 +642,12 @@ snapshots: concurrent edits may change subsequent results.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `MemoryScope` | Required |
-| `query` | `str` | Required |
-| `limit` | `int` | `20` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `query` | `str` | Required | Text to find. Matching is literal and case-sensitive, not semantic. |
+| `limit` | `int` | `20` | Maximum number of records to return, from 1 to 100. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.memory import MemoryStore
@@ -671,11 +671,11 @@ erase copies already returned to callers or retained in database backups.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `MemoryScope` | Required |
-| `key` | `str` | Required |
-| `expected_revision` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `key` | `str` | Required | Key of the memory record within the scope. |
+| `expected_revision` | `str \| None` | `None` | Revision from an earlier read. `None` writes unconditionally; a stale revision raises `MemoryConflictError`. |
 
 ```python
 from harnest.memory import MemoryStore
@@ -700,9 +700,9 @@ concurrent new writes may survive. Backups and returned copies remain.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `MemoryScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
 
 ```python
 from harnest.memory import MemoryStore
@@ -727,10 +727,10 @@ on failure retry to remove remaining records. Return the removed count.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.memory import MemoryStore
@@ -755,11 +755,11 @@ operation is provider-only, not automatically scheduled or model-facing.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `MemoryScope` | Required |
-| `limit` | `int` | `100` |
-| `after` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `MemoryScope` | Required | Application, user, and optional namespace that isolate these memories. |
+| `limit` | `int` | `100` | Maximum number of keys to sweep in this call. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
 
 ```python
 from harnest.memory import MemoryStore

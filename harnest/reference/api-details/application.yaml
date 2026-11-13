@@ -1,0 +1,31 @@
+CompiledApplication:
+  params:
+    name: Application name.
+    mode: '`"managed"` or `"advanced"`.'
+    target: The compiled root agent or graph for the selected framework.
+    managed_definition: The authored root definition, in managed mode.
+    kind: Kind of artifact. Defaults to `"agent"`.
+    session_store: Session storage.
+    checkpointer: Checkpoint storage.
+    asset_store: Default asset store.
+    asset_stores: Asset stores by name.
+    credential_provider: Source of invocation credentials.
+    http_routes: Custom HTTP routes registered with `@lifecycle.http_routes`.
+    output_policy: What the runtime publishes to callers.
+    telemetry_exporters: Registered telemetry destinations.
+    input_schema: Pydantic model for typed input, if declared.
+    output_schema: Pydantic model for structured output, if declared.
+    tasks: Compiled tasks.
+    crons: Compiled fixed schedules.
+    extensions: Installed Harnest Extensions.
+    harnest_version: Harnest version that compiled the artifact.
+    framework_distribution: Python distribution of the framework, such as `google-adk`.
+    framework_version: Installed framework version.
+    custom_stores: Custom stores by name.
+    task_store: Task storage.
+    cron_store: Cron storage.
+    memory_store: Long-term memory storage.
+    skill_registry: Skill sources for each agent.
+    sandbox_registry: Named sandboxes available to agents.
+    framework_app: ADK `App`, when the artifact has one.
+    framework_checkpointer: LangGraph checkpointer, when supplied.

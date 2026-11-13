@@ -25,14 +25,14 @@ CompiledApplication(
     framework: str,
     mode: str,
     target: Any,
-    native_app: Any | None = None,
+    framework_app: Any | None = None,
     managed_definition: Any | None = None,
-    native_extensions: Sequence[Any] = (),
-    native_checkpointer: Any | None = None,
+    framework_extensions: Sequence[Any] = (),
+    framework_checkpointer: Any | None = None,
     kind: str = 'agent',
     bridge: _AdvancedAgentDefinition | None = None,
     lifecycle_extensions: Sequence[Any] = (),
-    session_store: SessionStore | ADKStore | None = None,
+    session_store: SessionStore | FrameworkStorage | None = None,
     checkpointer: CheckpointAuthority | None = None,
     asset_store: AssetStore | None = None,
     asset_stores: Mapping[str, AssetStore] = ...,
@@ -67,14 +67,14 @@ Fields (`—` means no declared default):
 | `framework` | `str` | `—` |
 | `mode` | `str` | `—` |
 | `target` | `Any` | `—` |
-| `native_app` | `Any \| None` | `None` |
+| `framework_app` | `Any \| None` | `None` |
 | `managed_definition` | `Any \| None` | `None` |
-| `native_extensions` | `Sequence[Any]` | `()` |
-| `native_checkpointer` | `Any \| None` | `None` |
+| `framework_extensions` | `Sequence[Any]` | `()` |
+| `framework_checkpointer` | `Any \| None` | `None` |
 | `kind` | `str` | `'agent'` |
 | `bridge` | `_AdvancedAgentDefinition \| None` | `None` |
 | `lifecycle_extensions` | `Sequence[Any]` | `()` |
-| `session_store` | `SessionStore \| ADKStore \| None` | `None` |
+| `session_store` | `SessionStore \| FrameworkStorage \| None` | `None` |
 | `checkpointer` | `CheckpointAuthority \| None` | `None` |
 | `asset_store` | `AssetStore \| None` | `None` |
 | `asset_stores` | `Mapping[str, AssetStore]` | `dict()` |
@@ -104,43 +104,43 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `framework` | `str` | Required |
-| `mode` | `str` | Required |
-| `target` | `Any` | Required |
-| `native_app` | `Any \| None` | `None` |
-| `managed_definition` | `Any \| None` | `None` |
-| `native_extensions` | `Sequence[Any]` | `()` |
-| `native_checkpointer` | `Any \| None` | `None` |
-| `kind` | `str` | `'agent'` |
-| `bridge` | `_AdvancedAgentDefinition \| None` | `None` |
-| `lifecycle_extensions` | `Sequence[Any]` | `()` |
-| `session_store` | `SessionStore \| ADKStore \| None` | `None` |
-| `checkpointer` | `CheckpointAuthority \| None` | `None` |
-| `asset_store` | `AssetStore \| None` | `None` |
-| `asset_stores` | `Mapping[str, AssetStore]` | `...` |
-| `credential_provider` | `CredentialProvider \| None` | `None` |
-| `http_routes` | `Sequence[HTTPRouteExtension]` | `()` |
-| `output_policy` | `OutputPolicy` | `OutputPolicy(subagent_messages=False, tool_activity=True, thinking=False, decision_results=False, agent_metadata=AgentMetadataMode.NORMALIZED, persist_raw_agent_metadata=False)` |
-| `telemetry_exporters` | `Sequence[Any]` | `()` |
-| `input_schema` | `PydanticModel \| None` | `None` |
-| `output_schema` | `PydanticModel \| None` | `None` |
-| `checkpoint_metadata` | `dict[str, str] \| None` | `None` |
-| `context_values` | `Sequence[ContextValue]` | `()` |
-| `tasks` | `Sequence[Any]` | `()` |
-| `crons` | `Sequence[Any]` | `()` |
-| `extensions` | `Sequence[Any]` | `()` |
-| `harnest_version` | `str \| None` | `None` |
-| `framework_distribution` | `str \| None` | `None` |
-| `framework_version` | `str \| None` | `None` |
-| `custom_stores` | `Mapping[str, CustomStorage]` | `...` |
-| `task_store` | `TaskStore \| None` | `None` |
-| `cron_store` | `CronStore \| None` | `None` |
-| `memory_store` | `MemoryStore \| None` | `None` |
-| `skill_registry` | `SkillRegistry` | `...` |
-| `sandbox_registry` | `SandboxRegistry` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Application name. |
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | Required | `"managed"` or `"advanced"`. |
+| `target` | `Any` | Required | The compiled root agent or graph for the selected framework. |
+| `framework_app` | `Any \| None` | `None` | ADK `App`, when the artifact has one. |
+| `managed_definition` | `Any \| None` | `None` | The authored root definition, in managed mode. |
+| `framework_extensions` | `Sequence[Any]` | `()` | — |
+| `framework_checkpointer` | `Any \| None` | `None` | LangGraph checkpointer, when supplied. |
+| `kind` | `str` | `'agent'` | Kind of artifact. Defaults to `"agent"`. |
+| `bridge` | `_AdvancedAgentDefinition \| None` | `None` | — |
+| `lifecycle_extensions` | `Sequence[Any]` | `()` | — |
+| `session_store` | `SessionStore \| FrameworkStorage \| None` | `None` | Session storage. |
+| `checkpointer` | `CheckpointAuthority \| None` | `None` | Checkpoint storage. |
+| `asset_store` | `AssetStore \| None` | `None` | Default asset store. |
+| `asset_stores` | `Mapping[str, AssetStore]` | `...` | Asset stores by name. |
+| `credential_provider` | `CredentialProvider \| None` | `None` | Source of invocation credentials. |
+| `http_routes` | `Sequence[HTTPRouteExtension]` | `()` | Custom HTTP routes registered with `@lifecycle.http_routes`. |
+| `output_policy` | `OutputPolicy` | `OutputPolicy(subagent_messages=False, tool_activity=True, thinking=False, decision_results=False, agent_metadata=AgentMetadataMode.NORMALIZED, persist_raw_agent_metadata=False)` | What the runtime publishes to callers. |
+| `telemetry_exporters` | `Sequence[Any]` | `()` | Registered telemetry destinations. |
+| `input_schema` | `PydanticModel \| None` | `None` | Pydantic model for typed input, if declared. |
+| `output_schema` | `PydanticModel \| None` | `None` | Pydantic model for structured output, if declared. |
+| `checkpoint_metadata` | `dict[str, str] \| None` | `None` | — |
+| `context_values` | `Sequence[ContextValue]` | `()` | — |
+| `tasks` | `Sequence[Any]` | `()` | Compiled tasks. |
+| `crons` | `Sequence[Any]` | `()` | Compiled fixed schedules. |
+| `extensions` | `Sequence[Any]` | `()` | Installed Harnest Extensions. |
+| `harnest_version` | `str \| None` | `None` | Harnest version that compiled the artifact. |
+| `framework_distribution` | `str \| None` | `None` | Python distribution of the framework, such as `google-adk`. |
+| `framework_version` | `str \| None` | `None` | Installed framework version. |
+| `custom_stores` | `Mapping[str, CustomStorage]` | `...` | Custom stores by name. |
+| `task_store` | `TaskStore \| None` | `None` | Task storage. |
+| `cron_store` | `CronStore \| None` | `None` | Cron storage. |
+| `memory_store` | `MemoryStore \| None` | `None` | Long-term memory storage. |
+| `skill_registry` | `SkillRegistry` | `...` | Skill sources for each agent. |
+| `sandbox_registry` | `SandboxRegistry` | `...` | Named sandboxes available to agents. |
 
 ```python
 from harnest.application import CompiledApplication

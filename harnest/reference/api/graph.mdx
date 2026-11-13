@@ -18,6 +18,10 @@ icon: "code"
 | `message` | Emit assistant text |
 | `state_delta` | Update managed session state |
 
+## Framework construction
+
+Harnest compiles managed `Graph` exports automatically. Advanced integrations can call `Graph.build()` during compilation or an active invocation to build for the configured framework.
+
 ## Exports
 
 | Name | Kind |
@@ -142,7 +146,7 @@ Fields (`—` means no declared default):
 | `nodes` | `Mapping[str, Any]` | Required | Map of node name to node (callable, agent, nested graph, `Join()`, or agent name). |
 | `edges` | `Sequence[Edge]` | Required | Edges between node names, starting from `Edge(START, ...)`. |
 | `description` | `str` | `''` | Short description of the graph. |
-| `max_concurrency` | `int \| None` | `None` | — |
+| `max_concurrency` | `int \| None` | `None` | Maximum nodes that run at the same time. `None` uses the framework's default. |
 | `output_schema` | `PydanticModel \| None` | `None` | Pydantic model that validates the final output. |
 
 ```python
@@ -160,16 +164,12 @@ root_agent = Graph(
 ### Graph.build
 
 ```python
-Graph.build(backend: str = 'adk') -> Any
+Graph.build() -> Any
 ```
 
-Lower this graph with the named runtime backend.
+Lower this graph using the framework selected by Harnest.
 
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `backend` | `str` | `'adk'` |
+<Accordion title="Example">
 
 ```python
 from harnest.graph import Graph

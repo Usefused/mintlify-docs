@@ -1,0 +1,86 @@
+# Curated details for /harnest/reference/api/sandbox. See task.yaml for the format.
+
+SandboxBackend.execute:
+  params:
+    request: The code, input files, and policy to execute.
+
+Sandbox.provider:
+  params:
+    factory: Function that creates your backend. It runs on first use, so put connection settings and credentials there.
+    name: Backend name recorded for this provider, such as `"company-sandbox"`.
+    timeout_seconds: Time limit for each execution, in seconds.
+    metadata: Metadata passed to the provider with each request.
+    network_policy: Network egress the provider must enforce. Harnest fails before the first run if the provider cannot.
+    adapter_options: Options for the framework adapter.
+
+SandboxBudget:
+  fields:
+    cpu: CPU limit, in cores.
+    memory_bytes: Memory limit, in bytes.
+    pids: Maximum number of processes.
+    scratch_bytes: Size of the writable scratch space, in bytes.
+
+SandboxFile:
+  fields:
+    name: File name. It never grants access to a host path.
+    content: File content, as text or bytes.
+    mime_type: MIME type of the content.
+
+SandboxNetworkPolicy:
+  fields:
+    mode: Network mode, such as `none`, `allowlist`, or `unrestricted`.
+    allow_hosts: Hosts that may be reached in `allowlist` mode.
+    allow_ports: Ports that may be reached in `allowlist` mode.
+    block_private_networks: Block access to private network ranges.
+
+SandboxNetworkPolicy.unrestricted:
+  params:
+    block_private_networks: Still block access to private network ranges.
+
+SandboxNetworkPolicy.allowlist:
+  params:
+    hosts: Exact hosts that may be reached.
+    ports: Destination ports that may be reached. Empty allows any port on those hosts.
+    block_private_networks: Block access to private network ranges.
+
+SandboxProviderCapabilities:
+  fields:
+    network_modes: Network modes the provider can enforce.
+    host_allowlist: The provider can enforce host allowlists.
+    port_allowlist: The provider can enforce port allowlists.
+    private_network_blocking: The provider can block private network ranges.
+
+SandboxProviderCapabilities.require:
+  params:
+    policy: Network policy to check. Raises when the provider cannot enforce it.
+
+SandboxRequest:
+  fields:
+    code: Python code to run.
+    timeout_seconds: Time limit for this execution, in seconds.
+    context: Agent, user, and session identity of the execution.
+    input_files: Files to place in the sandbox before running.
+    execution_id: ID of this execution.
+    metadata: Provider metadata.
+    network_policy: Network egress the provider must enforce.
+
+SandboxResult:
+  fields:
+    stdout: Standard output.
+    stderr: Standard error.
+    output_files: Files produced by the code.
+    metadata: Provider metadata.
+    status: Outcome of the execution.
+    exit_code: Process exit code, when available.
+
+cleanup_control:
+  params:
+    timeout_seconds: Time limit for resource cleanup, in seconds.
+
+control.execute:
+  params:
+    timeout_seconds: Time limit for the execution, in seconds.
+
+control.cleanup:
+  params:
+    timeout_seconds: Time limit for resource cleanup, in seconds.

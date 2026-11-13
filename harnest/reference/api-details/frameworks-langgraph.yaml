@@ -1,0 +1,39 @@
+LangGraphStore:
+  params:
+    checkpointer: LangGraph checkpoint saver to own.
+LangGraphStore.get_tuple:
+  params: &id001
+    config: LangGraph config that identifies the thread and checkpoint.
+LangGraphStore.aget_tuple:
+  params: *id001
+LangGraphStore.list:
+  params: &id002
+    config: LangGraph config that identifies the thread.
+    options: Listing options passed to the wrapped saver, such as `filter`, `before`, or `limit`.
+LangGraphStore.alist:
+  params: *id002
+LangGraphStore.put:
+  params: &id003
+    config: LangGraph config that identifies the thread.
+    checkpoint: The LangGraph checkpoint to store.
+    metadata: Checkpoint metadata.
+    new_versions: New channel versions for this checkpoint.
+LangGraphStore.aput:
+  params: *id003
+LangGraphStore.put_writes:
+  params: &id004
+    config: LangGraph config that identifies the thread and checkpoint.
+    writes: Pending `(channel, value)` writes.
+    task_id: ID of the LangGraph task that produced the writes.
+    task_path: Path of the task within the graph.
+LangGraphStore.aput_writes:
+  params: *id004
+LangGraphStore.delete_thread:
+  params: &id005
+    thread_id: LangGraph thread ID.
+LangGraphStore.adelete_thread:
+  params: *id005
+LangGraphStore.get_next_version:
+  params:
+    current: The channel's current version.
+    channel: The channel.

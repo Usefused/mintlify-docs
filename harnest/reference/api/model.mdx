@@ -9,6 +9,10 @@ icon: "code"
 
 [All Python modules](/harnest/reference/api/overview) · [Import and compatibility guidance](/harnest/build/python-imports)
 
+## Framework construction
+
+Managed agents accept model connectors directly. Advanced integrations use `model.build()` or `resolve_model(model)` during Harnest compilation or an active invocation to obtain the selected framework's model object. Custom `ModelConnector` subclasses implement `build(self)`.
+
 ## Exports
 
 | Name | Kind |
@@ -23,14 +27,13 @@ icon: "code"
 | [`ModelLifecycleError`](#modellifecycleerror) | Class |
 | [`ModelMessage`](#modelmessage) | Class |
 | [`resolve_model`](#resolve_model) | Function |
-| [`resolve_model_for`](#resolve_model_for) | Function |
 
 ## LiteLLMContext
 
 Stable call context provided to every LiteLLM lifecycle hook.
 
 ```python
-LiteLLMContext(model: str, framework: Literal['adk', 'langgraph'], transport: Any | None = None) -> None
+LiteLLMContext(model: str, framework: FrameworkName, transport: Any | None = None) -> None
 ```
 
 Fields (`—` means no declared default):
@@ -38,16 +41,16 @@ Fields (`—` means no declared default):
 | Field | Type | Default |
 |---|---|---|
 | `model` | `str` | `—` |
-| `framework` | `Literal['adk', 'langgraph']` | `—` |
+| `framework` | `FrameworkName` | `—` |
 | `transport` | `Any \| None` | `None` |
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `model` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
-| `transport` | `Any \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `model` | `str` | Required | LiteLLM model ID. |
+| `framework` | `FrameworkName` | Required | — |
+| `transport` | `Any \| None` | `None` | Provider client from `create_transport`, if any. |
 
 ```python
 from harnest.model import LiteLLMContext
@@ -89,9 +92,9 @@ Return a provider client accepted by LiteLLM's `client` option.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `LiteLLMContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `LiteLLMContext` | Required | Model and framework of this model instance. |
 
 ```python
 from harnest.model import LiteLLMLifecycle
@@ -112,10 +115,10 @@ Mutate `request` or return its replacement before LiteLLM runs.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `dict[str, Any]` | Required |
-| `context` | `LiteLLMContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `dict[str, Any]` | Required | LiteLLM completion arguments. Change them in place or return a replacement. |
+| `context` | `LiteLLMContext` | Required | Model and framework of this model instance. |
 
 ```python
 from harnest.model import LiteLLMLifecycle
@@ -136,10 +139,10 @@ Return a non-stream response replacement or observe stream exhaustion.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `response` | `Any` | Required |
-| `context` | `LiteLLMContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `response` | `Any` | Required | LiteLLM response. Return a replacement for non-streaming responses. |
+| `context` | `LiteLLMContext` | Required | Model and framework of this model instance. |
 
 ```python
 from harnest.model import LiteLLMLifecycle
@@ -160,10 +163,10 @@ Observe a lifecycle or LiteLLM failure before it is re-raised.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `error` | `BaseException` | Required |
-| `context` | `LiteLLMContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `error` | `BaseException` | Required | The failure, re-raised after this hook. |
+| `context` | `LiteLLMContext` | Required | Model and framework of this model instance. |
 
 ```python
 from harnest.model import LiteLLMLifecycle
@@ -184,9 +187,9 @@ Release resources created for this model instance.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `LiteLLMContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `LiteLLMContext` | Required | Model and framework of this model instance. |
 
 ```python
 from harnest.model import LiteLLMLifecycle
@@ -254,57 +257,15 @@ model = LiteLLMModel("openai/your-model", api_base="https://models.example.inval
 LiteLLMModel.build() -> Any
 ```
 
-Build ADK's `LiteLlm` without contacting the provider.
+Build for Harnest's selected framework without contacting the provider.
 
 <Accordion title="Example">
 
 ```python
 from harnest.model import LiteLLMModel
 
-model: LiteLLMModel
-result = model.build()
-```
-
-</Accordion>
-
-### LiteLLMModel.build_for
-
-```python
-LiteLLMModel.build_for(framework: str) -> Any
-```
-
-Build the connector for a supported Harnest framework.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `framework` | `str` | Required | `"adk"` or `"langgraph"`. |
-
-```python
-from harnest.model import LiteLLMModel
-
-model: LiteLLMModel
-result = model.build_for(framework=...)
-```
-
-</Accordion>
-
-### LiteLLMModel.build_langgraph
-
-```python
-LiteLLMModel.build_langgraph() -> Any
-```
-
-Build LangChain's LiteLLM chat model without contacting the provider.
-
-<Accordion title="Example">
-
-```python
-from harnest.model import LiteLLMModel
-
-model: LiteLLMModel
-result = model.build_langgraph()
+# In agent.py, imported by Harnest during compilation:
+model = LiteLLMModel("openai/your-model").build()
 ```
 
 </Accordion>
@@ -364,10 +325,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `model` | `str \| None` | Required |
-| `messages` | `tuple[ModelMessage, ...]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `model` | `str \| None` | Required | Model ID, when known. |
+| `messages` | `tuple[ModelMessage, ...]` | Required | Messages sent to the model. |
 
 ```python
 from harnest.model import ModelCallRequest
@@ -393,9 +354,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `text` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `text` | `str` | Required | Visible model output. |
 
 ```python
 from harnest.model import ModelCallResponse
@@ -407,11 +368,11 @@ response = ModelCallResponse(text=...)
 
 ## ModelConnector
 
-A lazily constructed model with ADK and LangGraph adapters.
+A lazily constructed model that each framework adapter can build.
 
 Connectors keep optional model-provider imports out of config discovery and
-agent validation. Plain model strings and already-built ADK `BaseLlm`
-objects do not need a connector.
+agent validation. Plain model strings and already-built framework-specific
+model objects do not need a connector.
 
 ```python
 ModelConnector()
@@ -434,7 +395,7 @@ class MyModelConnector(ModelConnector):
 ModelConnector.build() -> Any
 ```
 
-Build the model object accepted by ADK's `LlmAgent`.
+Build the model for the framework selected by Harnest.
 
 <Accordion title="Example">
 
@@ -443,48 +404,6 @@ from harnest.model import ModelConnector
 
 connector: ModelConnector
 result = connector.build()
-```
-
-</Accordion>
-
-### ModelConnector.build_for
-
-```python
-ModelConnector.build_for(framework: str) -> Any
-```
-
-Build the connector for a supported Harnest framework.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-
-```python
-from harnest.model import ModelConnector
-
-connector: ModelConnector
-result = connector.build_for(framework=...)
-```
-
-</Accordion>
-
-### ModelConnector.build_langgraph
-
-```python
-ModelConnector.build_langgraph() -> Any
-```
-
-Build a LangChain chat model for LangGraph.
-
-<Accordion title="Example">
-
-```python
-from harnest.model import ModelConnector
-
-connector: ModelConnector
-result = connector.build_langgraph()
 ```
 
 </Accordion>
@@ -515,13 +434,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `agent_name` | `str \| None` | `None` |
-| `invocation_id` | `str \| None` | `None` |
-| `user_id` | `str \| None` | `None` |
-| `session_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `agent_name` | `str \| None` | `None` | Name of the agent or SubAgent involved, or `None` when not tied to one agent. |
+| `invocation_id` | `str \| None` | `None` | ID of one agent invocation, or `None` outside an invocation. |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
+| `session_id` | `str \| None` | `None` | ID of the Harnest session (one conversation), or `None` when there is none. |
 
 ```python
 from harnest.model import ModelLifecycleContext
@@ -541,9 +460,9 @@ Continue normally or pass a replacement to the next interceptor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `replacement` | `Any` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `replacement` | `Any` | `UNCHANGED` | Value to pass to the next stage. Omit it to continue unchanged. |
 
 ```python
 from harnest.model import ModelLifecycleContext
@@ -564,9 +483,9 @@ Return a final value without advancing to later execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | Final result. Later stages and the protected operation are skipped. |
 
 ```python
 from harnest.model import ModelLifecycleContext
@@ -611,10 +530,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `role` | `str` | Required |
-| `text` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `role` | `str` | Required | Message role, such as `user` or `assistant`. |
+| `text` | `str` | Required | Message text. |
 
 ```python
 from harnest.model import ModelMessage
@@ -626,7 +545,7 @@ message = ModelMessage(role=..., text=...)
 
 ## resolve_model
 
-Resolve a Harnest connector while preserving strings and ADK models.
+Build connectors in Harnest's current scope; pass framework objects through.
 
 ```python
 resolve_model(model: ModelInput) -> Any
@@ -634,37 +553,14 @@ resolve_model(model: ModelInput) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `model` | `ModelInput` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `model` | `ModelInput` | Required | A model ID, Harnest connector, or model object supported by the selected framework. |
 
 ```python
 from harnest.model import resolve_model
 
 result = resolve_model(model=...)
-```
-
-</Accordion>
-
-## resolve_model_for
-
-Resolve a connector for one compiler backend.
-
-```python
-resolve_model_for(model: ModelInput, framework: str) -> Any
-```
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `model` | `ModelInput` | Required |
-| `framework` | `str` | Required |
-
-```python
-from harnest.model import resolve_model_for
-
-result = resolve_model_for(model=..., framework=...)
 ```
 
 </Accordion>

@@ -71,7 +71,7 @@ harnest compile . --output .harnest/compiled
 
 Inspection starts the connection; compilation does not load the spec or contact services. The connection owns a FastMCP stdio subprocess using Harnest’s Python environment.
 
-Outside an agent, use `async with client.connect()` for discovery and reads. Inside an invocation, call tools through [`context.mcp("crm").call_tool(...)`](/harnest/reference/api/mcp#mcpcontext) or a native framework adapter.
+For discovery without invoking an agent, use `harnest mcp inspect crm --project AGENT_DIR --json`. Inside an invocation, call tools through [`context.mcp("crm").call_tool(...)`](/harnest/reference/api/mcp#mcpcontext). Custom connections use argument-free `client.connect()` within Harnest's compilation or invocation context; they do not select a default framework in a standalone script.
 
 ## Supported specifications
 

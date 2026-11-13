@@ -59,11 +59,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `traces` | `Any \| None` | `None` |
-| `logs` | `Any \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the destination. |
+| `traces` | `Any \| None` | `None` | OpenTelemetry span exporter, if any. |
+| `logs` | `Any \| None` | `None` | OpenTelemetry log exporter, if any. |
 
 ```python
 from harnest.telemetry import TelemetryExporter
@@ -126,18 +126,18 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `service_name` | `str` | Required |
-| `framework` | `str` | Required |
-| `enabled` | `bool` | Required |
-| `tracer_provider` | `Any \| None` | `None` |
-| `logger_provider` | `Any \| None` | `None` |
-| `owns_tracer_provider` | `bool` | `False` |
-| `owns_logger_provider` | `bool` | `False` |
-| `span_processors` | `tuple[Any, ...]` | `()` |
-| `log_processors` | `tuple[Any, ...]` | `()` |
-| `shutdown_called` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `service_name` | `str` | Required | Service name reported with telemetry. |
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `enabled` | `bool` | Required | Whether telemetry is configured. |
+| `tracer_provider` | `Any \| None` | `None` | The tracer provider in use. |
+| `logger_provider` | `Any \| None` | `None` | The logger provider in use. |
+| `owns_tracer_provider` | `bool` | `False` | Whether Harnest created the tracer provider. |
+| `owns_logger_provider` | `bool` | `False` | Whether Harnest created the logger provider. |
+| `span_processors` | `tuple[Any, ...]` | `()` | Span processors Harnest added. |
+| `log_processors` | `tuple[Any, ...]` | `()` | Log processors Harnest added. |
+| `shutdown_called` | `bool` | `False` | Whether shutdown has run. |
 
 ```python
 from harnest.telemetry import TelemetryState
@@ -157,9 +157,9 @@ Flush owned providers or only processors added to adopted providers.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `timeout_millis` | `int` | `5000` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `timeout_millis` | `int` | `5000` | Time limit for the flush, in milliseconds. |
 
 ```python
 from harnest.telemetry import TelemetryState
@@ -210,17 +210,17 @@ configure_observability(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `service_name` | `str` | Required |
-| `framework` | `str` | Required |
-| `service_version` | `str \| None` | `None` |
-| `span_exporter` | `Any \| None` | `None` |
-| `log_exporter` | `Any \| None` | `None` |
-| `exporters` | `Sequence[TelemetryExporter]` | `()` |
-| `exporter_factories` | `Sequence[Any]` | `()` |
-| `use_global_providers` | `bool` | `False` |
-| `set_global_providers` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `service_name` | `str` | Required | Service name reported with telemetry. |
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `service_version` | `str \| None` | `None` | Service version reported with telemetry. |
+| `span_exporter` | `Any \| None` | `None` | Single span exporter to use. |
+| `log_exporter` | `Any \| None` | `None` | Single log exporter to use. |
+| `exporters` | `Sequence[TelemetryExporter]` | `()` | Named telemetry destinations. |
+| `exporter_factories` | `Sequence[Any]` | `()` | Functions that build exporters at startup. |
+| `use_global_providers` | `bool` | `False` | Add Harnest's processors to existing global OpenTelemetry providers when they support it. |
+| `set_global_providers` | `bool` | `True` | Reuse capable global providers, or register Harnest's new providers as the global ones. |
 
 ```python
 from harnest.telemetry import configure_observability
@@ -240,10 +240,10 @@ get_tracer(name: str, *, version: str | None = None) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `version` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Instrumentation name. |
+| `version` | `str \| None` | `None` | Instrumentation version. |
 
 ```python
 from harnest.telemetry import get_tracer
@@ -263,10 +263,10 @@ instrument_fastapi(app: Any, state: TelemetryState) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `app` | `Any` | Required |
-| `state` | `TelemetryState` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `app` | `Any` | Required | The FastAPI application. |
+| `state` | `TelemetryState` | Required | Telemetry state from `configure_observability`. |
 
 ```python
 from harnest.telemetry import instrument_fastapi
@@ -286,9 +286,9 @@ resolve_telemetry_exporters(factories: Sequence[Any]) -> tuple[TelemetryExporter
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `factories` | `Sequence[Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `factories` | `Sequence[Any]` | Required | Discovered exporter factory functions. |
 
 ```python
 from harnest.telemetry import resolve_telemetry_exporters

@@ -11,11 +11,10 @@ Register one synchronous initializer per pack. It proposes changes during planni
 
 ## Add defaults and generated files
 
-The following hook assumes `pack` declares a `team` option and a `templates` directory containing `ci.yml`:
+Add this hook to the `pack.py` that defines `pack`. It assumes `pack` declares a `team` option and a `templates` directory containing `ci.yml`:
 
 ```python
 from harnest.authoring import ChangePlan, ProjectContext
-from acme_agent_pack.pack import pack
 
 @pack.initialize
 def initialize(context: ProjectContext) -> ChangePlan:
@@ -29,7 +28,7 @@ def initialize(context: ProjectContext) -> ChangePlan:
     )
 ```
 
-Replace your pack's existing initializer with this function; do not register both. Ensure its `config_model` matches the fields the initializer produces.
+The pack's `config_model` validates the resulting configuration.
 
 Operations default to `WritePolicy.IF_MISSING`. They preserve values already provided by Harnest's scaffold or an earlier pack. The planner still blocks overlapping ownership between different packs. See [write policies](/harnest/build/project-packs/changes#write-policies).
 
@@ -42,10 +41,10 @@ Reads see the current staged project. Operations returned by one hook execute in
 ## Preview before creating
 
 ```sh
-acme-agent init support-bot --team customer-success --dry-run --json
-acme-agent init support-bot --team customer-success
+harnest init support-bot --pack ./acme-pack --option team=customer-success --dry-run --json
+harnest init support-bot --pack ./acme-pack --option team=customer-success
 ```
 
-The first command leaves the target untouched. The second creates it using a fresh plan. Init requires an absent or empty directory; it never upgrades an existing agent.
+`--dry-run` previews the plan. Initialization requires an absent or empty directory.
 
 A failed hook, invalid company configuration, or ownership conflict blocks application. See [plans and recovery](/harnest/build/project-packs/plans-and-recovery) for error handling and backups.

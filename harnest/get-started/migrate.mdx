@@ -51,7 +51,7 @@ Choose the mode that preserves the agent's current behavior:
   </Step>
 </Steps>
 
-Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle hooks, and other compatible pieces into managed folders when useful.
+Advanced projects can use managed folders for tools, skills, MCP connections, and lifecycle hooks.
 
 ## Upgrade an older Harnest project
 
@@ -104,6 +104,57 @@ Advanced mode is not a dead end. Move tools, skills, MCP connections, lifecycle 
 </Steps>
 
 Harnest checks that reviewed files have not changed and creates backups under `.harnest/upgrade-backups/`. It stops when a change needs your judgment.
+
+### Ollama model configuration
+
+`OllamaModel` has been removed. Replace its import and `from_environment()` call with [`LiteLLMModel.from_openai_environment()`](/harnest/reference/api/model#litellmmodel-from_openai_environment). Rename `OLLAMA_MODEL`, `OLLAMA_BASE_URL`, and any `OLLAMA_API_KEY` configuration to the `OPENAI_` names above. Set the compatible API URL, not the native API root: for a local Ollama server, use `http://localhost:11434/v1`. Review explicit constructor options against your endpoint's compatible API; native `chat=False` is not a compatible chat option. Existing agents require this explicit migration; Harnest does not guess a new endpoint or credential mapping.
+
+### Pack records
+
+For an older `studio-pack.yaml`, move `builder`, `ui`, and `resources` under `studio:` in `pack.yaml`; identity and `requires` stay at the top level. Use `apiVersion: harnest.dev/pack/v1`.
+
+`harnest upgrade AGENT_DIR --apply` preserves pack schema versions and merges Studio installation receipts into version 2 of `harnest-packs.lock`. Convert older pack definitions to the current [pack format](/harnest/build/project-packs/create) separately; the agent upgrade does not rewrite pack source or launchers.
+
+### Retired resource and scaling fields
+
+You can remove these ignored blocks from `spec` when cleaning up an existing project. Configure any limits you need explicitly:
+
+| Removed setting | Where to configure it |
+|---|---|
+| `resources.cpu`, `resources.memory` | Workload `resources.cpus` and `resources.memory` in `harnest-deployment.yaml` |
+| `resources.timeoutSeconds` | Root `server.http.requestTimeoutSeconds` in `config.yaml` |
+| `resources.maxConcurrentRequests` | Root `server.http.maxConcurrentRequests` in `config.yaml` |
+| `scaling.minReplicas`, `scaling.maxReplicas` | Workload `replicas` for a fixed instance count; configure autoscaling through your deployment platform |
+| `resources.ephemeralStorage` | Scratch-storage policy in your container or Kubernetes deployment; no replacement in agent `config.yaml` |
+
+Remove ignored settings and configure only the limits you need. They neither block upgrades nor supply deployment defaults.
+
+### Consolidate server configuration
+
+Existing authored `server.yaml` files remain supported. Files without a `live` field retain their previous WebSocket access; set `live: false` in that file to disable it. To consolidate a project:
+
+1. Move its `http`, `limits`, and `playground` mappings under a root `server:` section in `config.yaml`. Add `live: true` there if you want to retain WebSocket access. You can omit other settings that match the defaults.
+2. Leave out the legacy file's `apiVersion` and `kind` fields.
+3. Remove the authored `server.yaml` and compile again.
+
+Harnest rejects projects that declare both `config.yaml` → `server` and an authored `server.yaml`, even if the inline section is empty. Choose one source rather than relying on precedence. New projects and upgrades do not create a server defaults file.
+
+### Task queue providers
+
+The Procrastinate backend and automatic PostgreSQL fallback have been removed. If you used them, drain work on your currently deployed version **before upgrading**. The new runtime cannot process the old queue tables.
+
+1. Back up your database and inventory recurring schedules for each owner.
+2. Stop new submissions and pause recurring schedules on the old runtime.
+3. Drain or explicitly cancel queued/running Tasks and resolve their waiting
+   continuations before stopping the old workers.
+4. Configure the new provider, preserving session/checkpoint storage when it
+   contains history you need. Synchronize the runtime and recompile your agent.
+   Start the new deployment and recreate dynamic
+   schedules under their original user scopes. Static declarations reconcile
+   automatically.
+5. Verify task execution, recovery, and owner isolation before reopening traffic.
+
+Old queue data and continuation references are not migrated automatically. Keep the old database for recovery, and drain work before removing, renaming, or changing a task’s queue.
 
 ### Existing Cron declarations
 

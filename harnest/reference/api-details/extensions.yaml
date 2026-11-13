@@ -1,0 +1,42 @@
+# Curated details for /harnest/reference/api/extensions. See task.yaml for the format.
+
+Extension.start:
+  params:
+    context: Startup context with access to custom stores.
+
+Extension.create_context:
+  params:
+    context: The managed invocation context to adapt.
+
+ExtensionContext:
+  params:
+    extension_name: Name of the installed extension.
+
+ExtensionStartContext.storage:
+  params:
+    name: Name of the custom store, as registered with `@lifecycle.storage.custom(name)`.
+    expected_type: Type the store must be. Raises `TypeError` when it is not.
+
+ActivatedExtension:
+  fields:
+    descriptor: Descriptor of the installed extension.
+    module: The extension's namespace module.
+    extension: The extension's singleton instance.
+
+activate_extensions:
+  params:
+    descriptors: Extensions to activate, in dependency order.
+
+extension_namespaces:
+  params:
+    descriptors: Extensions to activate for this operation.
+
+release_extensions:
+  params:
+    descriptors: Extensions to release.
+
+extension_mutation:
+  params:
+    extension_name: Name of the extension making the change.
+    operation: Name of the durable operation, such as `"documents.replace"`.
+    trigger: Who initiated the change, `"user"` or `"agent"`.

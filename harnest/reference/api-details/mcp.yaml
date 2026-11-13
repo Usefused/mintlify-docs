@@ -1,0 +1,103 @@
+# Curated details for /harnest/reference/api/mcp. See task.yaml for the format.
+# Transport options (stdio, streamable_http, sse) are described in _shared.yaml.
+
+MCPClient.from_openapi:
+  params:
+    source: Path or URL of the OpenAPI spec.
+    base_url: Base URL of the API, when it differs from the spec.
+    headers: HTTP headers sent to the API.
+    client_options: Standard `stdio` options, such as `tools`, `prefix`, or `permission`.
+
+MCPClientContext:
+  params:
+    name: Name of the MCP client.
+    transport: '`"stdio"`, `"sse"`, or `"streamable-http"`.'
+    framework: Agent framework using the client.
+    url: Server URL for HTTP transports.
+
+MCPClientLifecycle.start:
+  params:
+    context: Identity of the MCP client.
+
+MCPClientLifecycle.create_http_client:
+  params:
+    options: Headers, timeout, and auth the adapter needs on the client.
+    context: Identity of the MCP client.
+
+MCPClientLifecycle.close:
+  params:
+    context: Identity of the MCP client.
+
+MCPHTTPClientOptions:
+  params:
+    headers: Headers to send on every request.
+    timeout: Timeout to apply to the client.
+    auth: Authentication handler to apply to the client.
+
+MCPContext.__call__:
+  params:
+    name: Name of the MCP client, matching its `mcp/<name>.py` file.
+
+MCPContext.client:
+  params:
+    name: Name of the MCP client, matching its `mcp/<name>.py` file.
+
+MCPResourceClient.read_resource:
+  params:
+    uri: Resource URI. It must be allowed by the client's `resources` setting.
+
+MCPResourceClient.get_prompt:
+  params:
+    name: Prompt name. It must be allowed by the client's `prompts` setting.
+    arguments: Prompt arguments.
+
+ManagedMCPClient.read_resource:
+  params:
+    uri: Resource URI. It must be allowed by the client's `resources` setting.
+
+ManagedMCPClient.get_prompt:
+  params:
+    name: Prompt name. It must be allowed by the client's `prompts` setting.
+    arguments: Prompt arguments.
+
+ManagedMCPClient.call_tool:
+  params:
+    name: Name of the discovered remote tool.
+    arguments: Tool arguments.
+
+MCPResourceEvent:
+  fields:
+    client_name: Name of the MCP client that received the update.
+    uri: URI of the resource.
+    resource: The resource value that was read.
+    reason: '`"start"`, `"update"`, or `"reconnect"`.'
+
+MCPSubscription:
+  fields:
+    uri: Resource URI to subscribe to.
+    handler: Async function called with each `MCPResourceEvent`. It has no user or session context.
+    method: '`"resources/subscribe"` (default) or `"subscriptions/listen"` for stateless Streamable HTTP servers.'
+    read_on_start: Read the resource once when the subscription starts.
+    read_on_reconnect: Read the resource again after a reconnect.
+    handler_timeout_seconds: Time limit for one handler call, in seconds.
+
+MCPToolCallRequest:
+  fields:
+    arguments: Arguments for the remote tool. A `before` hook can replace them.
+
+MCPToolLifecycleContext:
+  params:
+    client_name: Name of the MCP client.
+    tool_name: Name of the remote tool.
+
+
+
+MCPLifecyclePipeline:
+  params:
+    listeners: The registered MCP lifecycle hooks, in order.
+
+MCPLifecyclePipeline.run:
+  params:
+    request: The remote tool call.
+    handler: Function that performs the remote call.
+    context: Identity of the remote tool call.

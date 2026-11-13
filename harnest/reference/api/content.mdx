@@ -60,14 +60,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `assetId` | `Annotated[str, _PydanticGeneralMetadata(pattern='^[A-Za-z0-9][A-Za-z0-9._~-]{0,254}$')]` | Required |
-| `store` | `Annotated[str, _PydanticGeneralMetadata(pattern='^[A-Za-z][A-Za-z0-9._~-]{0,63}$')]` | `'default'` |
-| `mediaType` | `str \| None` | `None` |
-| `sizeBytes` | `Annotated[int \| None, Ge(ge=0)]` | `None` |
-| `type` | `Literal['asset']` | `'asset'` |
-| `label` | `Annotated[str \| None, MinLen(min_length=1), MaxLen(max_length=128)]` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `assetId` | `str` | Required | ID of the stored bytes in the asset store. |
+| `store` | `str` | `'default'` | Name of the asset store that holds the bytes. |
+| `mediaType` | `str \| None` | `None` | MIME type, such as `"image/png"`. |
+| `sizeBytes` | `int \| None` | `None` | Size of the content in bytes. |
+| `type` | `Literal['asset']` | `'asset'` | Content part type. Set automatically. |
+| `label` | `str \| None` | `None` | Optional display label, up to 128 characters. |
 
 ```python
 from harnest.content import AssetRef
@@ -112,17 +112,17 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `assetId` | `Annotated[str \| None, _PydanticGeneralMetadata(pattern='^[A-Za-z0-9][A-Za-z0-9._~-]{0,254}$')]` | `None` |
-| `store` | `Annotated[str, _PydanticGeneralMetadata(pattern='^[A-Za-z][A-Za-z0-9._~-]{0,63}$')]` | `'default'` |
-| `data` | `str \| None` | `None` |
-| `mediaType` | `str \| None` | `None` |
-| `sizeBytes` | `Annotated[int \| None, Ge(ge=0)]` | `None` |
-| `type` | `Literal['audio']` | `'audio'` |
-| `durationSeconds` | `Annotated[float \| None, Ge(ge=0), _PydanticGeneralMetadata(allow_inf_nan=False)]` | `None` |
-| `sampleRateHz` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
-| `channels` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `assetId` | `str \| None` | `None` | ID of stored bytes. Supply exactly one of `assetId` or `data`. |
+| `store` | `str` | `'default'` | Name of the asset store that holds the bytes. |
+| `data` | `str \| None` | `None` | Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`. |
+| `mediaType` | `str \| None` | `None` | MIME type, such as `"audio/mpeg"`. |
+| `sizeBytes` | `int \| None` | `None` | Size of the content in bytes. |
+| `type` | `Literal['audio']` | `'audio'` | Content part type. Set automatically. |
+| `durationSeconds` | `float \| None` | `None` | Length in seconds. |
+| `sampleRateHz` | `int \| None` | `None` | Sample rate in hertz. |
+| `channels` | `int \| None` | `None` | Number of audio channels. |
 
 ```python
 from harnest.content import Audio
@@ -164,16 +164,16 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `media_types` | `frozenset[str] \| None` | `None` |
-| `max_bytes` | `int \| None` | `None` |
-| `min_duration_seconds` | `float \| None` | `None` |
-| `max_duration_seconds` | `float \| None` | `None` |
-| `min_sample_rate_hz` | `int \| None` | `None` |
-| `max_sample_rate_hz` | `int \| None` | `None` |
-| `min_channels` | `int \| None` | `None` |
-| `max_channels` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `media_types` | `frozenset[str] \| None` | `None` | Allowed MIME types. `None` allows any audio type. |
+| `max_bytes` | `int \| None` | `None` | Maximum size in bytes. |
+| `min_duration_seconds` | `float \| None` | `None` | Minimum length in seconds. |
+| `max_duration_seconds` | `float \| None` | `None` | Maximum length in seconds. |
+| `min_sample_rate_hz` | `int \| None` | `None` | Minimum sample rate in hertz. |
+| `max_sample_rate_hz` | `int \| None` | `None` | Maximum sample rate in hertz. |
+| `min_channels` | `int \| None` | `None` | Minimum number of channels. |
+| `max_channels` | `int \| None` | `None` | Maximum number of channels. |
 
 ```python
 from harnest.content import AudioConstraints
@@ -228,10 +228,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `type` | `Literal['data']` | `'data'` |
-| `value` | `~DataValue` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `type` | `Literal['data']` | `'data'` | Content part type. Set automatically. |
+| `value` | `~DataValue` | Required | The typed JSON value. |
 
 ```python
 from harnest.content import Data
@@ -258,10 +258,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `media_types` | `frozenset[str] \| None` | `None` |
-| `max_bytes` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `media_types` | `frozenset[str] \| None` | `None` | Allowed MIME types for the serialized value. |
+| `max_bytes` | `int \| None` | `None` | Maximum serialized size in bytes. |
 
 ```python
 from harnest.content import DataConstraints
@@ -304,16 +304,16 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `assetId` | `Annotated[str \| None, _PydanticGeneralMetadata(pattern='^[A-Za-z0-9][A-Za-z0-9._~-]{0,254}$')]` | `None` |
-| `store` | `Annotated[str, _PydanticGeneralMetadata(pattern='^[A-Za-z][A-Za-z0-9._~-]{0,63}$')]` | `'default'` |
-| `data` | `str \| None` | `None` |
-| `mediaType` | `str \| None` | `None` |
-| `sizeBytes` | `Annotated[int \| None, Ge(ge=0)]` | `None` |
-| `type` | `Literal['file']` | `'file'` |
-| `name` | `Annotated[str \| None, MinLen(min_length=1), MaxLen(max_length=255)]` | `None` |
-| `pageCount` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `assetId` | `str \| None` | `None` | ID of stored bytes. Supply exactly one of `assetId` or `data`. |
+| `store` | `str` | `'default'` | Name of the asset store that holds the bytes. |
+| `data` | `str \| None` | `None` | Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`. |
+| `mediaType` | `str \| None` | `None` | MIME type, such as `"application/pdf"`. |
+| `sizeBytes` | `int \| None` | `None` | Size of the content in bytes. |
+| `type` | `Literal['file']` | `'file'` | Content part type. Set automatically. |
+| `name` | `str \| None` | `None` | Display file name. |
+| `pageCount` | `int \| None` | `None` | Number of pages, for documents. |
 
 ```python
 from harnest.content import File
@@ -349,13 +349,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `media_types` | `frozenset[str] \| None` | `None` |
-| `max_bytes` | `int \| None` | `None` |
-| `max_pages` | `int \| None` | `None` |
-| `archives_allowed` | `bool \| None` | `None` |
-| `max_expanded_bytes` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `media_types` | `frozenset[str] \| None` | `None` | Allowed MIME types. `None` allows any file type. |
+| `max_bytes` | `int \| None` | `None` | Maximum size in bytes. |
+| `max_pages` | `int \| None` | `None` | Maximum number of pages. |
+| `archives_allowed` | `bool \| None` | `None` | — |
+| `max_expanded_bytes` | `int \| None` | `None` | — |
 
 ```python
 from harnest.content import FileConstraints
@@ -402,18 +402,18 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `assetId` | `Annotated[str \| None, _PydanticGeneralMetadata(pattern='^[A-Za-z0-9][A-Za-z0-9._~-]{0,254}$')]` | `None` |
-| `store` | `Annotated[str, _PydanticGeneralMetadata(pattern='^[A-Za-z][A-Za-z0-9._~-]{0,63}$')]` | `'default'` |
-| `data` | `str \| None` | `None` |
-| `mediaType` | `str \| None` | `None` |
-| `sizeBytes` | `Annotated[int \| None, Ge(ge=0)]` | `None` |
-| `type` | `Literal['image']` | `'image'` |
-| `width` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
-| `height` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
-| `animated` | `bool \| None` | `None` |
-| `frameCount` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `assetId` | `str \| None` | `None` | ID of stored bytes. Supply exactly one of `assetId` or `data`. |
+| `store` | `str` | `'default'` | Name of the asset store that holds the bytes. |
+| `data` | `str \| None` | `None` | Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`. |
+| `mediaType` | `str \| None` | `None` | MIME type, such as `"image/png"`. |
+| `sizeBytes` | `int \| None` | `None` | Size of the content in bytes. |
+| `type` | `Literal['image']` | `'image'` | Content part type. Set automatically. |
+| `width` | `int \| None` | `None` | Width in pixels. |
+| `height` | `int \| None` | `None` | Height in pixels. |
+| `animated` | `bool \| None` | `None` | Whether the image is animated. |
+| `frameCount` | `int \| None` | `None` | Number of frames in an animated image. |
 
 ```python
 from harnest.content import Image
@@ -461,19 +461,19 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `media_types` | `frozenset[str] \| None` | `None` |
-| `max_bytes` | `int \| None` | `None` |
-| `min_width` | `int \| None` | `None` |
-| `max_width` | `int \| None` | `None` |
-| `min_height` | `int \| None` | `None` |
-| `max_height` | `int \| None` | `None` |
-| `max_pixels` | `int \| None` | `None` |
-| `min_aspect_ratio` | `float \| None` | `None` |
-| `max_aspect_ratio` | `float \| None` | `None` |
-| `animated` | `bool \| None` | `None` |
-| `max_frames` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `media_types` | `frozenset[str] \| None` | `None` | Allowed MIME types. `None` allows any image type. |
+| `max_bytes` | `int \| None` | `None` | Maximum size in bytes. |
+| `min_width` | `int \| None` | `None` | Minimum width in pixels. |
+| `max_width` | `int \| None` | `None` | Maximum width in pixels. |
+| `min_height` | `int \| None` | `None` | Minimum height in pixels. |
+| `max_height` | `int \| None` | `None` | Maximum height in pixels. |
+| `max_pixels` | `int \| None` | `None` | Maximum width × height. |
+| `min_aspect_ratio` | `float \| None` | `None` | Minimum width ÷ height. |
+| `max_aspect_ratio` | `float \| None` | `None` | Maximum width ÷ height. |
+| `animated` | `bool \| None` | `None` | Require (`True`) or reject (`False`) animated images. `None` allows both. |
+| `max_frames` | `int \| None` | `None` | Maximum number of frames. |
 
 ```python
 from harnest.content import ImageConstraints
@@ -500,10 +500,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `type` | `Literal['text']` | `'text'` |
-| `text` | `Annotated[str, MinLen(min_length=1)]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `type` | `Literal['text']` | `'text'` | Content part type. Set automatically. |
+| `text` | `str` | Required | The text. |
 
 ```python
 from harnest.content import Text
@@ -552,19 +552,19 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `assetId` | `Annotated[str \| None, _PydanticGeneralMetadata(pattern='^[A-Za-z0-9][A-Za-z0-9._~-]{0,254}$')]` | `None` |
-| `store` | `Annotated[str, _PydanticGeneralMetadata(pattern='^[A-Za-z][A-Za-z0-9._~-]{0,63}$')]` | `'default'` |
-| `data` | `str \| None` | `None` |
-| `mediaType` | `str \| None` | `None` |
-| `sizeBytes` | `Annotated[int \| None, Ge(ge=0)]` | `None` |
-| `type` | `Literal['video']` | `'video'` |
-| `width` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
-| `height` | `Annotated[int \| None, Gt(gt=0)]` | `None` |
-| `durationSeconds` | `Annotated[float \| None, Ge(ge=0), _PydanticGeneralMetadata(allow_inf_nan=False)]` | `None` |
-| `frameRate` | `Annotated[float \| None, Gt(gt=0), _PydanticGeneralMetadata(allow_inf_nan=False)]` | `None` |
-| `hasAudio` | `bool \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `assetId` | `str \| None` | `None` | ID of stored bytes. Supply exactly one of `assetId` or `data`. |
+| `store` | `str` | `'default'` | Name of the asset store that holds the bytes. |
+| `data` | `str \| None` | `None` | Base64-encoded bytes for inline content. Supply exactly one of `assetId` or `data`. |
+| `mediaType` | `str \| None` | `None` | MIME type, such as `"video/mp4"`. |
+| `sizeBytes` | `int \| None` | `None` | Size of the content in bytes. |
+| `type` | `Literal['video']` | `'video'` | Content part type. Set automatically. |
+| `width` | `int \| None` | `None` | Width in pixels. |
+| `height` | `int \| None` | `None` | Height in pixels. |
+| `durationSeconds` | `float \| None` | `None` | Length in seconds. |
+| `frameRate` | `float \| None` | `None` | Frames per second. |
+| `hasAudio` | `bool \| None` | `None` | Whether the video has an audio track. |
 
 ```python
 from harnest.content import Video
@@ -614,20 +614,20 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `media_types` | `frozenset[str] \| None` | `None` |
-| `max_bytes` | `int \| None` | `None` |
-| `min_duration_seconds` | `float \| None` | `None` |
-| `max_duration_seconds` | `float \| None` | `None` |
-| `min_width` | `int \| None` | `None` |
-| `max_width` | `int \| None` | `None` |
-| `min_height` | `int \| None` | `None` |
-| `max_height` | `int \| None` | `None` |
-| `max_pixels` | `int \| None` | `None` |
-| `min_frame_rate` | `float \| None` | `None` |
-| `max_frame_rate` | `float \| None` | `None` |
-| `audio_allowed` | `bool \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `media_types` | `frozenset[str] \| None` | `None` | Allowed MIME types. `None` allows any video type. |
+| `max_bytes` | `int \| None` | `None` | Maximum size in bytes. |
+| `min_duration_seconds` | `float \| None` | `None` | Minimum length in seconds. |
+| `max_duration_seconds` | `float \| None` | `None` | Maximum length in seconds. |
+| `min_width` | `int \| None` | `None` | Minimum width in pixels. |
+| `max_width` | `int \| None` | `None` | Maximum width in pixels. |
+| `min_height` | `int \| None` | `None` | Minimum height in pixels. |
+| `max_height` | `int \| None` | `None` | Maximum height in pixels. |
+| `max_pixels` | `int \| None` | `None` | Maximum width × height. |
+| `min_frame_rate` | `float \| None` | `None` | Minimum frames per second. |
+| `max_frame_rate` | `float \| None` | `None` | Maximum frames per second. |
+| `audio_allowed` | `bool \| None` | `None` | — |
 
 ```python
 from harnest.content import VideoConstraints
@@ -647,9 +647,9 @@ constraint_schema_extension(constraint: ContentConstraints) -> dict[str, Any]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `constraint` | `ContentConstraints` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `constraint` | `ContentConstraints` | Required | The constraint object to render. |
 
 ```python
 from harnest.content import constraint_schema_extension
@@ -669,9 +669,9 @@ content_constraints(annotation: Any) -> tuple[ContentConstraints, ...]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `annotation` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `annotation` | `Any` | Required | The type annotation to inspect. |
 
 ```python
 from harnest.content import content_constraints
@@ -691,9 +691,9 @@ content_schema_extension(annotation: Any) -> dict[str, Any]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `annotation` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `annotation` | `Any` | Required | The type annotation to inspect. |
 
 ```python
 from harnest.content import content_schema_extension

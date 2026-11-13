@@ -172,24 +172,9 @@ Delivery is **at least once**: a crash after an external effect can cause a retr
 
 Durable `handle.result()` waits also require a persistent Harnest-owned checkpointer. Task storage alone is insufficient. Queue ordering is best-effort across replicas and recovery.
 
-Cron cursors survive restart. Missed occurrences catch up in bounded batches; there is no skip/coalesce misfire option in this version. Cancelling a schedule before its atomic occurrence commit prevents that enqueue; already committed jobs continue. Removed static declarations are paused at the next deployment startup, while a retargeted declaration gets a new identity. Do not run old and new conflicting static declarations concurrently during a rolling deployment.
+Cron cursors survive restart. Missed occurrences catch up in bounded batches. Cancelling a schedule before its atomic occurrence commit prevents that enqueue; already committed jobs continue. Removed static declarations are paused at the next deployment startup, while a retargeted declaration gets a new identity. Do not run old and new conflicting static declarations concurrently during a rolling deployment.
 
-## Move an existing application safely
-
-The Procrastinate backend and automatic PostgreSQL fallback have been removed. If you used them, drain work on your currently deployed version **before upgrading**. The new runtime cannot process the old queue tables.
-
-1. Back up your database and inventory recurring schedules for each owner.
-2. Stop new submissions and pause recurring schedules on the old runtime.
-3. Drain or explicitly cancel queued/running Tasks and resolve their waiting
-   continuations before stopping the old workers.
-4. Configure the new provider, preserving session/checkpoint storage when it
-   contains history you need. Synchronize the runtime and recompile your agent.
-   Start the new deployment and recreate dynamic
-   schedules under their original user scopes. Static declarations reconcile
-   automatically.
-5. Verify task execution, recovery, and owner isolation before reopening traffic.
-
-Old queue data and continuation references are not migrated automatically. Keep the old database for recovery, and drain work before removing, renaming, or changing a task’s queue.
+For provider changes, see [task queue migration](/harnest/get-started/migrate#task-queue-providers).
 
 ## API reference
 

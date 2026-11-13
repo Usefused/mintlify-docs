@@ -1,205 +1,144 @@
 ---
 icon: "terminal"
-title: "Build a company CLI"
-sidebarTitle: "Company CLI"
-description: "Expose typed init and upgrade commands and register additional company commands."
+title: "Run and ship a pack"
+sidebarTitle: "Run and ship"
+description: "Package a Harnest pack as a branded command with initialization, upgrades, Studio, and company actions."
 ---
 
-Use [`ProjectCLI`](/harnest/reference/api/authoring#projectcli) to expose your installed packs through a company-owned executable. It uses the same planning API available to custom interfaces.
+Build your [pack folder](/harnest/build/project-packs/create) into a wheel with `harnest pack build`. The generated executable forwards commands to Harnest and attaches your pack to initialization, upgrades, and Studio.
 
-## Register the entrypoint
+## Use a pack directly
 
-```python cli.py
-from harnest.authoring import ProjectCLI
-from acme_agent_pack.pack import pack
-
-cli = ProjectCLI(name="acme-agent", packs=[pack])
-
-def main() -> int:
-    return cli.run()
+```bash
+harnest init support-bot --pack ./acme-pack --option team=customer-success --dry-run --json
+harnest init support-bot --pack ./acme-pack --option team=customer-success
+harnest upgrade support-bot --pack ./acme-pack
+harnest upgrade support-bot --pack ./acme-pack --apply
+harnest studio --pack ./acme-pack --option team=customer-success
 ```
 
-Register `main` as a console script in your company package:
+Repeat `--pack` to select several packs in execution order. Without `--pack`, `harnest upgrade` runs core migrations only; it does not execute pack hooks. Studio forwards `--option` values to project initialization.
 
-```toml pyproject.toml
-[project.scripts]
-acme-agent = "acme_agent_pack.cli:main"
+## Declare the command
+
+Pack identity and the executable name belong in `pack.yaml`:
+
+```yaml pack.yaml
+apiVersion: harnest.dev/pack/v1
+name: acme
+version: 1.0.0
+title: Acme agents
+command: acme-agent
 ```
 
-The `packs` order is the execution order. Their names must be unique. Install the Harnest executable alongside the company CLI, or select it explicitly:
+If `command` is omitted, the executable uses the pack name. Keep project hooks in `pack.py`, exporting `pack = ProjectPack(schema_version=1, ...)`. The manifest supplies its name when Harnest loads the folder.
 
-```python
-cli = ProjectCLI(
-    name="acme-agent",
-    packs=[pack],
-    harnest_command=("/approved/path/harnest",),
-)
+## Build the branded command
+
+```bash
+harnest pack validate ./acme-pack
+harnest pack build ./acme-pack --output ./dist
+python -m pip install ./dist/harnest_pack_acme-1.0.0-py3-none-any.whl
+acme-agent --help
 ```
 
-Pin that executable and the Python Harnest package to the same release. Initialization uses the executable's scaffold; upgrades use the Python migration engine.
+The wheel contains the pack and a launcher with no Python package dependencies. Install Harnest separately; set `HARNEST_CLI` to an executable path if it is not on `PATH`. The Harnest CLI prepares its bundled Studio runtime on first launch; standalone Python integrations need Studio installed in their environment. Pack `requires` ranges validate compatibility; they do not install dependencies.
+
+Building validates the Studio sub-pack when Studio is installed. The wheel contains the pack folder except caches, build output, virtual environments, `node_modules/`, and `.env` files. Symlinks are rejected, and unchanged pack inputs produce a byte-identical wheel.
 
 ## Commands and flags
 
-| Command | Default behavior | Additional flags |
-|---|---|---|
-| `init DIRECTORY` | Plan and apply to an absent or empty directory. | `--dry-run`, `--framework adk\|langgraph`, `--mode managed\|advanced`, `--minimal`, `--example`, `--template`, `--template-sha256`, `--json`, pack options. |
-| `upgrade DIRECTORY` | Print a read-only combined plan. | `--apply`, `--json`, pack options. |
+| Command | Behavior |
+|---|---|
+| `acme-agent init DIRECTORY` | Run Harnest initialization with the installed pack; `--dry-run` previews the combined plan. |
+| `acme-agent upgrade DIRECTORY` | Preview Harnest and pack migrations; `--apply` applies the combined plan. |
+| `acme-agent studio` | Open Studio with the pack's `studio:` resources, defaults, and UI. |
+| A registered company command | Run the pack handler with the remaining arguments. |
+| Any other command | Forward arguments to Harnest and preserve its exit code. |
 
-```sh
-acme-agent init support-bot --team customer-success --dry-run --json
-acme-agent init support-bot --team customer-success
+```bash
+acme-agent init support-bot --option team=customer-success --dry-run --json
+acme-agent init support-bot --option team=customer-success
 acme-agent upgrade support-bot
 acme-agent upgrade support-bot --apply
+acme-agent test support-bot
 ```
 
-A later `--apply` command builds a fresh plan; the CLI does not persist and replay an earlier preview. `--json` prints a plan without file contents or option values. It can be combined with application flags and does not itself make the command read-only.
-
-| Exit code | Meaning |
-|---|---|
-| `0` | Success, including a plan with no changes. |
-| `1` | Operational error. |
-| `2` | Blocked plan or invalid command-line arguments. |
+A later apply builds a fresh plan. `--json` prints a plan without file contents or option values; it does not make an applying command read-only. Pack planning returns `2` for blockers, `1` for operational errors, and `0` for success. Other commands retain their own exit codes.
 
 ## Initialize from a template
 
-Pass a Harnest template to your team's CLI:
-
 ```bash
-acme-agent init ./sales --template acme-sales --team sales
+acme-agent init ./sales --template acme-sales --option team=sales
 ```
 
-`--template` accepts the same template project name, short slug, or HTTPS wheel URL as `harnest init`. For an HTTPS wheel, optionally pin its contents:
+`--template` accepts a template project name, short slug, or HTTPS wheel URL. Use `--template-sha256` to pin a wheel:
 
 ```bash
 acme-agent init ./sales \
   --template https://packages.example.com/acme_sales.whl \
   --template-sha256 "$TEMPLATE_SHA256" \
-  --team sales
+  --option team=sales
 ```
 
-Harnest renders the template in staging, then runs pack initializers. The template determines framework, mode, and initial files; pack ownership rules govern later changes.
-
-`--template` cannot be combined with an explicit `--framework`, `--mode`, `--minimal`, or `--example`. `--minimal` and `--example` are mutually exclusive. `--template-sha256` requires `--template`. Without a template, the framework still defaults to ADK and mode to managed.
+Harnest renders the template in staging before running pack initializers. Its framework and mode determine the target; do not combine `--template` with `--framework`, `--mode`, `--minimal`, or `--example`. `--template-sha256` requires `--template`. For the built-in scaffold, the default framework is ADK and the default mode is managed.
 
 Use `--dry-run` to review changes without creating the destination. Planning may download the template; download or validation failures stop before pack hooks run.
 
 ## Typed pack options
 
-Declare a Pydantic options model when [creating the pack](/harnest/build/project-packs/create). String, integer, and number fields become typed flags. Enums become choices; defaults and validation remain in the Pydantic model.
+Declare a Pydantic options model in `pack.py` and pass values with repeated `--option key=value` flags:
 
 | Model input | CLI example |
 |---|---|
-| String | `--team customer-success` |
-| Integer | `--replicas 2` |
-| Enum | `--environment production` |
-| Boolean | `--enabled true` |
-| List or object | `--regions '["eu-west", "us-east"]'` |
+| String | `--option team=customer-success` |
+| Integer | `--option replicas=2` |
+| Enum | `--option environment=production` |
+| Boolean | `--option enabled=true` |
+| List or object | `--option 'regions=["eu-west", "us-east"]'` |
 
-Use explicit JSON literals for booleans and structured inputs. Avoid field names reserved by the CLI, such as `framework`, `mode`, `minimal`, `example`, `template`, `template_sha256`, `json`, and `apply`.
+With multiple packs, prefix each field with its pack name, such as `--option acme.team=support`. Lists and objects are decoded as JSON; the options model validates and coerces the resulting values. Hyphens in option keys become underscores. Defaults belong in that model.
 
-With multiple packs, flags gain the pack name prefix: `--acme-team`, `--platform-region`. Underscores in field names become hyphens in flags.
-
-Options are validated before that pack's callbacks execute and are not stored in `harnest-packs.lock`. During upgrades, a pack receives `context.options = None` unless its options were supplied; read persisted company choices from its configuration file.
+Options are not stored in `harnest-packs.lock`. During upgrades, `context.options` is `None` unless the caller supplied options for that pack. Read persisted choices from company configuration when no new inputs were supplied.
 
 ## Add a company command
 
-`add_command` returns an `argparse.ArgumentParser`. Add your arguments and return an integer exit code from the handler:
+Add a handler to the same `pack.py` that defines your pack. It receives a list of argument strings and returns an exit code or `None` for success:
 
-```python
+```python pack.py
 import argparse
 from pathlib import Path
 
-def inspect_company_file(arguments: argparse.Namespace) -> int:
-    path = arguments.directory / "acme-agent.yaml"
+@pack.command("inspect-company", help="Locate the company's agent configuration")
+def inspect_company(arguments: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="acme-agent inspect-company")
+    parser.add_argument("directory", type=Path)
+    options = parser.parse_args(arguments)
+    path = options.directory / "acme-agent.yaml"
     print(f"Company configuration: {path}")
     return 0 if path.is_file() else 1
-
-parser = cli.add_command(
-    "inspect-company", inspect_company_file,
-    help="Locate this agent's company configuration",
-)
-parser.add_argument("directory", type=Path)
 ```
 
-Custom handlers own their work and error handling; they do not automatically participate in the project transaction. Other Harnest commands are not automatically forwarded unless you register Studio as described below. You can also expose them through explicit company handlers.
+Try the handler before building a wheel:
 
-`cli.run(arguments, stdout=..., stderr=...)` supports embedded callers and tests. It returns an exit code for normal command execution; argparse retains its usual exit behavior for help and invalid arguments.
+```bash
+harnest pack run ./acme-pack inspect-company ./support-bot
+```
+
+After installing the wheel, use `acme-agent inspect-company ./support-bot`. Harnest command names are reserved. Custom handlers own their work and error handling; they do not automatically participate in a project transaction.
 
 ## Include your company's Studio
 
-The same company CLI can launch Studio with its bundled [UI and resource packs](/harnest/studio/packs):
-
-```python acme_cli/__init__.py
-from pathlib import Path
-from harnest.authoring import ProjectCLI
-from acme_cli.pack import pack
-
-def main() -> int:
-    cli = ProjectCLI("acme", [pack])
-    cli.add_studio(
-        command=("acme",),
-        packs=[Path(__file__).parent / "studio"],
-        # If the project pack requires a team option:
-        init_args=("--team", "support"),
-        # Only for packs containing JavaScript modules you trust:
-        # trusted_ui=("acme-ui",),
-    )
-    return cli.run()
-```
-
-`studio/` contains `studio-pack.yaml` and its declared assets. Include the directory in your wheel as package data; resolve it relative to your installed module so launch does not depend on the current directory. `command` is an argv sequence, never a shell string. For a Python module entrypoint it can be `(sys.executable, "-m", "acme_cli")`, provided that module is executable.
-
-Register the executable and an optional Studio dependency in the company package:
-
-```toml pyproject.toml
-[project.scripts]
-acme = "acme_cli:main"
-
-[project.optional-dependencies]
-studio = ["harnest-agent-builder==0.1.0"]
-```
-
-Pin compatible Harnest and Studio releases when publishing. This integration must be present in the Harnest SDK version you distribute. The package does not embed Python or the native Harnest executable.
+Add a [`studio:` section](/harnest/studio/packs) to the same `pack.yaml`, then rebuild and install the wheel:
 
 ```bash
-pip install 'acme-agent-pack[studio]'
-acme init support-bot --team support
-acme studio --workspace .
+acme-agent studio --workspace ./agents
 ```
 
-Studio's **Create agent** action invokes `acme init`, including its initialization hooks and the configured `init_args`. Command previews and job output show the company command. Use non-secret team defaults in `init_args`; they appear in the UI and process arguments. The standard creation dialog does not generate fields for arbitrary pack options. Use defaults or a custom UI when those choices need to vary.
+The launcher attaches the installed pack automatically. Studio reads its manifest, resources, builder defaults, and UI without importing `pack.py`. JavaScript module contributions still require explicit trust, for example `--trust-ui-pack acme`.
 
-Registering Studio also exposes `add`, `compile`, `test`, `env`, `serve`, `run`, `extensions`, and `provision` through the company CLI. These delegate to its configured `harnest_command`, preserving argv and exit codes. Register custom handlers **before** `add_studio` to retain ownership of those names. Forwarded processes inherit terminal streams; `run(stdout=..., stderr=...)` captures project-plan output, not delegated subprocess output.
+Studio's **Create agent** action uses Harnest initialization with the loaded project packs. Supply required initialization values with `--option team=support` when launching Studio, or define defaults in the pack's options model. Resource-template installation remains a separate reviewed source-installation flow.
 
-Ordinary `acme init` and `acme upgrade` do not import Studio. `acme studio` reports an installation error if the optional dependency is missing. Studio's existing deployment gates and explicit JavaScript trust requirements still apply.
+Use **Restore default UI** (`?safe-ui=1`) to recover the bundled interface. To exclude a broken pack entirely, launch `harnest studio --workspace ./agents` without `--pack` instead of using the branded executable.
 
-`acme studio --safe-ui` removes external Studio packs while keeping company CLI initialization. The Studio Packs catalog's template installation remains a separate reviewed resource-installation flow; it does not run CLI pack initialization hooks. Use **Create agent** for company CLI initialization.
-
-## Typed Studio embedding
-
-`add_studio(command=...)` takes a list or tuple of argv strings, such as
-`("acme",)` or `["python", "-m", "acme_cli"]`. A bare string is rejected by type
-checkers and by `add_studio` at runtime.
-
-Studio ships `py.typed` metadata. Custom launchers can import
-`harnest_builder.__main__.main`, `harnest_builder.app.create_app`,
-`harnest_builder.packs.Packs`, and
-`harnest_builder.pack_distribution.package_packs` with typed arguments and
-results. `harnest_builder.mcp_credentials.CredentialStore` provides typed storage
-bindings, and `harnest_builder.types.Completion` describes an optional async
-completion hook accepted by `create_app`. Internal route and process modules
-are implementation details rather than a supported embedding API.
-
-```python
-from pathlib import Path
-from harnest_builder.__main__ import main
-
-main(
-    cli_command=("acme",),
-    embedded_packs=[Path(__file__).parent / "studio"],
-    trusted_ui=("acme-ui",),
-)
-```
-
-For browser pack code, use the separate
-[Studio TypeScript contract](/harnest/studio/mods#typescript-and-ide-support).
+For Python integrations, use [`load_pack` and `ProjectPlanner`](/harnest/build/project-packs/plans-and-recovery). `load_pack(path, import_project=False)` reads manifest metadata without importing project hooks; its `project` is `None`. Use the default loading mode before passing project hooks to the planner. For browser pack code, use the [Studio TypeScript contract](/harnest/studio/mods#typescript-and-ide-support).

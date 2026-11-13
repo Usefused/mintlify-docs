@@ -65,7 +65,7 @@ Harnest supplies `GetTask`, filtered `ListTasks`, `CancelTask`, and explicit Tas
 |---|---|
 | [`MemoryStore`](/harnest/reference/api/store#memorystore) | Task snapshots survive within one process only |
 | [`PostgresStore`](/harnest/reference/api/store#postgresstore) or [`RedisStore`](/harnest/reference/api/store#redisstore) | Lookup, artifacts, subscriptions, and terminal state survive restarts and replicas |
-| Native [`LangGraphStore`](/harnest/reference/api/checkpoint#langgraphstore) or [`ADKStore`](/harnest/reference/api/checkpoint#adkstore) | A2A snapshots remain process-local because the native wrapper does not implement Harnest A2A persistence |
+| Native [`LangGraphStore`](/harnest/reference/api/frameworks-langgraph#langgraphstore) or [`ADKStore`](/harnest/reference/api/frameworks-adk#adkstore) | A2A snapshots remain process-local because the native wrapper does not implement Harnest A2A persistence |
 
 Register a built-in Harnest store for both session and checkpoint responsibilities when A2A Tasks must survive a restart:
 

@@ -9,6 +9,10 @@ icon: "code"
 
 [All Python modules](/harnest/reference/api/overview) · [Import and compatibility guidance](/harnest/build/python-imports)
 
+## Project selection and authored helpers
+
+`bundle_agent(anchor, root)` bundles an authored agent using the project framework selected by Harnest. It requires compilation or an active invocation.
+
 ## Exports
 
 | Name | Kind |
@@ -164,10 +168,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `eval_sets` | `tuple[Path, ...]` | Required |
-| `config` | `Path \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `eval_sets` | `tuple[Path, ...]` | Required | Eval set files, sorted. |
+| `config` | `Path \| None` | `None` | Shared evals/test_config.json, if present. |
 
 ```python
 from harnest.bundle import EvalSuite
@@ -179,7 +183,7 @@ suite = EvalSuite(eval_sets=...)
 
 ## compile_agent
 
-Compile a filesystem definition into its framework-native target.
+Compile a filesystem definition into its framework-specific target.
 
 `source` may be the agent directory or its `agent.py` file. Authored
 modules import the compiler-provided namespace explicitly, for example
@@ -198,12 +202,12 @@ compile_agent(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| Path` | Required |
-| `entrypoint` | `str` | `'agent:root_agent'` |
-| `framework` | `str` | `'adk'` |
-| `mode` | `str` | `'managed'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| Path` | Required | Agent folder to compile. |
+| `entrypoint` | `str` | `'agent:root_agent'` | Module and attribute of the root, such as `"agent:root_agent"`. |
+| `framework` | `str` | `'adk'` | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | `'managed'` | `"managed"` or `"advanced"`. |
 
 ```python
 from harnest.bundle import compile_agent
@@ -229,12 +233,12 @@ compile_app(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| Path` | Required |
-| `entrypoint` | `str` | `'agent:root_agent'` |
-| `framework` | `str` | `'adk'` |
-| `mode` | `str` | `'managed'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| Path` | Required | Agent folder to compile. |
+| `entrypoint` | `str` | `'agent:root_agent'` | Module and attribute of the root, such as `"agent:root_agent"`. |
+| `framework` | `str` | `'adk'` | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | `'managed'` | `"managed"` or `"advanced"`. |
 
 ```python
 from harnest.bundle import compile_app
@@ -260,12 +264,12 @@ compile_application(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| Path` | Required |
-| `entrypoint` | `str` | Required |
-| `framework` | `str` | `'adk'` |
-| `mode` | `str` | `'managed'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| Path` | Required | Agent folder to compile. |
+| `entrypoint` | `str` | Required | Module and attribute of the root, such as `"agent:root_agent"`. |
+| `framework` | `str` | `'adk'` | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | `'managed'` | `"managed"` or `"advanced"`. |
 
 ```python
 from harnest.bundle import compile_application
@@ -294,15 +298,15 @@ compile_artifact(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `source` | `str \| Path` | Required |
-| `output` | `str \| Path` | Required |
-| `entrypoint` | `str` | `'agent:root_agent'` |
-| `framework` | `str` | `'adk'` |
-| `mode` | `str` | `'managed'` |
-| `cli_enabled` | `bool` | `False` |
-| `bundle_selection` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `source` | `str \| Path` | Required | Agent folder to compile. |
+| `output` | `str \| Path` | Required | Folder to write the compiled artifact to. |
+| `entrypoint` | `str` | `'agent:root_agent'` | Module and attribute of the root, such as `"agent:root_agent"`. |
+| `framework` | `str` | `'adk'` | Agent framework, `"adk"` or `"langgraph"`. |
+| `mode` | `str` | `'managed'` | `"managed"` or `"advanced"`. |
+| `cli_enabled` | `bool` | `False` | Allow the compiled artifact to be invoked from the command line. |
+| `bundle_selection` | `bool` | `True` | Apply the agent's compile-only bundle declarations. |
 
 ```python
 from harnest.bundle import compile_artifact
@@ -314,7 +318,7 @@ result = compile_artifact(source=..., output=...)
 
 ## bundle_agent
 
-Discover sibling resources and build an ADK root agent.
+Discover sibling resources and lower with Harnest's selected framework.
 
 Pass `__file__` from an agent folder's `agent.py`. Public Python files
 below `tools/`, `subagents/`, and `mcp/` are imported in
@@ -328,10 +332,10 @@ bundle_agent(anchor: str | Path, root: AgentDefinition) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `anchor` | `str \| Path` | Required |
-| `root` | `AgentDefinition` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `anchor` | `str \| Path` | Required | Pass `__file__` from the agent module. Sibling resources are discovered next to it. |
+| `root` | `AgentDefinition` | Required | The root agent definition. |
 
 ```python
 from harnest.bundle import bundle_agent
@@ -351,9 +355,9 @@ discover_evals(anchor: str | Path) -> EvalSuite
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `anchor` | `str \| Path` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `anchor` | `str \| Path` | Required | Agent folder, or `__file__` from the agent module. |
 
 ```python
 from harnest.bundle import discover_evals

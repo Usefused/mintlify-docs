@@ -55,7 +55,7 @@ A topology supports up to eight services. Each service allows 16 aliases, 32 dec
 | `image` / `docker_path` | Supply exactly one; custom images must provide `python3` and must not declare volumes |
 | `base_url` | Optional Docker daemon URL |
 
-`options` retains the allowlisted parsing/retry fields only for callers explicitly constructing a native ADK adapter with `to_adk_executor()`. Those fields do not change Docker limits or add model tools to named sandbox assignments. Your authored tool decides whether to retry.
+Harnest selects the framework adapter when compiling sandbox assignments. Your authored tool controls retries; adapter options do not change Docker limits or add model tools.
 
 ## Exports
 
@@ -94,9 +94,9 @@ Fail closed when this provider cannot enforce requested authority.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `policy` | `harnest.sandbox.SandboxNetworkPolicy` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `policy` | `harnest.sandbox.SandboxNetworkPolicy` | Required | Network policy to check. Raises when this provider cannot enforce it. |
 
 ```python
 from harnest.extensions.docker import DOCKER_SANDBOX_CAPABILITIES
@@ -122,9 +122,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `internal` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `internal` | `bool` | `True` | Keep the bridge internal, without external egress. `False` requires `SandboxNetworkPolicy.unrestricted()` and gives every container that egress. |
 
 ```python
 from harnest.extensions.docker import DockerNetwork
@@ -161,13 +161,13 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `command` | `tuple[str, ...]` | Required |
-| `interval_seconds` | `float` | `1.0` |
-| `timeout_seconds` | `float` | `2.0` |
-| `retries` | `int` | `30` |
-| `start_period_seconds` | `float` | `0.0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `command` | `tuple[str, ...]` | Required | Health command to run inside the service, such as `["redis-cli", "ping"]`. |
+| `interval_seconds` | `float` | `1.0` | Seconds between attempts. |
+| `timeout_seconds` | `float` | `2.0` | Seconds each attempt may take. |
+| `retries` | `int` | `30` | Attempts before the service counts as failed, from 1 to 100. |
+| `start_period_seconds` | `float` | `0.0` | Grace period in seconds before failed attempts count. |
 
 ```python
 from harnest.extensions.docker import DockerReadiness
@@ -236,17 +236,17 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `command` | `tuple[str, ...]` | `()` |
-| `environment` | `Mapping[str, str]` | `...` |
-| `ports` | `tuple[int, ...]` | `()` |
-| `aliases` | `tuple[str, ...]` | `()` |
-| `readiness` | `DockerReadiness \| None` | `None` |
-| `budget` | `SandboxBudget` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Service name, also its DNS name on the private network. A unique lowercase DNS label. |
+| `image` | `str \| None` | `None` | Registry image for the service. Supply exactly one of `image` or `docker_path`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context for the service. Supply exactly one of `image` or `docker_path`. |
+| `command` | `tuple[str, ...]` | `()` | Command and arguments to run, up to 64 arguments. |
+| `environment` | `Mapping[str, str]` | `...` | Environment variables for the service, up to 64 entries. |
+| `ports` | `tuple[int, ...]` | `()` | Ports the service listens on inside the private network, up to 32. They are never published on the host. |
+| `aliases` | `tuple[str, ...]` | `()` | Extra DNS names for the service, up to 16. |
+| `readiness` | `DockerReadiness \| None` | `None` | Health check the sandbox waits for before running code. |
+| `budget` | `SandboxBudget` | `...` | CPU, memory, process, and scratch-space limits for this service. |
 
 ```python
 from harnest.extensions.docker import DockerService
@@ -289,9 +289,9 @@ Initialize application-scoped resources after dependencies start.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `'ExtensionStartContext'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `'ExtensionStartContext'` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.docker import DockerExtension
@@ -331,9 +331,9 @@ Adapt the managed invocation base to an extension-specific context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.docker import DockerExtension
@@ -384,21 +384,21 @@ Create a portable Docker sandbox definition from authored options.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `base_url` | `str \| None` | `None` |
-| `network_policy` | `SandboxNetworkPolicy \| None` | `None` |
-| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` |
-| `network` | `DockerNetwork \| None` | `None` |
-| `timeout_seconds` | `int` | `300` |
-| `options` | `Mapping[str, Any] \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `max_output_bytes` | `int` | `1048576` |
-| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` |
-| `budget` | `SandboxBudget \| None` | `None` |
-| `max_scopes` | `int` | `8` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `image` | `str \| None` | `None` | Registry image to run, ideally pinned by digest. Supply exactly one of `image` or `docker_path`; it must provide `python3`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context to build the image from. Supply exactly one of `image` or `docker_path`. |
+| `base_url` | `str \| None` | `None` | Docker daemon URL. Defaults to the Docker SDK's configuration. |
+| `network_policy` | `SandboxNetworkPolicy \| None` | `None` | Egress policy. Defaults to `SandboxNetworkPolicy.none()`; only `none()` and `unrestricted(block_private_networks=False)` are supported. |
+| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` | Service containers on a private network shared with the sandbox, up to eight. |
+| `network` | `DockerNetwork \| None` | `None` | The private bridge that joins the sandbox and its services. |
+| `timeout_seconds` | `int` | `300` | Time limit in seconds, covering queueing, startup, and execution. |
+| `options` | `Mapping[str, Any] \| None` | `None` | Parsing and retry options used by the ADK framework adapter. Does not change Docker limits. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata forwarded to the provider with each request. |
+| `max_output_bytes` | `int` | `1048576` | Combined stdout and stderr limit, enforced while streaming. |
+| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` | When containers are reused. `EXECUTION` (default) is fresh per call; `INVOCATION` and `SESSION` reuse within that identity. |
+| `budget` | `SandboxBudget \| None` | `None` | CPU, memory, process, and scratch-space limits. Defaults to 1 CPU, 512 MiB, 64 processes, and 64 MiB of `/tmp`. |
+| `max_scopes` | `int` | `8` | Maximum retained invocation or session containers. The least recently used one is evicted first. |
 
 ```python
 from harnest.extensions.docker import DockerExtension
@@ -430,17 +430,17 @@ Declare one bounded service container without contacting Docker.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `command` | `tuple[str, ...] \| list[str]` | `()` |
-| `environment` | `Mapping[str, str] \| None` | `None` |
-| `ports` | `tuple[int, ...] \| list[int]` | `()` |
-| `aliases` | `tuple[str, ...] \| list[str]` | `()` |
-| `readiness` | `DockerReadiness \| None` | `None` |
-| `budget` | `SandboxBudget \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Service name, also its DNS name on the private network. A unique lowercase DNS label. |
+| `image` | `str \| None` | `None` | Registry image for the service. Supply exactly one of `image` or `docker_path`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context for the service. Supply exactly one of `image` or `docker_path`. |
+| `command` | `tuple[str, ...] \| list[str]` | `()` | Command and arguments to run, up to 64 arguments. |
+| `environment` | `Mapping[str, str] \| None` | `None` | Environment variables for the service, up to 64 entries. |
+| `ports` | `tuple[int, ...] \| list[int]` | `()` | Ports the service listens on inside the private network, up to 32. They are never published on the host. |
+| `aliases` | `tuple[str, ...] \| list[str]` | `()` | Extra DNS names for the service, up to 16. |
+| `readiness` | `DockerReadiness \| None` | `None` | Health check the sandbox waits for before running code. |
+| `budget` | `SandboxBudget \| None` | `None` | CPU, memory, process, and scratch-space limits for this service. |
 
 ```python
 from harnest.extensions.docker import DockerExtension
@@ -461,9 +461,9 @@ Declare the extension-owned bridge that joins a sandbox topology.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `internal` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `internal` | `bool` | `True` | Keep the bridge internal, without external egress. `False` requires `SandboxNetworkPolicy.unrestricted()` and gives every container that egress. |
 
 ```python
 from harnest.extensions.docker import DockerExtension
@@ -491,13 +491,13 @@ Declare a bounded Docker health command for one service.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `command` | `tuple[str, ...] \| list[str]` | Required |
-| `interval_seconds` | `float` | `1.0` |
-| `timeout_seconds` | `float` | `2.0` |
-| `retries` | `int` | `30` |
-| `start_period_seconds` | `float` | `0.0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `command` | `tuple[str, ...] \| list[str]` | Required | Health command to run inside the service, such as `["redis-cli", "ping"]`. |
+| `interval_seconds` | `float` | `1.0` | Seconds between attempts. |
+| `timeout_seconds` | `float` | `2.0` | Seconds each attempt may take. |
+| `retries` | `int` | `30` | Attempts before the service counts as failed, from 1 to 100. |
+| `start_period_seconds` | `float` | `0.0` | Grace period in seconds before failed attempts count. |
 
 ```python
 from harnest.extensions.docker import DockerExtension
@@ -518,10 +518,10 @@ DockerSandboxProvider(backend: Any, network_policy: SandboxNetworkPolicy) -> Non
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `backend` | `Any` | Required |
-| `network_policy` | `SandboxNetworkPolicy` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `backend` | `Any` | Required | The Docker execution backend. |
+| `network_policy` | `SandboxNetworkPolicy` | Required | The network policy this provider enforces. |
 
 ```python
 from harnest.extensions.docker import DockerSandboxProvider
@@ -535,6 +535,17 @@ provider = DockerSandboxProvider(backend=..., network_policy=...)
 
 Advertise network controls a provider enforces below agent code.
 
+<Accordion title="Example">
+
+```python
+from harnest.extensions.docker import DockerSandboxProvider
+
+provider: DockerSandboxProvider
+value = provider.sandbox_capabilities
+```
+
+</Accordion>
+
 ### DockerSandboxProvider.sandbox_capabilities.require
 
 ```python
@@ -545,9 +556,9 @@ Fail closed when this provider cannot enforce requested authority.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `policy` | `harnest.sandbox.SandboxNetworkPolicy` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `policy` | `harnest.sandbox.SandboxNetworkPolicy` | Required | Network policy to check. Raises when this provider cannot enforce it. |
 
 ```python
 from harnest.extensions.docker import DockerSandboxProvider
@@ -568,9 +579,9 @@ Reject policy substitution before delegating generic Python execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `SandboxRequest` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `SandboxRequest` | Required | The code, input files, and policy to execute. |
 
 ```python
 from harnest.extensions.docker import DockerSandboxProvider
@@ -622,9 +633,9 @@ Initialize application-scoped resources after dependencies start.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `'ExtensionStartContext'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `'ExtensionStartContext'` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.docker import docker
@@ -662,9 +673,9 @@ Adapt the managed invocation base to an extension-specific context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.docker import docker
@@ -713,21 +724,21 @@ Create a portable Docker sandbox definition from authored options.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `base_url` | `str \| None` | `None` |
-| `network_policy` | `SandboxNetworkPolicy \| None` | `None` |
-| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` |
-| `network` | `DockerNetwork \| None` | `None` |
-| `timeout_seconds` | `int` | `300` |
-| `options` | `Mapping[str, Any] \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `max_output_bytes` | `int` | `1048576` |
-| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` |
-| `budget` | `SandboxBudget \| None` | `None` |
-| `max_scopes` | `int` | `8` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `image` | `str \| None` | `None` | Registry image to run, ideally pinned by digest. Supply exactly one of `image` or `docker_path`; it must provide `python3`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context to build the image from. Supply exactly one of `image` or `docker_path`. |
+| `base_url` | `str \| None` | `None` | Docker daemon URL. Defaults to the Docker SDK's configuration. |
+| `network_policy` | `SandboxNetworkPolicy \| None` | `None` | Egress policy. Defaults to `SandboxNetworkPolicy.none()`; only `none()` and `unrestricted(block_private_networks=False)` are supported. |
+| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` | Service containers on a private network shared with the sandbox, up to eight. |
+| `network` | `DockerNetwork \| None` | `None` | The private bridge that joins the sandbox and its services. |
+| `timeout_seconds` | `int` | `300` | Time limit in seconds, covering queueing, startup, and execution. |
+| `options` | `Mapping[str, Any] \| None` | `None` | Parsing and retry options used by the ADK framework adapter. Does not change Docker limits. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata forwarded to the provider with each request. |
+| `max_output_bytes` | `int` | `1048576` | Combined stdout and stderr limit, enforced while streaming. |
+| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` | When containers are reused. `EXECUTION` (default) is fresh per call; `INVOCATION` and `SESSION` reuse within that identity. |
+| `budget` | `SandboxBudget \| None` | `None` | CPU, memory, process, and scratch-space limits. Defaults to 1 CPU, 512 MiB, 64 processes, and 64 MiB of `/tmp`. |
+| `max_scopes` | `int` | `8` | Maximum retained invocation or session containers. The least recently used one is evicted first. |
 
 ```python
 from harnest.extensions.docker import docker
@@ -758,17 +769,17 @@ Declare one bounded service container without contacting Docker.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `command` | `tuple[str, ...] \| list[str]` | `()` |
-| `environment` | `Mapping[str, str] \| None` | `None` |
-| `ports` | `tuple[int, ...] \| list[int]` | `()` |
-| `aliases` | `tuple[str, ...] \| list[str]` | `()` |
-| `readiness` | `DockerReadiness \| None` | `None` |
-| `budget` | `SandboxBudget \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Service name, also its DNS name on the private network. A unique lowercase DNS label. |
+| `image` | `str \| None` | `None` | Registry image for the service. Supply exactly one of `image` or `docker_path`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context for the service. Supply exactly one of `image` or `docker_path`. |
+| `command` | `tuple[str, ...] \| list[str]` | `()` | Command and arguments to run, up to 64 arguments. |
+| `environment` | `Mapping[str, str] \| None` | `None` | Environment variables for the service, up to 64 entries. |
+| `ports` | `tuple[int, ...] \| list[int]` | `()` | Ports the service listens on inside the private network, up to 32. They are never published on the host. |
+| `aliases` | `tuple[str, ...] \| list[str]` | `()` | Extra DNS names for the service, up to 16. |
+| `readiness` | `DockerReadiness \| None` | `None` | Health check the sandbox waits for before running code. |
+| `budget` | `SandboxBudget \| None` | `None` | CPU, memory, process, and scratch-space limits for this service. |
 
 ```python
 from harnest.extensions.docker import docker
@@ -788,9 +799,9 @@ Declare the extension-owned bridge that joins a sandbox topology.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `internal` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `internal` | `bool` | `True` | Keep the bridge internal, without external egress. `False` requires `SandboxNetworkPolicy.unrestricted()` and gives every container that egress. |
 
 ```python
 from harnest.extensions.docker import docker
@@ -817,13 +828,13 @@ Declare a bounded Docker health command for one service.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `command` | `tuple[str, ...] \| list[str]` | Required |
-| `interval_seconds` | `float` | `1.0` |
-| `timeout_seconds` | `float` | `2.0` |
-| `retries` | `int` | `30` |
-| `start_period_seconds` | `float` | `0.0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `command` | `tuple[str, ...] \| list[str]` | Required | Health command to run inside the service, such as `["redis-cli", "ping"]`. |
+| `interval_seconds` | `float` | `1.0` | Seconds between attempts. |
+| `timeout_seconds` | `float` | `2.0` | Seconds each attempt may take. |
+| `retries` | `int` | `30` | Attempts before the service counts as failed, from 1 to 100. |
+| `start_period_seconds` | `float` | `0.0` | Grace period in seconds before failed attempts count. |
 
 ```python
 from harnest.extensions.docker import docker
@@ -858,21 +869,21 @@ docker_sandbox(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `base_url` | `str \| None` | `None` |
-| `network_policy` | `SandboxNetworkPolicy \| None` | `None` |
-| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` |
-| `network` | `DockerNetwork \| None` | `None` |
-| `timeout_seconds` | `int` | `300` |
-| `options` | `Mapping[str, Any] \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `max_output_bytes` | `int` | `1048576` |
-| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` |
-| `budget` | `SandboxBudget \| None` | `None` |
-| `max_scopes` | `int` | `8` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `image` | `str \| None` | `None` | Registry image to run, ideally pinned by digest. Supply exactly one of `image` or `docker_path`; it must provide `python3`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context to build the image from. Supply exactly one of `image` or `docker_path`. |
+| `base_url` | `str \| None` | `None` | Docker daemon URL. Defaults to the Docker SDK's configuration. |
+| `network_policy` | `SandboxNetworkPolicy \| None` | `None` | Egress policy. Defaults to `SandboxNetworkPolicy.none()`; only `none()` and `unrestricted(block_private_networks=False)` are supported. |
+| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` | Service containers on a private network shared with the sandbox, up to eight. |
+| `network` | `DockerNetwork \| None` | `None` | The private bridge that joins the sandbox and its services. |
+| `timeout_seconds` | `int` | `300` | Time limit in seconds, covering queueing, startup, and execution. |
+| `options` | `Mapping[str, Any] \| None` | `None` | Parsing and retry options used by the ADK framework adapter. Does not change Docker limits. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata forwarded to the provider with each request. |
+| `max_output_bytes` | `int` | `1048576` | Combined stdout and stderr limit, enforced while streaming. |
+| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` | When containers are reused. `EXECUTION` (default) is fresh per call; `INVOCATION` and `SESSION` reuse within that identity. |
+| `budget` | `SandboxBudget \| None` | `None` | CPU, memory, process, and scratch-space limits. Defaults to 1 CPU, 512 MiB, 64 processes, and 64 MiB of `/tmp`. |
+| `max_scopes` | `int` | `8` | Maximum retained invocation or session containers. The least recently used one is evicted first. |
 
 ```python
 from harnest.extensions.docker import docker_sandbox
@@ -904,9 +915,9 @@ Initialize application-scoped resources after dependencies start.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `'ExtensionStartContext'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `'ExtensionStartContext'` | Required | Startup context the runtime passes to the extension. |
 
 ```python
 from harnest.extensions.docker import extension
@@ -944,9 +955,9 @@ Adapt the managed invocation base to an extension-specific context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions.docker import extension
@@ -995,21 +1006,21 @@ Create a portable Docker sandbox definition from authored options.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `base_url` | `str \| None` | `None` |
-| `network_policy` | `SandboxNetworkPolicy \| None` | `None` |
-| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` |
-| `network` | `DockerNetwork \| None` | `None` |
-| `timeout_seconds` | `int` | `300` |
-| `options` | `Mapping[str, Any] \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `max_output_bytes` | `int` | `1048576` |
-| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` |
-| `budget` | `SandboxBudget \| None` | `None` |
-| `max_scopes` | `int` | `8` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `image` | `str \| None` | `None` | Registry image to run, ideally pinned by digest. Supply exactly one of `image` or `docker_path`; it must provide `python3`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context to build the image from. Supply exactly one of `image` or `docker_path`. |
+| `base_url` | `str \| None` | `None` | Docker daemon URL. Defaults to the Docker SDK's configuration. |
+| `network_policy` | `SandboxNetworkPolicy \| None` | `None` | Egress policy. Defaults to `SandboxNetworkPolicy.none()`; only `none()` and `unrestricted(block_private_networks=False)` are supported. |
+| `services` | `tuple[DockerService, ...] \| list[DockerService]` | `()` | Service containers on a private network shared with the sandbox, up to eight. |
+| `network` | `DockerNetwork \| None` | `None` | The private bridge that joins the sandbox and its services. |
+| `timeout_seconds` | `int` | `300` | Time limit in seconds, covering queueing, startup, and execution. |
+| `options` | `Mapping[str, Any] \| None` | `None` | Parsing and retry options used by the ADK framework adapter. Does not change Docker limits. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata forwarded to the provider with each request. |
+| `max_output_bytes` | `int` | `1048576` | Combined stdout and stderr limit, enforced while streaming. |
+| `scope` | `DockerScope` | `<DockerScope.EXECUTION: 'execution'>` | When containers are reused. `EXECUTION` (default) is fresh per call; `INVOCATION` and `SESSION` reuse within that identity. |
+| `budget` | `SandboxBudget \| None` | `None` | CPU, memory, process, and scratch-space limits. Defaults to 1 CPU, 512 MiB, 64 processes, and 64 MiB of `/tmp`. |
+| `max_scopes` | `int` | `8` | Maximum retained invocation or session containers. The least recently used one is evicted first. |
 
 ```python
 from harnest.extensions.docker import extension
@@ -1040,17 +1051,17 @@ Declare one bounded service container without contacting Docker.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `image` | `str \| None` | `None` |
-| `docker_path` | `str \| None` | `None` |
-| `command` | `tuple[str, ...] \| list[str]` | `()` |
-| `environment` | `Mapping[str, str] \| None` | `None` |
-| `ports` | `tuple[int, ...] \| list[int]` | `()` |
-| `aliases` | `tuple[str, ...] \| list[str]` | `()` |
-| `readiness` | `DockerReadiness \| None` | `None` |
-| `budget` | `SandboxBudget \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Service name, also its DNS name on the private network. A unique lowercase DNS label. |
+| `image` | `str \| None` | `None` | Registry image for the service. Supply exactly one of `image` or `docker_path`. |
+| `docker_path` | `str \| None` | `None` | Local Docker build context for the service. Supply exactly one of `image` or `docker_path`. |
+| `command` | `tuple[str, ...] \| list[str]` | `()` | Command and arguments to run, up to 64 arguments. |
+| `environment` | `Mapping[str, str] \| None` | `None` | Environment variables for the service, up to 64 entries. |
+| `ports` | `tuple[int, ...] \| list[int]` | `()` | Ports the service listens on inside the private network, up to 32. They are never published on the host. |
+| `aliases` | `tuple[str, ...] \| list[str]` | `()` | Extra DNS names for the service, up to 16. |
+| `readiness` | `DockerReadiness \| None` | `None` | Health check the sandbox waits for before running code. |
+| `budget` | `SandboxBudget \| None` | `None` | CPU, memory, process, and scratch-space limits for this service. |
 
 ```python
 from harnest.extensions.docker import extension
@@ -1070,9 +1081,9 @@ Declare the extension-owned bridge that joins a sandbox topology.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `internal` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `internal` | `bool` | `True` | Keep the bridge internal, without external egress. `False` requires `SandboxNetworkPolicy.unrestricted()` and gives every container that egress. |
 
 ```python
 from harnest.extensions.docker import extension
@@ -1099,13 +1110,13 @@ Declare a bounded Docker health command for one service.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `command` | `tuple[str, ...] \| list[str]` | Required |
-| `interval_seconds` | `float` | `1.0` |
-| `timeout_seconds` | `float` | `2.0` |
-| `retries` | `int` | `30` |
-| `start_period_seconds` | `float` | `0.0` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `command` | `tuple[str, ...] \| list[str]` | Required | Health command to run inside the service, such as `["redis-cli", "ping"]`. |
+| `interval_seconds` | `float` | `1.0` | Seconds between attempts. |
+| `timeout_seconds` | `float` | `2.0` | Seconds each attempt may take. |
+| `retries` | `int` | `30` | Attempts before the service counts as failed, from 1 to 100. |
+| `start_period_seconds` | `float` | `0.0` | Grace period in seconds before failed attempts count. |
 
 ```python
 from harnest.extensions.docker import extension

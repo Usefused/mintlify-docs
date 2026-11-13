@@ -1,0 +1,103 @@
+# Curated details for /harnest/reference/api/harnest_fused. See task.yaml for the format.
+# Transport options (stdio, streamable_http, sse) are described in _shared.yaml.
+
+FusedMCPClient.from_openapi:
+  params:
+    specs: One or more `OpenAPISpec` values. A plain path or URL selects every operation of that spec.
+    name: Name of the Fused MCP server, such as `"business"`.
+    url_env: Environment variable that holds the server URL. Defaults to a name derived from `name`.
+    token_env: Environment variable that holds the Fused MCP execution token. Defaults to a name derived from `name`.
+    webhook_attachment: Name of a Fused webhook registration whose inbound events this server's resources also surface.
+    client_options: Standard `MCPClient.streamable_http` options, such as `prefix` or `permission`.
+
+FusedMCPClient.setup:
+  params:
+    description: Description of what the MCP server does. Required.
+    bucket: Existing Fused bucket you are allowed to use. Required.
+    version: MCP server version. Use a new version when changing a published server's configuration.
+    project: Project directory. Local spec paths resolve against it.
+    cli: The Fused CLI executable to run.
+    timeout_seconds: Time limit for each CLI subprocess, in seconds.
+
+OpenAPISpec:
+  params:
+    source: Local OpenAPI path, relative to the setup project, or an HTTP(S) URL.
+    name: Unique lowercase service slug. Defaults to the file name stem.
+    operations: Exact operation IDs to include. `None` includes every operation.
+    version: Provider version to use when the spec does not declare one.
+    auth: Fused credential selector with `type`, `name`, and optional `ref`. Credentials stay in Fused.
+    scopes: Provider connection scopes.
+
+OpenAPISpec.selection:
+  params:
+    version: Provider version to record in the selection.
+
+FusedSetupResult:
+  fields:
+    client: Ready-to-use `MCPClient` for the provisioned server.
+    url: Streamable HTTP URL of the exact server version.
+    url_env: Environment variable name for the URL.
+    token_env: Environment variable name for the execution token. Store the token from the CLI output there.
+    config_path: Path of the written Fused MCP configuration.
+    receipt_directory: Folder that holds the setup receipts.
+
+FusedSetupResult.write_client:
+  params:
+    path: Where to write the client file, such as `"mcp/business.py"`. An existing file is never overwritten.
+
+FusedEventMapping:
+  fields:
+    provider_event_id: Dotted path to the platform's event ID in the raw payload.
+    kind: Dotted path to the event kind.
+    sender_id: Dotted path to the sender's ID.
+    conversation_id: Dotted path to the conversation ID.
+    message_id: Dotted path to the message ID.
+    occurred_at: Dotted path to the event time.
+    content: Dotted path to the message text.
+    delivery_id: Dotted path to the delivery ID.
+
+FusedEventMapping.apply:
+  params:
+    raw: Raw platform payload.
+
+FusedChannelConfig:
+  fields:
+    mapping: Field paths that turn the raw payload into a `ChannelEvent`.
+    client: The Fused MCP client used for outbound calls.
+    reply_operation: MCP tool called to deliver a reply.
+    reply_arguments: Argument values for that tool. Each is a literal string or a `ChannelReply` field reference such as `$text`.
+
+FusedChannelAdapter:
+  params:
+    config: The channel binding configuration.
+
+FusedChannelReceiver:
+  params:
+    receiver: Generated Fused SDK receiver that you created.
+    worker: Channel worker that admits events durably.
+    normalize: Function that turns a payload into a `ChannelEvent`.
+
+FusedChannelReceiver.start:
+  params:
+    event_name: Exact event value from the generated SDK enum. Wildcards are not allowed.
+
+FusedChannelReceiver.handle:
+  params:
+    payload: Event payload from the subscription.
+    context: Delivery context from the subscription.
+
+FusedSlackReplySender:
+  params:
+    client: Fused SDK client authenticated with the app's execution token.
+    app_id: Fused app ID (a UUID).
+    operation: The exact Slack `chat.postMessage` operation selection.
+    selector: Connection selector. Must include `end_user_ref`.
+
+FusedSlackReplySender.__call__:
+  params:
+    reply: The reply to send.
+
+slack_mention:
+  params:
+    payload: Verified Fused Slack event envelope.
+    app_id: Fused app ID. Events for other apps are rejected.

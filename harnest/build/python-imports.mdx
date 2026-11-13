@@ -4,7 +4,7 @@ title: "Python imports"
 description: "Import authoring contracts from their Harnest domain."
 ---
 
-Import each capability from its public domain module. The examples in this documentation use these paths so you can find related types and operations in one place:
+Import capabilities from their public domain modules:
 
 ```python
 from harnest.agent import Agent, AgentRuntimePrincipal, client_tool, tool
@@ -44,9 +44,7 @@ domain modules include [`harnest.content`](/harnest/reference/api/content), [`ha
 
 `AgentResponse` from `harnest.http` represents an HTTP route response. `AgentResponse` from [`harnest.context`](/harnest/reference/api/context) represents a local agent invocation response; select the contract for your integration.
 
-The implementation path `harnest.context_agent` has been removed. Use `from harnest import context` for `context.agent` operations and `from harnest.context import AgentSession, AgentResponse` for their contracts. Modules prefixed with `_` are private implementation details.
-
-The `harnest.task_storage` implementation path has also been removed. Import `TaskRecord`, `TaskStore`, and `TaskStoreConflictError` from `harnest.task`. Run `harnest upgrade AGENT_DIR --apply` to rewrite supported imports in an existing project. Imports or uses of private storage helpers require manual review.
+Use `harnest.context` for agent sessions and responses, and `harnest.task` for task storage contracts. Modules prefixed with `_` are private.
 
 ## IDE autocomplete and hover help
 
@@ -70,15 +68,13 @@ After a dependency change during development reload, run `harnest env sync .` ag
 
 VS Code can retain a previously selected interpreter separately from this setting. If it still uses another interpreter, run **Python: Select Interpreter** and choose the exact path printed by sync. See the [VS Code settings reference](https://code.visualstudio.com/docs/python/settings-reference). Other IDEs can use the same interpreter.
 
-Codex desktop, Codex CLI, and Antigravity 2.0 are separate agent applications.
-For Python commands in these agents, use `.venv/bin/python` directly; their
-terminal commands do not inherit the VS Code Python interpreter setting.
+For terminal commands, use the interpreter path printed by `harnest env sync`; editor settings do not select the shell's Python.
 
 Harnest preserves any `.venv` it does not own and prints the managed interpreter for manual selection. Keep `.venv` out of version control.
 
 Harnest includes static declarations for its lazy domain namespaces and invocation context. Editors can discover methods and signatures on `harnest.context`, `context.agent`, `context.session`, `context.mcp`, `context.skills`, and the other context capabilities without running an agent. Context values still resolve for each active invocation; do not access them at module import time.
 
-Core functions and methods carry parameter and return annotations. Static consumer checks cover public classes, inherited methods, properties, and protocol methods across Harnest's domains. Task, context-provider, and lifecycle decorators preserve the authored callable's parameters and result type, so an editor can flag invalid direct calls:
+Task, context-provider, and lifecycle decorators preserve the authored function's argument and return types:
 
 ```python
 from harnest.task import task
@@ -93,7 +89,7 @@ async def example() -> str:
     return await customer_label("customer-123")
 ```
 
-The direct call above retains its `str` argument and result types. Deferred task arguments are validated at runtime; `.defer()` accepts scheduling options and returns a `TaskHandle`. Dynamic payloads and resource lookups without an expected class may still use `Any`.
+`.defer()` validates arguments at runtime and returns a `TaskHandle`.
 
 For application-defined resources, pass the expected class to preserve its completion and return type:
 
@@ -107,16 +103,12 @@ def customer_label(customer_id: str) -> str:
     return directory.label(customer_id)
 ```
 
-Here, your application supplies and registers `CustomerDirectory`. `context.storage("name", ExpectedType)` and `context.extensions("name", ExpectedContext)` also preserve the supplied type. Lookups without an expected type return `Any`; Harnest cannot infer a company's resource type from a runtime string. Runtime type validation remains in place.
+`context.storage("name", ExpectedType)` and `context.extensions("name", ExpectedContext)` also validate and preserve the supplied type. Untyped lookups return `Any`.
 
 The managed wheel also includes editor-only definitions for
 `harnest.extensions.docker` and `harnest.extensions.hatchet`. Those imports get
 completion and hover help while the actual modules remain available at runtime
 only when their corresponding official extension is installed in the project.
-
-Run `env sync` after dependency changes. Harnest reuses a stable environment path,
-so the `.venv` link continues to resolve the current interpreter. Synchronization
-also migrates Harnest-owned links away from older fingerprinted environments.
 
 ## Scoped operations
 
@@ -146,12 +138,6 @@ coverage = lifecycle.coverage("langgraph", "managed")
 
 ## Public API stability
 
-Public module exports, annotations, and docstrings are checked by the release gate. Re-exports preserve object identity, including exception classes.
-
-During `0.x`, Harnest may make a breaking public Python API change only in a
-minor release. Public names and signatures are otherwise backward compatible;
-deprecated APIs remain available for at least one minor release before removal,
-except when retaining them would preserve a security defect. Patch releases do
-not intentionally break these contracts.
+The [Python API reference](/harnest/reference/api/overview) lists supported public exports. Re-exports preserve object identity, including exception classes.
 
 Serialized plans, locks, manifests, and HTTP documents have independent format versions.

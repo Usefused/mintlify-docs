@@ -56,16 +56,16 @@ A2AClient(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `card_url` | `str` | Required |
-| `card` | `Mapping[str, Any] \| None` | `None` |
-| `timeout` | `float` | `300` |
-| `poll_interval` | `float` | `0.5` |
-| `streaming` | `bool` | `False` |
-| `allowed_hosts` | `Sequence[str]` | `()` |
-| `allow_insecure` | `bool` | `False` |
-| `http_client` | `httpx.AsyncClient \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `card_url` | `str` | Required | URL of the remote agent's Agent Card. |
+| `card` | `Mapping[str, Any] \| None` | `None` | An Agent Card you already have, instead of fetching `card_url`. |
+| `timeout` | `float` | `300` | Time limit for a call, including polling, in seconds. |
+| `poll_interval` | `float` | `0.5` | Seconds between polls while waiting for a task to finish. |
+| `streaming` | `bool` | `False` | Use streaming when the remote agent supports it. |
+| `allowed_hosts` | `Sequence[str]` | `()` | Extra hosts the Agent Card's interface may point to. Other hosts are rejected. |
+| `allow_insecure` | `bool` | `False` | Allow plain HTTP for hosts other than loopback. |
+| `http_client` | `httpx.AsyncClient \| None` | `None` | Existing `httpx.AsyncClient` to use. |
 
 ```python
 from harnest.a2a import A2AClient
@@ -129,16 +129,16 @@ Send one message and poll only when the caller requested a final result.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
-| `context_id` | `str \| None` | `None` |
-| `task_id` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `accepted_output_modes` | `Sequence[str]` | `()` |
-| `return_immediately` | `bool` | `False` |
-| `wait` | `bool` | `True` |
-| `credential` | `Credential \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | The message to send, as text or data. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `task_id` | `str \| None` | `None` | Continue an existing task. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata sent with the message. |
+| `accepted_output_modes` | `Sequence[str]` | `()` | Output MIME types you accept. |
+| `return_immediately` | `bool` | `False` | Ask the remote agent to return a task right away instead of waiting. |
+| `wait` | `bool` | `True` | Poll a returned task until it completes, is interrupted, or times out. |
+| `credential` | `Credential \| None` | `None` | Credential to send with this request. |
 
 ```python
 from harnest.a2a import A2AClient
@@ -166,13 +166,13 @@ Yield remote updates without issuing any implicit follow-up operations.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
-| `context_id` | `str \| None` | `None` |
-| `task_id` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `credential` | `Credential \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | The message to send, as text or data. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `task_id` | `str \| None` | `None` | Continue an existing task. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata sent with the message. |
+| `credential` | `Credential \| None` | `None` | Credential to send with this request. |
 
 ```python
 from harnest.a2a import A2AClient
@@ -194,11 +194,11 @@ Fetch one task only after an explicit caller request.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `task_id` | `str` | Required |
-| `history_length` | `int` | `0` |
-| `credential` | `Credential \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `task_id` | `str` | Required | ID of the remote task. |
+| `history_length` | `int` | `0` | Number of history messages to include. |
+| `credential` | `Credential \| None` | `None` | Credential to send with this request. |
 
 ```python
 from harnest.a2a import A2AClient
@@ -226,13 +226,13 @@ List a bounded page only when directly requested by application code.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `page_size` | `int` | `50` |
-| `page_token` | `str` | `''` |
-| `context_id` | `str` | `''` |
-| `include_artifacts` | `bool` | `False` |
-| `credential` | `Credential \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `page_size` | `int` | `50` | Maximum number of tasks to return. |
+| `page_token` | `str` | `''` | Token from the previous page; `""` starts from the beginning. |
+| `context_id` | `str` | `''` | Only list tasks in this context; `""` lists all. |
+| `include_artifacts` | `bool` | `False` | Include task artifacts in the results. |
+| `credential` | `Credential \| None` | `None` | Credential to send with this request. |
 
 ```python
 from harnest.a2a import A2AClient
@@ -253,10 +253,10 @@ Cancel one task only in response to explicit local cancellation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `task_id` | `str` | Required |
-| `credential` | `Credential \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `task_id` | `str` | Required | ID of the remote task. |
+| `credential` | `Credential \| None` | `None` | Credential to send with this request. |
 
 ```python
 from harnest.a2a import A2AClient
@@ -277,10 +277,10 @@ Subscribe to an existing task without fetching or listing others.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `task_id` | `str` | Required |
-| `credential` | `Credential \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `task_id` | `str` | Required | ID of the remote task. |
+| `credential` | `Credential \| None` | `None` | Credential to send with this request. |
 
 ```python
 from harnest.a2a import A2AClient
@@ -398,15 +398,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `text` | `str` | Required |
-| `data` | `Any` | Required |
-| `context_id` | `str \| None` | Required |
-| `task_id` | `str \| None` | Required |
-| `state` | `str` | Required |
-| `message` | `Message \| None` | `None` |
-| `task` | `Task \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `text` | `str` | Required | Text of the reply. |
+| `data` | `Any` | Required | Structured data in the reply. |
+| `context_id` | `str \| None` | Required | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `task_id` | `str \| None` | Required | ID of the tracked task, or `None` for a direct message. |
+| `state` | `str` | Required | Task state, such as `completed`. |
+| `message` | `Message \| None` | `None` | The raw A2A message, for a direct reply. |
+| `task` | `Task \| None` | `None` | The raw A2A task, for a tracked reply. |
 
 ```python
 from harnest.a2a import A2AResult
@@ -478,14 +478,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `kind` | `str` | Required |
-| `task_id` | `str \| None` | Required |
-| `context_id` | `str \| None` | Required |
-| `state` | `str \| None` | `None` |
-| `text` | `str` | `''` |
-| `data` | `Any` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `kind` | `str` | Required | Kind of update. |
+| `task_id` | `str \| None` | Required | ID of the task the update belongs to. |
+| `context_id` | `str \| None` | Required | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `state` | `str \| None` | `None` | Task state after the update. |
+| `text` | `str` | `''` | Text in the update. |
+| `data` | `Any` | `None` | Structured data in the update. |
 
 ```python
 from harnest.a2a import A2AUpdate
@@ -529,17 +529,17 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `card_url` | `str` | Required |
-| `description` | `str` | `''` |
-| `audience` | `str \| None` | `None` |
-| `scopes` | `tuple[str, ...]` | `()` |
-| `timeout` | `float` | `300` |
-| `allowed_hosts` | `tuple[str, ...]` | `()` |
-| `allow_insecure` | `bool` | `False` |
-| `card` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Node name in the graph. |
+| `card_url` | `str` | Required | URL of the remote agent's Agent Card. |
+| `description` | `str` | `''` | Short description of the remote agent. |
+| `audience` | `str \| None` | `None` | Credential audience for an authenticated remote agent. |
+| `scopes` | `tuple[str, ...]` | `()` | Credential scopes for an authenticated remote agent. |
+| `timeout` | `float` | `300` | Time limit for a call, in seconds. |
+| `allowed_hosts` | `tuple[str, ...]` | `()` | Extra hosts the Agent Card's interface may point to. |
+| `allow_insecure` | `bool` | `False` | Allow plain HTTP for hosts other than loopback. |
+| `card` | `Mapping[str, Any] \| None` | `None` | An Agent Card you already have, instead of fetching `card_url`. |
 
 ```python
 from harnest.a2a import RemoteAgent
@@ -559,10 +559,10 @@ Delegate one graph value and retain only opaque conversation references.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
-| `context` | `GraphContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | Input from the previous graph node. |
+| `context` | `GraphContext` | Required | Graph context of the current turn. |
 
 ```python
 from harnest.a2a import RemoteAgent

@@ -1,0 +1,35 @@
+# Curated details for /harnest/reference/api/http. See task.yaml for the format.
+
+AgentInvoker.invoke:
+  params:
+    connection: The incoming HTTP or WebSocket connection, used for authentication.
+    input: Input for the root agent.
+    metadata: Public request metadata.
+    agent_principal: Limits which capabilities the agent may use.
+
+AgentResponse:
+  fields:
+    id: Response ID.
+    status: Execution state, such as `completed`, `in_progress`, or `requires_action`.
+    output_text: Assistant answer text.
+    output: Output items.
+    metadata: Response metadata.
+    result: Validated structured output, if declared.
+    required_action: The approval or client-tool request the turn is waiting for.
+    usage: Token usage for the turn.
+
+HTTPCallRequest:
+  fields:
+    method: HTTP method.
+    path: Request path.
+
+HTTPLifecycleContext:
+  params:
+    transport: Transport that received the request.
+    method: HTTP method.
+    path: Request path.
+
+HTTPResponseHead:
+  fields:
+    status_code: HTTP status code.
+    headers: Raw response headers.

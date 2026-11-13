@@ -58,14 +58,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `usage` | `TokenUsage \| None` | `None` |
-| `model` | `str \| None` | `None` |
-| `provider` | `str \| None` | `None` |
-| `finish_reason` | `str \| None` | `None` |
-| `raw` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `usage` | `TokenUsage \| None` | `None` | Token usage reported by the provider. |
+| `model` | `str \| None` | `None` | Model that answered. |
+| `provider` | `str \| None` | `None` | Provider that served the model. |
+| `finish_reason` | `str \| None` | `None` | Why generation stopped. |
+| `raw` | `Mapping[str, Any] \| None` | `None` | Framework metadata, in `RAW` mode. |
 
 ```python
 from harnest.output import AgentMetadata
@@ -147,14 +147,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `subagent_messages` | `bool` | `False` |
-| `tool_activity` | `bool` | `True` |
-| `thinking` | `bool` | `False` |
-| `decision_results` | `bool` | `False` |
-| `agent_metadata` | `AgentMetadataMode` | `<AgentMetadataMode.NORMALIZED: 'normalized'>` |
-| `persist_raw_agent_metadata` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `subagent_messages` | `bool` | `False` | Publish intermediate SubAgent narration. |
+| `tool_activity` | `bool` | `True` | Publish tool calls and results. |
+| `thinking` | `bool` | `False` | Publish provider-exposed reasoning. |
+| `decision_results` | `bool` | `False` | Publish decision results. |
+| `agent_metadata` | `AgentMetadataMode` | `<AgentMetadataMode.NORMALIZED: 'normalized'>` | `NORMALIZED` (default) model and usage metadata, `SUPPRESS` to hide it, or `RAW` for native metadata. |
+| `persist_raw_agent_metadata` | `bool` | `False` | Store raw metadata in checkpoints. Requires `AgentMetadataMode.RAW`. |
 
 ```python
 from harnest.output import OutputPolicy
@@ -174,9 +174,9 @@ Return whether narration attached to an intermediate tool call is public.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `has_tool_calls` | `bool` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `has_tool_calls` | `bool` | Required | Whether the message is attached to a tool call. |
 
 ```python
 from harnest.output import OutputPolicy
@@ -197,9 +197,9 @@ Return whether a policy-controlled event may cross public boundaries.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `event_type` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `event_type` | `str` | Required | Type of the event. |
 
 ```python
 from harnest.output import OutputPolicy
@@ -228,11 +228,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `input_tokens` | `int` | Required |
-| `output_tokens` | `int` | Required |
-| `total_tokens` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `input_tokens` | `int` | Required | Input tokens reported by the provider. |
+| `output_tokens` | `int` | Required | Output tokens reported by the provider. |
+| `total_tokens` | `int` | Required | Total tokens reported by the provider. |
 
 ```python
 from harnest.output import TokenUsage
@@ -271,9 +271,9 @@ Parse either public camel-case or internal snake-case count names.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Mapping[str, Any]` | Required | Counts with camelCase or snake_case names. |
 
 ```python
 from harnest.output import TokenUsage

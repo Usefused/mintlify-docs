@@ -58,15 +58,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `width` | `int \| None` | `None` |
-| `height` | `int \| None` | `None` |
-| `duration_seconds` | `float \| None` | `None` |
-| `page_count` | `int \| None` | `None` |
-| `frame_count` | `int \| None` | `None` |
-| `channel_count` | `int \| None` | `None` |
-| `sample_rate_hz` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `width` | `int \| None` | `None` | Width in pixels. |
+| `height` | `int \| None` | `None` | Height in pixels. |
+| `duration_seconds` | `float \| None` | `None` | Length in seconds. |
+| `page_count` | `int \| None` | `None` | Number of pages. |
+| `frame_count` | `int \| None` | `None` | Number of frames. |
+| `channel_count` | `int \| None` | `None` | Number of audio channels. |
+| `sample_rate_hz` | `int \| None` | `None` | Audio sample rate in hertz. |
 
 ```python
 from harnest.assets import AssetMediaMetadata
@@ -140,25 +140,21 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `asset_id` | `str` | Required |
-| `scope` | `AssetScope` | Required |
-| `media_type` | `str` | Required |
-| `size_bytes` | `int` | Required |
-| `created_at` | `datetime` | Required |
-| `expires_at` | `datetime \| None` | `None` |
-| `metadata` | `AssetMediaMetadata \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `asset_id` | `str` | Required | ID of the stored asset. |
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `media_type` | `str` | Required | MIME type of the bytes. |
+| `size_bytes` | `int` | Required | Size in bytes. |
+| `created_at` | `datetime` | Required | When the asset was stored. |
+| `expires_at` | `datetime \| None` | `None` | When the asset expires, if it has a retention period. |
+| `metadata` | `AssetMediaMetadata \| None` | `None` | Media details, such as width or duration. |
 
 ```python
 from harnest.assets import AssetRecord
 
 record = AssetRecord(
-    asset_id=...,
-    scope=...,
-    media_type=...,
-    size_bytes=...,
-    created_at=...,
+    asset_id=..., scope=..., media_type=..., size_bytes=..., created_at=...,
 )
 ```
 
@@ -181,10 +177,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
 
 ```python
 from harnest.assets import AssetScope
@@ -250,14 +246,14 @@ Persist streamed bytes and return their scoped asset record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `media_type` | `str` | Required |
-| `chunks` | `AsyncIterable[bytes]` | Required |
-| `metadata` | `AssetMediaMetadata \| None` | `None` |
-| `retention_seconds` | `float \| None` | `None` |
-| `path` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `media_type` | `str` | Required | MIME type of the bytes, such as `"image/png"`. |
+| `chunks` | `AsyncIterable[bytes]` | Required | Async iterable of byte chunks to store, in order. |
+| `metadata` | `AssetMediaMetadata \| None` | `None` | Optional media details, such as width, height, duration, or page count. |
+| `retention_seconds` | `float \| None` | `None` | Delete the asset after this many seconds. `None` uses the store's default retention. |
+| `path` | `str \| None` | `None` | Storage-specific path hint. Must be a safe relative path. |
 
 ```python
 from harnest.assets import AssetStorage
@@ -278,10 +274,10 @@ Return metadata for an owned asset, or `None` when unavailable.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import AssetStorage
@@ -302,10 +298,10 @@ Stream the bytes for an asset owned by the supplied scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import AssetStorage
@@ -326,10 +322,10 @@ Delete an owned asset and report whether one was removed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import AssetStorage
@@ -350,9 +346,9 @@ Delete every asset in a scope and return the removal count.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
 
 ```python
 from harnest.assets import AssetStorage
@@ -438,14 +434,14 @@ Persist streamed bytes and return their scoped asset record.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `media_type` | `str` | Required |
-| `chunks` | `AsyncIterable[bytes]` | Required |
-| `metadata` | `AssetMediaMetadata \| None` | `None` |
-| `retention_seconds` | `float \| None` | `None` |
-| `path` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `media_type` | `str` | Required | MIME type of the bytes, such as `"image/png"`. |
+| `chunks` | `AsyncIterable[bytes]` | Required | Async iterable of byte chunks to store, in order. |
+| `metadata` | `AssetMediaMetadata \| None` | `None` | Optional media details, such as width, height, duration, or page count. |
+| `retention_seconds` | `float \| None` | `None` | Delete the asset after this many seconds. `None` uses the store's default retention. |
+| `path` | `str \| None` | `None` | Storage-specific path hint. Must be a safe relative path. |
 
 ```python
 from harnest.assets import AssetStore
@@ -466,10 +462,10 @@ Return metadata for an owned asset, or `None` when unavailable.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import AssetStore
@@ -490,10 +486,10 @@ Stream the bytes for an asset owned by the supplied scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import AssetStore
@@ -514,10 +510,10 @@ Delete an owned asset and report whether one was removed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import AssetStore
@@ -538,9 +534,9 @@ Delete every asset in a scope and return the removal count.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
 
 ```python
 from harnest.assets import AssetStore
@@ -616,11 +612,11 @@ Create a short-lived URL for an asset owned by the supplied scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
-| `expires_in` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
+| `expires_in` | `float` | Required | How long the URL stays valid, in seconds. |
 
 ```python
 from harnest.assets import AssetURLStorage
@@ -694,14 +690,14 @@ MemoryAssetStore(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `max_asset_bytes` | `int` | `10485760` |
-| `max_total_bytes` | `int` | `104857600` |
-| `read_chunk_bytes` | `int` | `65536` |
-| `default_retention_seconds` | `float \| None` | `None` |
-| `clock` | `Callable[[], datetime] \| None` | `None` |
-| `token_factory` | `Callable[[], str] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `max_asset_bytes` | `int` | `10485760` | Largest single asset, in bytes. |
+| `max_total_bytes` | `int` | `104857600` | Total bytes held across all assets. |
+| `read_chunk_bytes` | `int` | `65536` | Chunk size when streaming bytes back, in bytes. |
+| `default_retention_seconds` | `float \| None` | `None` | Retention used when a save does not set one. `None` keeps assets until deleted. |
+| `clock` | `Callable[[], datetime] \| None` | `None` | Function returning the current time, for tests. |
+| `token_factory` | `Callable[[], str] \| None` | `None` | Function that generates the random part of new asset IDs, for tests. |
 
 ```python
 from harnest.assets import MemoryAssetStore
@@ -763,14 +759,14 @@ Stream an asset into reserved capacity and publish it atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `media_type` | `str` | Required |
-| `chunks` | `AsyncIterable[bytes]` | Required |
-| `metadata` | `AssetMediaMetadata \| None` | `None` |
-| `retention_seconds` | `float \| None` | `None` |
-| `path` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `media_type` | `str` | Required | MIME type of the bytes, such as `"image/png"`. |
+| `chunks` | `AsyncIterable[bytes]` | Required | Async iterable of byte chunks to store, in order. |
+| `metadata` | `AssetMediaMetadata \| None` | `None` | Optional media details, such as width, height, duration, or page count. |
+| `retention_seconds` | `float \| None` | `None` | Delete the asset after this many seconds. `None` uses the store's default retention. |
+| `path` | `str \| None` | `None` | Storage-specific path hint. Must be a safe relative path. |
 
 ```python
 from harnest.assets import MemoryAssetStore
@@ -791,10 +787,10 @@ Return metadata only when the caller owns an unexpired asset.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import MemoryAssetStore
@@ -815,10 +811,10 @@ Yield a stable snapshot while later deletion blocks new readers.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import MemoryAssetStore
@@ -840,10 +836,10 @@ Delete an owned asset without revealing cross-principal existence.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
-| `asset_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
+| `asset_id` | `str` | Required | ID of the stored asset. |
 
 ```python
 from harnest.assets import MemoryAssetStore
@@ -864,9 +860,9 @@ Remove all assets owned by a deleted session without cross-scope reads.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `AssetScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `AssetScope` | Required | User and session that own the asset. |
 
 ```python
 from harnest.assets import MemoryAssetStore
@@ -962,12 +958,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `store` | `str` | `'default'` |
-| `path` | `str \| None` | `None` |
-| `expires_in` | `float` | `60` |
-| `retention` | `timedelta \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `store` | `str` | `'default'` | Name of the asset store for this field, registered with `@lifecycle.storage.assets(name)`. |
+| `path` | `str \| None` | `None` | Storage-specific path hint. |
+| `expires_in` | `float` | `60` | Lifetime of each model-facing signed URL, in seconds. |
+| `retention` | `timedelta \| None` | `None` | Requested lifetime of the stored bytes. |
 
 ```python
 from harnest.assets import Stored

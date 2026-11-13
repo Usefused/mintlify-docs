@@ -18,7 +18,7 @@ When Harnest owns portable checkpoint storage, it keeps:
 | Wait metadata | Resume durable tools and external continuations |
 | Completion snapshot | Return final output, agent metadata, and usage consistently from any replica |
 
-Native [`LangGraphStore`](/harnest/reference/api/checkpoint#langgraphstore) and [`ADKStore`](/harnest/reference/api/checkpoint#adkstore) authorities expose their framework's narrower checkpoint contract. They do not provide every Harnest-owned capability in this table.
+Framework-owned [`LangGraphStore`](/harnest/reference/api/frameworks-langgraph#langgraphstore) and [`ADKStore`](/harnest/reference/api/frameworks-adk#adkstore) authorities expose their framework's narrower checkpoint contract. They do not provide every Harnest-owned capability in this table.
 
 Every application resolves exactly one checkpoint factory across its root and Harnest Extension extensions. This example assumes the shared `PostgresStore` from `lib/state.py` in the [storage overview](/harnest/runtime/checkpoints-and-storage):
 
@@ -40,7 +40,7 @@ Harnest-owned checkpoint operations are scoped by application, authenticated use
 Point every replica at the same Harnest checkpointer. Atomic run and continuation transitions allow one replica to claim a resume while another safely observes it.
 
 <Warning>
-  `MemoryStore` cannot recover a durable tool across processes. Queued or external waits need a Harnest-owned checkpointer; an opaque native advanced-mode saver is insufficient.
+  `MemoryStore` cannot recover a durable tool across processes. Queued or external waits need a Harnest-owned checkpointer; an opaque framework-owned advanced-mode saver is insufficient.
 </Warning>
 
 See [Durable execution](/harnest/runtime/durable-execution) for replica recovery and response polling.
@@ -54,14 +54,14 @@ from harnest.agent import Agent
 from harnest.lib.state import state
 
 graph = builder.compile(
-    checkpointer=state.as_langgraph_checkpointer(),
+    checkpointer=state.framework_checkpointer(),
 )
 root_agent = Agent.advanced(graph)
 ```
 
-If LangGraph owns a native saver, wrap that saver in `LangGraphStore`, use the wrapper to compile the graph, and return the same wrapper from [`@lifecycle.storage.checkpoints`](/harnest/reference/api/lifecycle#storage-checkpoints). Keep a separate [`SessionStore`](/harnest/reference/api/session#sessionstore) factory for committed conversation state.
+If LangGraph owns the saver, wrap that saver in `LangGraphStore`, use the wrapper to compile the graph, and return the same wrapper from [`@lifecycle.storage.checkpoints`](/harnest/reference/api/lifecycle#storage-checkpoints). Keep a separate [`SessionStore`](/harnest/reference/api/session#sessionstore) factory for committed conversation state.
 
-For ADK-native ownership, create one `ADKStore(session_service)` in `lib/state.py`. Return that same object from the session and checkpoint factories so Harnest does not create a second session authority.
+For ADK-owned persistence, create one `ADKStore(session_service)` in `lib/state.py`. Return that same object from the session and checkpoint factories so Harnest does not create a second session authority.
 
 ## Switch frameworks safely
 

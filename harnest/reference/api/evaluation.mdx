@@ -197,7 +197,6 @@ Harnest omits the original exception message, traceback, and internals from this
 | [`EvaluationError`](#evaluationerror) | Class |
 | [`MetricContext`](#metriccontext) | Class |
 | [`MetricScore`](#metricscore) | Class |
-| [`adk_eval_agent_module`](#adk_eval_agent_module) | Function |
 | [`eval_config`](#eval_config) | Function |
 | [`eval_dependencies`](#eval_dependencies) | Function |
 | [`metric`](#metric) | Function |
@@ -331,12 +330,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `metric` | `EvalMetric` | Required |
-| `actual` | `tuple[Invocation, ...]` | Required |
-| `expected` | `tuple[Invocation, ...] \| None` | `None` |
-| `scenario` | `ConversationScenario \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `metric` | `EvalMetric` | Required | The metric being scored, from the eval config. |
+| `actual` | `tuple[Invocation, ...]` | Required | Invocations the agent produced. |
+| `expected` | `tuple[Invocation, ...] \| None` | `None` | Expected invocations from the eval case, if any. |
+| `scenario` | `ConversationScenario \| None` | `None` | Conversation scenario for simulated cases, if any. |
 
 ```python
 from harnest.evaluation import MetricContext
@@ -378,38 +377,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `score` | `float \| None` | Required |
-| `evidence` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `score` | `float \| None` | Required | Finite score, or `None` when the case is unscored. |
+| `evidence` | `str \| None` | `None` | Short human-readable explanation. |
 
 ```python
 from harnest.evaluation import MetricScore
 
 score = MetricScore(score=...)
-```
-
-</Accordion>
-
-## adk_eval_agent_module
-
-Expose isolated native plugins with managed identity and error reporting.
-
-```python
-adk_eval_agent_module(application: Any) -> Iterator[str]
-```
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `application` | `Any` | Required |
-
-```python
-from harnest.evaluation import adk_eval_agent_module
-
-with adk_eval_agent_module(application=...):
-    ...
 ```
 
 </Accordion>
@@ -424,10 +400,10 @@ eval_config(suite: EvalSuite, trajectory: str) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `suite` | `EvalSuite` | Required |
-| `trajectory` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `suite` | `EvalSuite` | Required | Eval files of the agent. |
+| `trajectory` | `str` | Required | `"business"` or `"strict"` tool-trajectory policy. |
 
 ```python
 from harnest.evaluation import eval_config
@@ -469,15 +445,15 @@ metric(function: Callable[[MetricContext], Any]) -> Callable[..., Any]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `Callable[[MetricContext], Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `Callable[[MetricContext], Any]` | Required | Your scorer. It receives a `MetricContext` and returns a `MetricScore`, one score per invocation, or a native ADK result. |
 
 ```python
-from harnest.evaluation import metric
+from harnest.evaluation import MetricScore, metric
 
 @metric
-def my_function(context):
+def mentions_order(context) -> MetricScore:
     ...
 ```
 
@@ -493,9 +469,9 @@ require_eval_trajectory(trajectory: str) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `trajectory` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `trajectory` | `str` | Required | Policy name to check, `"business"` or `"strict"`. |
 
 ```python
 from harnest.evaluation import require_eval_trajectory

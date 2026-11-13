@@ -55,9 +55,8 @@ icon: "code"
 
 Declare one lazy sandbox usable by managed ADK and LangGraph agents.
 
-A sandbox is a code-execution boundary, not a policy label. The backend
-returned by `factory` implements `SandboxBackend.execute` and owns the
-actual isolation guarantees. Legacy ADK executors remain ADK-only providers.
+The backend returned by `factory` implements `SandboxBackend.execute`
+and enforces isolation. ADK executor providers require the ADK framework.
 Compilation never connects to provider infrastructure.
 
 Obtain this object from the owning Harnest API; its constructor includes runtime bindings.
@@ -77,7 +76,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.sandbox import Sandbox
 
-sandbox: Sandbox  # returned by Harnest, not constructed directly
+sandbox = Sandbox.provider(factory=...)
 ```
 
 </Accordion>
@@ -105,57 +104,19 @@ provider capability declarations.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `factory` | `Callable[[], Any]` | Required |
-| `name` | `str` | `'custom'` |
-| `timeout_seconds` | `int \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `network_policy` | `SandboxNetworkPolicy \| None` | `None` |
-| `adapter_options` | `Mapping[str, Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `factory` | `Callable[[], Any]` | Required | Function that creates your backend. It runs on first use, so put connection settings and credentials there. |
+| `name` | `str` | `'custom'` | Backend name recorded for this provider, such as `"company-sandbox"`. |
+| `timeout_seconds` | `int \| None` | `None` | Time limit for each execution, in seconds. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Metadata passed to the provider with each request. |
+| `network_policy` | `SandboxNetworkPolicy \| None` | `None` | Network egress the provider must enforce. Harnest fails before the first run if the provider cannot. |
+| `adapter_options` | `Mapping[str, Any] \| None` | `None` | Options for the framework adapter. |
 
 ```python
 from harnest.sandbox import Sandbox
 
 sandbox = Sandbox.provider(factory=...)
-```
-
-</Accordion>
-
-### Sandbox.to_adk_executor
-
-```python
-Sandbox.to_adk_executor() -> Any
-```
-
-Use ADK's code_executor interface and native code/result event loop.
-
-<Accordion title="Example">
-
-```python
-from harnest.sandbox import Sandbox
-
-sandbox: Sandbox
-result = sandbox.to_adk_executor()
-```
-
-</Accordion>
-
-### Sandbox.to_langchain_tool
-
-```python
-Sandbox.to_langchain_tool() -> Any
-```
-
-Use LangGraph's native tool loop with a lazy, typed execution tool.
-
-<Accordion title="Example">
-
-```python
-from harnest.sandbox import Sandbox
-
-sandbox: Sandbox
-result = sandbox.to_langchain_tool()
 ```
 
 </Accordion>
@@ -211,9 +172,9 @@ Execute Python under provider-enforced policy and return its output.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `SandboxRequest` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `SandboxRequest` | Required | The code, input files, and policy to execute. |
 
 ```python
 from harnest.sandbox import SandboxBackend
@@ -248,12 +209,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `cpu` | `float` | `1.0` |
-| `memory_bytes` | `int` | `536870912` |
-| `pids` | `int` | `64` |
-| `scratch_bytes` | `int` | `67108864` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `cpu` | `float` | `1.0` | CPU limit, in cores. |
+| `memory_bytes` | `int` | `536870912` | Memory limit, in bytes. |
+| `pids` | `int` | `64` | Maximum number of processes. |
+| `scratch_bytes` | `int` | `67108864` | Size of the writable scratch space, in bytes. |
 
 ```python
 from harnest.sandbox import SandboxBudget
@@ -307,12 +268,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `agent_name` | `str \| None` | `None` |
-| `invocation_id` | `str \| None` | `None` |
-| `user_id` | `str \| None` | `None` |
-| `session_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `agent_name` | `str \| None` | `None` | Name of the agent or SubAgent involved, or `None` when not tied to one agent. |
+| `invocation_id` | `str \| None` | `None` | ID of one agent invocation, or `None` outside an invocation. |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
+| `session_id` | `str \| None` | `None` | ID of the Harnest session (one conversation), or `None` when there is none. |
 
 ```python
 from harnest.sandbox import SandboxContext
@@ -364,11 +325,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `content` | `str \| bytes` | Required |
-| `mime_type` | `str` | `'text/plain'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | File name. It never grants access to a host path. |
+| `content` | `str \| bytes` | Required | File content, as text or bytes. |
+| `mime_type` | `str` | `'text/plain'` | MIME type of the content. |
 
 ```python
 from harnest.sandbox import SandboxFile
@@ -446,12 +407,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `mode` | `<enum 'SandboxNetworkMode'>` | `<SandboxNetworkMode.NONE: 'none'>` |
-| `allow_hosts` | `tuple[str, ...]` | `()` |
-| `allow_ports` | `tuple[int, ...]` | `()` |
-| `block_private_networks` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `mode` | `<enum 'SandboxNetworkMode'>` | `<SandboxNetworkMode.NONE: 'none'>` | Network mode, such as `none`, `allowlist`, or `unrestricted`. |
+| `allow_hosts` | `tuple[str, ...]` | `()` | Hosts that may be reached in `allowlist` mode. |
+| `allow_ports` | `tuple[int, ...]` | `()` | Ports that may be reached in `allowlist` mode. |
+| `block_private_networks` | `bool` | `True` | Block access to private network ranges. |
 
 ```python
 from harnest.sandbox import SandboxNetworkPolicy
@@ -489,9 +450,9 @@ Permit outbound access, optionally retaining a private-network ceiling.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `block_private_networks` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `block_private_networks` | `bool` | `False` | Still block access to private network ranges. |
 
 ```python
 from harnest.sandbox import SandboxNetworkPolicy
@@ -515,11 +476,11 @@ Permit exact hosts and optional destination ports only.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `*hosts` | `str` | Optional |
-| `ports` | `tuple[int, ...]` | `()` |
-| `block_private_networks` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `*hosts` | `str` | Optional | Exact hosts that may be reached. |
+| `ports` | `tuple[int, ...]` | `()` | Destination ports that may be reached. Empty allows any port on those hosts. |
+| `block_private_networks` | `bool` | `True` | Block access to private network ranges. |
 
 ```python
 from harnest.sandbox import SandboxNetworkPolicy
@@ -581,9 +542,9 @@ Execute Python under provider-enforced policy and return its output.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `SandboxRequest` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `SandboxRequest` | Required | The code, input files, and policy to execute. |
 
 ```python
 from harnest.sandbox import SandboxProvider
@@ -618,12 +579,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `network_modes` | `frozenset[harnest.sandbox.SandboxNetworkMode]` | `frozenset([])` |
-| `host_allowlist` | `bool` | `False` |
-| `port_allowlist` | `bool` | `False` |
-| `private_network_blocking` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `network_modes` | `frozenset[harnest.sandbox.SandboxNetworkMode]` | `frozenset([])` | Network modes the provider can enforce. |
+| `host_allowlist` | `bool` | `False` | The provider can enforce host allowlists. |
+| `port_allowlist` | `bool` | `False` | The provider can enforce port allowlists. |
+| `private_network_blocking` | `bool` | `False` | The provider can block private network ranges. |
 
 ```python
 from harnest.sandbox import SandboxProviderCapabilities
@@ -643,9 +604,9 @@ Fail closed when this provider cannot enforce requested authority.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `policy` | `harnest.sandbox.SandboxNetworkPolicy` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `policy` | `harnest.sandbox.SandboxNetworkPolicy` | Required | Network policy to check. Raises when the provider cannot enforce it. |
 
 ```python
 from harnest.sandbox import SandboxProviderCapabilities
@@ -686,15 +647,15 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `code` | `str` | Required |
-| `timeout_seconds` | `int \| None` | `None` |
-| `context` | `SandboxContext` | `...` |
-| `input_files` | `tuple[SandboxFile, ...]` | `()` |
-| `execution_id` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any]` | `...` |
-| `network_policy` | `SandboxNetworkPolicy \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `code` | `str` | Required | Python code to run. |
+| `timeout_seconds` | `int \| None` | `None` | Time limit for this execution, in seconds. |
+| `context` | `SandboxContext` | `...` | Agent, user, and session identity of the execution. |
+| `input_files` | `tuple[SandboxFile, ...]` | `()` | Files to place in the sandbox before running. |
+| `execution_id` | `str \| None` | `None` | ID of this execution. |
+| `metadata` | `Mapping[str, Any]` | `...` | Provider metadata. |
+| `network_policy` | `SandboxNetworkPolicy \| None` | `None` | Network egress the provider must enforce. |
 
 ```python
 from harnest.sandbox import SandboxRequest
@@ -732,14 +693,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `stdout` | `str` | `''` |
-| `stderr` | `str` | `''` |
-| `output_files` | `tuple[SandboxFile, ...]` | `()` |
-| `metadata` | `Mapping[str, Any]` | `...` |
-| `status` | `SandboxStatus` | `<SandboxStatus.SUCCEEDED: 'succeeded'>` |
-| `exit_code` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `stdout` | `str` | `''` | Standard output. |
+| `stderr` | `str` | `''` | Standard error. |
+| `output_files` | `tuple[SandboxFile, ...]` | `()` | Files produced by the code. |
+| `metadata` | `Mapping[str, Any]` | `...` | Provider metadata. |
+| `status` | `SandboxStatus` | `<SandboxStatus.SUCCEEDED: 'succeeded'>` | Outcome of the execution. |
+| `exit_code` | `int \| None` | `None` | Process exit code, when available. |
 
 ```python
 from harnest.sandbox import SandboxResult
@@ -789,9 +750,9 @@ cleanup_control(timeout_seconds: int = 5) -> Iterator[SandboxControl]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `timeout_seconds` | `int` | `5` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `timeout_seconds` | `int` | `5` | Time limit for resource cleanup, in seconds. |
 
 ```python
 from harnest.sandbox import cleanup_control
@@ -824,9 +785,9 @@ Scope deadlines independently while preserving call-wide cancellation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `timeout_seconds` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `timeout_seconds` | `int \| None` | Required | Time limit for the execution, in seconds. |
 
 ```python
 from harnest.sandbox import control
@@ -851,9 +812,9 @@ Nested cleanup inherits the original cleanup deadline and cannot renew it.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `timeout_seconds` | `int` | `5` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `timeout_seconds` | `int` | `5` | Time limit for resource cleanup, in seconds. |
 
 ```python
 from harnest.sandbox import control

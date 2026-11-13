@@ -46,4 +46,4 @@ A topology supports up to eight services. Each service allows 16 aliases, 32 dec
 | `image` / `docker_path` | Supply exactly one; custom images must provide `python3` and must not declare volumes |
 | `base_url` | Optional Docker daemon URL |
 
-`options` retains the allowlisted parsing/retry fields only for callers explicitly constructing a native ADK adapter with `to_adk_executor()`. Those fields do not change Docker limits or add model tools to named sandbox assignments. Your authored tool decides whether to retry.
+Harnest selects the framework adapter when compiling sandbox assignments. Your authored tool controls retries; adapter options do not change Docker limits or add model tools.

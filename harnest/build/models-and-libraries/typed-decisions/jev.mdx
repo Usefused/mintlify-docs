@@ -197,7 +197,7 @@ async def decisions():
 Tune the confidence threshold with your own tickets. Routing remains your application's responsibility; returning `billing_agent` does not invoke it.
 
 <Note>
-  The adapter has been checked with SDK `0.7.1` and mocked HTTP responses. Live predictions require your TypeSafe credentials. Harnest's private decision traces do not control SDK logging; avoid SDK debug logging of customer payloads.
+  This adapter targets TypeSafe SDK `0.7.1`. Live predictions require TypeSafe credentials. Harnest's private decision traces do not control SDK logging; avoid SDK debug logging of customer payloads.
 </Note>
 
-To support other primitives, extend the adapter using TypeSafe's [question contracts](https://docs.typesafe.ai/primitives): map Jev Score to [`ScoreResult`](/harnest/reference/api/decisions#scoreresult) and Jev Noul to [`PredicateResult`](/harnest/reference/api/decisions#predicateresult), then declare those capabilities. The adapter above intentionally advertises only what it implements.
+To support other primitives, extend the adapter using TypeSafe's [question contracts](https://docs.typesafe.ai/primitives): map Jev Score to [`ScoreResult`](/harnest/reference/api/decisions#scoreresult) and Jev Noul to [`PredicateResult`](/harnest/reference/api/decisions#predicateresult), then declare those capabilities.

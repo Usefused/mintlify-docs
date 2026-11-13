@@ -1,5 +1,3 @@
-# Curated details for /harnest/reference/api/cron. See task.yaml for the format.
-
 cron:
   params:
     schedule: Five-field UTC cron expression. Omit for user-created schedules.
@@ -14,7 +12,6 @@ cron:
     async def daily_report() -> None:
         """Build the weekday report."""
         ...
-
 Cron:
   fields:
     schedule: Five-field UTC cron expression.
@@ -25,7 +22,6 @@ Cron:
     from harnest.cron import Cron
 
     daily_report = Cron("0 9 * * 1-5", task=build_report)
-
 create:
   params:
     key: Stable name for the user's schedule, 1–128 characters.
@@ -38,7 +34,6 @@ create:
     from harnest import cron
 
     job = await cron.create(key="weekly-report", expression="0 9 * * 1", task="build_report")
-
 get:
   params:
     schedule_id: The job's `cron_` ID.
@@ -46,7 +41,6 @@ get:
     from harnest import cron
 
     job = await cron.get("cron_...")
-
 list:
   params:
     after: Last job ID from the previous page.
@@ -55,7 +49,6 @@ list:
     from harnest import cron
 
     jobs = await cron.list(limit=50)
-
 update:
   params:
     schedule_id: The job's `cron_` ID.
@@ -65,7 +58,6 @@ update:
     from harnest import cron
 
     job = await cron.update("cron_...", expression="0 8 * * 1")
-
 pause:
   params:
     schedule_id: The job's `cron_` ID.
@@ -73,7 +65,6 @@ pause:
     from harnest import cron
 
     job = await cron.pause("cron_...")
-
 resume:
   params:
     schedule_id: The job's `cron_` ID.
@@ -81,7 +72,6 @@ resume:
     from harnest import cron
 
     job = await cron.resume("cron_...")
-
 cancel:
   params:
     schedule_id: The job's `cron_` ID.
@@ -89,7 +79,6 @@ cancel:
     from harnest import cron
 
     job = await cron.cancel("cron_...")
-
 delete:
   params:
     schedule_id: The job's `cron_` ID.
@@ -97,13 +86,11 @@ delete:
     from harnest import cron
 
     removed = await cron.delete("cron_...")
-
 CronJob:
   example: |
     from harnest import cron
 
     job = await cron.create(key="weekly-report", expression="0 9 * * 1", task="build_report")
-
 CronJob.update:
   params:
     expression: New expression. Omit to keep the current one.
@@ -113,3 +100,35 @@ CronJob.update:
 
     job: CronJob
     job = await job.update(expression="0 8 * * 1")
+CronStore.commit_cron_occurrence:
+  params:
+    due_at: Scheduled time of this occurrence. Must equal the schedule's current `next_run_at`.
+    next_run_at: Next scheduled time after this occurrence. Must be later than `due_at`.
+    task: The job to enqueue for this occurrence. Must match the schedule's owner, target, and arguments.
+CronStore.update_cron:
+  params:
+    record: The schedule with its replacement mutable fields.
+CompiledCron:
+  params:
+    name: Compiler-assigned schedule name.
+    source: Source file of the schedule.
+    schedule: Five-field UTC cron expression.
+    timezone: Always `"UTC"`.
+    task: The task the schedule queues.
+    arguments: Keyword arguments for each occurrence.
+CronRecord:
+  fields:
+    key: Stable key for the user's schedule.
+    expression: Five-field UTC cron expression.
+    task_name: Registered name of the scheduled task.
+    arguments: Keyword arguments for each occurrence.
+    next_run_at: Next scheduled time, in UTC epoch seconds.
+    status: '`"active"`, `"paused"`, or `"cancelled"`.'
+    revision: Revision used for compare-and-swap updates.
+    timezone: Always `"UTC"`.
+    created_at: When the schedule was created, in UTC epoch seconds.
+    updated_at: When the schedule last changed, in UTC epoch seconds.
+    max_runs: Occurrence limit, or `None`.
+    max_consecutive_failures: Failure limit, or `None`.
+    run_count: Occurrences queued so far.
+    consecutive_failures: Final failures since the last success.

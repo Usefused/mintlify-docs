@@ -1,0 +1,140 @@
+# Curated details for /harnest/reference/api/decisions. See task.yaml for the format.
+
+DecisionProvider.evaluate:
+  params:
+    request: The questions to evaluate. The provider answers them without running the selected action.
+
+Choice:
+  params:
+    name: Question name. Answers are keyed by it.
+    instructions: What the provider should decide.
+    options: Allowed answer keys mapped to their descriptions.
+
+Predicate:
+  params:
+    name: Question name. Answers are keyed by it.
+    instructions: The proposition to judge. The answer is the probability that it is true.
+
+Score:
+  params:
+    name: Question name. Answers are keyed by it.
+    instructions: The rubric to apply.
+    levels: Rubric levels in order. The score runs from 0 to `len(levels) - 1`.
+
+ChoiceResult:
+  fields:
+    value: The selected option key.
+    probabilities: Probability for every option, when the provider supports it.
+    confidence: Provider's native confidence, when supported.
+
+ScoreResult:
+  fields:
+    value: Position on the rubric, from 0 to `len(levels) - 1`.
+    probabilities: Probability for each level in rubric order, when supported.
+    confidence: Provider's native confidence, when supported.
+
+PredicateResult:
+  fields:
+    probability: Probability that the proposition is true, from 0 to 1.
+
+ChoicePolicy:
+  params:
+    question: Name of the `Choice` question this policy reads.
+    routes: Outcome for every option. Every option must be covered.
+    minimum_confidence: Require at least this native confidence; otherwise the `uncertain` outcome is used.
+    uncertain: Outcome used when confidence is below `minimum_confidence`.
+
+ThresholdPolicy:
+  params:
+    question: Name of the `Predicate` or `Score` question this policy reads.
+    lower: Values at or below this select `below`.
+    upper: Values at or above this select `above`.
+    below: Outcome for values at or below `lower`.
+    above: Outcome for values at or above `upper`.
+    uncertain: Outcome for values between `lower` and `upper`.
+
+"*.validate":
+  params:
+    definition: The decision definition the policy is bound to.
+    capabilities: What the provider guarantees.
+
+"*.apply":
+  params:
+    response: The provider's validated answers.
+
+DecisionOutcome:
+  fields:
+    action: The policy action.
+    route: Destination for routing actions.
+
+DecisionBinding:
+  fields:
+    definition: The decision to bind.
+    provider: Name of the registered provider that evaluates it.
+    policy: Optional policy that turns answers into an outcome.
+    on_error: Outcome to return when evaluation fails. `None` re-raises the error.
+
+DecisionCapabilities:
+  fields:
+    kinds: Question kinds the provider supports.
+    batching: Can evaluate several questions against the same state at once.
+    probabilities: Every Choice and Score result includes a complete distribution.
+    confidence: Every Choice and Score result includes native confidence.
+
+DecisionDefinition:
+  fields:
+    name: Decision name.
+    version: Decision version, recorded in evaluation provenance.
+    questions: Uniquely named, independent questions.
+
+DecisionRequest:
+  fields:
+    definition: The decision to evaluate.
+    state: JSON-compatible snapshot of the state to judge.
+
+DecisionResponse:
+  fields:
+    answers: Answer for each question, keyed by question name.
+
+DecisionEvaluation:
+  fields:
+    decision: Decision name.
+    version: Decision version.
+    provider: Name of the provider that evaluated it.
+    provider_version: Provider or model revision.
+    response: Validated answers, or `None` on failure.
+    outcome: Policy outcome, when a policy or `on_error` applied.
+    duration_seconds: How long the evaluation took.
+    error: Error category on failure.
+
+Decisions:
+  params:
+    providers: Registered providers by name.
+    bindings: Named decisions and their providers.
+    timeout_seconds: Time limit for one evaluation, in seconds.
+
+Decisions.evaluate:
+  params:
+    name: Name of the registered decision.
+    state: Snapshot of the state to judge.
+
+Decisions.evaluate_definition:
+  params:
+    definition: A decision built at runtime.
+    state: Snapshot of the state to judge.
+    provider: Provider to use. Required unless exactly one provider is registered.
+
+DecisionContext:
+  params:
+    active: The active invocation context.
+
+DecisionContext.evaluate:
+  params:
+    name: Name of the registered decision.
+    state: Snapshot of the state to judge.
+
+FixtureDecisionProvider:
+  params:
+    responses: Fixed responses keyed by `(decision name, version)`.
+    capabilities: The guarantees to report.
+    version: Provider version recorded in provenance.

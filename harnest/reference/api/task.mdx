@@ -83,12 +83,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `source` | `str` | Required |
-| `definition` | `TaskDefinition` | Required |
-| `authored` | `TaskCallable[Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Compiler-assigned task name. |
+| `source` | `str` | Required | Source file of the task. |
+| `definition` | `TaskDefinition` | Required | The task's queue and retry settings. |
+| `authored` | `TaskCallable[Any]` | Required | The decorated task function. |
 
 ```python
 from harnest.task import CompiledTask
@@ -209,9 +209,9 @@ Commit an isolated task snapshot and its deduplication identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `TaskRecord` | Required | The job to persist. An identical submission returns the existing job. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -232,11 +232,11 @@ Read one detached snapshot through the caller's ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `user_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -263,12 +263,12 @@ Return a bounded owner-scoped metadata page without copying private payloads.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -296,23 +296,20 @@ Claim due work, reclaim expired leases and retire exhausted attempts.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `queues` | `tuple[str, ...]` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `queues` | `tuple[str, ...]` | Required | Queue names to claim work from. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
+| `limit` | `int` | `1` | Maximum number of jobs to claim in this batch. |
 
 ```python
 from harnest.task import MemoryTaskStore
 
 store: MemoryTaskStore
 result = await store.claim_tasks(
-    application_id=...,
-    queues=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., queues=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -335,24 +332,20 @@ Extend only a lease that still grants execution ownership.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
 
 ```python
 from harnest.task import MemoryTaskStore
 
 store: MemoryTaskStore
 result = await store.renew_task_lease(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., job_id=..., lease_token=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -378,27 +371,23 @@ Commit an outcome only while the exact execution lease remains valid.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `status` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure_code` | `str \| None` | `None` |
-| `retry_at` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `status` | `str` | Required | `"completed"`, `"failed"`, or `"pending"` (retry later). `"pending"` requires `retry_at`. |
+| `result` | `Any` | `None` | JSON-safe result of a completed job. |
+| `failure_code` | `str \| None` | `None` | Short failure category for a failed job. |
+| `retry_at` | `float \| None` | `None` | When a `"pending"` job may run again, in UTC epoch seconds. |
 
 ```python
 from harnest.task import MemoryTaskStore
 
 store: MemoryTaskStore
 result = await store.finish_task(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    status=...,
+    application_id=..., job_id=..., lease_token=..., now=..., status=...,
 )
 ```
 
@@ -414,12 +403,12 @@ Cancel one owner's active work and revoke any in-flight attempt.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `now` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -440,9 +429,9 @@ Create a schedule or return an exact keyed retry without reactivation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The complete schedule record. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -463,11 +452,11 @@ Read a detached schedule through both ownership predicates.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -494,12 +483,12 @@ Return one bounded page from this in-memory reference collection.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -526,12 +515,12 @@ Project an owner-scoped schedule page without copying task arguments.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -552,10 +541,10 @@ Replace allowed fields only at the current scoped revision.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The schedule with its replacement mutable fields. |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -576,11 +565,11 @@ Remove one owner's schedule and its reusable authored key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -607,12 +596,12 @@ Read active due schedules with a stable timestamp-and-ID cursor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `now` | `float` | Required |
-| `after` | `tuple[float, str] \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `after` | `tuple[float, str] \| None` | `None` | Cursor from the previous page as `(due time, schedule ID)`; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import MemoryTaskStore
@@ -642,28 +631,23 @@ Use one lock for revision check, task insert and schedule advancement.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `due_at` | `float` | Required |
-| `next_run_at` | `float` | Required |
-| `task` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `due_at` | `float` | Required | Scheduled time of this occurrence. Must equal the schedule's current `next_run_at`. |
+| `next_run_at` | `float` | Required | Next scheduled time after this occurrence. Must be later than `due_at`. |
+| `task` | `TaskRecord` | Required | The job to enqueue for this occurrence. Must match the schedule's owner, target, and arguments. |
 
 ```python
 from harnest.task import MemoryTaskStore
 
 store: MemoryTaskStore
 record = await store.commit_cron_occurrence(
-    application_id=...,
-    user_id=...,
-    schedule_id=...,
-    expected_revision=...,
-    due_at=...,
-    next_run_at=...,
-    task=...,
+    application_id=..., user_id=..., schedule_id=..., expected_revision=..., due_at=...,
+    next_run_at=..., task=...,
 )
 ```
 
@@ -687,11 +671,11 @@ PostgresTaskStore(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `dsn` | `str` | Required |
-| `pool_options` | `Mapping[str, Any] \| None` | `None` |
-| `setup_schema` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dsn` | `str` | Required | PostgreSQL connection string. |
+| `pool_options` | `Mapping[str, Any] \| None` | `None` | Options for the `asyncpg` pool, such as `min_size` and `max_size`. |
+| `setup_schema` | `bool` | `True` | Create Harnest's schema. Use `False` for a pre-provisioned schema. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -749,9 +733,9 @@ Create a schedule once without reactivating an existing cancelled key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The complete schedule record. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -772,11 +756,11 @@ Read a schedule only within its application and owner scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -803,12 +787,12 @@ Apply owner filtering and keyset pagination in the database.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -829,10 +813,10 @@ Replace one schedule conditionally, preserving its immutable identity.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `CronRecord` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `CronRecord` | Required | The schedule with its replacement mutable fields. |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -853,11 +837,11 @@ Delete a schedule using the same owner predicate as reads.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -884,12 +868,12 @@ Page due schedules in database order without loading inactive rows.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `now` | `float` | Required |
-| `after` | `tuple[float, str] \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `after` | `tuple[float, str] \| None` | `None` | Cursor from the previous page as `(due time, schedule ID)`; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -919,28 +903,23 @@ Atomically enqueue an occurrence and advance its schedule revision.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `schedule_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `due_at` | `float` | Required |
-| `next_run_at` | `float` | Required |
-| `task` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `schedule_id` | `str` | Required | The schedule's `cron_` ID (`CronJob.id`). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `due_at` | `float` | Required | Scheduled time of this occurrence. Must equal the schedule's current `next_run_at`. |
+| `next_run_at` | `float` | Required | Next scheduled time after this occurrence. Must be later than `due_at`. |
+| `task` | `TaskRecord` | Required | The job to enqueue for this occurrence. Must match the schedule's owner, target, and arguments. |
 
 ```python
 from harnest.task import PostgresTaskStore
 
 store: PostgresTaskStore
 record = await store.commit_cron_occurrence(
-    application_id=...,
-    user_id=...,
-    schedule_id=...,
-    expected_revision=...,
-    due_at=...,
-    next_run_at=...,
-    task=...,
+    application_id=..., user_id=..., schedule_id=..., expected_revision=..., due_at=...,
+    next_run_at=..., task=...,
 )
 ```
 
@@ -956,9 +935,9 @@ Persist an immutable task identity, returning exact idempotent retries.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `TaskRecord` | Required | The job to persist. An identical submission returns the existing job. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -979,11 +958,11 @@ Read a scoped job; omitted user scope is reserved for trusted workers.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `user_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -1011,23 +990,20 @@ Claim disjoint batches and retire exhausted attempts after crashes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `queues` | `tuple[str, ...]` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `queues` | `tuple[str, ...]` | Required | Queue names to claim work from. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
+| `limit` | `int` | `1` | Maximum number of jobs to claim in this batch. |
 
 ```python
 from harnest.task import PostgresTaskStore
 
 store: PostgresTaskStore
 result = await store.claim_tasks(
-    application_id=...,
-    queues=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., queues=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -1050,24 +1026,20 @@ Renew only an unexpired attempt still owned by the calling worker.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
 
 ```python
 from harnest.task import PostgresTaskStore
 
 store: PostgresTaskStore
 result = await store.renew_task_lease(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., job_id=..., lease_token=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -1093,27 +1065,23 @@ Fence completion and retries; terminal transitions erase private input.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `status` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure_code` | `str \| None` | `None` |
-| `retry_at` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `status` | `str` | Required | `"completed"`, `"failed"`, or `"pending"` (retry later). `"pending"` requires `retry_at`. |
+| `result` | `Any` | `None` | JSON-safe result of a completed job. |
+| `failure_code` | `str \| None` | `None` | Short failure category for a failed job. |
+| `retry_at` | `float \| None` | `None` | When a `"pending"` job may run again, in UTC epoch seconds. |
 
 ```python
 from harnest.task import PostgresTaskStore
 
 store: PostgresTaskStore
 result = await store.finish_task(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    status=...,
+    application_id=..., job_id=..., lease_token=..., now=..., status=...,
 )
 ```
 
@@ -1129,12 +1097,12 @@ Cancel an owned nonterminal job and revoke any running attempt.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `now` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -1161,12 +1129,12 @@ Push owner, cursor, projection, ordering, and limit into one database query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -1193,12 +1161,12 @@ Read a bounded metadata projection with owner filtering in one SQL query.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of items to return. |
 
 ```python
 from harnest.task import PostgresTaskStore
@@ -1219,9 +1187,9 @@ TaskCallable(definition: TaskDefinition) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `definition` | `TaskDefinition` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `definition` | `TaskDefinition` | Required | The task's queue and retry settings. |
 
 ```python
 from harnest.task import TaskCallable
@@ -1300,11 +1268,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `Callable[..., Any]` | Required |
-| `queue` | `str` | Required |
-| `max_retries` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `Callable[..., Any]` | Required | The decorated function. |
+| `queue` | `str` | Required | Queue name from `@task(queue=...)`. |
+| `max_retries` | `int` | Required | Retry limit from `@task(max_retries=...)`. |
 
 ```python
 from harnest.task import TaskDefinition
@@ -1456,39 +1424,35 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `job_id` | `str` | Required |
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_name` | `str` | Required |
-| `queue` | `str` | Required |
-| `arguments` | `Mapping[str, Any]` | Required |
-| `invocation` | `Mapping[str, Any] \| None` | `None` |
-| `agent_permissions` | `tuple[str, ...] \| None` | `None` |
-| `trigger` | `str` | `'agent'` |
-| `status` | `str` | `'pending'` |
-| `scheduled_at` | `float` | `0.0` |
-| `max_retries` | `int` | `3` |
-| `attempt` | `int` | `0` |
-| `lease_token` | `str \| None` | `None` |
-| `lease_expires_at` | `float \| None` | `None` |
-| `result` | `Any` | `None` |
-| `failure_code` | `str \| None` | `None` |
-| `idempotency_key` | `str \| None` | `None` |
-| `created_at` | `float` | `0.0` |
-| `updated_at` | `float` | `0.0` |
-| `cron_schedule_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_name` | `str` | Required | Registered task name. |
+| `queue` | `str` | Required | Queue the job runs on. |
+| `arguments` | `Mapping[str, Any]` | Required | JSON-safe task arguments. Cleared when the job finishes. |
+| `invocation` | `Mapping[str, Any] \| None` | `None` | Invocation identity to restore when the job runs. Cleared when the job finishes. |
+| `agent_permissions` | `tuple[str, ...] \| None` | `None` | Agent Runtime Principal permissions to restore, if any. |
+| `trigger` | `str` | `'agent'` | What queued the job, such as `"agent"`, `"user"`, or `"cron"`. |
+| `status` | `str` | `'pending'` | `"pending"`, `"running"`, `"completed"`, `"failed"`, or `"cancelled"`. |
+| `scheduled_at` | `float` | `0.0` | Earliest run time, in UTC epoch seconds. |
+| `max_retries` | `int` | `3` | Retry limit. |
+| `attempt` | `int` | `0` | Number of claims so far, starting at one. |
+| `lease_token` | `str \| None` | `None` | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `lease_expires_at` | `float \| None` | `None` | When the current lease expires, in UTC epoch seconds. |
+| `result` | `Any` | `None` | Result of a completed job. |
+| `failure_code` | `str \| None` | `None` | Failure category of a failed job. |
+| `idempotency_key` | `str \| None` | `None` | Key that deduplicates submissions. |
+| `created_at` | `float` | `0.0` | When the job was queued, in UTC epoch seconds. |
+| `updated_at` | `float` | `0.0` | When the job last changed, in UTC epoch seconds. |
+| `cron_schedule_id` | `str \| None` | `None` | ID of the schedule that queued it, for cron occurrences. |
 
 ```python
 from harnest.task import TaskRecord
 
 record = TaskRecord(
-    job_id=...,
-    application_id=...,
-    user_id=...,
-    task_name=...,
-    queue=...,
+    job_id=..., application_id=..., user_id=..., task_name=..., queue=...,
     arguments=...,
 )
 ```
@@ -1571,9 +1535,9 @@ fingerprint so terminal payload cleanup cannot defeat deduplication.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `TaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `TaskRecord` | Required | The job to persist. An identical submission returns the existing job. |
 
 ```python
 from harnest.task import TaskStore
@@ -1594,11 +1558,11 @@ Read one scoped job; omitted user is a trusted worker-only lookup.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `user_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
 
 ```python
 from harnest.task import TaskStore
@@ -1634,23 +1598,20 @@ apply to returned claims.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `queues` | `tuple[str, ...]` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
-| `limit` | `int` | `1` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `queues` | `tuple[str, ...]` | Required | Queue names to claim work from. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
+| `limit` | `int` | `1` | Maximum number of jobs to claim in this batch. |
 
 ```python
 from harnest.task import TaskStore
 
 store: TaskStore
 result = await store.claim_tasks(
-    application_id=...,
-    queues=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., queues=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -1673,24 +1634,20 @@ Extend a running, unexpired matching lease; stale owners return false.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `lease_seconds` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `lease_seconds` | `float` | Required | How long the lease stays valid, in seconds. |
 
 ```python
 from harnest.task import TaskStore
 
 store: TaskStore
 result = await store.renew_task_lease(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    lease_seconds=...,
+    application_id=..., job_id=..., lease_token=..., now=..., lease_seconds=...,
 )
 ```
 
@@ -1720,27 +1677,23 @@ Stale owners return false and must never overwrite another attempt.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `lease_token` | `str` | Required |
-| `now` | `float` | Required |
-| `status` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure_code` | `str \| None` | `None` |
-| `retry_at` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `lease_token` | `str` | Required | Token issued with the claim. Only the current lease holder can renew or finish the job. |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
+| `status` | `str` | Required | `"completed"`, `"failed"`, or `"pending"` (retry later). `"pending"` requires `retry_at`. |
+| `result` | `Any` | `None` | JSON-safe result of a completed job. |
+| `failure_code` | `str \| None` | `None` | Short failure category for a failed job. |
+| `retry_at` | `float \| None` | `None` | When a `"pending"` job may run again, in UTC epoch seconds. |
 
 ```python
 from harnest.task import TaskStore
 
 store: TaskStore
 result = await store.finish_task(
-    application_id=...,
-    job_id=...,
-    lease_token=...,
-    now=...,
-    status=...,
+    application_id=..., job_id=..., lease_token=..., now=..., status=...,
 )
 ```
 
@@ -1759,12 +1712,12 @@ already have happened; cancellation prevents subsequent state commits.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `job_id` | `str` | Required |
-| `now` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `job_id` | `str` | Required | ID of the queued job (`TaskHandle.id`). |
+| `now` | `float` | Required | Current time in UTC epoch seconds. |
 
 ```python
 from harnest.task import TaskStore
@@ -1819,9 +1772,9 @@ safe_task_result(value: Any) -> Any
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | A task result to normalize to strict JSON. |
 
 ```python
 from harnest.task import safe_task_result

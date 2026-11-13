@@ -1,0 +1,52 @@
+# Curated details for /harnest/reference/api/tokens. See task.yaml for the format.
+
+TokenPolicy:
+  fields:
+    enabled: "`False` turns off counting, observers, reductions, and enforcement."
+    observe: Emit reports to `observer`, or to the `harnest.tokens` logger.
+    enforce: Stop calls that exceed the configured budgets and apply the output ceiling.
+    max_input_tokens: Maximum counted input after reductions, including instructions and tool descriptions.
+    max_output_tokens: Output ceiling sent to the provider. A stricter existing limit is kept.
+    output_token_parameter: LangGraph only. Request parameter for the output ceiling, such as `max_tokens` or `max_completion_tokens`.
+    max_model_calls: Maximum model attempts per agent per invocation, including failed attempts.
+    context_window: Maximum counted input plus reserved output.
+    reserve_output_tokens: Capacity reserved for the response. The larger of this and `max_output_tokens` is used.
+    keep_recent_turns: Keep only this many recent user turns and their exchanges. Instructions are always kept.
+    max_tool_result_chars: Character cap for each tool-response text, with a truncation marker.
+    request_transform: Function that returns a modified `TokenRequest` before the call.
+    tool_selector: Function that returns the tool names to expose on this call.
+    count_tokens: Function that returns a `TokenCount` for a request.
+    observer: Function that receives each content-free `TokenReport`.
+
+TokenCount:
+  fields:
+    tokens: Number of tokens.
+    estimated: Whether the count is an estimate rather than provider-reported usage.
+
+TokenRequest:
+  fields:
+    model: Model ID.
+    messages: Messages in the framework's own shape.
+    system: System instructions.
+    tools: Tool descriptions offered to the model.
+    settings: Generation settings.
+    context_metadata: Invocation metadata for strategies.
+
+TokenReport:
+  fields:
+    phase: Point in the call the report describes.
+    model_calls: Model attempts so far in this invocation.
+    input_before: Input count before reductions.
+    input_after: Input count after reductions.
+    exceeded: Budgets that were exceeded.
+    messages_removed: Messages removed by reductions.
+    tools_removed: Tools removed by `tool_selector`.
+    input_tokens: Provider-reported input tokens.
+    output_tokens: Provider-reported output tokens.
+    total_tokens: Provider-reported total tokens.
+    cached_input_tokens: Provider-reported cached input tokens.
+    reasoning_tokens: Provider-reported reasoning tokens.
+
+token_policy_scope:
+  params:
+    policy: Policy to apply in this block and its child tasks, or `None` to turn token policy off.

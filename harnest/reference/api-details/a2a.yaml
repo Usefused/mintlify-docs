@@ -1,0 +1,87 @@
+# Curated details for /harnest/reference/api/a2a. See task.yaml for the format.
+
+A2AClient:
+  params:
+    card_url: URL of the remote agent's Agent Card.
+    card: An Agent Card you already have, instead of fetching `card_url`.
+    timeout: Time limit for a call, including polling, in seconds.
+    poll_interval: Seconds between polls while waiting for a task to finish.
+    streaming: Use streaming when the remote agent supports it.
+    allowed_hosts: Extra hosts the Agent Card's interface may point to. Other hosts are rejected.
+    allow_insecure: Allow plain HTTP for hosts other than loopback.
+    http_client: Existing `httpx.AsyncClient` to use.
+
+A2AClient.send:
+  params:
+    value: The message to send, as text or data.
+    task_id: Continue an existing task.
+    metadata: Metadata sent with the message.
+    accepted_output_modes: Output MIME types you accept.
+    return_immediately: Ask the remote agent to return a task right away instead of waiting.
+    wait: Poll a returned task until it completes, is interrupted, or times out.
+    credential: Credential to send with this request.
+
+A2AClient.stream:
+  params:
+    value: The message to send, as text or data.
+    task_id: Continue an existing task.
+    metadata: Metadata sent with the message.
+    credential: Credential to send with this request.
+
+A2AClient.get_task:
+  params:
+    task_id: ID of the remote task.
+    history_length: Number of history messages to include.
+    credential: Credential to send with this request.
+
+A2AClient.list_tasks:
+  params:
+    page_size: Maximum number of tasks to return.
+    page_token: Token from the previous page; `""` starts from the beginning.
+    context_id: Only list tasks in this context; `""` lists all.
+    include_artifacts: Include task artifacts in the results.
+    credential: Credential to send with this request.
+
+A2AClient.cancel_task:
+  params:
+    task_id: ID of the remote task.
+    credential: Credential to send with this request.
+
+A2AClient.subscribe:
+  params:
+    task_id: ID of the remote task.
+    credential: Credential to send with this request.
+
+A2AResult:
+  fields:
+    text: Text of the reply.
+    data: Structured data in the reply.
+    task_id: ID of the tracked task, or `None` for a direct message.
+    state: Task state, such as `completed`.
+    message: The raw A2A message, for a direct reply.
+    task: The raw A2A task, for a tracked reply.
+
+A2AUpdate:
+  fields:
+    kind: Kind of update.
+    task_id: ID of the task the update belongs to.
+    state: Task state after the update.
+    text: Text in the update.
+    data: Structured data in the update.
+
+RemoteAgent:
+  params:
+    name: Node name in the graph.
+    card_url: URL of the remote agent's Agent Card.
+    description: Short description of the remote agent.
+    audience: Credential audience for an authenticated remote agent.
+    scopes: Credential scopes for an authenticated remote agent.
+    timeout: Time limit for a call, in seconds.
+    allowed_hosts: Extra hosts the Agent Card's interface may point to.
+    allow_insecure: Allow plain HTTP for hosts other than loopback.
+    card: An Agent Card you already have, instead of fetching `card_url`.
+
+RemoteAgent.__call__:
+  params:
+    value: Input from the previous graph node.
+    context: Graph context of the current turn.

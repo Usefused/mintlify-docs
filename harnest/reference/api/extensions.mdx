@@ -47,11 +47,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `descriptor` | `ExtensionDescriptor` | Required |
-| `module` | `ModuleType` | Required |
-| `extension` | `Extension[ExtensionContext]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `descriptor` | `ExtensionDescriptor` | Required | Descriptor of the installed extension. |
+| `module` | `ModuleType` | Required | The extension's namespace module. |
+| `extension` | `Extension[ExtensionContext]` | Required | The extension's singleton instance. |
 
 ```python
 from harnest.extensions import ActivatedExtension
@@ -94,9 +94,9 @@ Initialize application-scoped resources after dependencies start.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `'ExtensionStartContext'` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `'ExtensionStartContext'` | Required | Startup context with access to custom stores. |
 
 ```python
 from harnest.extensions import Extension
@@ -136,9 +136,9 @@ Adapt the managed invocation base to an extension-specific context.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `context` | `ExtensionContext` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `context` | `ExtensionContext` | Required | The managed invocation context to adapt. |
 
 ```python
 from harnest.extensions import Extension
@@ -174,9 +174,9 @@ ExtensionContext(extension_name: str) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `extension_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `extension_name` | `str` | Required | Name of the installed extension. |
 
 ```python
 from harnest.extensions import ExtensionContext
@@ -305,7 +305,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.extensions import ExtensionStartContext
 
-context: ExtensionStartContext  # returned by Harnest, not constructed directly
+context: ExtensionStartContext  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -320,10 +320,10 @@ Return one named custom store without exposing the registry.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `expected_type` | `type[Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the custom store, as registered with `@lifecycle.storage.custom(name)`. |
+| `expected_type` | `type[Any] \| None` | `None` | Type the store must be. Raises `TypeError` when it is not. |
 
 ```python
 from harnest.extensions import ExtensionStartContext
@@ -359,9 +359,9 @@ activate_extensions(descriptors: Sequence[ExtensionDescriptor]) -> tuple[Activat
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `descriptors` | `Sequence[ExtensionDescriptor]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `descriptors` | `Sequence[ExtensionDescriptor]` | Required | Extensions to activate, in dependency order. |
 
 ```python
 from harnest.extensions import activate_extensions
@@ -381,11 +381,11 @@ extension_mutation(extension_name: str, operation: str, *, trigger: Literal['age
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `extension_name` | `str` | Required |
-| `operation` | `str` | Required |
-| `trigger` | `Literal['agent', 'user']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `extension_name` | `str` | Required | Name of the extension making the change. |
+| `operation` | `str` | Required | Name of the durable operation, such as `"documents.replace"`. |
+| `trigger` | `Literal['agent', 'user']` | Required | Who initiated the change, `"user"` or `"agent"`. |
 
 ```python
 from harnest.extensions import extension_mutation
@@ -406,9 +406,9 @@ extension_namespaces(descriptors: Sequence[ExtensionDescriptor]) -> Iterator[tup
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `descriptors` | `Sequence[ExtensionDescriptor]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `descriptors` | `Sequence[ExtensionDescriptor]` | Required | Extensions to activate for this operation. |
 
 ```python
 from harnest.extensions import extension_namespaces
@@ -429,9 +429,9 @@ release_extensions(descriptors: Sequence[ExtensionDescriptor]) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `descriptors` | `Sequence[ExtensionDescriptor]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `descriptors` | `Sequence[ExtensionDescriptor]` | Required | Extensions to release. |
 
 ```python
 from harnest.extensions import release_extensions

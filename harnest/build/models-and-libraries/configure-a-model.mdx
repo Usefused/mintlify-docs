@@ -27,9 +27,7 @@ root_agent = Agent(
 
 Before calling the model, export `OPENAI_MODEL` and `OPENAI_BASE_URL` in the shell that runs Harnest, or replace the example values in `config.yaml`. For local commands, exported settings take precedence over the two generated example values. Explicit project values take precedence over shell settings. If a configured URL reports a connection error, check that the process running Harnest can reach the model server and that the URL includes its API base path. Select a tool-capable model for agents that use Agent Tools. Compilation and offline tests do not contact this endpoint.
 
-<Note>
-  `OllamaModel` has been removed. Replace its import and `from_environment()` call with [`LiteLLMModel.from_openai_environment()`](/harnest/reference/api/model#litellmmodel-from_openai_environment). Rename `OLLAMA_MODEL`, `OLLAMA_BASE_URL`, and any `OLLAMA_API_KEY` configuration to the `OPENAI_` names above. Set the compatible API URL, not the native API root: for a local Ollama server, use `http://localhost:11434/v1`. Review explicit constructor options against your endpoint's compatible API; native `chat=False` is not a compatible chat option. Existing agents require this explicit migration; Harnest does not guess a new endpoint or credential mapping.
-</Note>
+For a local Ollama server, set `OPENAI_BASE_URL=http://localhost:11434/v1` and `OPENAI_MODEL` to the installed model ID.
 
 After configuring the model and endpoint, run from your agent folder:
 
@@ -57,7 +55,7 @@ spec:
       secretRef: projects/example/secrets/model-api-key/latest
 ```
 
-The deployment engine injects `secretRef` as `OPENAI_API_KEY`. Local commands require the variable in their process environment. Ensure the deployed agent can reach the endpoint; `localhost` means its own host or container.
+The deployment engine injects `secretRef` as `OPENAI_API_KEY`. Local commands require the variable in their process environment. Use an endpoint reachable from the deployed agent.
 
 ## Use explicit model configuration
 
@@ -79,8 +77,6 @@ The helper adds the `openai/` prefix: `team/your-model` becomes `openai/team/you
 ## Reuse an agent's model client
 
 Compatible eval judges and text simulators reuse your `LiteLLMModel` transport, including lifecycle-owned clients, API URLs, credentials, TLS options, and headers. Generation settings remain independent.
-
-Judges and simulators keep their own generation settings. Reusing a transport does not copy the agent's temperature, sampling, or output options over the authored eval settings.
 
 Choosing a transport does not change the eval model ID. For example, an explicitly configured `openai/my-judge-model` can use an agent's custom OpenAI-compatible gateway while still requesting `my-judge-model`.
 

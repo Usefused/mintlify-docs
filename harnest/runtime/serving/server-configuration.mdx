@@ -85,7 +85,7 @@ Choose the value from load tests that use representative agents and production d
 | Playground toggle | Durable storage |
 | Local operator settings | Replicas and network policy |
 
-Legacy `spec.resources` and `spec.scaling` do not override HTTP settings. See [retired settings](/harnest/build/project-configuration#retired-resource-and-scaling-fields). Use [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning) for infrastructure limits and replicas.
+Use [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning) for infrastructure limits and replicas.
 
 <Warning>
   `allowRemote: true` only permits the bind. It does not add authentication, TLS, or network policy.
@@ -93,19 +93,13 @@ Legacy `spec.resources` and `spec.scaling` do not override HTTP settings. See [r
 
 Explicit serve flags temporarily override server settings.
 
-## Existing projects with `server.yaml`
+## Separate server configuration
 
-Existing authored `server.yaml` files remain supported. Files without a `live` field retain their previous WebSocket access; set `live: false` in that file to disable it. To consolidate a project:
-
-1. Move its `http`, `limits`, and `playground` mappings under a root `server:` section in `config.yaml`. Add `live: true` there if you want to retain WebSocket access. You can omit other settings that match the defaults.
-2. Leave out the legacy file's `apiVersion` and `kind` fields.
-3. Remove the authored `server.yaml` and compile again.
-
-Harnest rejects projects that declare both `config.yaml` → `server` and an authored `server.yaml`, even if the inline section is empty. Choose one source rather than relying on precedence. New projects and upgrades do not create a server defaults file.
+An authored `server.yaml` can supply server settings. It is mutually exclusive with the root `server:` section in `config.yaml`. In `server.yaml`, `live` defaults to `true`. See [consolidating server configuration](/harnest/get-started/migrate#consolidate-server-configuration) to use `config.yaml`.
 
 ## Compiled artifacts
 
 Compilation writes `server.yaml` beside the launcher. Operators can replace it and restart, or edit project configuration and recompile.
 
-Python applications that directly embed `create_fastapi_app` or `create_neutral_app` can pass `live_enabled=False` to disable WebSockets. These embedding APIs keep their historical `True` default; the standalone launcher always passes its resolved server setting.
+Python applications that directly embed `create_fastapi_app` or `create_neutral_app` can pass `live_enabled=False` to disable WebSockets. `live_enabled` defaults to `True` in these embedding APIs; the standalone launcher passes its resolved server setting.
 Pass `agent_principal_required=True` to apply the same [invocation grant policy](/harnest/reference/server-configuration) when embedding the server directly.

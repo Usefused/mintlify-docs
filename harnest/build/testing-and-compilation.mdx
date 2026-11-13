@@ -142,7 +142,7 @@ Use agent templates for model-facing instructions and skills; copying a team gui
 
 Selected optional dependencies use a separate `harnest-compile.lock`, synchronized into the same agent environment as the runtime profile. Switching between compile and runtime profiles replaces the installed dependency set; it does not create another environment. Refresh it with `harnest env sync AGENT_DIR --profile compile`. Native runtime packs retain their own resolution constrained by production locks.
 
-[Project packs](/harnest/build/project-packs/create#declare-compilation-dependencies) can generate and migrate these declarations through their existing file and YAML operations. Pack authoring and migration tools stay in the authoring environment unless you explicitly declare them as runtime dependencies.
+[Packs](/harnest/build/project-packs/create#declare-compilation-dependencies) can generate and migrate these declarations through their existing file and YAML operations. Pack authoring and migration tools stay in the authoring environment unless you explicitly declare them as runtime dependencies.
 
 ### Inspect a build report
 

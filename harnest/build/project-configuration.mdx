@@ -20,24 +20,24 @@ Keep project and server settings together in `config.yaml`. The Agent Card owns 
 
 ## Fix folder validation errors
 
-Managed feature folders are configuration, not general storage. Harnest checks the files it finds there so that a misplaced file or unfinished declaration does not silently disappear from your agent.
+Harnest validates declarations in managed feature folders during discovery.
 
 Validation errors identify the file and required repair. Prefix notes, backups, and unused examples with `_`, or move them outside discovery folders.
 
 | Problem | Repair |
 |---|---|
 | `sandbox/notes.txt` is treated as a sandbox resource | Rename the note to `_notes.txt` or move it elsewhere. Put each active sandbox in `sandbox/<name>.py`, define a matching variable, and assign the name with [`Agent(sandboxes=["<name>"])`](/harnest/reference/api/agent#agent). |
-| `tools/search.py` “must export 'search'” | Define the intended tool as a top-level function or variable named `search`. “Export” means the named Python declaration Harnest looks for, not another file. |
+| `tools/search.py` “must export 'search'” | Define the intended tool as a top-level function or variable named `search`. |
 | A skill folder has no `SKILL.md` | Create the skill's instruction file with that exact uppercase filename. |
 | A Python file is named `search-customer.py` | Use a Python-compatible name such as `search_customer.py`, then update its matching declaration and imports. |
 
-An underscore prefix excludes entries from discovery but does not make invalid code usable. Follow each sample’s activation instructions. Shared Python belongs in `lib/`; underscore-prefixed modules in `lib/` or `models/` remain importable. Symlink restrictions still apply.
+Underscore-prefixed entries are excluded from discovery. Shared Python belongs in `lib/`; underscore-prefixed modules in `lib/` or `models/` remain importable.
 
 See [generated examples](/harnest/get-started/initialize) and [Sandboxing](/harnest/build/sandboxing) for feature setup.
 
 ## `config.yaml`
 
-`config.yaml` selects the entrypoint, framework, authoring mode, Python runtime, environment, secret references, and permissions. `harnest init` never generates `spec.resources` or `spec.scaling`; existing blocks are silently ignored:
+`config.yaml` selects the entrypoint, framework, authoring mode, Python runtime, environment, secret references, and permissions:
 
 ```yaml
 apiVersion: harnest.dev/v1alpha1
@@ -58,25 +58,11 @@ Use `adk` or `langgraph`. Managed mode is the portable default; advanced mode ac
 `interfaces.cli: true` explicitly enables `harnest run` and the compiled
 launcher's `run` command. Omit it for a server-only artifact.
 
-Set CPU, memory, and `replicas` in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning). Legacy `spec.resources` and `spec.scaling` are ignored. The development server does not provision infrastructure, scale replicas, resolve deployment secrets, or enforce network permissions.
+Configure CPU, memory, and `replicas` in [`harnest-deployment.yaml`](/harnest/runtime/serving/provisioning).
 
 <Card title="Configure a model" icon="microchip" href="/harnest/build/models-and-libraries/configure-a-model">
   Choose the model and endpoint, supply local or deployment credentials, and configure eval model reuse.
 </Card>
-
-## Retired resource and scaling fields
-
-You can remove these ignored blocks from `spec` when cleaning up an existing project. Configure any limits you need explicitly:
-
-| Removed setting | Where to configure it |
-|---|---|
-| `resources.cpu`, `resources.memory` | Workload `resources.cpus` and `resources.memory` in `harnest-deployment.yaml` |
-| `resources.timeoutSeconds` | Root `server.http.requestTimeoutSeconds` in `config.yaml` |
-| `resources.maxConcurrentRequests` | Root `server.http.maxConcurrentRequests` in `config.yaml` |
-| `scaling.minReplicas`, `scaling.maxReplicas` | Workload `replicas` for a fixed instance count; configure autoscaling through your deployment platform |
-| `resources.ephemeralStorage` | Scratch-storage policy in your container or Kubernetes deployment; no replacement in agent `config.yaml` |
-
-Remove ignored settings and configure only the limits you need. They neither block upgrades nor supply deployment defaults.
 
 ## Server settings in `config.yaml`
 
@@ -90,7 +76,7 @@ server:
     port: 9090
 ```
 
-This enables WebSockets and changes the port. `${NAME}` values resolve and undergo type checks at startup. See [Server configuration](/harnest/runtime/serving/server-configuration) for HTTP limits, defaults, and legacy `server.yaml` migration.
+`${NAME}` values resolve and undergo type checks at startup. See [Server configuration](/harnest/runtime/serving/server-configuration) for HTTP limits and defaults.
 
 ## `agent-card.yaml`
 
@@ -136,7 +122,7 @@ harnest env sync AGENT_DIR --profile eval --frozen
 ```yaml harnest.lock
 apiVersion: harnest.dev/v1alpha1
 kind: ProjectLock
-projectSchema: 5
+projectSchema: 7
 framework:
   name: langgraph
   distribution: langgraph

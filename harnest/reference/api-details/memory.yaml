@@ -1,0 +1,48 @@
+# Curated details for /harnest/reference/api/memory. See task.yaml for the format.
+# Interface descriptions here are reused by every store that implements them.
+
+MemoryStore.get:
+  params:
+    key: Key of the memory record within the scope.
+
+MemoryStore.list:
+  params:
+    limit: Maximum number of records to return, from 1 to 100.
+
+MemoryStore.search:
+  params:
+    query: Text to find. Matching is literal and case-sensitive, not semantic.
+    limit: Maximum number of records to return, from 1 to 100.
+
+MemoryStore.delete:
+  params:
+    key: Key of the memory record within the scope.
+
+MemoryStore.purge_expired:
+  params:
+    limit: Maximum number of keys to sweep in this call.
+
+MemoryScope:
+  fields:
+    namespace: Logical collection within the application and user.
+
+MemoryRecord:
+  fields:
+    key: Key of the memory within its namespace.
+    content: Remembered text.
+    metadata: Metadata stored with the memory.
+    source: Provenance of the write, such as the invocation that saved it.
+    revision: Revision for conditional writes and deletes.
+    created_at: When the memory was first written, in UTC epoch seconds.
+    updated_at: When the memory last changed, in UTC epoch seconds.
+    expires_at: When the memory expires, in UTC epoch seconds, or `None`.
+
+MemoryPage:
+  fields:
+    items: Memories on this page.
+    next_cursor: Pass as `after` for the next page, even when this page is empty. `None` at the end.
+
+MemoryCleanupPage:
+  fields:
+    deleted: Records removed in this sweep.
+    next_cursor: Pass as `after` to continue, even when `deleted` is zero. `None` at the end.

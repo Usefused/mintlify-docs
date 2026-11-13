@@ -1,0 +1,35 @@
+# Curated details for /harnest/reference/api/orchestrator. See task.yaml for the format.
+
+AgentSource:
+  fields:
+    root: Folder containing agent directories.
+    include: Glob patterns of agent directories to include.
+    exclude: Glob patterns of agent directories to exclude.
+
+AgentSource.directory:
+  params:
+    root: Folder containing agent directories.
+    include: Glob patterns of agent directories to include.
+    exclude: Glob patterns of agent directories to exclude.
+
+Orchestrator:
+  fields:
+    sources: Agent sources. A string is a single agent directory.
+    parallelism: Maximum agents to deploy at once, recorded in the plan.
+    fail_fast: Stop at the first failure, recorded in the plan.
+    labels: Labels recorded in the plan.
+
+define_orchestrator:
+  params:
+    agents: Agent sources. A string is a single agent directory.
+    parallelism: Maximum agents to deploy at once, recorded in the plan.
+    fail_fast: Stop at the first failure, recorded in the plan.
+    labels: Labels recorded in the plan.
+
+Orchestrator.plan:
+  params:
+    project_root: Project root that the sources are relative to.
+
+Orchestrator.to_json:
+  params:
+    project_root: Project root that the sources are relative to.

@@ -120,14 +120,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `call_id` | `str` | Required |
-| `grant` | `PendingApproval \| None` | `None` |
-| `store` | `'InMemoryApprovalStore \| None'` | `None` |
-| `run` | `'ApprovalRun \| None'` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `call_id` | `str` | Required | ID of the protected tool call. |
+| `grant` | `PendingApproval \| None` | `None` | One-time approval grant for a resumed call. |
+| `store` | `'InMemoryApprovalStore \| None'` | `None` | Approval store for this invocation. |
+| `run` | `'ApprovalRun \| None'` | `None` | The invocation's approval run. |
 
 ```python
 from harnest.agent.approval import ApprovalExecution
@@ -147,9 +147,9 @@ Authorize a challenge through a live store or supplied one-time grant.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `challenge` | `ApprovalChallenge` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `challenge` | `ApprovalChallenge` | Required | The approval challenge to authorize. |
 
 ```python
 from harnest.agent.approval import ApprovalExecution
@@ -201,12 +201,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `message` | `str` | Required |
-| `timeout_seconds` | `int` | `900` |
-| `on_timeout` | `Literal['deny']` | `'deny'` |
-| `tools` | `tuple[str, ...] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `message` | `str` | Required | Message shown to the approver. |
+| `timeout_seconds` | `int` | `900` | Seconds to wait for a decision. |
+| `on_timeout` | `Literal['deny']` | `'deny'` | What happens when no decision arrives in time. Only `"deny"` is supported. |
+| `tools` | `tuple[str, ...] \| None` | `None` | Remote tools the policy protects. `None` protects every tool. |
 
 ```python
 from harnest.agent.approval import ApprovalPolicy
@@ -226,9 +226,9 @@ Report whether this policy protects the named remote tool.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the remote tool. |
 
 ```python
 from harnest.agent.approval import ApprovalPolicy
@@ -283,7 +283,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.agent.approval import ApprovalRun
 
-run: ApprovalRun  # returned by Harnest, not constructed directly
+run: ApprovalRun  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -303,11 +303,11 @@ InMemoryApprovalStore(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `clock` | `Callable[[], float]` | `time` |
-| `max_pending` | `int` | `1024` |
-| `tombstone_seconds` | `float` | `60` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `clock` | `Callable[[], float]` | `time` | Function returning the current time, for tests. |
+| `max_pending` | `int` | `1024` | Maximum unresolved approvals held at once. |
+| `tombstone_seconds` | `float` | `60` | How long a resolved approval is remembered, to reject replays. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -327,11 +327,11 @@ Create an invocation-scoped approval suspension channel.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `call_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `call_id` | `str` | Required | ID of the protected tool call. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -359,13 +359,13 @@ Register a bounded one-time approval challenge.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `challenge` | `ApprovalChallenge` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `call_id` | `str` | Required |
-| `invocation` | `Any` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `challenge` | `ApprovalChallenge` | Required | The approval challenge to register. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `call_id` | `str` | Required | ID of the protected tool call. |
+| `invocation` | `Any` | `None` | The invocation that is waiting. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -386,10 +386,10 @@ Suspend an invocation until its challenge is approved or rejected.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `run` | `ApprovalRun` | Required |
-| `challenge` | `ApprovalChallenge` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `run` | `ApprovalRun` | Required | The invocation's approval run. |
+| `challenge` | `ApprovalChallenge` | Required | The approval challenge to wait for. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -416,12 +416,12 @@ Commit an approval decision for the matching user-owned challenge.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `approval_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `decision` | `Decision` | Required |
-| `deliver` | `bool` | `True` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `approval_id` | `str` | Required | ID of the approval, from the `requires_action` response. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `decision` | `Decision` | Required | `"approve"` or `"deny"`. |
+| `deliver` | `bool` | `True` | Resume the waiting invocation immediately. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -442,10 +442,10 @@ Deliver a committed decision to its suspended invocation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `pending` | `PendingApproval` | Required |
-| `decision` | `Decision` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pending` | `PendingApproval` | Required | The pending approval. |
+| `decision` | `Decision` | Required | The committed decision. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -466,9 +466,9 @@ Return the live invocation associated with a pending challenge.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `pending` | `PendingApproval` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pending` | `PendingApproval` | Required | The pending approval. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -489,10 +489,10 @@ Expose only live challenges owned by this principal and session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -513,9 +513,9 @@ Require resumed execution to have reached the approved action.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `pending` | `PendingApproval` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pending` | `PendingApproval` | Required | The pending approval. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -536,9 +536,9 @@ Mark an approved action as successfully executed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `pending` | `PendingApproval` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pending` | `PendingApproval` | Required | The pending approval. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -559,9 +559,9 @@ Mark an approved action as failed during execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `pending` | `PendingApproval` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pending` | `PendingApproval` | Required | The pending approval. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -582,9 +582,9 @@ Cancel all unresolved challenges and work for one invocation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `run` | `ApprovalRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `run` | `ApprovalRun` | Required | The invocation's approval run. |
 
 ```python
 from harnest.agent.approval import InMemoryApprovalStore
@@ -637,7 +637,7 @@ Fields (`—` means no declared default):
 ```python
 from harnest.agent.approval import PendingApproval
 
-approval: PendingApproval  # returned by Harnest, not constructed directly
+approval: PendingApproval  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -671,9 +671,9 @@ approval_execution(execution: ApprovalExecution) -> Iterator[None]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `execution` | `ApprovalExecution` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `execution` | `ApprovalExecution` | Required | The approval capability to activate. |
 
 ```python
 from harnest.agent.approval import approval_execution
@@ -694,9 +694,9 @@ approval_policy(value: Any) -> ApprovalPolicy | None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `Any` | Required | The function or MCP `client()` factory to inspect. |
 
 ```python
 from harnest.agent.approval import approval_policy
@@ -721,21 +721,18 @@ async authorize_mcp(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `client_name` | `str` | Required |
-| `tool_name` | `str` | Required |
-| `arguments` | `Mapping[str, Any]` | Required |
-| `policy` | `ApprovalPolicy` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `client_name` | `str` | Required | Name of the MCP client. |
+| `tool_name` | `str` | Required | Name of the remote tool. |
+| `arguments` | `Mapping[str, Any]` | Required | The call's arguments. |
+| `policy` | `ApprovalPolicy` | Required | The client's approval policy. |
 
 ```python
 from harnest.agent.approval import authorize_mcp
 
 approval = await authorize_mcp(
-    client_name=...,
-    tool_name=...,
-    arguments=...,
-    policy=...,
+    client_name=..., tool_name=..., arguments=..., policy=...,
 )
 ```
 
@@ -751,11 +748,11 @@ bind_tool_arguments(function: Callable[..., Any], args: tuple[Any, ...], kwargs:
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `Callable[..., Any]` | Required |
-| `args` | `tuple[Any, ...]` | Required |
-| `kwargs` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `Callable[..., Any]` | Required | The tool function. |
+| `args` | `tuple[Any, ...]` | Required | Positional arguments of the call. |
+| `kwargs` | `Mapping[str, Any]` | Required | Keyword arguments of the call. |
 
 ```python
 from harnest.agent.approval import bind_tool_arguments
@@ -775,9 +772,9 @@ record_approved_execution(grant: PendingApproval | None) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `grant` | `PendingApproval \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `grant` | `PendingApproval \| None` | Required | The one-time approval grant, if any. |
 
 ```python
 from harnest.agent.approval import record_approved_execution
@@ -797,9 +794,9 @@ record_approved_failure(grant: PendingApproval | None) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `grant` | `PendingApproval \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `grant` | `PendingApproval \| None` | Required | The one-time approval grant, if any. |
 
 ```python
 from harnest.agent.approval import record_approved_failure
@@ -830,18 +827,20 @@ request_human_approval(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `action` | `str` | Required |
-| `message` | `str` | Required |
-| `arguments` | `Mapping[str, Any] \| None` | `None` |
-| `timeout_seconds` | `int` | `900` |
-| `on_timeout` | `Literal['deny']` | `'deny'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `action` | `str` | Required | Stable, non-sensitive ID of the protected operation, such as `"typescript.execute"`. |
+| `message` | `str` | Required | Message shown to the approver. |
+| `arguments` | `Mapping[str, Any] \| None` | `None` | Serializable values that bind the approval to this exact operation. Only their hash is kept. |
+| `timeout_seconds` | `int` | `900` | Seconds to wait for a decision. |
+| `on_timeout` | `Literal['deny']` | `'deny'` | What happens when no decision arrives in time. Only `"deny"` is supported. |
 
 ```python
 from harnest.agent.approval import request_human_approval
 
-async with request_human_approval(action=..., message=...):
+async with request_human_approval(
+    action="typescript.execute", message="Run this code?",
+):
     ...
 ```
 
@@ -863,18 +862,19 @@ require_human_approval(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `message` | `str` | Required |
-| `timeout_seconds` | `int` | `900` |
-| `on_timeout` | `Literal['deny']` | `'deny'` |
-| `tools` | `Sequence[str] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `message` | `str` | Required | Message shown to the approver. It can reference tool arguments, such as `"Approve deleting {customer_id}?"`. |
+| `timeout_seconds` | `int` | `900` | Seconds to wait for a decision. |
+| `on_timeout` | `Literal['deny']` | `'deny'` | What happens when no decision arrives in time. Only `"deny"` is supported. |
+| `tools` | `Sequence[str] \| None` | `None` | On an MCP `client()` factory, only these remote tools need approval. `None` protects every tool. |
 
 ```python
 from harnest.agent.approval import require_human_approval
 
-@require_human_approval(message=...)
-def my_function():
+@require_human_approval(message="Approve deleting {customer_id}?")
+def delete_customer(customer_id: str):
+    """Delete one customer."""
     ...
 ```
 
@@ -890,14 +890,16 @@ wrap_approved_tool(function: F) -> F
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `function` | `F` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `function` | `F` | Required | The tool function to gate. |
 
 ```python
 from harnest.agent.approval import wrap_approved_tool
 
-result = wrap_approved_tool(function=...)
+@wrap_approved_tool
+def my_function():
+    ...
 ```
 
 </Accordion>

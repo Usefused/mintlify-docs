@@ -1,0 +1,76 @@
+# Curated details for /harnest/reference/api/assets. See task.yaml for the format.
+# Interface descriptions here are reused by every store that implements them.
+
+AssetStore.save:
+  params: &save_params
+    media_type: MIME type of the bytes, such as `"image/png"`.
+    chunks: Async iterable of byte chunks to store, in order.
+    metadata: Optional media details, such as width, height, duration, or page count.
+    retention_seconds: Delete the asset after this many seconds. `None` uses the store's default retention.
+    path: Storage-specific path hint. Must be a safe relative path.
+
+AssetStore.stat:
+  params: &asset_id_param
+    asset_id: ID of the stored asset.
+
+AssetStore.open:
+  params:
+    asset_id: ID of the stored asset.
+
+AssetStore.delete:
+  params:
+    asset_id: ID of the stored asset.
+
+AssetURLStorage.signed_url:
+  params:
+    asset_id: ID of the stored asset.
+    expires_in: How long the URL stays valid, in seconds.
+
+Stored:
+  fields:
+    store: Name of the asset store for this field, registered with `@lifecycle.storage.assets(name)`.
+    path: Storage-specific path hint.
+    expires_in: Lifetime of each model-facing signed URL, in seconds.
+    retention: Requested lifetime of the stored bytes.
+
+AssetMediaMetadata:
+  fields:
+    width: Width in pixels.
+    height: Height in pixels.
+    duration_seconds: Length in seconds.
+    page_count: Number of pages.
+    frame_count: Number of frames.
+    channel_count: Number of audio channels.
+    sample_rate_hz: Audio sample rate in hertz.
+
+AssetRecord:
+  fields:
+    asset_id: ID of the stored asset.
+    scope: User and session that own the asset.
+    media_type: MIME type of the bytes.
+    size_bytes: Size in bytes.
+    created_at: When the asset was stored.
+    expires_at: When the asset expires, if it has a retention period.
+    metadata: Media details, such as width or duration.
+
+MemoryAssetStore:
+  params:
+    max_asset_bytes: Largest single asset, in bytes.
+    max_total_bytes: Total bytes held across all assets.
+    read_chunk_bytes: Chunk size when streaming bytes back, in bytes.
+    default_retention_seconds: Retention used when a save does not set one. `None` keeps assets until deleted.
+    clock: Function returning the current time, for tests.
+    token_factory: Function that generates the random part of new asset IDs, for tests.
+
+# AssetStorage is the same interface under its newer name.
+AssetStorage.save:
+  params: *save_params
+
+AssetStorage.stat:
+  params: *asset_id_param
+
+AssetStorage.open:
+  params: *asset_id_param
+
+AssetStorage.delete:
+  params: *asset_id_param

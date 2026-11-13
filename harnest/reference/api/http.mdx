@@ -32,7 +32,7 @@ Obtain this object from the owning Harnest API; its constructor includes runtime
 ```python
 from harnest.http import AgentInvoker
 
-invoker: AgentInvoker  # returned by Harnest, not constructed directly
+invoker: AgentInvoker  # obtained from a Harnest API, not constructed directly
 ```
 
 </Accordion>
@@ -54,13 +54,13 @@ Invoke with an optional application-authorized runtime principal.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `connection` | `Any` | Required |
-| `input` | `Any` | Required |
-| `session_id` | `str \| None` | `None` |
-| `metadata` | `Mapping[str, Any] \| None` | `None` |
-| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `connection` | `Any` | Required | The incoming HTTP or WebSocket connection, used for authentication. |
+| `input` | `Any` | Required | Input for the root agent. |
+| `session_id` | `str \| None` | `None` | ID of the Harnest session (one conversation), or `None` when there is none. |
+| `metadata` | `Mapping[str, Any] \| None` | `None` | Public request metadata. |
+| `agent_principal` | `AgentRuntimePrincipal \| None` | `None` | Limits which capabilities the agent may use. |
 
 ```python
 from harnest.http import AgentInvoker
@@ -105,28 +105,23 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `status` | `str` | Required |
-| `output_text` | `str` | Required |
-| `output` | `tuple[Mapping[str, Any], ...]` | Required |
-| `metadata` | `Mapping[str, Any]` | Required |
-| `result` | `Any` | `None` |
-| `required_action` | `Mapping[str, Any] \| None` | `None` |
-| `usage` | `TokenUsage \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Response ID. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `status` | `str` | Required | Execution state, such as `completed`, `in_progress`, or `requires_action`. |
+| `output_text` | `str` | Required | Assistant answer text. |
+| `output` | `tuple[Mapping[str, Any], ...]` | Required | Output items. |
+| `metadata` | `Mapping[str, Any]` | Required | Response metadata. |
+| `result` | `Any` | `None` | Validated structured output, if declared. |
+| `required_action` | `Mapping[str, Any] \| None` | `None` | The approval or client-tool request the turn is waiting for. |
+| `usage` | `TokenUsage \| None` | `None` | Token usage for the turn. |
 
 ```python
 from harnest.http import AgentResponse
 
 response = AgentResponse(
-    id=...,
-    session_id=...,
-    status=...,
-    output_text=...,
-    output=...,
-    metadata=...,
+    id=..., session_id=..., status=..., output_text=..., output=..., metadata=...,
 )
 ```
 
@@ -183,10 +178,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `method` | `str` | Required |
-| `path` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `method` | `str` | Required | HTTP method. |
+| `path` | `str` | Required | Request path. |
 
 ```python
 from harnest.http import HTTPCallRequest
@@ -215,12 +210,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `transport` | `str` | Required |
-| `method` | `str` | Required |
-| `path` | `str` | Required |
-| `user_id` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `transport` | `str` | Required | Transport that received the request. |
+| `method` | `str` | Required | HTTP method. |
+| `path` | `str` | Required | Request path. |
+| `user_id` | `str \| None` | `None` | ID of the authenticated user who owns the data, or `None` for a trusted lookup that is not limited to one user. |
 
 ```python
 from harnest.http import HTTPLifecycleContext
@@ -240,9 +235,9 @@ Continue normally or pass a replacement to the next interceptor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `replacement` | `Any` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `replacement` | `Any` | `UNCHANGED` | Value to pass to the next stage. Omit it to continue unchanged. |
 
 ```python
 from harnest.http import HTTPLifecycleContext
@@ -263,9 +258,9 @@ Return a final value without advancing to later execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | Final result. Later stages and the protected operation are skipped. |
 
 ```python
 from harnest.http import HTTPLifecycleContext
@@ -310,10 +305,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `status_code` | `int` | Required |
-| `headers` | `tuple[tuple[bytes, bytes], ...]` | `()` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `status_code` | `int` | Required | HTTP status code. |
+| `headers` | `tuple[tuple[bytes, bytes], ...]` | `()` | Raw response headers. |
 
 ```python
 from harnest.http import HTTPResponseHead

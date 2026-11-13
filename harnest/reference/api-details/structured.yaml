@@ -1,0 +1,31 @@
+# Curated details for /harnest/reference/api/structured. See task.yaml for the format.
+
+callable_output_schema:
+  params:
+    function: Tool function whose return annotation may name a Pydantic model.
+
+framework_metadata_field:
+  params:
+    schema: Output model to inspect.
+
+provider_output_schema:
+  params:
+    schema: Authored output model.
+
+validate_output_schema:
+  params:
+    value: Value to check.
+    field_name: Name of the option being checked, used in errors.
+
+validate_output_value:
+  params:
+    schema: Output model.
+    value: Output as a Python value or JSON text.
+    boundary: Name of the boundary, used in errors.
+
+validate_runtime_output:
+  params:
+    schema: Output model.
+    value: Provider output.
+    metadata: Framework metadata to inject into the declared field.
+    boundary: Name of the boundary, used in errors.

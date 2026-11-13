@@ -94,11 +94,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `instructions` | `str` | Required |
-| `options` | `Mapping[str, str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Question name. Answers are keyed by it. |
+| `instructions` | `str` | Required | What the provider should decide. |
+| `options` | `Mapping[str, str]` | Required | Allowed answer keys mapped to their descriptions. |
 
 ```python
 from harnest.decisions import Choice
@@ -132,12 +132,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `question` | `str` | Required |
-| `routes` | `Mapping[str, DecisionOutcome]` | Required |
-| `minimum_confidence` | `float \| None` | `None` |
-| `uncertain` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.ABSTAIN, route=None)` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `question` | `str` | Required | Name of the `Choice` question this policy reads. |
+| `routes` | `Mapping[str, DecisionOutcome]` | Required | Outcome for every option. Every option must be covered. |
+| `minimum_confidence` | `float \| None` | `None` | Require at least this native confidence; otherwise the `uncertain` outcome is used. |
+| `uncertain` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.ABSTAIN, route=None)` | Outcome used when confidence is below `minimum_confidence`. |
 
 ```python
 from harnest.decisions import ChoicePolicy
@@ -157,10 +157,10 @@ Reject incomplete routes and unsupported confidence requirements at binding.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `definition` | `DecisionDefinition` | Required |
-| `capabilities` | `DecisionCapabilities` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `definition` | `DecisionDefinition` | Required | The decision definition the policy is bound to. |
+| `capabilities` | `DecisionCapabilities` | Required | What the provider guarantees. |
 
 ```python
 from harnest.decisions import ChoicePolicy
@@ -181,9 +181,9 @@ Apply authored branches without interpreting confidence as accuracy.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `response` | `DecisionResponse` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `response` | `DecisionResponse` | Required | The provider's validated answers. |
 
 ```python
 from harnest.decisions import ChoicePolicy
@@ -216,11 +216,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `str` | Required |
-| `probabilities` | `Mapping[str, float] \| None` | `None` |
-| `confidence` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `str` | Required | The selected option key. |
+| `probabilities` | `Mapping[str, float] \| None` | `None` | Probability for every option, when the provider supports it. |
+| `confidence` | `float \| None` | `None` | Provider's native confidence, when supported. |
 
 ```python
 from harnest.decisions import ChoiceResult
@@ -295,12 +295,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `definition` | `DecisionDefinition` | Required |
-| `provider` | `str` | Required |
-| `policy` | `ChoicePolicy \| ThresholdPolicy \| None` | `None` |
-| `on_error` | `DecisionOutcome \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `definition` | `DecisionDefinition` | Required | The decision to bind. |
+| `provider` | `str` | Required | Name of the registered provider that evaluates it. |
+| `policy` | `ChoicePolicy \| ThresholdPolicy \| None` | `None` | Optional policy that turns answers into an outcome. |
+| `on_error` | `DecisionOutcome \| None` | `None` | Outcome to return when evaluation fails. `None` re-raises the error. |
 
 ```python
 from harnest.decisions import DecisionBinding
@@ -334,12 +334,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `kinds` | `frozenset[QuestionKind]` | Required |
-| `batching` | `bool` | `False` |
-| `probabilities` | `bool` | `False` |
-| `confidence` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `kinds` | `frozenset[QuestionKind]` | Required | Question kinds the provider supports. |
+| `batching` | `bool` | `False` | Can evaluate several questions against the same state at once. |
+| `probabilities` | `bool` | `False` | Every Choice and Score result includes a complete distribution. |
+| `confidence` | `bool` | `False` | Every Choice and Score result includes native confidence. |
 
 ```python
 from harnest.decisions import DecisionCapabilities
@@ -359,9 +359,9 @@ DecisionContext(active: Any) -> None
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `active` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `active` | `Any` | Required | The active invocation context. |
 
 ```python
 from harnest.decisions import DecisionContext
@@ -381,10 +381,10 @@ Evaluate within the owning scope and record only explicitly public results.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the registered decision. |
+| `state` | `Mapping[str, Any]` | Required | Snapshot of the state to judge. |
 
 ```python
 from harnest.decisions import DecisionContext
@@ -413,11 +413,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `version` | `str` | Required |
-| `questions` | `tuple[DecisionQuestion, ...]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Decision name. |
+| `version` | `str` | Required | Decision version, recorded in evaluation provenance. |
+| `questions` | `tuple[DecisionQuestion, ...]` | Required | Uniquely named, independent questions. |
 
 ```python
 from harnest.decisions import DecisionDefinition
@@ -476,28 +476,23 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `decision` | `str` | Required |
-| `version` | `str` | Required |
-| `provider` | `str` | Required |
-| `provider_version` | `str` | Required |
-| `response` | `DecisionResponse \| None` | Required |
-| `outcome` | `DecisionOutcome \| None` | Required |
-| `duration_seconds` | `float` | Required |
-| `error` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `decision` | `str` | Required | Decision name. |
+| `version` | `str` | Required | Decision version. |
+| `provider` | `str` | Required | Name of the provider that evaluated it. |
+| `provider_version` | `str` | Required | Provider or model revision. |
+| `response` | `DecisionResponse \| None` | Required | Validated answers, or `None` on failure. |
+| `outcome` | `DecisionOutcome \| None` | Required | Policy outcome, when a policy or `on_error` applied. |
+| `duration_seconds` | `float` | Required | How long the evaluation took. |
+| `error` | `str \| None` | `None` | Error category on failure. |
 
 ```python
 from harnest.decisions import DecisionEvaluation
 
 evaluation = DecisionEvaluation(
-    decision=...,
-    version=...,
-    provider=...,
-    provider_version=...,
-    response=...,
-    outcome=...,
-    duration_seconds=...,
+    decision=..., version=..., provider=..., provider_version=..., response=...,
+    outcome=..., duration_seconds=...,
 )
 ```
 
@@ -520,10 +515,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `action` | `DecisionAction` | Required |
-| `route` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `action` | `DecisionAction` | Required | The policy action. |
+| `route` | `str \| None` | `None` | Destination for routing actions. |
 
 ```python
 from harnest.decisions import DecisionOutcome
@@ -569,9 +564,9 @@ Evaluate independent questions without executing the selected action.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `DecisionRequest` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `DecisionRequest` | Required | The questions to evaluate. The provider answers them without running the selected action. |
 
 ```python
 from harnest.decisions import DecisionProvider
@@ -630,10 +625,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `definition` | `DecisionDefinition` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `definition` | `DecisionDefinition` | Required | The decision to evaluate. |
+| `state` | `Mapping[str, Any]` | Required | JSON-compatible snapshot of the state to judge. |
 
 ```python
 from harnest.decisions import DecisionRequest
@@ -659,9 +654,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `answers` | `Mapping[str, DecisionAnswer]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `answers` | `Mapping[str, DecisionAnswer]` | Required | Answer for each question, keyed by question name. |
 
 ```python
 from harnest.decisions import DecisionResponse
@@ -720,11 +715,11 @@ Decisions(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `providers` | `Mapping[str, DecisionProvider]` | Required |
-| `bindings` | `Sequence[DecisionBinding]` | Required |
-| `timeout_seconds` | `float` | `10` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `providers` | `Mapping[str, DecisionProvider]` | Required | Registered providers by name. |
+| `bindings` | `Sequence[DecisionBinding]` | Required | Named decisions and their providers. |
+| `timeout_seconds` | `float` | `10` | Time limit for one evaluation, in seconds. |
 
 ```python
 from harnest.decisions import Decisions
@@ -744,10 +739,10 @@ Evaluate an isolated snapshot once; failures never trigger implicit retries.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the registered decision. |
+| `state` | `Mapping[str, Any]` | Required | Snapshot of the state to judge. |
 
 ```python
 from harnest.decisions import Decisions
@@ -773,11 +768,11 @@ Evaluate a runtime-built definition without mutating registered decisions.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `definition` | `DecisionDefinition` | Required |
-| `state` | `Mapping[str, Any]` | Required |
-| `provider` | `str \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `definition` | `DecisionDefinition` | Required | A decision built at runtime. |
+| `state` | `Mapping[str, Any]` | Required | Snapshot of the state to judge. |
+| `provider` | `str \| None` | `None` | Provider to use. Required unless exactly one provider is registered. |
 
 ```python
 from harnest.decisions import Decisions
@@ -803,11 +798,11 @@ FixtureDecisionProvider(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `responses` | `Mapping[tuple[str, str], harnest.decisions.DecisionResponse]` | Required |
-| `capabilities` | `harnest.decisions.DecisionCapabilities` | Required |
-| `version` | `str` | `'fixture-1'` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `responses` | `Mapping[tuple[str, str], harnest.decisions.DecisionResponse]` | Required | Fixed responses keyed by `(decision name, version)`. |
+| `capabilities` | `harnest.decisions.DecisionCapabilities` | Required | The guarantees to report. |
+| `version` | `str` | `'fixture-1'` | Provider version recorded in provenance. |
 
 ```python
 from harnest.decisions import FixtureDecisionProvider
@@ -827,9 +822,9 @@ Select a deterministic fixture; missing revisions are errors, never live calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request` | `harnest.decisions.DecisionRequest` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request` | `harnest.decisions.DecisionRequest` | Required | The questions to evaluate. The provider answers them without running the selected action. |
 
 ```python
 from harnest.decisions import FixtureDecisionProvider
@@ -857,10 +852,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `instructions` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Question name. Answers are keyed by it. |
+| `instructions` | `str` | Required | The proposition to judge. The answer is the probability that it is true. |
 
 ```python
 from harnest.decisions import Predicate
@@ -886,9 +881,9 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `probability` | `float` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `probability` | `float` | Required | Probability that the proposition is true, from 0 to 1. |
 
 ```python
 from harnest.decisions import PredicateResult
@@ -940,11 +935,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `instructions` | `str` | Required |
-| `levels` | `tuple[str, ...]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Question name. Answers are keyed by it. |
+| `instructions` | `str` | Required | The rubric to apply. |
+| `levels` | `tuple[str, ...]` | Required | Rubric levels in order. The score runs from 0 to `len(levels) - 1`. |
 
 ```python
 from harnest.decisions import Score
@@ -976,11 +971,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `value` | `float` | Required |
-| `probabilities` | `tuple[float, ...] \| None` | `None` |
-| `confidence` | `float \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `value` | `float` | Required | Position on the rubric, from 0 to `len(levels) - 1`. |
+| `probabilities` | `tuple[float, ...] \| None` | `None` | Probability for each level in rubric order, when supported. |
+| `confidence` | `float \| None` | `None` | Provider's native confidence, when supported. |
 
 ```python
 from harnest.decisions import ScoreResult
@@ -1018,14 +1013,14 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `question` | `str` | Required |
-| `lower` | `float` | Required |
-| `upper` | `float` | Required |
-| `below` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.BLOCK, route=None)` |
-| `above` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.PROCEED, route=None)` |
-| `uncertain` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.ABSTAIN, route=None)` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `question` | `str` | Required | Name of the `Predicate` or `Score` question this policy reads. |
+| `lower` | `float` | Required | Values at or below this select `below`. |
+| `upper` | `float` | Required | Values at or above this select `above`. |
+| `below` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.BLOCK, route=None)` | Outcome for values at or below `lower`. |
+| `above` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.PROCEED, route=None)` | Outcome for values at or above `upper`. |
+| `uncertain` | `DecisionOutcome` | `DecisionOutcome(action=DecisionAction.ABSTAIN, route=None)` | Outcome for values between `lower` and `upper`. |
 
 ```python
 from harnest.decisions import ThresholdPolicy
@@ -1045,10 +1040,10 @@ Check thresholds against the actual probability or rubric scale.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `definition` | `DecisionDefinition` | Required |
-| `capabilities` | `DecisionCapabilities` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `definition` | `DecisionDefinition` | Required | The decision definition the policy is bound to. |
+| `capabilities` | `DecisionCapabilities` | Required | What the provider guarantees. |
 
 ```python
 from harnest.decisions import ThresholdPolicy
@@ -1069,9 +1064,9 @@ Return a signal on the question's native scale without running effects.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `response` | `DecisionResponse` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `response` | `DecisionResponse` | Required | The provider's validated answers. |
 
 ```python
 from harnest.decisions import ThresholdPolicy

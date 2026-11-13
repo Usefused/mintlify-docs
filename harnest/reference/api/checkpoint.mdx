@@ -9,6 +9,10 @@ icon: "code"
 
 [All Python modules](/harnest/reference/api/overview) · [Import and compatibility guidance](/harnest/build/python-imports)
 
+## Framework storage integration
+
+`HarnestStore.framework_checkpointer()` uses Harnest's selected framework and returns the adapter used by advanced graphs. Declare the same store through lifecycle storage. Framework-owned wrappers live in [`harnest.frameworks.adk`](/harnest/reference/api/frameworks-adk) and [`harnest.frameworks.langgraph`](/harnest/reference/api/frameworks-langgraph). See [Checkpoints](/harnest/runtime/checkpoints).
+
 ## Exports
 
 | Name | Kind |
@@ -18,15 +22,14 @@ icon: "code"
 | [`A2ATaskPage`](#a2ataskpage) | Class |
 | [`A2ATaskPersistence`](#a2ataskpersistence) | Class |
 | [`A2ATaskRecord`](#a2ataskrecord) | Class |
-| [`ADKStore`](#adkstore) | Class |
 | [`CheckpointAuthority`](#checkpointauthority) | Class |
 | [`CheckpointConflictError`](#checkpointconflicterror) | Class |
 | [`CheckpointError`](#checkpointerror) | Class |
 | [`CheckpointRecord`](#checkpointrecord) | Class |
 | [`CheckpointStore`](#checkpointstore) | Class |
 | [`CheckpointWrite`](#checkpointwrite) | Class |
+| [`FrameworkStorage`](#frameworkstorage) | Class |
 | [`HarnestStore`](#harneststore) | Class |
-| [`LangGraphStore`](#langgraphstore) | Class |
 | [`MemoryStore`](#memorystore) | Class |
 | [`PendingAction`](#pendingaction) | Class |
 | [`RunRecord`](#runrecord) | Class |
@@ -85,10 +88,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `records` | `tuple[A2ATaskRecord, ...]` | Required |
-| `total_size` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `records` | `tuple[A2ATaskRecord, ...]` | Required | The tasks on this page. |
+| `total_size` | `int` | Required | Total number of matching tasks before paging. |
 
 ```python
 from harnest.checkpoint import A2ATaskPage
@@ -127,9 +130,9 @@ Create or update one owner-scoped A2A task snapshot.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `A2ATaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `A2ATaskRecord` | Required | The A2A task snapshot to persist. |
 
 ```python
 from harnest.checkpoint import A2ATaskPersistence
@@ -150,11 +153,11 @@ Read one A2A task through its complete ownership key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.checkpoint import A2ATaskPersistence
@@ -184,15 +187,15 @@ Return a filtered, cursor-based page of owner-scoped A2A tasks.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `context_id` | `str \| None` | `None` |
-| `status` | `int \| None` | `None` |
-| `status_timestamp_after` | `str \| None` | `None` |
-| `cursor_task_id` | `str \| None` | `None` |
-| `limit` | `int` | `51` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `status` | `int \| None` | `None` | Only return tasks in this A2A task state. |
+| `status_timestamp_after` | `str \| None` | `None` | Only return tasks whose status changed after this timestamp. |
+| `cursor_task_id` | `str \| None` | `None` | Task ID to start the page from, taken from the previous page. |
+| `limit` | `int` | `51` | Maximum number of tasks to return. |
 
 ```python
 from harnest.checkpoint import A2ATaskPersistence
@@ -213,11 +216,11 @@ Delete one owner-scoped A2A task and report whether it existed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.checkpoint import A2ATaskPersistence
@@ -262,97 +265,25 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
-| `context_id` | `str` | Required |
-| `status` | `int` | Required |
-| `payload` | `bytes` | Required |
-| `status_timestamp` | `str \| None` | `None` |
-| `created_at` | `str` | `...` |
-| `updated_at` | `str` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
+| `context_id` | `str` | Required | A2A context ID that groups related tasks. |
+| `status` | `int` | Required | A2A task state. |
+| `payload` | `bytes` | Required | Serialized A2A task. |
+| `status_timestamp` | `str \| None` | `None` | When the task's status last changed. |
+| `created_at` | `str` | `...` | When the record was created. |
+| `updated_at` | `str` | `...` | When the record was last updated. |
 
 ```python
 from harnest.checkpoint import A2ATaskRecord
 
 record = A2ATaskRecord(
-    application_id=...,
-    user_id=...,
-    task_id=...,
-    context_id=...,
-    status=...,
+    application_id=..., user_id=..., task_id=..., context_id=..., status=...,
     payload=...,
 )
-```
-
-</Accordion>
-
-## ADKStore
-
-Explicit lifecycle ownership wrapper for native ADK persistence.
-
-```python
-ADKStore(session_service: Any) -> None
-```
-
-Fields (`—` means no declared default):
-
-| Field | Type | Default |
-|---|---|---|
-| `owner` | `CheckpointOwner` | `'adk'` |
-| `framework` | `str \| None` | `'adk'` |
-| `schema_id` | `str` | `'adk-native'` |
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `session_service` | `Any` | Required |
-
-```python
-from harnest.checkpoint import ADKStore
-
-store = ADKStore(session_service=...)
-```
-
-</Accordion>
-
-### ADKStore.start
-
-```python
-async ADKStore.start() -> None
-```
-
-Initialize the wrapped ADK session service when supported.
-
-<Accordion title="Example">
-
-```python
-from harnest.checkpoint import ADKStore
-
-store: ADKStore
-await store.start()
-```
-
-</Accordion>
-
-### ADKStore.close
-
-```python
-async ADKStore.close() -> None
-```
-
-Release resources owned by the wrapped ADK session service.
-
-<Accordion title="Example">
-
-```python
-from harnest.checkpoint import ADKStore
-
-store: ADKStore
-await store.close()
 ```
 
 </Accordion>
@@ -426,7 +357,7 @@ CheckpointRecord(
     run_id: str,
     checkpoint_id: str,
     namespace: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
     type_name: str,
     payload: bytes,
     metadata_type: str,
@@ -446,7 +377,7 @@ Fields (`—` means no declared default):
 | `run_id` | `str` | `—` |
 | `checkpoint_id` | `str` | `—` |
 | `namespace` | `str` | `—` |
-| `framework` | `Literal['adk', 'langgraph']` | `—` |
+| `framework` | `FrameworkName` | `—` |
 | `type_name` | `str` | `—` |
 | `payload` | `bytes` | `—` |
 | `metadata_type` | `str` | `—` |
@@ -459,36 +390,28 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `run_id` | `str` | Required |
-| `checkpoint_id` | `str` | Required |
-| `namespace` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
-| `type_name` | `str` | Required |
-| `payload` | `bytes` | Required |
-| `metadata_type` | `str` | Required |
-| `metadata` | `bytes` | Required |
-| `versions_type` | `str` | Required |
-| `versions` | `bytes` | Required |
-| `parent_checkpoint_id` | `str \| None` | `None` |
-| `revision` | `int` | `0` |
-| `created_at` | `str` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `run_id` | `str` | Required | ID of the run the checkpoint belongs to. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `namespace` | `str` | Required | Checkpoint namespace within the run. `""` is the root graph. |
+| `framework` | `FrameworkName` | Required | — |
+| `type_name` | `str` | Required | Serialization type of `payload`. |
+| `payload` | `bytes` | Required | Serialized framework checkpoint. |
+| `metadata_type` | `str` | Required | Serialization type of `metadata`. |
+| `metadata` | `bytes` | Required | Serialized checkpoint metadata. |
+| `versions_type` | `str` | Required | Serialization type of `versions`. |
+| `versions` | `bytes` | Required | Serialized channel versions. |
+| `parent_checkpoint_id` | `str \| None` | `None` | ID of the previous checkpoint in the run. |
+| `revision` | `int` | `0` | Revision used for compare-and-swap writes. |
+| `created_at` | `str` | `...` | When the checkpoint was created. |
 
 ```python
 from harnest.checkpoint import CheckpointRecord
 
 record = CheckpointRecord(
-    run_id=...,
-    checkpoint_id=...,
-    namespace=...,
-    framework=...,
-    type_name=...,
-    payload=...,
-    metadata_type=...,
-    metadata=...,
-    versions_type=...,
-    versions=...,
+    run_id=..., checkpoint_id=..., namespace=..., framework=..., type_name=...,
+    payload=..., metadata_type=..., metadata=..., versions_type=..., versions=...,
 )
 ```
 
@@ -541,7 +464,7 @@ async CheckpointStore.begin_run(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
 ) -> RunRecord
 ```
 
@@ -549,24 +472,20 @@ Create or recover the active checkpoint run for a session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID for the run. An existing active run for the session is recovered instead. |
+| `framework` | `FrameworkName` | Required | — |
 
 ```python
 from harnest.checkpoint import CheckpointStore
 
 store: CheckpointStore
 record = await store.begin_run(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -582,9 +501,9 @@ Read a checkpoint run through its complete ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -610,11 +529,11 @@ Read an exact or latest checkpoint within an owned run.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str \| None` | `None` |
-| `namespace` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str \| None` | `None` | ID of one checkpoint within the run; `None` selects the latest. |
+| `namespace` | `str` | `''` | Checkpoint namespace within the run. `""` is the root graph. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -641,12 +560,12 @@ Stream a bounded checkpoint history for an owned run.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `namespace` | `str \| None` | `None` |
-| `before` | `str \| None` | `None` |
-| `limit` | `int` | `20` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `namespace` | `str \| None` | `None` | Only return checkpoints in this namespace; `None` returns all namespaces. |
+| `before` | `str \| None` | `None` | Only return checkpoints older than this checkpoint ID. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -667,11 +586,11 @@ Persist a checkpoint when its expected revision still matches.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpoint` | `CheckpointRecord` | Required |
-| `scope` | `RunScope` | Required |
-| `expected_revision` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint` | `CheckpointRecord` | Required | The checkpoint to persist. |
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_revision` | `int \| None` | Required | Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch raises `CheckpointConflictError`. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -697,11 +616,11 @@ Persist pending task writes for one checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
-| `writes` | `Sequence[CheckpointWrite]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `writes` | `Sequence[CheckpointWrite]` | Required | Pending task writes to store for the checkpoint. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -722,10 +641,10 @@ Read pending writes for one owned checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -746,10 +665,10 @@ Read pending writes for several owned checkpoints in one call.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_ids` | `Sequence[str]` | Required | IDs of the checkpoints to read pending writes for. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -776,12 +695,12 @@ Apply one compare-and-swap run-state transition.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `expected_status` | `RunStatus` | Required |
-| `status` | `RunStatus` | Required |
-| `pending_action` | `PendingAction \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_status` | `RunStatus` | Required | Status the run must have now. A mismatch raises `CheckpointConflictError`. |
+| `status` | `RunStatus` | Required | New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting` → `running`/`failed`/`cancelled`. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed otherwise. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -802,9 +721,9 @@ Delete an owned run and all of its checkpoint state.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.checkpoint import CheckpointStore
@@ -854,18 +773,50 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `task_id` | `str` | Required |
-| `channel` | `str` | Required |
-| `type_name` | `str` | Required |
-| `payload` | `bytes` | Required |
-| `task_path` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `task_id` | `str` | Required | ID of the framework task that produced the write. |
+| `channel` | `str` | Required | Channel the write targets. |
+| `type_name` | `str` | Required | Serialization type of `payload`. |
+| `payload` | `bytes` | Required | Serialized value. |
+| `task_path` | `str` | `''` | Path of the task within the graph. |
 
 ```python
 from harnest.checkpoint import CheckpointWrite
 
 write = CheckpointWrite(task_id=..., channel=..., type_name=..., payload=...)
+```
+
+</Accordion>
+
+## FrameworkStorage
+
+Framework-native persistence declared through lifecycle storage factories.
+
+Framework adapters provide the concrete wrappers, for example
+`harnest.frameworks.adk.ADKStore` or
+`harnest.frameworks.langgraph.LangGraphStore`. Native storage is valid
+only in advanced mode, where the framework owns its own persistence.
+
+```python
+FrameworkStorage()
+```
+
+Fields (`—` means no declared default):
+
+| Field | Type | Default |
+|---|---|---|
+| `owner` | `CheckpointOwner` | `—` |
+| `framework` | `str \| None` | `—` |
+| `schema_id` | `str` | `—` |
+| `owns_sessions` | `ClassVar[bool]` | `False` |
+
+<Accordion title="Example">
+
+```python
+from harnest.checkpoint import FrameworkStorage
+
+storage = FrameworkStorage()
 ```
 
 </Accordion>
@@ -896,13 +847,13 @@ store = HarnestStore()
 
 </Accordion>
 
-### HarnestStore.as_langgraph_checkpointer
+### HarnestStore.framework_checkpointer
 
 ```python
-HarnestStore.as_langgraph_checkpointer() -> Any
+HarnestStore.framework_checkpointer() -> Any
 ```
 
-Return one stable native saver for advanced LangGraph construction.
+Adapt this store for an advanced target using Harnest's selected framework.
 
 <Accordion title="Example">
 
@@ -910,369 +861,7 @@ Return one stable native saver for advanced LangGraph construction.
 from harnest.checkpoint import HarnestStore
 
 store: HarnestStore
-result = store.as_langgraph_checkpointer()
-```
-
-</Accordion>
-
-## LangGraphStore
-
-Explicit lifecycle ownership wrapper for a native LangGraph saver.
-
-```python
-LangGraphStore(checkpointer: Any) -> None
-```
-
-Fields (`—` means no declared default):
-
-| Field | Type | Default |
-|---|---|---|
-| `owner` | `CheckpointOwner` | `'langgraph'` |
-| `framework` | `str \| None` | `'langgraph'` |
-| `schema_id` | `str` | `'langgraph-native'` |
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpointer` | `Any` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store = LangGraphStore(checkpointer=...)
-```
-
-</Accordion>
-
-### LangGraphStore.config_specs
-
-Expose the wrapped saver configuration fields to LangGraph.
-
-<Accordion title="Example">
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-value = store.config_specs
-```
-
-</Accordion>
-
-### LangGraphStore.get_tuple
-
-```python
-LangGraphStore.get_tuple(config: Any) -> Any
-```
-
-Delegate synchronous checkpoint lookup to the wrapped saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-result = store.get_tuple(config=...)
-```
-
-</Accordion>
-
-### LangGraphStore.list
-
-```python
-LangGraphStore.list(config: Any, **options: Any) -> Any
-```
-
-Delegate synchronous checkpoint listing to the wrapped saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-| `**options` | `Any` | Optional |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-result = store.list(config=...)
-```
-
-</Accordion>
-
-### LangGraphStore.put
-
-```python
-LangGraphStore.put(config: Any, checkpoint: Any, metadata: Any, new_versions: Any) -> Any
-```
-
-Delegate synchronous checkpoint persistence to the wrapped saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-| `checkpoint` | `Any` | Required |
-| `metadata` | `Any` | Required |
-| `new_versions` | `Any` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-result = store.put(config=..., checkpoint=..., metadata=..., new_versions=...)
-```
-
-</Accordion>
-
-### LangGraphStore.put_writes
-
-```python
-LangGraphStore.put_writes(
-    config: Any,
-    writes: Sequence[tuple[str, Any]],
-    task_id: str,
-    task_path: str = '',
-) -> None
-```
-
-Delegate synchronous pending-write persistence to the wrapped saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-| `writes` | `Sequence[tuple[str, Any]]` | Required |
-| `task_id` | `str` | Required |
-| `task_path` | `str` | `''` |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-store.put_writes(config=..., writes=..., task_id=...)
-```
-
-</Accordion>
-
-### LangGraphStore.delete_thread
-
-```python
-LangGraphStore.delete_thread(thread_id: str) -> None
-```
-
-Delete all checkpoints for a LangGraph thread.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `thread_id` | `str` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-store.delete_thread(thread_id=...)
-```
-
-</Accordion>
-
-### LangGraphStore.aget_tuple
-
-```python
-async LangGraphStore.aget_tuple(config: Any) -> Any
-```
-
-Delegate asynchronous checkpoint lookup to the wrapped saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-result = await store.aget_tuple(config=...)
-```
-
-</Accordion>
-
-### LangGraphStore.alist
-
-```python
-LangGraphStore.alist(config: Any, **options: Any) -> AsyncIterator[Any]
-```
-
-Stream checkpoints from the wrapped asynchronous saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-| `**options` | `Any` | Optional |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-async for item in store.alist(config=...):
-    ...
-```
-
-</Accordion>
-
-### LangGraphStore.aput
-
-```python
-async LangGraphStore.aput(config: Any, checkpoint: Any, metadata: Any, new_versions: Any) -> Any
-```
-
-Delegate asynchronous checkpoint persistence to the wrapped saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-| `checkpoint` | `Any` | Required |
-| `metadata` | `Any` | Required |
-| `new_versions` | `Any` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-result = await store.aput(config=..., checkpoint=..., metadata=..., new_versions=...)
-```
-
-</Accordion>
-
-### LangGraphStore.aput_writes
-
-```python
-async LangGraphStore.aput_writes(
-    config: Any,
-    writes: Sequence[tuple[str, Any]],
-    task_id: str,
-    task_path: str = '',
-) -> None
-```
-
-Delegate asynchronous pending-write persistence to the wrapped saver.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `config` | `Any` | Required |
-| `writes` | `Sequence[tuple[str, Any]]` | Required |
-| `task_id` | `str` | Required |
-| `task_path` | `str` | `''` |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-await store.aput_writes(config=..., writes=..., task_id=...)
-```
-
-</Accordion>
-
-### LangGraphStore.adelete_thread
-
-```python
-async LangGraphStore.adelete_thread(thread_id: str) -> None
-```
-
-Asynchronously delete all checkpoints for a LangGraph thread.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `thread_id` | `str` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-await store.adelete_thread(thread_id=...)
-```
-
-</Accordion>
-
-### LangGraphStore.get_next_version
-
-```python
-LangGraphStore.get_next_version(current: Any, channel: Any) -> Any
-```
-
-Ask the wrapped saver to derive the next channel version.
-
-<Accordion title="Parameters and example">
-
-| Parameter | Type | Default |
-|---|---|---|
-| `current` | `Any` | Required |
-| `channel` | `Any` | Required |
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-result = store.get_next_version(current=..., channel=...)
-```
-
-</Accordion>
-
-### LangGraphStore.start
-
-```python
-async LangGraphStore.start() -> None
-```
-
-Initialize the wrapped saver when it owns a start hook.
-
-<Accordion title="Example">
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-await store.start()
-```
-
-</Accordion>
-
-### LangGraphStore.close
-
-```python
-async LangGraphStore.close() -> None
-```
-
-Release resources owned by the wrapped saver.
-
-<Accordion title="Example">
-
-```python
-from harnest.checkpoint import LangGraphStore
-
-store: LangGraphStore
-await store.close()
+result = store.framework_checkpointer()
 ```
 
 </Accordion>
@@ -1332,11 +921,11 @@ Create one process-local tenant-scoped session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state` | `Mapping[str, Any]` | Required | Initial session state. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1357,10 +946,10 @@ Read one process-local tenant-scoped session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1381,11 +970,11 @@ List an ordered keyset page without materializing unrelated users.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int \| None` | `None` | Maximum number of items to return. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1406,11 +995,11 @@ Merge a state delta into a process-local session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `state_delta` | `Mapping[str, Any]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `state_delta` | `Mapping[str, Any]` | Required | Keys to merge into session state. Other keys are left unchanged. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1431,10 +1020,10 @@ Delete one process-local session after its active lease exits.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1455,10 +1044,10 @@ Hold exclusive access to one process-local session.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `session_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1489,13 +1078,13 @@ await store.close()
 
 </Accordion>
 
-### MemoryStore.as_langgraph_checkpointer
+### MemoryStore.framework_checkpointer
 
 ```python
-MemoryStore.as_langgraph_checkpointer() -> Any
+MemoryStore.framework_checkpointer() -> Any
 ```
 
-Return one stable native saver for advanced LangGraph construction.
+Adapt this store for an advanced target using Harnest's selected framework.
 
 <Accordion title="Example">
 
@@ -1503,7 +1092,7 @@ Return one stable native saver for advanced LangGraph construction.
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
-result = store.as_langgraph_checkpointer()
+result = store.framework_checkpointer()
 ```
 
 </Accordion>
@@ -1518,9 +1107,9 @@ Upsert one owner-scoped snapshot without allowing context reassignment.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `A2ATaskRecord` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `A2ATaskRecord` | Required | The A2A task snapshot to persist. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1541,11 +1130,11 @@ Read one snapshot only through its complete ownership key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1575,15 +1164,15 @@ Return a stable inclusive-cursor page for the process-local backend.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `context_id` | `str \| None` | `None` |
-| `status` | `int \| None` | `None` |
-| `status_timestamp_after` | `str \| None` | `None` |
-| `cursor_task_id` | `str \| None` | `None` |
-| `limit` | `int` | `51` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `context_id` | `str \| None` | `None` | A2A context ID that groups related tasks, or `None` for all contexts. |
+| `status` | `int \| None` | `None` | Only return tasks in this A2A task state. |
+| `status_timestamp_after` | `str \| None` | `None` | Only return tasks whose status changed after this timestamp. |
+| `cursor_task_id` | `str \| None` | `None` | Task ID to start the page from, taken from the previous page. |
+| `limit` | `int` | `51` | Maximum number of tasks to return. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1604,11 +1193,11 @@ Delete exactly one owner-scoped A2A snapshot.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `task_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `task_id` | `str` | Required | A2A task ID. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1628,7 +1217,7 @@ async MemoryStore.begin_run(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
 ) -> RunRecord
 ```
 
@@ -1636,24 +1225,20 @@ Claim the session for one idempotent invocation run.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | ID for the run. An existing active run for the session is recovered instead. |
+| `framework` | `FrameworkName` | Required | — |
 
 ```python
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
 record = await store.begin_run(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -1669,9 +1254,9 @@ Read one process-local run through its complete ownership scope.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1697,11 +1282,11 @@ Load an exact checkpoint or the newest checkpoint in a namespace.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str \| None` | `None` |
-| `namespace` | `str` | `''` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str \| None` | `None` | ID of one checkpoint within the run; `None` selects the latest. |
+| `namespace` | `str` | `''` | Checkpoint namespace within the run. `""` is the root graph. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1728,12 +1313,12 @@ Yield a bounded newest-first checkpoint history.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `namespace` | `str \| None` | `None` |
-| `before` | `str \| None` | `None` |
-| `limit` | `int` | `20` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `namespace` | `str \| None` | `None` | Only return checkpoints in this namespace; `None` returns all namespaces. |
+| `before` | `str \| None` | `None` | Only return checkpoints older than this checkpoint ID. |
+| `limit` | `int` | `20` | Maximum number of items to return. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1755,11 +1340,11 @@ Persist a checkpoint only when its expected revision still matches.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `checkpoint` | `CheckpointRecord` | Required |
-| `scope` | `RunScope` | Required |
-| `expected_revision` | `int \| None` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint` | `CheckpointRecord` | Required | The checkpoint to persist. |
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_revision` | `int \| None` | Required | Revision the stored checkpoint must still have, or `None` when it must not exist yet. A mismatch raises `CheckpointConflictError`. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1780,11 +1365,11 @@ Add pending writes idempotently by task and channel.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
-| `writes` | `Sequence[CheckpointWrite]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
+| `writes` | `Sequence[CheckpointWrite]` | Required | Pending task writes to store for the checkpoint. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1805,10 +1390,10 @@ Read process-local pending writes for one owned checkpoint.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_id` | `str` | Required | ID of one checkpoint within the run. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1829,10 +1414,10 @@ Load writes for several checkpoints without per-checkpoint calls.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `checkpoint_ids` | `Sequence[str]` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `checkpoint_ids` | `Sequence[str]` | Required | IDs of the checkpoints to read pending writes for. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1859,12 +1444,12 @@ Apply one valid compare-and-swap run-state transition.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `expected_status` | `RunStatus` | Required |
-| `status` | `RunStatus` | Required |
-| `pending_action` | `PendingAction \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `expected_status` | `RunStatus` | Required | Status the run must have now. A mismatch raises `CheckpointConflictError`. |
+| `status` | `RunStatus` | Required | New run status. Allowed moves are `running` → `waiting`/`completed`/`failed`/`cancelled` and `waiting` → `running`/`failed`/`cancelled`. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for, such as an approval. Required for `waiting` and not allowed otherwise. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1885,10 +1470,10 @@ Atomically register provider work and move its owned run to waiting.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `record` | `Any` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `record` | `Any` | Required | The continuation to persist. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work this run now waits on. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1909,10 +1494,10 @@ Return one record only when every run ownership field matches.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -1933,20 +1518,18 @@ Return an exact continuation together with its provider external ID.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
 
 ```python
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
 result = await store.get_provider_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
+    scope=..., provider=..., continuation_id=...,
 )
 ```
 
@@ -1962,20 +1545,18 @@ Resolve one provider identity through the same indexed ownership key.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the external ID. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
 
 ```python
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
 result = await store.get_continuation_by_external_id(
-    application_id=...,
-    provider=...,
-    external_id=...,
+    application_id=..., provider=..., external_id=...,
 )
 ```
 
@@ -1997,12 +1578,12 @@ Return a bounded provider page for local reconciliation.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `provider` | `str` | Required |
-| `after` | `str \| None` | `None` |
-| `limit` | `int` | `100` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `provider` | `str` | Required | Only return waits owned by this continuation provider. |
+| `after` | `str \| None` | `None` | Cursor from the previous page. Returns items after this ID or key; `None` starts from the beginning. |
+| `limit` | `int` | `100` | Maximum number of waits to return. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -2031,24 +1612,21 @@ Commit a provider result or failure with one status compare-and-swap.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `external_id` | `str` | Required |
-| `schema_id` | `str` | Required |
-| `result` | `Any` | `None` |
-| `failure` | `Any` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider resolving the wait. |
+| `external_id` | `str` | Required | Provider-owned ID for the external work, such as a remote job or webhook ID. |
+| `schema_id` | `str` | Required | Stable ID of the schema the result was validated against. |
+| `result` | `Any` | `None` | Validated result of the external work. Leave unset when passing `failure`. |
+| `failure` | `Any` | `None` | Failure category when the external work failed, or `None` on success. |
 
 ```python
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
 result = await store.resolve_continuation(
-    scope=...,
-    provider=...,
-    external_id=...,
-    schema_id=...,
+    scope=..., provider=..., external_id=..., schema_id=...,
 )
 ```
 
@@ -2071,24 +1649,20 @@ Fail one pending continuation and cancel its exact waiting run.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
-| `failure` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
+| `failure` | `Any` | Required | Failure category recorded on the cancelled wait. |
 
 ```python
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
 result = await store.cancel_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
-    failure=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=..., failure=...,
 )
 ```
 
@@ -2110,22 +1684,19 @@ Claim an outcome and return the waiting run to running atomically.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
 result = await store.claim_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -2147,22 +1718,19 @@ Arm a provider wait after its native suspension is checkpointed.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
-| `provider` | `str` | Required |
-| `continuation_id` | `str` | Required |
-| `expected_revision` | `int` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
+| `provider` | `str` | Required | Name of the continuation provider that owns the wait. |
+| `continuation_id` | `str` | Required | ID of the pending continuation (one wait for externally completed work). |
+| `expected_revision` | `int` | Required | Revision the record must still have. The write fails if another writer changed it first. |
 
 ```python
 from harnest.checkpoint import MemoryStore
 
 store: MemoryStore
 result = await store.arm_continuation(
-    scope=...,
-    provider=...,
-    continuation_id=...,
-    expected_revision=...,
+    scope=..., provider=..., continuation_id=..., expected_revision=...,
 )
 ```
 
@@ -2178,9 +1746,9 @@ Delete a run and every private checkpoint owned by it.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `scope` | `RunScope` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `scope` | `RunScope` | Required | Ownership key of the run (application, user, session, and run IDs). The store checks every read and write against it. |
 
 ```python
 from harnest.checkpoint import MemoryStore
@@ -2213,11 +1781,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `type` | `Literal['human_approval', 'client_tool', 'external_continuation']` | Required |
-| `action_id` | `str` | Required |
-| `capability` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `type` | `Literal['human_approval', 'client_tool', 'external_continuation']` | Required | `"human_approval"`, `"client_tool"`, or `"external_continuation"`. |
+| `action_id` | `str` | Required | ID of the approval, client-tool request, or continuation. |
+| `capability` | `str` | Required | Name of the capability that is waiting. |
 
 ```python
 from harnest.checkpoint import PendingAction
@@ -2237,7 +1805,7 @@ RunRecord(
     user_id: str,
     session_id: str,
     run_id: str,
-    framework: Literal['adk', 'langgraph'],
+    framework: FrameworkName,
     status: RunStatus = 'running',
     revision: int = 0,
     pending_action: PendingAction | None = None,
@@ -2254,7 +1822,7 @@ Fields (`—` means no declared default):
 | `user_id` | `str` | `—` |
 | `session_id` | `str` | `—` |
 | `run_id` | `str` | `—` |
-| `framework` | `Literal['adk', 'langgraph']` | `—` |
+| `framework` | `FrameworkName` | `—` |
 | `status` | `RunStatus` | `'running'` |
 | `revision` | `int` | `0` |
 | `pending_action` | `PendingAction \| None` | `None` |
@@ -2263,28 +1831,24 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
-| `framework` | `Literal['adk', 'langgraph']` | Required |
-| `status` | `RunStatus` | `'running'` |
-| `revision` | `int` | `0` |
-| `pending_action` | `PendingAction \| None` | `None` |
-| `created_at` | `str` | `...` |
-| `updated_at` | `str` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | Run ID. |
+| `framework` | `FrameworkName` | Required | — |
+| `status` | `RunStatus` | `'running'` | `"running"`, `"waiting"`, `"completed"`, `"failed"`, or `"cancelled"`. |
+| `revision` | `int` | `0` | Revision used for compare-and-swap transitions. |
+| `pending_action` | `PendingAction \| None` | `None` | What a `waiting` run is waiting for. |
+| `created_at` | `str` | `...` | When the run started. |
+| `updated_at` | `str` | `...` | When the run last changed. |
 
 ```python
 from harnest.checkpoint import RunRecord
 
 record = RunRecord(
-    application_id=...,
-    user_id=...,
-    session_id=...,
-    run_id=...,
-    framework=...,
+    application_id=..., user_id=..., session_id=..., run_id=..., framework=...,
 )
 ```
 
@@ -2324,12 +1888,12 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `application_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `run_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `application_id` | `str` | Required | ID of the Harnest application. Stores use it to keep applications that share a database apart. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `run_id` | `str` | Required | Run ID. |
 
 ```python
 from harnest.checkpoint import RunScope
@@ -2363,9 +1927,9 @@ checkpoint_metadata(authority: CheckpointAuthority) -> dict[str, str]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `authority` | `CheckpointAuthority` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `authority` | `CheckpointAuthority` | Required | The checkpoint store to describe. |
 
 ```python
 from harnest.checkpoint import checkpoint_metadata

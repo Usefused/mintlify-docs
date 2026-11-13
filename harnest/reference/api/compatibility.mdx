@@ -53,21 +53,18 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `distribution` | `str` | Required |
-| `versions` | `str` | Required |
-| `install_extra` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `distribution` | `str` | Required | Python distribution of the framework, such as `google-adk`. |
+| `versions` | `str` | Required | Supported version range. |
+| `install_extra` | `str` | Required | Harnest extra that installs the framework. |
 
 ```python
 from harnest.compatibility import FrameworkCompatibility
 
 compatibility = FrameworkCompatibility(
-    framework=...,
-    distribution=...,
-    versions=...,
-    install_extra=...,
+    framework=..., distribution=..., versions=..., install_extra=...,
 )
 ```
 
@@ -116,22 +113,19 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `harnest_version` | `str` | Required |
-| `framework` | `str` | Required |
-| `distribution` | `str` | Required |
-| `distribution_version` | `str` | Required |
-| `supported_versions` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `harnest_version` | `str` | Required | Harnest version used for the compilation. |
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `distribution` | `str` | Required | Python distribution of the framework. |
+| `distribution_version` | `str` | Required | Installed framework version. |
+| `supported_versions` | `str` | Required | Supported version range. |
 
 ```python
 from harnest.compatibility import ResolvedFrameworkCompatibility
 
 compatibility = ResolvedFrameworkCompatibility(
-    harnest_version=...,
-    framework=...,
-    distribution=...,
-    distribution_version=...,
+    harnest_version=..., framework=..., distribution=..., distribution_version=...,
     supported_versions=...,
 )
 ```
@@ -169,9 +163,9 @@ validate_framework_compatibility(framework: str) -> ResolvedFrameworkCompatibili
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
 
 ```python
 from harnest.compatibility import validate_framework_compatibility

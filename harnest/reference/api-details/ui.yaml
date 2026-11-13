@@ -1,0 +1,6 @@
+# Curated details for /harnest/reference/api/ui. See task.yaml for the format.
+
+emit:
+  params:
+    name: Event name the client listens for.
+    value: Public, JSON-safe display data, up to 64 KiB.

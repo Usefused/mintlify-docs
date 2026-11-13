@@ -95,7 +95,7 @@ def grant(connection: ConnectionContext, principal: AuthPrincipal) -> AgentRunti
 
 This example lets any caller start a turn, but only callers with the verified refund claim can use tools tagged `refunds.write`. Return `None` to deny the invocation entirely. The hook may also be async.
 
-The hook covers `/responses` (including streaming), AG-UI, live WebSocket connections, and A2A. Live resolves the grant at the handshake; resumed runs keep their original grants. Without a hook these routes keep their previous tool surface unless [`server.agentPrincipal: required`](/harnest/reference/server-configuration) is set. With that setting, these Harnest routes refuse new invocations without a principal.
+The hook covers `/responses` (including streaming), AG-UI, live WebSocket connections, and A2A. Live resolves the grant at the handshake; resumed runs keep their original grants. Without a hook, these routes expose their configured tools unless [`server.agentPrincipal: required`](/harnest/reference/server-configuration) is set. With that setting, these Harnest routes refuse new invocations without a principal.
 
 In advanced ADK mode, native `/run`, `/run_sse`, and `/run_live` invocations bypass this hook, including when grants are required. Apply separate authorization if you expose those endpoints.
 

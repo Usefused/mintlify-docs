@@ -32,6 +32,10 @@ icon: "code"
 | Timeout | `timeout_seconds`, default `300` |
 | Durable tools | Rejected; private input cannot use a persisted tool continuation |
 
+## Framework construction
+
+Harnest compiles managed `Agent` definitions for the configured framework. Advanced integrations can call `Agent.build()` or `AgentDefinition.build()` during compilation or an active invocation.
+
 ## Exports
 
 | Name | Kind |
@@ -112,19 +116,38 @@ Fields (`—` means no declared default):
 | `subagents` | `Sequence['AgentDefinition \| _AdvancedAgentDefinition \| Any']` | `...` | SubAgents. Usually discovered from the filesystem. |
 | `mcp` | `Sequence[MCPClient]` | `...` | MCP clients whose tools the agent can use. |
 | `input_schema` | `PydanticModel \| None` | `None` | Pydantic model that validates request `input`. |
-| `output_key` | `str \| None` | `None` | — |
+| `output_key` | `str \| None` | `None` | ADK only. Session state key that stores the agent's final reply. LangGraph agents reject it. |
 | `output_schema` | `PydanticModel \| None` | `None` | Pydantic model for structured output, returned as `result`. |
-| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | — |
+| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | ADK only. Generation settings passed to the model, as an ADK config or mapping. LangGraph agents reject it. |
 | `history` | `Literal['session', 'turn']` | `'session'` | `"session"` (default) keeps earlier turns; `"turn"` isolates each invocation. |
-| `sandboxes` | `Sequence[str]` | `...` | — |
-| `token_policy` | `TokenPolicy \| None` | `None` | — |
-| `skill_selection` | `DecisionSkillSelector \| None` | `None` | — |
+| `sandboxes` | `Sequence[str]` | `...` | Names of the sandboxes this agent may use, such as `["python"]`. |
+| `token_policy` | `TokenPolicy \| None` | `None` | Token budget and reporting policy for this agent. Child agents need their own. |
+| `skill_selection` | `DecisionSkillSelector \| None` | `None` | Selects which Agent Skills to load for each turn. |
 
 ```python
 from harnest.agent import Agent
 from harnest.model import LiteLLMModel
 
 root_agent = Agent(name="support", model=LiteLLMModel("openai/your-model"))
+```
+
+</Accordion>
+
+### Agent.build
+
+```python
+Agent.build() -> Any
+```
+
+Build this definition using the framework selected by Harnest.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import Agent
+
+agent: Agent
+result = agent.build()
 ```
 
 </Accordion>
@@ -141,47 +164,24 @@ Agent.advanced(
 ) -> '_AdvancedAgentDefinition'
 ```
 
-Wrap a framework-native root, subagent, or graph node.
+Wrap a framework-specific root, subagent, or graph node.
 
 Export the wrapper as the root in advanced mode, or embed it in a
 managed agent/graph when only one component needs native behavior.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `target` | `Any` | Required |
-| `name` | `str \| None` | `None` |
-| `input_adapter` | `Callable[[str, Mapping[str, Any]], Any] \| None` | `None` |
-| `output_adapter` | `Callable[[Any], Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `target` | `Any` | Required | The framework-native root, subagent, or graph node to wrap. |
+| `name` | `str \| None` | `None` | Name for the wrapped node. |
+| `input_adapter` | `Callable[[str, Mapping[str, Any]], Any] \| None` | `None` | Converts the input text and state into the native input. |
+| `output_adapter` | `Callable[[Any], Any] \| None` | `None` | Converts the native output into Harnest's output. |
 
 ```python
 from harnest.agent import Agent
 
 definition = Agent.advanced(target=...)
-```
-
-</Accordion>
-
-### Agent.build
-
-```python
-Agent.build() -> Any
-```
-
-Build the underlying ADK agent.
-
-ADK is imported lazily so config generation and validation do not need
-model/runtime dependencies loaded. Sandbox agents retain native flows
-with a scoped consumed-code continuation compatibility adapter.
-
-<Accordion title="Example">
-
-```python
-from harnest.agent import Agent
-
-agent: Agent
-result = agent.build()
 ```
 
 </Accordion>
@@ -243,19 +243,38 @@ Fields (`—` means no declared default):
 | `subagents` | `Sequence['AgentDefinition \| _AdvancedAgentDefinition \| Any']` | `...` | SubAgents. Usually discovered from the filesystem. |
 | `mcp` | `Sequence[MCPClient]` | `...` | MCP clients whose tools the agent can use. |
 | `input_schema` | `PydanticModel \| None` | `None` | Pydantic model that validates request `input`. |
-| `output_key` | `str \| None` | `None` | — |
+| `output_key` | `str \| None` | `None` | ADK only. Session state key that stores the agent's final reply. LangGraph agents reject it. |
 | `output_schema` | `PydanticModel \| None` | `None` | Pydantic model for structured output, returned as `result`. |
-| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | — |
+| `generate_content_config` | `Mapping[str, Any] \| Any \| None` | `None` | ADK only. Generation settings passed to the model, as an ADK config or mapping. LangGraph agents reject it. |
 | `history` | `Literal['session', 'turn']` | `'session'` | `"session"` (default) keeps earlier turns; `"turn"` isolates each invocation. |
-| `sandboxes` | `Sequence[str]` | `...` | — |
-| `token_policy` | `TokenPolicy \| None` | `None` | — |
-| `skill_selection` | `DecisionSkillSelector \| None` | `None` | — |
+| `sandboxes` | `Sequence[str]` | `...` | Names of the sandboxes this agent may use, such as `["python"]`. |
+| `token_policy` | `TokenPolicy \| None` | `None` | Token budget and reporting policy for this agent. Child agents need their own. |
+| `skill_selection` | `DecisionSkillSelector \| None` | `None` | Selects which Agent Skills to load for each turn. |
 
 ```python
 from harnest.agent import Agent
 from harnest.model import LiteLLMModel
 
 root_agent = Agent(name="support", model=LiteLLMModel("openai/your-model"))
+```
+
+</Accordion>
+
+### AgentDefinition.build
+
+```python
+AgentDefinition.build() -> Any
+```
+
+Build this definition using the framework selected by Harnest.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import AgentDefinition
+
+definition: AgentDefinition
+result = definition.build()
 ```
 
 </Accordion>
@@ -272,47 +291,24 @@ AgentDefinition.advanced(
 ) -> '_AdvancedAgentDefinition'
 ```
 
-Wrap a framework-native root, subagent, or graph node.
+Wrap a framework-specific root, subagent, or graph node.
 
 Export the wrapper as the root in advanced mode, or embed it in a
 managed agent/graph when only one component needs native behavior.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `target` | `Any` | Required |
-| `name` | `str \| None` | `None` |
-| `input_adapter` | `Callable[[str, Mapping[str, Any]], Any] \| None` | `None` |
-| `output_adapter` | `Callable[[Any], Any] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `target` | `Any` | Required | The framework-native root, subagent, or graph node to wrap. |
+| `name` | `str \| None` | `None` | Name for the wrapped node. |
+| `input_adapter` | `Callable[[str, Mapping[str, Any]], Any] \| None` | `None` | Converts the input text and state into the native input. |
+| `output_adapter` | `Callable[[Any], Any] \| None` | `None` | Converts the native output into Harnest's output. |
 
 ```python
 from harnest.agent import AgentDefinition
 
 definition = AgentDefinition.advanced(target=...)
-```
-
-</Accordion>
-
-### AgentDefinition.build
-
-```python
-AgentDefinition.build() -> Any
-```
-
-Build the underlying ADK agent.
-
-ADK is imported lazily so config generation and validation do not need
-model/runtime dependencies loaded. Sandbox agents retain native flows
-with a scoped consumed-code continuation compatibility adapter.
-
-<Accordion title="Example">
-
-```python
-from harnest.agent import AgentDefinition
-
-definition: AgentDefinition
-result = definition.build()
 ```
 
 </Accordion>
@@ -442,10 +438,10 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `store` | `InMemoryClientToolStore` | Required |
-| `run` | `ApprovalRun` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `store` | `InMemoryClientToolStore` | Required | Store that holds pending client-tool calls. |
+| `run` | `ApprovalRun` | Required | The invocation's approval run. |
 
 ```python
 from harnest.agent import ClientToolExecution
@@ -472,23 +468,20 @@ Request one client-hosted tool call and await its validated result.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `arguments` | `dict[str, Any]` | Required |
-| `output_schema` | `PydanticModel \| None` | Required |
-| `timeout_seconds` | `int` | Required |
-| `private_input` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the client tool. |
+| `arguments` | `dict[str, Any]` | Required | Arguments sent to the client. |
+| `output_schema` | `PydanticModel \| None` | Required | Pydantic model that validates the client's result. |
+| `timeout_seconds` | `int` | Required | Seconds to wait for the client's result. |
+| `private_input` | `bool` | `False` | Collect a private value for `@client_input` instead of a normal result. |
 
 ```python
 from harnest.agent import ClientToolExecution
 
 execution: ClientToolExecution
 result = await execution.execute(
-    name=...,
-    arguments=...,
-    output_schema=...,
-    timeout_seconds=...,
+    name=..., arguments=..., output_schema=..., timeout_seconds=...,
 )
 ```
 
@@ -524,11 +517,11 @@ InMemoryClientToolStore(
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `clock` | `Callable[[], float]` | `time` |
-| `transient_media` | `TransientMediaLeaseStore \| None` | `None` |
-| `asset_stores` | `Mapping[str, AssetStorage] \| None` | `None` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `clock` | `Callable[[], float]` | `time` | Function returning the current time, for tests. |
+| `transient_media` | `TransientMediaLeaseStore \| None` | `None` | Store for private media passed with results. |
+| `asset_stores` | `Mapping[str, AssetStorage] \| None` | `None` | Asset stores by name, for results that contain stored media. |
 
 ```python
 from harnest.agent import InMemoryClientToolStore
@@ -571,25 +564,21 @@ Suspend for one result, transferring private values without retention.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `run` | `ApprovalRun` | Required |
-| `name` | `str` | Required |
-| `arguments` | `dict[str, Any]` | Required |
-| `output_schema` | `PydanticModel \| None` | Required |
-| `timeout_seconds` | `int` | Required |
-| `private_input` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `run` | `ApprovalRun` | Required | The invocation's approval run. |
+| `name` | `str` | Required | Name of the client tool. |
+| `arguments` | `dict[str, Any]` | Required | Arguments sent to the client. |
+| `output_schema` | `PydanticModel \| None` | Required | Pydantic model that validates the client's result. |
+| `timeout_seconds` | `int` | Required | Seconds to wait for the client's result. |
+| `private_input` | `bool` | `False` | Collect a private value for `@client_input` instead of a normal result. |
 
 ```python
 from harnest.agent import InMemoryClientToolStore
 
 store: InMemoryClientToolStore
 result = await store.suspend(
-    run=...,
-    name=...,
-    arguments=...,
-    output_schema=...,
-    timeout_seconds=...,
+    run=..., name=..., arguments=..., output_schema=..., timeout_seconds=...,
 )
 ```
 
@@ -605,11 +594,11 @@ Validate and sanitize a client result before its framework resumes.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `output` | `Any` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request_id` | `str` | Required | ID of the pending client-tool request. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `output` | `Any` | Required | The client's result. |
 
 ```python
 from harnest.agent import InMemoryClientToolStore
@@ -630,9 +619,9 @@ Return the live invocation waiting for a client tool result.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `pending` | `PendingClientTool` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pending` | `PendingClientTool` | Required | The pending client-tool call. |
 
 ```python
 from harnest.agent import InMemoryClientToolStore
@@ -653,10 +642,10 @@ Resolve live client calls without revealing another session's work.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
 
 ```python
 from harnest.agent import InMemoryClientToolStore
@@ -677,10 +666,10 @@ Deliver a caller cancellation through the same one-time authority gate.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `request_id` | `str` | Required |
-| `user_id` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `request_id` | `str` | Required | ID of the pending client-tool request. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
 
 ```python
 from harnest.agent import InMemoryClientToolStore
@@ -733,36 +722,28 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `call_id` | `str` | Required |
-| `name` | `str` | Required |
-| `arguments` | `dict[str, Any]` | Required |
-| `output_schema` | `PydanticModel \| None` | Required |
-| `expires_at` | `float` | Required |
-| `run` | `ApprovalRun` | Required |
-| `future` | `asyncio.Future[Any]` | Required |
-| `submitting` | `bool` | `False` |
-| `agui_tool_call_id` | `str \| None` | `None` |
-| `private_input` | `bool` | `False` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | `str` | Required | Request ID that the client answers. |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `call_id` | `str` | Required | ID of the tool call in the framework. |
+| `name` | `str` | Required | Name of the client tool. |
+| `arguments` | `dict[str, Any]` | Required | Arguments sent to the client. |
+| `output_schema` | `PydanticModel \| None` | Required | Pydantic model that validates the result. |
+| `expires_at` | `float` | Required | When the request expires, in UTC epoch seconds. |
+| `run` | `ApprovalRun` | Required | The invocation's approval run. |
+| `future` | `asyncio.Future[Any]` | Required | Resolves with the client's result. |
+| `submitting` | `bool` | `False` | Whether a result is being submitted. |
+| `agui_tool_call_id` | `str \| None` | `None` | Matching AG-UI tool call ID, when the client uses AG-UI. |
+| `private_input` | `bool` | `False` | Whether this request collects a private value. |
 
 ```python
 from harnest.agent import PendingClientTool
 
 tool = PendingClientTool(
-    id=...,
-    user_id=...,
-    session_id=...,
-    call_id=...,
-    name=...,
-    arguments=...,
-    output_schema=...,
-    expires_at=...,
-    run=...,
-    future=...,
+    id=..., user_id=..., session_id=..., call_id=..., name=..., arguments=...,
+    output_schema=..., expires_at=..., run=..., future=...,
 )
 ```
 
@@ -805,11 +786,11 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `name` | `str` | Required |
-| `args` | `tuple[Any, ...]` | `()` |
-| `kwargs` | `Mapping[str, Any]` | `...` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | `str` | Required | Name of the tool being called. |
+| `args` | `tuple[Any, ...]` | `()` | Positional arguments for the call. |
+| `kwargs` | `Mapping[str, Any]` | `...` | Keyword arguments for the call. |
 
 ```python
 from harnest.agent import ToolCallRequest
@@ -847,24 +828,20 @@ Fields (`—` means no declared default):
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `framework` | `str` | Required |
-| `agent_name` | `str` | Required |
-| `invocation_id` | `str` | Required |
-| `user_id` | `str` | Required |
-| `session_id` | `str` | Required |
-| `tool_name` | `str` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `framework` | `str` | Required | Agent framework, `"adk"` or `"langgraph"`. |
+| `agent_name` | `str` | Required | Name of the agent or SubAgent involved. |
+| `invocation_id` | `str` | Required | ID of one agent invocation (one request or turn). |
+| `user_id` | `str` | Required | ID of the authenticated user who owns the data. Reads and writes are limited to this user. |
+| `session_id` | `str` | Required | ID of the Harnest session (one conversation). |
+| `tool_name` | `str` | Required | Name of the tool being called. |
 
 ```python
 from harnest.agent import ToolLifecycleContext
 
 context = ToolLifecycleContext(
-    framework=...,
-    agent_name=...,
-    invocation_id=...,
-    user_id=...,
-    session_id=...,
+    framework=..., agent_name=..., invocation_id=..., user_id=..., session_id=...,
     tool_name=...,
 )
 ```
@@ -881,9 +858,9 @@ Continue normally or pass a replacement to the next interceptor.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `replacement` | `Any` | `UNCHANGED` |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `replacement` | `Any` | `UNCHANGED` | Value to pass to the next stage. Omit it to continue unchanged. |
 
 ```python
 from harnest.agent import ToolLifecycleContext
@@ -904,9 +881,9 @@ Return a final value without advancing to later execution.
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `result` | `ResultT` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `result` | `ResultT` | Required | Final result. Later stages and the protected operation are skipped. |
 
 ```python
 from harnest.agent import ToolLifecycleContext
@@ -1025,9 +1002,9 @@ client_tool_execution(execution: ClientToolExecution) -> Iterator[None]
 
 <Accordion title="Parameters and example">
 
-| Parameter | Type | Default |
-|---|---|---|
-| `execution` | `ClientToolExecution` | Required |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `execution` | `ClientToolExecution` | Required | The client-tool execution capability to activate. |
 
 ```python
 from harnest.agent import client_tool_execution
@@ -1089,7 +1066,7 @@ Mark a typed Python function as a managed Harnest agent tool.
 Both managed backends wrap callables natively. This decorator preserves the
 function's typed signature, checks that the model receives a description,
 validates an optional Pydantic result, and installs declared execution
-policy before backend lowering. Durable tools cross a framework-native
+policy before backend lowering. Durable tools cross a framework-specific
 suspension boundary and therefore must be asynchronous.
 
 ```python

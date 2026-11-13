@@ -1,0 +1,15 @@
+# Curated details for /harnest/reference/api/harnest_redis. See task.yaml for the format.
+
+RedisStore:
+  params:
+    url: Redis connection URL.
+    prefix: Prefix for every Redis key the store writes.
+    session_ttl_seconds: Expire sessions after this many seconds. `None` keeps them.
+    checkpoint_ttl_seconds: Expire checkpoint runs after this many seconds.
+    lease_wait_seconds: How long to wait for a session lease before giving up, in seconds.
+    client_options: Extra options for the Redis client.
+
+RedisMemoryStore:
+  params:
+    url: Redis connection URL.
+    prefix: Prefix for every Redis key the store writes. Durability requires persistent Redis.
