@@ -26,3 +26,8 @@ EvalSuite:
   fields:
     eval_sets: Eval set files, sorted.
     config: Shared evals/test_config.json, if present.
+    set_configs: Per-set `<name>.test_config.json` files that override the shared configuration.
+
+EvalSuite.for_set:
+  params:
+    path: Eval set file to select, such as `Path("evals/helpdesk.evalset.json")`.

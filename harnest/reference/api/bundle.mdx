@@ -156,7 +156,11 @@ except BundleEvalError as error:
 Validated evaluation files associated with one agent folder.
 
 ```python
-EvalSuite(eval_sets: tuple[Path, ...], config: Path | None = None) -> None
+EvalSuite(
+    eval_sets: tuple[Path, ...],
+    config: Path | None = None,
+    set_configs: tuple[Path, ...] = (),
+) -> None
 ```
 
 Fields (`—` means no declared default):
@@ -165,6 +169,7 @@ Fields (`—` means no declared default):
 |---|---|---|
 | `eval_sets` | `tuple[Path, ...]` | `—` |
 | `config` | `Path \| None` | `None` |
+| `set_configs` | `tuple[Path, ...]` | `()` |
 
 <Accordion title="Parameters and example">
 
@@ -172,11 +177,54 @@ Fields (`—` means no declared default):
 |---|---|---|---|
 | `eval_sets` | `tuple[Path, ...]` | Required | Eval set files, sorted. |
 | `config` | `Path \| None` | `None` | Shared evals/test_config.json, if present. |
+| `set_configs` | `tuple[Path, ...]` | `()` | Per-set `<name>.test_config.json` files that override the shared configuration. |
 
 ```python
 from harnest.bundle import EvalSuite
 
 suite = EvalSuite(eval_sets=...)
+```
+
+</Accordion>
+
+### EvalSuite.for_set
+
+```python
+EvalSuite.for_set(path: Path) -> EvalSuite
+```
+
+Resolve the validated sidecar or shared fallback for one set.
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `Path` | Required | Eval set file to select, such as `Path("evals/helpdesk.evalset.json")`. |
+
+```python
+from harnest.bundle import EvalSuite
+
+suite: EvalSuite
+suite = suite.for_set(path=...)
+```
+
+</Accordion>
+
+### EvalSuite.scoring_groups
+
+```python
+EvalSuite.scoring_groups() -> tuple[EvalSuite, ...]
+```
+
+Keep the shared-config batch intact unless individual sets override it.
+
+<Accordion title="Example">
+
+```python
+from harnest.bundle import EvalSuite
+
+suite: EvalSuite
+result = suite.scoring_groups()
 ```
 
 </Accordion>
