@@ -48,6 +48,11 @@ Harnest compiles managed `Agent` definitions for the configured framework. Advan
 | [`ClientToolExecution`](#clienttoolexecution) | Class |
 | [`InMemoryClientToolStore`](#inmemoryclienttoolstore) | Class |
 | [`PendingClientTool`](#pendingclienttool) | Class |
+| [`SubAgent`](#subagent) | Class |
+| [`SubAgentClosedError`](#subagentclosederror) | Class |
+| [`SubAgentDepthError`](#subagentdeptherror) | Class |
+| [`SubAgentError`](#subagenterror) | Class |
+| [`SubAgentUnavailableError`](#subagentunavailableerror) | Class |
 | [`ToolCallRequest`](#toolcallrequest) | Class |
 | [`ToolLifecycleContext`](#toollifecyclecontext) | Class |
 | [`ToolLifecycleError`](#toollifecycleerror) | Class |
@@ -764,6 +769,275 @@ from harnest.agent import PendingClientTool
 
 tool: PendingClientTool
 result = tool.public()
+```
+
+</Accordion>
+
+## SubAgent
+
+Spin up an `Agent` at runtime; whoever starts it owns its lifecycle.
+
+Use it inside a tool, a task, or a cron job::
+
+    async with SubAgent(Agent(name="researcher", model=..., instruction=...)) as sub:
+        reply = await sub.run("Find three sources")
+        reply = await sub.run("Summarise them")   # same conversation
+    # leaving the block closes it
+
+`await SubAgent(...).start()` also works without a `with` block. Either
+way, the SubAgent belongs to the innermost tool call, task run, or agent
+invocation that started it, and is closed automatically when that owner
+finishes if your code has not closed it already.
+
+```python
+SubAgent(agent: 'AgentDefinition', *, request_timeout: float = 300.0) -> None
+```
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `agent` | `'AgentDefinition'` | Required | Managed `Agent` definition with an inline `instruction`. |
+| `request_timeout` | `float` | `300.0` | Default per-turn timeout in seconds (must be positive and finite). |
+
+```python
+from harnest.agent import Agent, SubAgent
+from harnest.model import LiteLLMModel
+
+definition = Agent(
+    name="researcher",
+    model=LiteLLMModel("openai/your-model"),
+    instruction="Summarize the requested topic.",
+)
+async with SubAgent(definition, request_timeout=120) as researcher:
+    reply = await researcher.run("Find three key takeaways")
+```
+
+</Accordion>
+
+### SubAgent.name
+
+Return the name of the agent definition this SubAgent runs.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgent
+
+agent: SubAgent
+value = agent.name
+```
+
+</Accordion>
+
+### SubAgent.is_open
+
+Report whether `run` can be called.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgent
+
+agent: SubAgent
+value = agent.is_open
+```
+
+</Accordion>
+
+### SubAgent.session_id
+
+Return the private session ID while open, for logs and debugging.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgent
+
+agent: SubAgent
+value = agent.session_id
+```
+
+</Accordion>
+
+### SubAgent.start
+
+```python
+async SubAgent.start() -> 'SubAgent'
+```
+
+Build the agent and attach it to the current owner.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import Agent, SubAgent
+from harnest.model import LiteLLMModel
+
+researcher = await SubAgent(
+    Agent(
+        name="researcher", model=LiteLLMModel("openai/your-model"), instruction="Help.",
+    )
+).start()
+```
+
+</Accordion>
+
+### SubAgent.run
+
+```python
+async SubAgent.run(message: str, *, request_timeout: float | None = None) -> 'AgentResponse'
+```
+
+Send one message and wait for the reply; turns share one conversation.
+
+Turns run one at a time. Tools inside a SubAgent cannot wait for human
+approval, client tools, or durable results yet; reaching one raises
+`SubAgentError`.
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `message` | `str` | Required | Non-empty prompt text sent to the SubAgent's private conversation. |
+| `request_timeout` | `float \| None` | `None` | Optional per-turn timeout override in seconds. |
+
+```python
+from harnest.agent import SubAgent
+
+researcher: SubAgent
+reply = await researcher.run("Summarize the findings", request_timeout=60)
+```
+
+</Accordion>
+
+### SubAgent.close
+
+```python
+async SubAgent.close() -> None
+```
+
+Release the SubAgent's model, MCP connections, and session; idempotent.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgent
+
+researcher: SubAgent
+await researcher.close()
+```
+
+</Accordion>
+
+### SubAgent.__aenter__
+
+```python
+async SubAgent.__aenter__() -> 'SubAgent'
+```
+
+
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgent
+
+agent: SubAgent
+async with agent:
+    ...
+```
+
+</Accordion>
+
+### SubAgent.__aexit__
+
+```python
+async SubAgent.__aexit__(*exc_info: Any) -> None
+```
+
+
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default |
+|---|---|---|
+| `*exc_info` | `Any` | Optional |
+
+```python
+from harnest.agent import SubAgent
+
+agent: SubAgent
+async with agent:
+    ...
+```
+
+</Accordion>
+
+## SubAgentClosedError
+
+The SubAgent was closed by its holder or by the owner that started it.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgentClosedError
+
+try:
+    ...
+except SubAgentClosedError as error:
+    ...
+```
+
+</Accordion>
+
+## SubAgentDepthError
+
+Starting this SubAgent would exceed `MAX_SUBAGENT_DEPTH` nested levels.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgentDepthError
+
+try:
+    ...
+except SubAgentDepthError as error:
+    ...
+```
+
+</Accordion>
+
+## SubAgentError
+
+Base class for SubAgent failures.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgentError
+
+try:
+    ...
+except SubAgentError as error:
+    ...
+```
+
+</Accordion>
+
+## SubAgentUnavailableError
+
+A SubAgent cannot start or run in the current place.
+
+<Accordion title="Example">
+
+```python
+from harnest.agent import SubAgentUnavailableError
+
+try:
+    ...
+except SubAgentUnavailableError as error:
+    ...
 ```
 
 </Accordion>

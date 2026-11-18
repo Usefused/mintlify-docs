@@ -2,15 +2,16 @@
 icon: "sitemap"
 title: "SubAgents"
 sidebarTitle: "Overview"
-description: "Choose flat, folder-owned, portable, or native SubAgent composition."
+description: "Choose flat, folder-owned, runtime, portable, or native SubAgent composition."
 ---
 
-SubAgents use the same managed [`Agent`](/harnest/reference/api/agent#agent) definition as the root. Their location defines ownership and capability access.
+SubAgents use the same managed [`Agent`](/harnest/reference/api/agent#agent) definition as the root. For discovered SubAgents, their location defines ownership and capability access; for runtime SubAgents, your code passes capabilities explicitly.
 
 | Shape | Use it when | Private capabilities |
 |---|---|---:|
 | Flat SubAgent | The agent needs only a definition | No |
 | Folder-owned SubAgent | The agent owns instructions, tools, MCP, skills, or sandboxing | Yes |
+| Runtime SubAgent | Code builds the instruction, model, or tools during a run | Explicit in code |
 | Portable graph node | The multi-agent flow must move between frameworks | Defined by the graph |
 | Advanced SubAgent | The child requires a native framework target | Framework-owned |
 
@@ -20,6 +21,9 @@ SubAgents use the same managed [`Agent`](/harnest/reference/api/agent#agent) def
   </Card>
   <Card title="Folder-owned SubAgents" icon="folder" href="/harnest/build/subagents/folder-subagents">
     Give a SubAgent its own instructions and capabilities.
+  </Card>
+  <Card title="Runtime SubAgents" icon="bolt" href="/harnest/build/subagents/runtime-subagents">
+    Create a short-lived SubAgent dynamically inside a tool, task, or cron job.
   </Card>
   <Card title="Framework behavior" icon="code-branch" href="/harnest/build/subagents/framework-behavior">
     Choose portable graph composition or a framework-specific child.
@@ -31,4 +35,4 @@ SubAgents use the same managed [`Agent`](/harnest/reference/api/agent#agent) def
 
 ## Ownership rule
 
-Parent capabilities do not flow into a child automatically. Child capabilities do not leak back to the parent. The filesystem location is the access boundary.
+Parent capabilities do not flow into a child automatically. Child capabilities do not leak back to the parent. For discovered SubAgents, the filesystem location is the access boundary; for runtime SubAgents, only the model, tools, and MCP clients passed to [`Agent`](/harnest/reference/api/agent#agent) are available.

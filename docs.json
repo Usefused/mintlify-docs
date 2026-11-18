@@ -270,6 +270,7 @@
                       "harnest/build/subagents",
                       "harnest/build/subagents/flat-subagents",
                       "harnest/build/subagents/folder-subagents",
+                      "harnest/build/subagents/runtime-subagents",
                       "harnest/build/subagents/framework-behavior"
                     ]
                   },

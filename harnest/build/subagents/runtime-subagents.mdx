@@ -1,0 +1,101 @@
+---
+icon: "bolt"
+title: "Runtime SubAgents"
+sidebarTitle: "Runtime"
+description: "Create and run a short-lived SubAgent from code inside a tool, task, or cron job."
+---
+
+Use [`SubAgent`](/harnest/reference/api/agent#subagent) when your code needs to build a short-lived specialist at runtime—for example, with an instruction, model, or tool list chosen from the current request. Keep static child agents in `subagents/`.
+
+```python tools/research.py
+from harnest.agent import Agent, SubAgent, tool
+from harnest.lib.research import search_web, specialist_model
+
+
+@tool
+async def research(topic: str) -> str:
+    """Research a topic with a short-lived specialist."""
+    async with SubAgent(
+        Agent(
+            name="researcher",
+            model=specialist_model(),
+            instruction=f"Research {topic} and cite sources.",
+            tools=[search_web],
+        )
+    ) as researcher:
+        await researcher.run(f"Find three sources on {topic}")
+        reply = await researcher.run("Summarise them")
+    return reply.output_text
+```
+
+Each call to `run()` returns an [`AgentResponse`](/harnest/reference/api/context#agentresponse). Repeated calls on the same open `SubAgent` share one private conversation.
+
+## Lifecycle and ownership
+
+Whoever starts a `SubAgent` owns it: the innermost async `@tool` call, task run, or agent invocation. When that scope finishes, Harnest closes any `SubAgent` it still owns before revoking its context.
+
+<Tabs>
+  <Tab title="Context manager (recommended)">
+    ```python
+    async with SubAgent(definition, request_timeout=120) as helper:
+        reply = await helper.run("Draft a summary")
+    ```
+
+    Leaving the `async with` block closes the `SubAgent` and releases its driver, MCP connections, and private session.
+  </Tab>
+  <Tab title="Manual start and close">
+    ```python
+    helper = await SubAgent(definition).start()
+    try:
+        reply = await helper.run("Draft a summary")
+    finally:
+        await helper.close()
+    ```
+
+    If your code does not call `close()`, the owning tool call, task run, or invocation closes it automatically on exit. `close()` is idempotent.
+  </Tab>
+</Tabs>
+
+| Property | Rule |
+|---|---|
+| Valid scopes | Async `@tool`, task run, cron job, or agent invocation in a managed application |
+| Sessions | Private and in memory; transcripts never enter the application's session store |
+| Turn concurrency | Sequential per `SubAgent` instance; `run()` serializes overlapping turns |
+| Default timeout | `300.0` seconds; override on `SubAgent(..., request_timeout=...)` or per `run(..., request_timeout=...)` |
+| Nesting limit | Up to `3` nested `SubAgent` levels; deeper calls raise [`SubAgentDepthError`](/harnest/reference/api/agent#subagentdeptherror) |
+| User binding | Bound to the user whose run started it; calling `run()` under another user raises [`SubAgentUnavailableError`](/harnest/reference/api/agent#subagentunavailableerror) |
+
+## Context and capability boundary
+
+A runtime `SubAgent` lowers its [`Agent`](/harnest/reference/api/agent#agent) definition through the running application's framework adapter without inheriting parent tools or filesystem bundles.
+
+| Concern | Behavior |
+|---|---|
+| `model`, `tools`, `mcp` | Come only from the `Agent` definition passed to `SubAgent` |
+| User, Agent Runtime Principal, credentials | Inherited from the caller's active context |
+| Model and tool lifecycle hooks | Inherited from the root application |
+| Plain `MCPClient` and models | Can be shared with the parent |
+| `MCPClient` with lifecycle hooks | Cannot be shared; give each `SubAgent` its own client and lifecycle instance |
+
+## Constraints and errors
+
+| Constraint | Result |
+|---|---|
+| Inline `instruction` omitted | Raises `ValueError` (runtime SubAgents have no `instructions.md` folder) |
+| `input_schema`, `output_schema`, or `sandboxes` set | Raises `ValueError`; runtime SubAgents exchange text only |
+| Human approval, `@client_tool`, or durable wait reached | Fails closed with [`SubAgentError`](/harnest/reference/api/agent#subagenterror) because the private runtime cannot resume waits |
+| Advanced mode or outside an active managed run | Raises [`SubAgentUnavailableError`](/harnest/reference/api/agent#subagentunavailableerror) |
+| Calling `start()` or `run()` after close | Raises [`SubAgentClosedError`](/harnest/reference/api/agent#subagentclosederror) |
+
+<Note>
+  Runtime SubAgents use the active managed application's framework adapter (ADK or LangGraph). Advanced mode applications do not offer `SubAgent`.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="harnest.agent API reference" icon="code" href="/harnest/reference/api/agent#subagent">
+    Inspect exact `SubAgent` signatures, properties, and error classes.
+  </Card>
+  <Card title="Framework behavior" icon="code-branch" href="/harnest/build/subagents/framework-behavior">
+    Compare portable graph composition, discovery, and framework boundaries.
+  </Card>
+</CardGroup>

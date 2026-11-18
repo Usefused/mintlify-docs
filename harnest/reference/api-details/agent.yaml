@@ -159,3 +159,41 @@ PendingClientTool:
 client_tool_execution:
   params:
     execution: The client-tool execution capability to activate.
+SubAgent:
+  params:
+    agent: Managed `Agent` definition with an inline `instruction`.
+    request_timeout: Default per-turn timeout in seconds (must be positive and finite).
+  example: |
+    from harnest.agent import Agent, SubAgent
+    from harnest.model import LiteLLMModel
+
+    definition = Agent(
+        name="researcher",
+        model=LiteLLMModel("openai/your-model"),
+        instruction="Summarize the requested topic.",
+    )
+    async with SubAgent(definition, request_timeout=120) as researcher:
+        reply = await researcher.run("Find three key takeaways")
+SubAgent.run:
+  params:
+    message: Non-empty prompt text sent to the SubAgent's private conversation.
+    request_timeout: Optional per-turn timeout override in seconds.
+  example: |
+    from harnest.agent import SubAgent
+
+    researcher: SubAgent
+    reply = await researcher.run("Summarize the findings", request_timeout=60)
+SubAgent.start:
+  example: |
+    from harnest.agent import Agent, SubAgent
+    from harnest.model import LiteLLMModel
+
+    researcher = await SubAgent(
+        Agent(name="researcher", model=LiteLLMModel("openai/your-model"), instruction="Help.")
+    ).start()
+SubAgent.close:
+  example: |
+    from harnest.agent import SubAgent
+
+    researcher: SubAgent
+    await researcher.close()
