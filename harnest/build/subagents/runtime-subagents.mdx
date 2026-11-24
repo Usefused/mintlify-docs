@@ -77,13 +77,22 @@ A runtime `SubAgent` lowers its [`Agent`](/harnest/reference/api/agent#agent) de
 | Plain `MCPClient` and models | Can be shared with the parent |
 | `MCPClient` with lifecycle hooks | Cannot be shared; give each `SubAgent` its own client and lifecycle instance |
 
+## Client tools and human approvals
+
+A runtime SubAgent can use [`@client_tool`](/harnest/build/agent-tools/client-tools) and human approvals through the calling run's connected client. Declare the client tool or protected tool in the SubAgent's `Agent(tools=[...])` definition. Nested runtime SubAgents use the same continuation channel.
+
+The client receives approval and client-tool requests under the parent response and session IDs. Submit the decision or result through the parent's normal transport. The SubAgent continues from the waiting call, and `run()` returns after it finishes. Its conversation stays private.
+
+The SubAgent's request timeout includes time spent waiting for a person or client. Cancelling or timing out the child clears its pending requests without cancelling the parent's other work. Tasks and cron jobs without a caller that can service interactive requests cannot use these waits.
+
 ## Constraints and errors
 
 | Constraint | Result |
 |---|---|
 | Inline `instruction` omitted | Raises `ValueError` (runtime SubAgents have no `instructions.md` folder) |
 | `input_schema`, `output_schema`, or `sandboxes` set | Raises `ValueError`; runtime SubAgents exchange text only |
-| Human approval, `@client_tool`, or durable wait reached | Fails closed with [`SubAgentError`](/harnest/reference/api/agent#subagenterror) because the private runtime cannot resume waits |
+| Human approval or `@client_tool` reached without an interactive caller | Fails closed with [`SubAgentError`](/harnest/reference/api/agent#subagenterror) |
+| Durable wait reached | Raises [`SubAgentError`](/harnest/reference/api/agent#subagenterror); durable waits remain unsupported |
 | Advanced mode or outside an active managed run | Raises [`SubAgentUnavailableError`](/harnest/reference/api/agent#subagentunavailableerror) |
 | Calling `start()` or `run()` after close | Raises [`SubAgentClosedError`](/harnest/reference/api/agent#subagentclosederror) |
 

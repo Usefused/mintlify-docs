@@ -382,7 +382,7 @@ approval = store.request(challenge=..., user_id=..., session_id=..., call_id=...
 async InMemoryApprovalStore.suspend(run: ApprovalRun, challenge: ApprovalChallenge) -> PendingApproval
 ```
 
-Suspend an invocation until its challenge is approved or rejected.
+Wait for a decision, releasing this challenge if its caller is cancelled.
 
 <Accordion title="Parameters and example">
 

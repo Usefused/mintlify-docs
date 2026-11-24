@@ -891,9 +891,10 @@ async SubAgent.run(message: str, *, request_timeout: float | None = None) -> 'Ag
 
 Send one message and wait for the reply; turns share one conversation.
 
-Turns run one at a time. Tools inside a SubAgent cannot wait for human
-approval, client tools, or durable results yet; reaching one raises
-`SubAgentError`.
+Turns run one at a time. Human approvals and client tools use the
+calling run's continuation channel. Without a caller that can service
+these waits, they raise `SubAgentError`. Durable waits are unsupported.
+The request timeout includes time spent awaiting approvals and clients.
 
 <Accordion title="Parameters and example">
 
