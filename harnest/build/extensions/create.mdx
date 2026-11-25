@@ -68,7 +68,7 @@ description: "Scaffold a Harnest Extension, start with a minimal working example
         return "ok"
     ```
 
-    `contributes` is explicit—Harnest never infers contributions from folder names alone. See [Manifest (`extension.yaml`)](/harnest/build/extensions/manifest) for every field and capability.
+    `contributes` is explicit—Harnest never infers contributions from folder names alone. Put private helper modules inside `lib/` and import them with relative imports (`from .lib.helpers import ...` in `extension.py`, or `from ..lib.helpers import ...` in `lifecycle/`, `tools/`, `mcp/`, and `subagents/`) so they stay isolated from the agent's own `lib/`. See [Manifest (`extension.yaml`)](/harnest/build/extensions/manifest) for every field and capability.
   </Step>
 
   <Step title="Add SDK startup and typed request context (optional)">
