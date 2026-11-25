@@ -62,7 +62,7 @@ Explicit sync updates `python.defaultInterpreterPath` in `.vscode/settings.json`
 }
 ```
 
-Windows uses `Scripts/python.exe`; development and eval profiles select the `eval` directory. Sync replaces stale interpreter settings while preserving comments and unrelated preferences, even when a user-owned `.venv` prevents creating the convenience link. Open the agent folder as your VS Code workspace folder so these settings apply.
+Windows uses `Scripts/python.exe`; development and eval profiles select the `eval` directory. In pack (`pack.yaml`) and standalone extension (`extension.yaml`) folders, `harnest env sync .` creates `.harnest/environments/authoring` with Harnest, framework extras (all registered frameworks by default, or narrowed with `--framework adk|langgraph`), pack `packages:`, and extension `pyproject.toml` dependencies. Sync replaces stale interpreter settings while preserving comments and unrelated preferences, even when a user-owned `.venv` prevents creating the convenience link. Open the project folder as your VS Code workspace folder so these settings apply.
 
 After a dependency change during development reload, run `harnest env sync .` again to refresh an editor setting that points to the old interpreter. A Harnest-managed `.venv` link follows the replacement automatically for the selected profile.
 

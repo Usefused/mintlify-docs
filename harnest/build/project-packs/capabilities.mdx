@@ -11,7 +11,7 @@ Pick the mechanism that matches what you want every agent or developer to get:
 | Enforce output policies, tool/model guardrails, or shared runtime tools/MCP/skills | Auto-loaded extensions | `extensions:` in `pack.yaml` | No (auto-loaded at compile time) |
 | Ship approved internal Python SDKs or pinned dependencies | Protected packages | `packages:` in `pack.yaml` | No (blocked from `pyproject.toml` overrides) |
 | Give engineers coding-IDE guidance (`<command> skills install`) | Coding-IDE skills | `skills:` in `pack.yaml` | Installed into `.claude/`, `.cursor/`, `.agents/` |
-| Attach a portable [Agent Plugin](/harnest/build/agent-plugins) (`plugin.json`, `mcp.json`, skills) | `@pack.initialize` + `context.files` | `pack.py` + `templates/` | Yes (`plugins/<name>/`, updatable via `WritePolicy.MANAGED`) |
+| Attach a portable [Agent Plugin](/harnest/build/agent-plugins) (`plugin.json`, `mcp.json`, skills) | `@pack.initialize` + `context.files` | `pack.py` + `templates/` | Yes (`agent-plugins/<name>/`, updatable via `WritePolicy.MANAGED`) |
 | Opt new agents into optional extras from their own `pyproject.toml` | `harnest-compile.yaml` | `pack.py` + `templates/` | Yes |
 
 `skills`, `packages`, and `extensions` in `pack.yaml` are embedded by `harnest pack build` (`--format binary`, default).
@@ -19,6 +19,16 @@ Pick the mechanism that matches what you want every agent or developer to get:
 ## Enforce policies with pack-owned extensions
 
 Bundle a canonical [Harnest Extension](/harnest/build/extensions/create) inside your pack to auto-attach policies, lifecycle hooks, tools, skills, MCP servers, or subagents to **every agent compiled with your branded binary**.
+
+Scaffold the extension directly inside your pack folder:
+
+```bash
+cd ./acme-pack
+harnest extensions init acme_guard \
+  --contribute lifecycle \
+  --capability policy.output \
+  --capability lifecycle.tool
+```
 
 ```text
 acme-pack/
@@ -37,8 +47,6 @@ kind: Extension
 metadata:
   name: acme_guard
   version: 1.0.0
-runtime:
-  entrypoint: extension:extension
 capabilities:
   - policy.output
   - lifecycle.tool
@@ -53,7 +61,7 @@ from harnest.extensions import Extension
 class AcmeGuardExtension(Extension):
     """Enforces Acme output and tool policies across every compiled agent."""
 
-extension = AcmeGuardExtension(name="acme_guard")
+extension = AcmeGuardExtension()
 ```
 
 ```python extensions/acme_guard/lifecycle/policy.py
@@ -89,14 +97,14 @@ Extensions can also contribute `tools`, `skills`, `mcp`, and `subagents` (`conte
 
 ## Attach an Agent Plugin to every agent
 
-Put a portable [Agent Plugin](/harnest/build/agent-plugins) under `templates/plugins/<name>/` and copy it in `@pack.initialize`:
+Put a portable [Agent Plugin](/harnest/build/agent-plugins) under `templates/agent-plugins/<name>/` and copy it in `@pack.initialize`:
 
 ```text
 acme-pack/
   pack.yaml
   pack.py
   templates/
-    plugins/
+    agent-plugins/
       acme-warehouse/
         plugin.json
         mcp.json
@@ -114,18 +122,18 @@ pack = ProjectPack(schema_version=1, templates="templates")
 def initialize(context: ProjectContext) -> ChangePlan:
     return ChangePlan(
         context.files.from_file(
-            "plugins/acme-warehouse/plugin.json",
-            source="plugins/acme-warehouse/plugin.json",
+            "agent-plugins/acme-warehouse/plugin.json",
+            source="agent-plugins/acme-warehouse/plugin.json",
             policy=WritePolicy.MANAGED,
         ),
         context.files.from_file(
-            "plugins/acme-warehouse/mcp.json",
-            source="plugins/acme-warehouse/mcp.json",
+            "agent-plugins/acme-warehouse/mcp.json",
+            source="agent-plugins/acme-warehouse/mcp.json",
             policy=WritePolicy.MANAGED,
         ),
         context.files.from_file(
-            "plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
-            source="plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
+            "agent-plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
+            source="agent-plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
             policy=WritePolicy.MANAGED,
         ),
     )
@@ -133,7 +141,7 @@ def initialize(context: ProjectContext) -> ChangePlan:
 
 ```bash
 ./dist/acme init ./sales
-# Creates sales/plugins/acme-warehouse/{plugin.json,mcp.json,skills/...}
+# Creates sales/agent-plugins/acme-warehouse/{plugin.json,mcp.json,skills/...}
 # Harnest auto-discovers it on managed ADK and LangGraph agents
 ```
 

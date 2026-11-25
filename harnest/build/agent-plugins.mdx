@@ -5,7 +5,7 @@ sidebarTitle: "Plugins"
 description: "Add portable Agent Plugins containing skills, MCP servers, or both."
 ---
 
-Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `plugins/` to share skills and MCP servers across managed ADK and LangGraph agents. Harnest discovers its declarations automatically. Advanced applications must wire these capabilities themselves.
+Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `agent-plugins/` to share skills and MCP servers across managed ADK and LangGraph agents. Harnest discovers its declarations automatically. Advanced applications must wire these capabilities themselves.
 
 <Note>
   Need Python APIs, SDK dependencies, typed context, or lifecycle behavior? Build a [Harnest Extension](/harnest/build/extensions) in `extensions/`. Application hooks and resource factories belong in `lifecycle/`.
@@ -16,17 +16,17 @@ Add an [Agent Plugins 1.0](https://agent-plugins.org/specification) package to `
 From the agent folder, install a reviewed local package into the project:
 
 ```bash
-harnest plugins install ../downloads/warehouse
+harnest agent-plugins install ../downloads/warehouse
 ```
 
-Harnest validates the manifest without running package code and copies it into `plugins/<manifest-name>`. Links and special files are rejected. Use `--force` to replace an installed package; a failed replacement restores the previous version.
+Harnest validates the manifest without running package code and copies it into `agent-plugins/<manifest-name>`. Links and special files are rejected. Use `--force` to replace an installed package; a failed replacement restores the previous version.
 
 The installer accepts local directories. Use `harnest extensions search` to discover executable Harnest Extensions.
 
 Place each package in its own directory. Keep the package's root `plugin.json` intact:
 
 ```text
-plugins/
+agent-plugins/
 └── warehouse/
     ├── plugin.json
     ├── mcp.json                 # optional
@@ -36,7 +36,7 @@ plugins/
             └── references/     # optional
 ```
 
-```json plugins/warehouse/plugin.json
+```json agent-plugins/warehouse/plugin.json
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "warehouse",
@@ -93,7 +93,7 @@ Harnest accepts at most 16 plugins per session and regular files only. It reject
 
 Portable MCP declarations live in root `mcp.json`, not Python factories. Each server declares its transport explicitly:
 
-```json plugins/warehouse/mcp.json
+```json agent-plugins/warehouse/mcp.json
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
@@ -118,7 +118,7 @@ MCP connections open at runtime; compilation does not start servers.
 
 For a package that includes `server.py`, a stdio declaration can use:
 
-```json plugins/warehouse/mcp.json
+```json agent-plugins/warehouse/mcp.json
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {

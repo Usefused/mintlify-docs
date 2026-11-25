@@ -38,6 +38,14 @@ A **pack** is a folder containing `pack.yaml`, optional `pack.py` hooks, and any
     ```
 
     See [Manifest (`pack.yaml`)](/harnest/build/project-packs/manifest) for a complete example showing every optional field (`requires`, `skills`, `packages`, `extensions`, and `studio`).
+
+    To attach `harnest`, framework SDKs (`google.adk`, `langgraph`), `packages:`, and pack extension dependencies to VS Code or Cursor while editing `pack.py` or pack extensions, run:
+
+    ```bash
+    harnest env sync ./acme-pack
+    ```
+
+    This creates `.harnest/`, `.venv`, and `.vscode/settings.json` locally (all automatically excluded by `harnest pack build`).
   </Step>
 
   <Step title="Validate and build the pack">

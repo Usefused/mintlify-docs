@@ -19,7 +19,7 @@ metadata:
   name: warehouse
   version: 1.0.0
 
-# Required: `<module>:<symbol>` exporting the Extension singleton.
+# Optional: defaults to `extension:extension` when omitted.
 runtime:
   entrypoint: extension:extension
 
@@ -54,12 +54,22 @@ capabilities:
 | `kind` | Yes | Literal `Extension`. |
 | `metadata.name` | Yes | Valid Python identifier matching the enclosing folder name (`extensions/<name>/`). |
 | `metadata.version` | Yes | SemVer string (for example `1.0.0`); must match `pyproject.toml` version if present. |
-| `runtime.entrypoint` | Yes | Module and attribute exporting the singleton (typically `extension:extension`). |
+| `runtime.entrypoint` | No | Optional; defaults to `extension:extension` (only `extension:extension` is accepted if specified). |
 | `requires.extensions` | No | List of extension names that must start before this extension (and stop after it). |
-| `contributes` | No | Map of contribution kind (`lifecycle`, `tools`, `mcp`, `skills`, `subagents`) to extension-relative folder paths. Paths must exist, cannot overlap, and cannot target reserved roots (`extension.yaml`, `extension.py`, `pyproject.toml`, `README.md`, `lib`). Omit for runtime-only extensions. |
-| `capabilities` | No | List of capabilities this extension uses (see below). Declare only what you actually use. |
+| `contributes` | No | Map of contribution key (`lifecycle`, `tools`, `mcp`, `skills`, `subagents`) to extension-relative folder paths. Paths must exist, cannot overlap, and cannot target reserved roots (`extension.yaml`, `extension.py`, `pyproject.toml`, `README.md`, `lib`). |
+| `capabilities` | No | Explicit permissions this extension uses (see below). |
 
-Managed mode composes all declared `contributes`. Advanced mode accepts `contributes.lifecycle` but rejects managed content (`tools`, `mcp`, `skills`, `subagents`).
+## Contributions reference
+
+Accepted keys for `contributes:` and `harnest extensions init --contribute`:
+
+| Key | Files inside folder | Required capability | Advanced mode |
+|---|---|---|---|
+| `lifecycle` | `@lifecycle.*` hooks, policies, storage, routes, framework extensions | Matching `lifecycle.*`, `storage.*`, `policy.output`, `http.routes`, `sandbox.provider`, `framework.extension`, or `telemetry.exporter` | Supported |
+| `tools` | `@tool` / `@client_tool` modules | `content.tools` | Rejected |
+| `mcp` | `client()` MCP modules | `content.mcp` | Rejected |
+| `skills` | `<skill>/SKILL.md` folders | `content.skills` | Rejected |
+| `subagents` | SubAgent modules | `content.subagents` | Rejected |
 
 ## Capabilities reference
 
@@ -107,3 +117,16 @@ Managed mode composes all declared `contributes`. Advanced mode accepts `contrib
 | `sandbox.provider` | [Sandbox provider factories](/harnest/build/sandboxing) |
 | `framework.extension` | [ADK plugins or LangChain middleware](/harnest/runtime/lifecycle/framework-extensions) |
 | `telemetry.exporter` | Custom telemetry exporters |
+
+## `pyproject.toml` requirements
+
+`harnest extensions init` scaffolds `pyproject.toml` automatically. It is optional if your extension has no third-party dependencies; when present, Harnest validates it against these rules:
+
+| Field / constraint | Requirement |
+|---|---|
+| File type & size | Regular file (no symlink), max 1 MiB, valid TOML with a PEP 621 `[project]` table. |
+| `project.name` | Must equal `harnest-extension-<metadata.name>` with underscores replaced by hyphens. |
+| `project.version` | Must match `metadata.version` in `extension.yaml` exactly. |
+| `project.dependencies` | Static list of PEP 508 strings (`dynamic = ["dependencies"]` is rejected). |
+| Compiler-owned packages | Rejected if listed: `harnest`, `google-adk`, `langgraph`, `langchain`, `langchain-litellm`, `langchain-mcp-adapters`. |
+| `[tool.uv] package = false` | Recommended for local and pack-bundled extensions so `uv` treats the file as a dependency manifest rather than a buildable package. |

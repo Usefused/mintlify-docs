@@ -83,6 +83,7 @@ Advanced projects can use managed folders for tools, skills, MCP connections, an
     | `harnest.plugins` | [`harnest.extensions`](/harnest/reference/api/extensions) |
     | `<name>` distribution | `harnest-extension-<name>` distribution |
     | inferred content folders | explicit `contributes` paths |
+    | `plugins/` (Agent Plugins) | `agent-plugins/` |
 
     The upgrade declares each existing Runtime Plugin `tools/`, `mcp/`,
     `skills/`, and `subagents/` directory under the matching `contributes` key.
@@ -90,11 +91,12 @@ Advanced projects can use managed folders for tools, skills, MCP connections, an
     declares that path under `contributes.lifecycle`. New Harnest Extensions do
     not infer content from directory names.
 
-    Agent Plugin folders containing `plugin.json` stay under `plugins/`; they
-    are declarative packages and are not part of this executable-code migration.
-    Harnest no longer infers manifestless `plugins/<name>/{mcp,skills}` packages;
-    install or rebuild those packages against the Agent Plugins standard before
-    compiling the upgraded project.
+    Agent Plugin folders containing `plugin.json` are relocated from `plugins/`
+    to `agent-plugins/` (or the vacated `plugins/` folder is removed if it only
+    held retired Runtime Plugins). Use `harnest agent-plugins install` for new
+    packages. Harnest no longer infers manifestless `plugins/<name>/{mcp,skills}`
+    packages; install or rebuild those packages against the Agent Plugins
+    standard before compiling the upgraded project.
   </Step>
   <Step title="Test the upgraded project">
     ```bash

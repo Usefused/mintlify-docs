@@ -55,7 +55,7 @@ export const HarnestProjectExplorer = () => {
     "label": "harnest.lock",
     "path": "harnest.lock",
     "description": "The project schema and resolved framework version. Environment sync adds the exact framework pin. Commit this file; schema upgrades preserve that pin.",
-    "code": "apiVersion: harnest.dev/v1alpha1\nkind: ProjectLock\nprojectSchema: 5",
+    "code": "apiVersion: harnest.dev/v1alpha1\nkind: ProjectLock\nprojectSchema: 8",
     "language": "yaml",
     "optional": false,
     "href": "/harnest/build/project-configuration",
@@ -154,7 +154,7 @@ export const HarnestProjectExplorer = () => {
   {
     "label": "extensions/",
     "path": "extensions/starter_runtime/extension.yaml",
-    "description": "Optional Harnest Extensions package reusable application functionality. Declare extension.yaml, export the singleton from extension.py, and put package-owned hooks in lifecycle/. Agent Plugins live separately in plugins/.",
+    "description": "Optional Harnest Extensions package reusable application functionality. Declare extension.yaml, export the singleton from extension.py, and put package-owned hooks in lifecycle/. Agent Plugins live separately in agent-plugins/.",
     "code": "apiVersion: harnest.dev/v1alpha1\nkind: Extension\nmetadata:\n  name: starter_runtime\n  version: 0.1.0\nruntime:\n  entrypoint: extension:extension\ncapabilities: []",
     "language": "yaml",
     "optional": true,
@@ -162,8 +162,8 @@ export const HarnestProjectExplorer = () => {
     "example": true
   },
   {
-    "label": "plugins/",
-    "path": "plugins/warehouse/plugin.json",
+    "label": "agent-plugins/",
+    "path": "agent-plugins/warehouse/plugin.json",
     "description": "Agent Plugins 1.0 packages contain plugin.json and optional skills/ and mcp.json components. Harnest discovers them without Python registration. Application lifecycle behavior belongs in lifecycle/ or a Harnest Extension.",
     "code": "{\n  \"$schema\": \"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json\",\n  \"name\": \"warehouse\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Query the shared warehouse\"\n}",
     "language": "json",

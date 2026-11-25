@@ -7,17 +7,23 @@ description: "Scaffold a Harnest Extension, start with a minimal working example
 
 <Steps>
   <Step title="Scaffold the extension">
-    Run inside your agent directory (the name must be a valid Python identifier):
+    Run inside an agent folder, inside a pack folder, or pass `--output DIR` for a standalone location (the name must be a valid Python identifier):
 
     ```bash
-    harnest extensions init warehouse
+    # Inside an agent or pack directory
+    harnest extensions init warehouse --contribute tools,lifecycle --capability lifecycle.tool
+
+    # Standalone directory (no config.yaml required)
+    harnest extensions init warehouse --output ./extensions --contribute tools
     ```
+
+    `harnest extensions init` generates `extension.yaml`, `extension.py`, and `pyproject.toml`. `--contribute` also creates each requested folder (`lifecycle`, `tools`, `mcp`, `skills`, `subagents`), wires `contributes:` in `extension.yaml`, and adds matching `content.*` capabilities.
 
     ```text extensions/warehouse/
     extensions/warehouse/
       extension.yaml     # required: manifest, capabilities, contributed folders
       extension.py       # required: exports `extension` singleton
-      pyproject.toml     # optional: third-party SDK dependencies
+      pyproject.toml     # generated (optional): third-party SDK dependencies
       README.md          # optional: package docs for PyPI
       lib/               # optional: private helpers (never auto-discovered)
       lifecycle/         # optional: hooks, output policies, storage, routes
@@ -37,8 +43,6 @@ description: "Scaffold a Harnest Extension, start with a minimal working example
     metadata:
       name: warehouse
       version: 1.0.0
-    runtime:
-      entrypoint: extension:extension
     capabilities:
       - content.tools
     contributes:
@@ -52,7 +56,7 @@ description: "Scaffold a Harnest Extension, start with a minimal working example
     class WarehouseExtension(Extension):
         """Contributes warehouse tools."""
 
-    extension = WarehouseExtension(name="warehouse")
+    extension = WarehouseExtension()
     ```
 
     ```python extensions/warehouse/tools/ping.py
@@ -120,24 +124,43 @@ description: "Scaffold a Harnest Extension, start with a minimal working example
     Keep raw SDK clients private on `self` and expose only safe domain methods on `WarehouseContext`.
   </Step>
 
-  <Step title="Declare SDK dependencies (optional)">
-    Add `pyproject.toml` if your extension needs third-party Python packages:
+  <Step title="Declare SDK dependencies (pyproject.toml)">
+    `harnest extensions init` creates `pyproject.toml` for you. Add any third-party Python packages your extension imports under `[project].dependencies`:
 
     ```toml extensions/warehouse/pyproject.toml
     [project]
-    name = "harnest-extension-warehouse"  # must be harnest-extension-<metadata.name>
-    version = "1.0.0"                     # must match metadata.version in extension.yaml
-    requires-python = ">=3.11,<3.15"
-    dependencies = ["warehouse-sdk>=2,<3"]
+    name = "harnest-extension-warehouse"
+    version = "0.1.0"
+    requires-python = ">=3.11"
+    dependencies = [
+      "warehouse-sdk>=2,<3",
+    ]
+
+    [tool.uv]
+    package = false
     ```
 
-    - Do not pin `harnest` or framework SDKs in a local extension—Harnest owns those versions.
-    - Dependencies merge into the agent's root `harnest-runtime.lock` when you sync.
+    | Requirement | Rule |
+    |---|---|
+    | `name` | Must equal `harnest-extension-<metadata.name>` with underscores converted to hyphens (for example `company_adk` → `harnest-extension-company-adk`). |
+    | `version` | Must match `metadata.version` in `extension.yaml`. |
+    | `dependencies` | Static PEP 621 list only (`dynamic = ["dependencies"]` is rejected). Merged into the agent's root `harnest-runtime.lock` (extensions never get a separate runtime venv). |
+    | Forbidden packages | Never declare compiler-owned packages: `harnest`, `google-adk`, `langgraph`, `langchain`, `langchain-litellm`, or `langchain-mcp-adapters`. |
+    | `[tool.uv] package = false` | Keeps local and pack extensions as dependency manifests (omit and add `[build-system]` only when publishing to PyPI). |
+    | Optionality & limits | Optional when the extension has no extra dependencies; when present, must be a regular file (no symlink) under 1 MiB with a `[project]` table. |
   </Step>
 
-  <Step title="Sync and test">
+  <Step title="Sync editor packages and test">
+    Run `harnest env sync` in an agent, pack, or standalone extension folder to create a managed environment (`.harnest/`), link `.venv`, and point `.vscode/settings.json` at the interpreter so your editor resolves `harnest`, framework SDKs (`google.adk`, `langgraph`), and `pyproject.toml` dependencies:
+
     ```bash
+    # Inside an agent, pack, or standalone extension folder
     harnest env sync .
+
+    # Optional in pack or standalone extension folders: narrow to one framework
+    harnest env sync . --framework adk
+
+    # Inside an agent folder
     harnest test .
     ```
   </Step>
