@@ -430,8 +430,15 @@
                           "harnest/build/extensions/official/rag"
                         ]
                       },
-                      "harnest/build/extensions/create",
-                      "harnest/build/extensions/lifecycle"
+                      {
+                        "group": "Build an extension",
+                        "icon": "hammer",
+                        "pages": [
+                          "harnest/build/extensions/create",
+                          "harnest/build/extensions/manifest",
+                          "harnest/build/extensions/lifecycle"
+                        ]
+                      }
                     ]
                   },
                   {

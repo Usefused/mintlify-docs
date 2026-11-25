@@ -1,86 +1,77 @@
 ---
-icon: "code"
+icon: "plug"
 title: "Use a Harnest Extension"
 sidebarTitle: "Use an extension"
-description: "Discover a Harnest Extension, consume its compiler-owned namespace, and keep access invocation-scoped."
+description: "Search, install, and call Harnest Extensions from tools or application code."
 ---
 
-Harnest discovers extensions from `extensions/<name>/extension.yaml`.
+Harnest discovers extensions in `extensions/<name>/extension.yaml` (plus any pack-owned extensions embedded in a branded CLI binary).
 
-From the agent folder, install a verified public PyPI wheel by its short slug or full distribution name:
+## Install an extension
+
+From your agent folder, install from PyPI or from a local directory, then sync dependencies:
 
 ```bash
+# From PyPI (short slug or full harnest-extension-* name)
 harnest extensions install warehouse
-# Equivalent: harnest extensions install harnest-extension-warehouse
 harnest env sync .
-```
 
-To review and test an unpublished extension, install its local source tree instead:
-
-```bash
+# From a local source directory
 harnest extensions install ../harnest-extension-warehouse
 harnest env sync .
 ```
 
-The installer validates the package without importing its code. PyPI installs require a universal `py3-none-any` wheel; local installs use the source tree. Packages are copied intact to `extensions/<manifest-name>`, and only declared `contributes` directories are compiled. Use `--force` to replace an installed extension. Review its code and capabilities, then run `harnest env sync .` to refresh dependencies.
+- Pass `--force` to replace an existing extension cleanly.
+- To find compatible public `harnest-extension-*` packages on PyPI:
 
-Published wheels can declare Harnest or framework dependencies, but the installed project uses Harnest’s pinned versions. Other extension dependencies join the root environment. Local extensions must not redeclare compiler-owned packages.
+```bash
+harnest extensions search warehouse
+```
 
-After compilation, Harnest exposes the extension module as `harnest.extensions.<name>`. Import the singleton from a discovered Agent Tool and call its bounded API:
+`official` marks Fused-maintained packages; `community` means the wheel passes structural manifest and entry-point checks (not a security audit).
+
+<Warning>
+`pip install` alone does not register an extension with an agent. Always install via `harnest extensions install` (which validates and copies into `extensions/<name>/`) and run `harnest env sync .`.
+</Warning>
+
+## Use the extension in your agent
+
+### Contributed tools, skills, MCP, and lifecycle hooks
+
+If the extension declares `tools`, `mcp`, `skills`, `subagents`, or `lifecycle` under `contributes:` in `extension.yaml`, Harnest wires them automatically at compile time—no imports required.
+
+### Calling the extension's Python API
+
+After compilation, Harnest exposes the extension under `harnest.extensions.<name>`. Call methods on its `extension` singleton inside any Agent Tool:
 
 ```python tools/query_warehouse.py
-from harnest.extensions.warehouse import extension as warehouse
 from harnest.agent import tool
+from harnest.extensions.warehouse import extension as warehouse
 
 @tool
 async def query_warehouse(statement: str) -> list[dict]:
-    """Query the configured warehouse through its Harnest Extension."""
-
+    """Query the warehouse through its Harnest Extension."""
     return await warehouse.query(statement)
 ```
 
-The call runs inside a managed invocation, so `warehouse.context` resolves the typed `WarehouseContext` created for that request. Retaining it after the invocation ends fails closed.
-
-## Resolve the typed context explicitly
-
-Trusted application code can ask Harnest for the same invocation-scoped view:
+Inside helper modules, you can also resolve the current request's typed [`ExtensionContext`](/harnest/reference/api/extensions#extensioncontext) explicitly:
 
 ```python lib/warehouse_service.py
 from harnest import context
 from harnest.extensions.warehouse import WarehouseContext
 
 async def run_query(statement: str) -> list[dict]:
-    """Resolve the warehouse capability without exposing its SDK client."""
-
     warehouse = context.extensions("warehouse", WarehouseContext)
     return await warehouse.query(statement)
 ```
 
-Keep application clients and connection pools private on the singleton. Expose domain operations through the typed context instead of returning the raw SDK object.
-
-## Find published extensions
-
-Search public PyPI for compatible `harnest-extension-*` packages:
-
-```bash
-harnest extensions search warehouse
-```
-
-Search checks package identity, entry point, manifest, and wheel digest without importing code. `official` identifies Fused-maintained packages; `community` means the package meets the structural contract. Neither label is a security review.
-
-<Warning>
-  Search does not install an extension, and `pip install` alone does not register one with an agent project. Use `harnest extensions install <slug-or-project>` to verify and materialize a published wheel, then run `harnest env sync` before compiling.
-</Warning>
+[`Extension.context`](/harnest/reference/api/extensions#extension-context) is scoped to the active request—holding onto it after the request finishes raises [`ExtensionContextUnavailableError`](/harnest/reference/api/extensions#extensioncontextunavailableerror).
 
 <CardGroup cols={2}>
-  <Card title="Create your own extension" icon="puzzle-piece" href="/harnest/build/extensions/create">
-    Define the local manifest, singleton, typed context, and dependencies.
+  <Card title="Create an extension" icon="plus" href="/harnest/build/extensions/create">
+    Build your own local or publishable Harnest Extension.
   </Card>
-  <Card title="Use extension lifecycle" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
-    Add only the hooks and factories declared by the manifest.
+  <Card title="Auto-attach via a Pack" icon="box" href="/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions">
+    Embed extensions in a branded CLI so every compiled agent loads them automatically.
   </Card>
 </CardGroup>
-
-## API reference
-
-Reference: [`harnest.agent`](/harnest/reference/api/agent).

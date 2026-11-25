@@ -2,47 +2,63 @@
 icon: "puzzle-piece"
 title: "Harnest Extensions"
 sidebarTitle: "Overview"
-description: "Follow the Harnest Extension process from boundary selection through authoring, lifecycle integration, and application use."
+description: "Package reusable Python SDK wrappers, tools, skills, MCP servers, lifecycle policies, storage, or sandboxes that run inside an agent."
 ---
 
-A Harnest Extension packages reusable code that runs in the agent process. It can contribute lifecycle hooks, context, storage, HTTP routes, agent content, sandbox providers, and telemetry.
+A **Harnest Extension** is a folder (`extensions/<name>/`) containing `extension.yaml`, `extension.py`, and optional Python dependencies or contributed resources. It runs inside the agent process and shares the agent's Python environment.
 
-Building one is a three-part process: define the extension's application-owned object, declare how it joins Harnest lifecycle, then consume its bounded API from agent code.
+```text
+extensions/warehouse/
+  extension.yaml     # identity, entrypoint, capabilities, and contributed folders
+  extension.py       # Extension singleton (and optional start/stop + request context)
+  pyproject.toml     # optional SDK dependencies (merged into harnest-runtime.lock)
+  tools/             # optional managed Agent Tools
+  lifecycle/         # optional hooks, policies, storage, or HTTP routes
+```
 
-<Steps>
-  <Step title="Create the extension">
-    Add `extensions/<name>/extension.yaml`, export the singleton from `extension.py`, and declare any SDK dependencies.
+## Ways to add an extension
 
-    <Card title="Create a Harnest Extension" icon="puzzle-piece" href="/harnest/build/extensions/create">
-      Build the folder, manifest, typed context, and shared dependency contract.
-    </Card>
-  </Step>
-  <Step title="Integrate lifecycle behavior">
-    Own application startup and shutdown in the extension class. Put declared Harnest hooks and factories under the extension's `lifecycle/` directory.
+```bash
+# 1. Install from PyPI (short slug or full harnest-extension-* name)
+harnest extensions install docker
+harnest env sync .
 
-    <Card title="Use lifecycle in an extension" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
-      Declare capabilities, ordering, hooks, storage, telemetry, and auditing.
-    </Card>
-  </Step>
-  <Step title="Use the extension from the agent">
-    Import its compiler-owned namespace or resolve its typed invocation context. No central registry is required.
+# 2. Install from a local directory
+harnest extensions install ../warehouse
+harnest env sync .
 
-    <Card title="Use a Harnest Extension" icon="plug" href="/harnest/build/extensions/use">
-      Discover local extensions, call their public API, and understand PyPI search behavior.
-    </Card>
-  </Step>
-</Steps>
+# 3. Scaffold a new extension inside your agent
+harnest extensions init warehouse
+```
 
-## Choose the right extension boundary
+Platform teams can also auto-attach extensions to every compiled agent without copying files into agent repos by listing them under `extensions:` in a [Harnest Pack](/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions).
+
+## Choose the right boundary
 
 | Need | Use |
 |---|---|
-| Reuse portable skills, MCP servers, or both | [Agent Plugin](/harnest/build/agent-plugins) |
-| Wrap an SDK in typed, invocation-scoped Python | Harnest Extension |
-| Implement a reusable sandbox provider | Harnest Extension declaring `sandbox.provider` |
-| Apply behavior to one application without a reusable extension API | Root `lifecycle/` hooks and factories |
-| Run work outside the agent process | Harnest Extension backed by an external service |
+| Portable skills and declarative `mcp.json` (no Python code) | [Agent Plugin](/harnest/build/agent-plugins) |
+| Reusable Python SDK wrapper, tools, policies, storage, HTTP routes, or sandbox provider | **Harnest Extension** |
+| One-off hooks or storage for a single agent | Root `lifecycle/` folder |
+| Enforce an extension automatically across every company agent | Pack-owned extension in [`pack.yaml`](/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions) |
 
 <Warning>
-  Harnest Extensions share the root interpreter, event loop, dependency solve, and lock. They do not receive extension-private environments, and they do not turn an external job into a resumable Python process.
+Extensions share the agent's Python interpreter, event loop, and dependency lock (`harnest-runtime.lock`). They do not run in separate virtual environments.
 </Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Use an extension" icon="plug" href="/harnest/build/extensions/use">
+    Search, install, and call an extension from tools or helper code.
+  </Card>
+  <Card title="Create an extension" icon="plus" href="/harnest/build/extensions/create">
+    Build a minimal extension, then add SDK lifecycle, typed context, and dependencies.
+  </Card>
+  <Card title="Manifest (extension.yaml)" icon="file-code" href="/harnest/build/extensions/manifest">
+    Complete `extension.yaml` example, fields, and every capability flag.
+  </Card>
+  <Card title="Lifecycle & auditing" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
+    Startup/shutdown order, lifecycle hooks, and OTEL mutation auditing.
+  </Card>
+</CardGroup>

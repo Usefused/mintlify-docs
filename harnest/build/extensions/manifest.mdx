@@ -1,0 +1,109 @@
+---
+icon: "file-code"
+title: "Manifest (extension.yaml)"
+sidebarTitle: "Manifest (extension.yaml)"
+description: "Complete extension.yaml example, field reference, and every supported capability."
+---
+
+Every Harnest Extension starts with `extension.yaml` (max 1 MiB). Harnest validates it without executing Python code.
+
+## Complete example
+
+```yaml extensions/warehouse/extension.yaml
+# Required: fixed schema version and kind.
+apiVersion: harnest.dev/v1alpha1
+kind: Extension
+
+# Required: name must match the folder (valid Python identifier); version must be SemVer.
+metadata:
+  name: warehouse
+  version: 1.0.0
+
+# Required: `<module>:<symbol>` exporting the Extension singleton.
+runtime:
+  entrypoint: extension:extension
+
+# Optional: other local extensions that must start before this one (cycles are rejected).
+requires:
+  extensions:
+    - credentials
+
+# Optional: directories composed into the agent (only declared paths are discovered).
+contributes:
+  lifecycle: [lifecycle]
+  tools: [tools]
+  mcp: [mcp]
+  skills: [skills]
+  subagents: [subagents]
+
+# Optional: explicit permissions required for each hook, resource, or contributed folder.
+capabilities:
+  - content.tools
+  - content.mcp
+  - content.skills
+  - content.subagents
+  - lifecycle.tool
+  - policy.output
+```
+
+## Field reference
+
+| Field | Required | Rules & meaning |
+|---|---|---|
+| `apiVersion` | Yes | Literal `harnest.dev/v1alpha1`. |
+| `kind` | Yes | Literal `Extension`. |
+| `metadata.name` | Yes | Valid Python identifier matching the enclosing folder name (`extensions/<name>/`). |
+| `metadata.version` | Yes | SemVer string (for example `1.0.0`); must match `pyproject.toml` version if present. |
+| `runtime.entrypoint` | Yes | Module and attribute exporting the singleton (typically `extension:extension`). |
+| `requires.extensions` | No | List of extension names that must start before this extension (and stop after it). |
+| `contributes` | No | Map of contribution kind (`lifecycle`, `tools`, `mcp`, `skills`, `subagents`) to extension-relative folder paths. Paths must exist, cannot overlap, and cannot target reserved roots (`extension.yaml`, `extension.py`, `pyproject.toml`, `README.md`, `lib`). Omit for runtime-only extensions. |
+| `capabilities` | No | List of capabilities this extension uses (see below). Declare only what you actually use. |
+
+Managed mode composes all declared `contributes`. Advanced mode accepts `contributes.lifecycle` but rejects managed content (`tools`, `mcp`, `skills`, `subagents`).
+
+## Capabilities reference
+
+### Contributed content
+
+| Capability | Unlocks |
+|---|---|
+| `content.tools` | `contributes.tools` (managed Agent Tools) |
+| `content.mcp` | `contributes.mcp` (managed MCP clients) |
+| `content.skills` | `contributes.skills` (managed Agent Skills) |
+| `content.subagents` | `contributes.subagents` (managed SubAgents) |
+
+### Lifecycle hooks
+
+| Capability | Unlocks |
+|---|---|
+| `lifecycle.agent` | [`@lifecycle.agent.before` / `after` / `on_error`](/harnest/reference/api/lifecycle#agent) |
+| `lifecycle.model` | [`@lifecycle.model.before` / `after` / `on_error`](/harnest/reference/api/lifecycle#model) |
+| `lifecycle.tool` | [`@lifecycle.tool.before` / `after` / `on_error`](/harnest/reference/api/lifecycle#tool) |
+| `lifecycle.mcp` | [`@lifecycle.mcp.before` / `after` / `on_error`](/harnest/reference/api/lifecycle#mcp) |
+| `lifecycle.http` | [`@lifecycle.http.before` / `after` / `on_error`](/harnest/reference/api/lifecycle#http) |
+| `lifecycle.session` | [`@lifecycle.session.created`](/harnest/reference/api/lifecycle#session-created) |
+| `lifecycle.skills` | Dynamic skill source hooks |
+
+### Runtime context access
+
+| Capability | Unlocks |
+|---|---|
+| `context.resources` | Read application `@lifecycle.resource` values |
+| `context.credentials` | Access scoped runtime credentials |
+| `context.continuations` | Persist [durable continuations](/harnest/runtime/durable-execution) |
+| `context.storage` | Access named custom storage |
+| `context.assets` | Read/write session assets |
+| `context.session` | Read session metadata/state |
+| `context.skills` | Access active skill registry |
+| `context.mcp` | Access active MCP clients |
+
+### Storage, policies, HTTP, sandboxes, and telemetry
+
+| Capability | Unlocks |
+|---|---|
+| `storage.sessions`, `storage.checkpoints`, `storage.assets`, `storage.tasks`, `storage.cron`, `storage.memory`, `storage.custom` | [`@lifecycle.storage.*`](/harnest/reference/api/lifecycle#storage-sessions) factories |
+| `policy.output` | [`@lifecycle.output_policy`](/harnest/runtime/lifecycle/output-policy) |
+| `http.routes` | Custom application HTTP routes |
+| `sandbox.provider` | [Sandbox provider factories](/harnest/build/sandboxing) |
+| `framework.extension` | [ADK plugins or LangChain middleware](/harnest/runtime/lifecycle/framework-extensions) |
+| `telemetry.exporter` | Custom telemetry exporters |

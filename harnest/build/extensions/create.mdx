@@ -2,174 +2,157 @@
 icon: "plus"
 title: "Create a Harnest Extension"
 sidebarTitle: "Create an extension"
-description: "Author the Harnest Extension manifest, singleton, typed invocation context, and dependency contract."
+description: "Scaffold a Harnest Extension, start with a minimal working example, then add SDK lifecycle, typed context, and dependencies."
 ---
 
-Create an extension under the agent project's root `extensions/` directory. The folder name is the extension identity and must be a valid Python identifier. The CLI creates the canonical manifest, module, and dependency metadata together:
-
-```bash
-harnest extensions init warehouse
-```
-
-```text extensions/warehouse/
-extensions/warehouse/
-├── extension.yaml
-├── extension.py
-├── README.md            optional package documentation
-├── pyproject.toml       optional SDK dependencies
-├── lib/                 private extension helpers
-├── lifecycle/           lifecycle contributions
-├── mcp/                 managed MCP contributions
-├── skills/              managed Agent Skill contributions
-├── subagents/           managed SubAgent contributions
-└── tools/               managed Agent Tool contributions
-```
-
-## Declare the extension
-
 <Steps>
-  <Step title="Create extensions/warehouse/extension.yaml">
-```yaml extensions/warehouse/extension.yaml
-apiVersion: harnest.dev/v1alpha1
-kind: Extension
-metadata:
-  name: warehouse
-  version: 1.0.0
-runtime:
-  entrypoint: extension:extension
-contributes:
-  lifecycle: [lifecycle/]
-  mcp: [mcp/]
-  skills: [skills/]
-  subagents: [subagents/]
-  tools: [tools/]
-capabilities:
-  - content.mcp
-  - content.skills
-  - content.subagents
-  - content.tools
-```
+  <Step title="Scaffold the extension">
+    Run inside your agent directory (the name must be a valid Python identifier):
+
+    ```bash
+    harnest extensions init warehouse
+    ```
+
+    ```text extensions/warehouse/
+    extensions/warehouse/
+      extension.yaml     # required: manifest, capabilities, contributed folders
+      extension.py       # required: exports `extension` singleton
+      pyproject.toml     # optional: third-party SDK dependencies
+      README.md          # optional: package docs for PyPI
+      lib/               # optional: private helpers (never auto-discovered)
+      lifecycle/         # optional: hooks, output policies, storage, routes
+      tools/             # optional: managed Agent Tools
+      mcp/               # optional: managed MCP clients
+      skills/            # optional: managed Agent Skills
+      subagents/         # optional: managed SubAgents
+    ```
   </Step>
-  <Step title="Create extensions/warehouse/pyproject.toml">
-```toml extensions/warehouse/pyproject.toml
-[project]
-name = "harnest-extension-warehouse"
-version = "1.0.0"
-requires-python = ">=3.11,<3.14"
-dependencies = ["warehouse-sdk>=2,<3"]
-```
+
+  <Step title="Start minimal: contribute tools or policies">
+    If your extension only contributes tools, skills, MCP servers, or lifecycle hooks, `extension.py` only needs a 3-line [`Extension`](/harnest/reference/api/extensions#extension) subclass:
+
+    ```yaml extensions/warehouse/extension.yaml
+    apiVersion: harnest.dev/v1alpha1
+    kind: Extension
+    metadata:
+      name: warehouse
+      version: 1.0.0
+    runtime:
+      entrypoint: extension:extension
+    capabilities:
+      - content.tools
+    contributes:
+      tools:
+        - tools
+    ```
+
+    ```python extensions/warehouse/extension.py
+    from harnest.extensions import Extension
+
+    class WarehouseExtension(Extension):
+        """Contributes warehouse tools."""
+
+    extension = WarehouseExtension(name="warehouse")
+    ```
+
+    ```python extensions/warehouse/tools/ping.py
+    from harnest.agent import tool
+
+    @tool
+    def ping_warehouse() -> str:
+        """Check warehouse connectivity."""
+        return "ok"
+    ```
+
+    `contributes` is explicit—Harnest never infers contributions from folder names alone. See [Manifest (`extension.yaml`)](/harnest/build/extensions/manifest) for every field and capability.
+  </Step>
+
+  <Step title="Add SDK startup and typed request context (optional)">
+    When wrapping a long-lived SDK client (database pool, HTTP client), open it in [`start()`](/harnest/reference/api/extensions#extension-start), close it in [`stop()`](/harnest/reference/api/extensions#extension-stop), and expose per-request methods via [`ExtensionContext`](/harnest/reference/api/extensions#extensioncontext):
+
+    ```python extensions/warehouse/extension.py
+    import os
+    from harnest.extensions import Extension, ExtensionContext
+    from warehouse_sdk import WarehouseClient
+
+    class WarehouseContext(ExtensionContext):
+        """Per-request view revoked automatically when the invocation ends."""
+        __slots__ = ("_owner",)
+
+        def __init__(self, extension_name: str, owner: "Warehouse") -> None:
+            super().__init__(extension_name)
+            self._owner = owner
+
+        async def query(self, statement: str) -> list[dict]:
+            self._require_active()
+            return await self._owner._query(statement)
+
+    class Warehouse(Extension[WarehouseContext]):
+        """Owns one WarehouseClient for the application lifetime."""
+        def __init__(self) -> None:
+            self._client = None
+
+        async def start(self, _context) -> None:
+            self._client = await WarehouseClient.connect(
+                endpoint=os.environ["WAREHOUSE_ENDPOINT"],
+            )
+
+        async def stop(self) -> None:
+            if self._client is not None:
+                await self._client.close()
+                self._client = None
+
+        def create_context(self, base: ExtensionContext) -> WarehouseContext:
+            return WarehouseContext(base.extension_name, self)
+
+        async def query(self, statement: str) -> list[dict]:
+            # Routes through the active request's WarehouseContext
+            return await self.context.query(statement)
+
+        async def _query(self, statement: str) -> list[dict]:
+            if self._client is None:
+                raise RuntimeError("Warehouse extension is not started")
+            return await self._client.query(statement)
+
+    extension = Warehouse()
+    ```
+
+    Keep raw SDK clients private on `self` and expose only safe domain methods on `WarehouseContext`.
+  </Step>
+
+  <Step title="Declare SDK dependencies (optional)">
+    Add `pyproject.toml` if your extension needs third-party Python packages:
+
+    ```toml extensions/warehouse/pyproject.toml
+    [project]
+    name = "harnest-extension-warehouse"  # must be harnest-extension-<metadata.name>
+    version = "1.0.0"                     # must match metadata.version in extension.yaml
+    requires-python = ">=3.11,<3.15"
+    dependencies = ["warehouse-sdk>=2,<3"]
+    ```
+
+    - Do not pin `harnest` or framework SDKs in a local extension—Harnest owns those versions.
+    - Dependencies merge into the agent's root `harnest-runtime.lock` when you sync.
+  </Step>
+
+  <Step title="Sync and test">
+    ```bash
+    harnest env sync .
+    harnest test .
+    ```
   </Step>
 </Steps>
 
-`metadata.name` must match the folder. The optional PEP 621 distribution name must be `harnest-extension-<name>` and its version must match `extension.yaml`. The prefix prevents an extension from colliding with an SDK distribution that uses the provider name. Static dependencies join the root environment solve.
+## Share across multiple agents
 
-For a local extension, declare only extension-owned dependencies, such as `warehouse-sdk` above. Do not pin `harnest` or compiler-owned framework packages; upgrade Harnest to change its runtime versions. Published wheels can carry those requirements for standalone installation, but [Harnest's installer](/harnest/build/extensions/use) leaves their versions to the pinned runtime.
+- **Via a company Pack (recommended for internal orgs):** List the extension folder under `extensions:` in `pack.yaml` so your branded CLI auto-loads it into every compiled agent. See [Policies, plugins & bundles](/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions).
+- **Via PyPI:** Build a universal `py3-none-any` wheel for `harnest-extension-<name>` that registers `[project.entry-points."harnest.extensions"]` (`warehouse = "harnest_extension_warehouse.extension:extension"`) and packages `extension.yaml`, `extension.py`, and optional `README.md`.
 
-A distributable extension may include one regular root `README.md` and reference it from `project.readme`. Package that file with `extension.yaml` and `extension.py` so PyPI renders the same reviewed documentation that Harnest preserves during installation. Harnest rejects links, special files, and unexpected root resources.
-
-`contributes` is the only content projection contract. Harnest does not infer content from folder names. Each value is a package-relative directory; paths must exist, remain inside the package, and cannot overlap. You may use conventional paths as above or a custom source such as `resources/tools/`. Harnest installs the complete package under `extensions/<name>/` and composes declared content from there—it does not copy files into the agent's root `tools/`, `mcp/`, or other authored folders. Omitting `contributes` creates a runtime-only extension.
-
-## Export the application-owned singleton
-
-`extension.py` exports one public [`Extension`](/harnest/reference/api/extensions#extension) subclass and the singleton named `extension`. Keep SDK clients on that singleton, and expose a bounded invocation view through [`ExtensionContext`](/harnest/reference/api/extensions#extensioncontext):
-
-```python extensions/warehouse/extension.py
-import os
-
-from harnest.extensions import Extension, ExtensionContext
-from warehouse_sdk import WarehouseClient
-
-class WarehouseContext(ExtensionContext):
-    """Expose bounded warehouse operations during one invocation."""
-
-    __slots__ = ("_owner",)
-
-    def __init__(self, extension_name: str, owner: "Warehouse") -> None:
-        """Bind the revocable context to its application-owned extension."""
-
-        super().__init__(extension_name)
-        self._owner = owner
-
-    async def query(self, statement: str) -> list[dict]:
-        """Run one query while the Harnest invocation remains active."""
-
-        self._require_active()
-        return await self._owner._query(statement)
-
-class Warehouse(Extension[WarehouseContext]):
-    """Own one warehouse SDK client for the application lifetime."""
-
-    def __init__(self) -> None:
-        """Defer all external connection work until runtime startup."""
-
-        self._client = None
-
-    async def start(self, _context) -> None:
-        """Connect after dependency-ordered application startup begins."""
-
-        self._client = await WarehouseClient.connect(
-            endpoint=os.environ["WAREHOUSE_ENDPOINT"],
-        )
-
-    async def stop(self) -> None:
-        """Release the application-owned SDK client."""
-
-        # Shutdown must also be safe after a partial startup failure.
-        if self._client is not None:
-            await self._client.close()
-            self._client = None
-
-    def create_context(self, base: ExtensionContext) -> WarehouseContext:
-        """Create one typed, revocable view for the active invocation."""
-
-        return WarehouseContext(base.extension_name, self)
-
-    async def query(self, statement: str) -> list[dict]:
-        """Route public calls through the current invocation context."""
-
-        return await self.context.query(statement)
-
-    async def _query(self, statement: str) -> list[dict]:
-        """Cross the private SDK boundary after startup validation."""
-
-        # Calls fail closed if they escape the managed application lifetime.
-        if self._client is None:
-            raise RuntimeError("Warehouse extension is not started")
-        return await self._client.query(statement)
-
-extension = Warehouse()
-```
-
-Compilation imports extension modules without starting services. Runtime startup calls `start()` in dependency order; shutdown calls `stop()` in reverse order.
-
-## Add optional extension content
-
-| Contribution key | Purpose | Required manifest capability |
-|---|---|---|
-| [`lifecycle`](/harnest/reference/api/lifecycle) | Lifecycle hooks and factories | The capability matching each decorator |
-| `tools` | Managed Agent Tools | `content.tools` |
-| `mcp` | Managed MCP clients | `content.mcp` |
-| `skills` | Managed Agent Skills | `content.skills` |
-| `subagents` | Managed SubAgents | `content.subagents` |
-
-`lib/` remains private implementation and is never a contribution. Managed mode composes declared content into the owning agent. Advanced mode accepts declared lifecycle hooks and factories but rejects declared managed content because the native target owns its own composition.
-
-## Add extension dependencies
-
-Use `requires.extensions` when this extension depends on another local Harnest Extension:
-
-```yaml extensions/warehouse/extension.yaml
-requires:
-  extensions: [credentials]
-```
-
-Harnest rejects missing dependencies and cycles. Extension Python dependencies share one solve with the root project; incompatible constraints fail `harnest env sync` instead of creating isolated environments.
-
-```bash
-harnest env sync .
-harnest test .
-```
-
-<Card title="Add lifecycle behavior" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
-  Declare exactly which Harnest surfaces the extension contributes.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Manifest (extension.yaml)" icon="file-code" href="/harnest/build/extensions/manifest">
+    Full `extension.yaml` example and every capability flag.
+  </Card>
+  <Card title="Lifecycle & auditing" icon="arrows-rotate" href="/harnest/build/extensions/lifecycle">
+    Startup/shutdown order, lifecycle hooks, and OTEL mutation auditing.
+  </Card>
+</CardGroup>

@@ -1,26 +1,31 @@
 ---
 icon: "arrows-rotate"
-title: "Harnest Extension lifecycle"
-sidebarTitle: "Use lifecycle"
-description: "Connect extension startup, invocation context, hooks, storage, telemetry, and auditing to Harnest lifecycle."
+title: "Lifecycle & auditing"
+sidebarTitle: "Lifecycle & auditing"
+description: "Startup and shutdown order, lifecycle hooks, and payload-free OTEL mutation auditing for Harnest Extensions."
 ---
 
-A Harnest Extension participates in three lifecycle layers:
+## Three lifecycle layers
 
-| Layer | Authoring location | Lifetime |
+| Layer | Where you write it | Runs when |
 |---|---|---|
-| SDK startup and shutdown | [`Extension.start()`](/harnest/reference/api/extensions#extension-start) and [`Extension.stop()`](/harnest/reference/api/extensions#extension-stop) in `extension.py` | Application process |
-| Typed access | [`Extension.create_context()`](/harnest/reference/api/extensions#extension-create_context) | One managed invocation |
-| Harnest hooks and factories | `extensions/<name>/lifecycle/**/*.py` | The lifecycle phase declared by each decorator |
+| Process startup / shutdown | [`Extension.start()`](/harnest/reference/api/extensions#extension-start) and [`Extension.stop()`](/harnest/reference/api/extensions#extension-stop) in `extension.py` | Once per agent process |
+| Request context | [`Extension.create_context()`](/harnest/reference/api/extensions#extension-create_context) in `extension.py` | Once per invocation (revoked when the request ends) |
+| Hooks, policies & factories | `extensions/<name>/lifecycle/*.py` (listed in `contributes.lifecycle`) | At each decorated lifecycle phase |
 
-List lifecycle files in `contributes.lifecycle` and declare the capabilities they use. Both are required.
+## Startup and shutdown order
 
-Storage authorities start first. Harnest then calls `Extension.start()` in dependency order, followed by contributed [`@lifecycle.resource`](/harnest/reference/api/lifecycle#resource) factories. Shutdown closes extension resources before calling `Extension.stop()` in reverse dependency order, then closes storage. [`ExtensionStartContext`](/harnest/reference/api/extensions#extensionstartcontext) therefore exposes only already-live named custom storage and declared continuations, not arbitrary lifecycle resources or invocation credentials.
+```text
+Startup:   Storage factories  ──▶  Extension.start() (requires order)  ──▶  @lifecycle.resource
+Shutdown:  @lifecycle.resource ──▶ Extension.stop()  (reverse order)   ──▶  Storage factories
+```
 
-## Declare and implement a hook
+Because `Extension.start()` runs before `@lifecycle.resource`, [`ExtensionStartContext`](/harnest/reference/api/extensions#extensionstartcontext) exposes live custom storage ([`storage`](/harnest/reference/api/extensions#extensionstartcontext-storage)) and declared continuations ([`continuations`](/harnest/reference/api/extensions#extensionstartcontext-continuations))—not arbitrary resources or per-request credentials.
 
-<Steps>
-  <Step title="Create extensions/warehouse/extension.yaml">
+## Contribute a lifecycle hook
+
+List the folder under `contributes.lifecycle` **and** declare the matching capability in `extension.yaml`:
+
 ```yaml extensions/warehouse/extension.yaml
 apiVersion: harnest.dev/v1alpha1
 kind: Extension
@@ -30,61 +35,40 @@ metadata:
 runtime:
   entrypoint: extension:extension
 contributes:
-  lifecycle: [lifecycle/]
+  lifecycle: [lifecycle]
 capabilities:
   - lifecycle.tool
 ```
-  </Step>
-  <Step title="Create extensions/warehouse/lifecycle/tool_policy.py">
+
 ```python extensions/warehouse/lifecycle/tool_policy.py
 from harnest import lifecycle
 
 @lifecycle.tool.before(order=-50)
 async def restrict_warehouse_writes(context, request):
     """Require approved naming for model-selected warehouse writes."""
-
-    # This extension owns policy only for the write tools it contributes.
     if context.tool_name.startswith("warehouse_write_"):
         return context.finish({"error": "use_an_approved_write_tool"})
     return context.next()
 ```
-  </Step>
-</Steps>
 
-Root and extension lifecycle files share one ordering: `order`, then dependency order, then source location. Duplicate singleton authorities or named resources fail compilation.
+Root `lifecycle/` files and extension `lifecycle/` files sort together by `order` (lowest first), then extension dependency order, then source path. Duplicate singleton authorities (such as two `@lifecycle.output_policy` definitions) fail compilation.
 
-## Choose a declared capability
-
-| Manifest capability | Contribution from the extension |
-|---|---|
-| [`lifecycle.agent`](/harnest/reference/api/lifecycle#agent), `.model`, `.tool`, `.mcp`, `.http`, `.skills` | Portable interception and dynamic skill sources |
-| [`lifecycle.session`](/harnest/reference/api/lifecycle#session-created) | Session creation hooks |
-| `context.resources`, `.credentials`, `.continuations`, `.storage`, `.assets`, `.session`, `.skills`, `.mcp` | Scoped runtime access used by the extension |
-| `content.tools`, `.mcp`, `.skills`, `.subagents` | Managed-mode content |
-| [`storage.sessions`](/harnest/reference/api/lifecycle#storage-sessions), `.checkpoints`, `.assets`, `.tasks`, `.cron`, `.memory`, `.custom` | Storage factories |
-| `http.routes` | Application HTTP routes |
-| `sandbox.provider` | [Sandbox provider factories](/harnest/build/sandboxing) |
-| `framework.extension` | [ADK plugins or LangChain middleware](/harnest/runtime/lifecycle/framework-extensions) |
-| `policy.output`, `telemetry.exporter` | Output policy or telemetry destinations |
-
-Declare only the rows the extension actually uses. Advanced mode still composes Harnest-owned boundaries, but it cannot intercept an opaque native path that bypasses Harnest.
+See [Manifest (`extension.yaml`)](/harnest/build/extensions/manifest#capabilities-reference) for every capability name.
 
 ## Audit committed mutations
 
-Wrap committed user- or agent-triggered writes with [`extension_mutation(...)`](/harnest/reference/api/extensions#extension_mutation). It emits correlated, payload-free OTEL audit events without recording arguments, credentials, or results:
+Wrap writes triggered by users or agents with [`extension_mutation(...)`](/harnest/reference/api/extensions#extension_mutation) to emit correlated, payload-free OpenTelemetry audit events (no arguments, credentials, or return values are logged):
 
 ```python extensions/warehouse/extension.py
 from harnest.extensions import extension_mutation
 
 async def _create_export(self, query_id: str):
-    """Audit the committed SDK mutation without exposing its payload."""
-
     async with extension_mutation("warehouse", "export.create", trigger="agent"):
         return await self._client.create_export(query_id)
 ```
 
-For external work that must survive a replica stopping, declare `context.continuations` and follow [Durable execution](/harnest/runtime/durable-execution). The extension persists bounded continuation metadata; it does not resume a suspended Python process.
+For external work that outlives a single process or replica, declare `context.continuations` and follow [Durable execution](/harnest/runtime/durable-execution).
 
 <Card title="Use the extension" icon="plug" href="/harnest/build/extensions/use">
-  Call the bounded public API from an Agent Tool or other trusted invocation code.
+  Install and call the extension from tools or application code.
 </Card>
