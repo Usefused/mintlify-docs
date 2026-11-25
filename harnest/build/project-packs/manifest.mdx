@@ -1,0 +1,126 @@
+---
+icon: "file-code"
+title: "Manifest (pack.yaml)"
+sidebarTitle: "Manifest (pack.yaml)"
+description: "Complete pack.yaml example and reference for every supported field."
+---
+
+`pack.yaml` declares a pack's identity, branded CLI name, compatibility bounds, bundled binary capabilities, and optional Studio setup. Harnest and Studio read it as inert data without importing `pack.py`.
+
+Only `apiVersion`, `name`, `version`, and `title` are required. Unknown keys are rejected, and `pack.yaml` must stay within 256 KiB.
+
+## Complete example
+
+```yaml pack.yaml
+# Required: fixed manifest schema version.
+apiVersion: harnest.dev/pack/v1
+
+# Required: stable kebab-case identifier stored in every agent's harnest-packs.lock.
+name: acme
+
+# Required: PEP 440 pack release version (separate from pack.py schema_version).
+version: 1.0.0
+
+# Required: short display name shown in `<command> --help` and Studio.
+title: Acme agents
+
+# Optional: longer summary of what this pack provides.
+description: Acme defaults, protected libraries, IDE skills, extensions, and Studio setup.
+
+# Optional: name of the executable built by `harnest pack build` (defaults to `name`).
+command: acme-agent
+
+# Optional: version ranges checked before running hooks or loading Studio (never installs packages).
+requires:
+  harnest: ">=2.3,<3"
+  studio: ">=0.1,<0.2"
+
+# Optional: coding-IDE skills merged into `<command> skills show|install`.
+# Each path points to a pack-relative folder containing SKILL.md whose frontmatter `name` matches the folder name.
+skills:
+  - coding-skills/acme-standards
+  - coding-skills/harnest-authoring # matches a built-in name to override it
+
+# Optional: protected Python packages bundled into the branded binary and enforced on every agent.
+# Mix PEP 508 index requirements, local pyproject.toml folders (built into wheels at pack build time),
+# and prebuilt .whl files in one list.
+packages:
+  - acme-sdk==2.1.0
+  - sdks/acme-auth
+  - vendor/acme_internal-1.0.0-py3-none-any.whl
+
+# Optional: pack-owned canonical Harnest Extensions auto-loaded into compiled artifacts
+# without copying extension source into agent repositories.
+extensions:
+  - extensions/acme-guard
+
+# Optional: Studio builder defaults, UI customizations, and installable component catalog.
+studio:
+  builder:
+    model: openai/company-coding-model
+    api_base: https://ai.acme.example/v1
+    api_key_env: ACME_AI_KEY
+    ca_bundle: certificates/acme-ca.pem
+    timeout: 240
+    max_tokens: 12000
+  ui:
+    apiVersion: harnest.dev/studio-ui/v1
+    assets:
+      - assets/welcome.html
+    contributions:
+      - id: welcome
+        slot: welcome
+        mode: frame
+        entry: assets/welcome.html
+        replaces: fused-studio/welcome
+        title: Acme workspace
+  resources:
+    - id: ticket-reference
+      kind: component
+      title: Ticket reference
+      description: Format an internal support ticket reference.
+      files:
+        tools/ticket_reference.py: components/ticket_reference.py
+```
+
+## Field reference
+
+### Identity and CLI branding
+
+| Field | Required | Format & limits | What it controls |
+|---|---|---|---|
+| `apiVersion` | Yes | Literal `harnest.dev/pack/v1` | Manifest schema version. |
+| `name` | Yes | Kebab-case (`^[a-z][a-z0-9-]{0,62}$`, `harnest` reserved) | Permanent pack identity. Stored as the lock key in each agent's `harnest-packs.lock`, used as the default binary name if `command` is omitted, and used as the prefix in `--option <pack>.<key>=<value>` when multiple packs are active. |
+| `version` | Yes | PEP 440 version (for example `1.0.0`) | Release version of the pack. Printed by `<command> --version`, recorded in Studio install receipts, and used in wheel filenames with `--format wheel`. Separate from `schema_version` in `pack.py` (which versions agent migrations). |
+| `title` | Yes | String (1–120 chars) | Display name shown in `<command> --help` and Studio's pack catalog. |
+| `description` | No | String (up to 4,000 chars) | Longer description of the pack. |
+| `command` | No | Kebab-case (`^[a-z][a-z0-9-]{0,62}$`, `harnest` reserved) | Filename of the branded executable produced by `harnest pack build` (`acme-agent` or `acme-agent.exe` on Windows). Defaults to `name`. |
+
+### Compatibility (`requires`)
+
+| Field | Required | Format & limits | What it controls |
+|---|---|---|---|
+| `requires.harnest` | No | PEP 440 range (for example `>=2.3,<3`) | Checked against the installed Harnest version before importing `pack.py`. |
+| `requires.studio` | No | PEP 440 range (for example `>=0.1,<0.2`) | Checked when Studio loads or validates the `studio:` section. |
+
+Compatibility ranges only validate versions; they do not install software.
+
+### Bundled binary capabilities (`skills`, `packages`, `extensions`)
+
+All paths must be canonical pack-relative POSIX paths (no `..`, leading `/`, backslashes, or symlinks). These sections are embedded when building with `harnest pack build` (`--format binary`).
+
+| Field | Limit | What it controls |
+|---|---|---|
+| `skills` | Up to 64 folders | Coding-IDE skill directories merged into `<command> skills show\|install`. Naming one after a built-in Harnest skill overrides that built-in skill. See [Coding-IDE skills](/harnest/build/project-packs/capabilities#coding-ide-skills). |
+| `packages` | Up to 128 entries (at most 64 local wheels/folders) | Unified list of PEP 508 index requirements (no direct URL/file specs), local Python package folders with `pyproject.toml` (built into wheels during `harnest pack build`), or prebuilt `.whl` files (up to 128 MiB each). Enforced across agent environments and executables; cannot override `harnest` or framework SDKs, and agents cannot override them in `pyproject.toml`. See [Protected Python packages](/harnest/build/project-packs/capabilities#protected-python-packages). |
+| `extensions` | Up to 32 folders | Canonical Harnest Extension folders (`extension.yaml`) auto-loaded during `<command> compile` without copying source into agent repos. See [Enforce policies with pack-owned extensions](/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions). |
+
+### Studio sub-pack (`studio`)
+
+| Field | What it controls |
+|---|---|
+| `studio.builder` | Default `model`, `api_base`, `api_key_env`, `ca_bundle`, `timeout`, and `max_tokens` for Studio's AI builder. |
+| `studio.ui` | Custom Studio UI slots and assets (`apiVersion: harnest.dev/studio-ui/v1`). |
+| `studio.resources` | Installable catalog resources (`component`, `extension`, `template`, `agent-skill`, `builder-skill`, `service`, `profile`, `bundle`). |
+
+See [Studio in your pack](/harnest/studio/packs) for the complete `studio:` reference.

@@ -2,168 +2,82 @@
 icon: "plus"
 title: "Create a pack"
 sidebarTitle: "Create a pack"
-description: "Declare pack identity, typed options, project hooks, and optional Studio content."
+description: "Scaffold a Harnest pack, validate it, and build it into a standalone branded CLI binary."
 ---
 
-Keep a pack in its own folder with `pack.yaml` for identity and compatibility, optional `pack.py` for project hooks and company commands, and any templates or Studio assets. It stays outside the deployed agent.
+A **pack** is a folder containing `pack.yaml`, optional `pack.py` hooks, and any templates, skills, wheels, extensions, or Studio assets you want to ship to your teams.
 
-## Generate a starter pack
+<Steps>
+  <Step title="Generate a starter pack">
+    ```bash
+    harnest pack init acme --output ./acme-pack
+    ```
 
-```bash
-harnest pack init acme --output ./acme-pack
-```
+    Omit `--output` to create `./acme-pack`. Pack names use lowercase letters, digits, or hyphens, start with a letter, and contain at most 63 characters (`harnest` is reserved).
 
-Omit `--output` to use `./acme-pack`. Names use lowercase letters, digits, or hyphens, start with a letter, and contain at most 63 characters. `harnest` is reserved. The destination must not already exist.
+    ```text
+    acme-pack/
+      pack.yaml                        # identity, command name, and bundled capabilities
+      pack.py                          # optional init, migration, and custom command hooks
+      templates/
+        harnest-compile.yaml           # starter compile-selection file copied into new agents
+        team-guide.md                  # starter teammate guide copied to docs/team-guide.md
+    ```
+  </Step>
 
-```text
-acme-pack/
-  pack.yaml
-  pack.py
-  templates/
-    harnest-compile.yaml
-    team-guide.md
-```
+  <Step title="Review pack.yaml">
+    The generated `pack.yaml` starts with the required metadata and the branded CLI command name:
 
-| File | Purpose |
-|---|---|
-| `pack.yaml` | Pack name, release version, branded command, compatibility, and optional `studio:` section. |
-| `pack.py` | Project schema, initialization, migrations, and company command handlers. |
-| `templates/harnest-compile.yaml` | Optional dependency groups copied into new agents. |
-| `templates/team-guide.md` | Team reference copied to `docs/team-guide.md`, outside compiled agent content. |
+    ```yaml pack.yaml
+    apiVersion: harnest.dev/pack/v1
+    name: acme
+    version: 0.1.0
+    title: acme agents
+    description: Company defaults for new acme agents.
+    command: acme
+    ```
 
-The generated compile template starts with `version: 1` and `extras: []`. Each selected extra must exist in the agent's `pyproject.toml`.
+    See [Manifest (`pack.yaml`)](/harnest/build/project-packs/manifest) for a complete example showing every optional field (`requires`, `skills`, `packages`, `extensions`, and `studio`).
+  </Step>
 
-```bash
-harnest init ./sales --pack ./acme-pack --minimal
-harnest compile ./sales --format executable --output ./dist/sales-agent
-```
+  <Step title="Validate and build the pack">
+    ```bash
+    harnest pack validate ./acme-pack
+    harnest pack build ./acme-pack --output ./dist
+    ```
 
-To start from a team template, use `harnest init ./sales --pack ./acme-pack --template acme-sales`. Harnest prepares the template before running pack hooks. See [template initialization](/harnest/build/project-packs/cli#initialize-from-a-template) for pins and incompatible options.
+    Produces a standalone `./dist/acme` binary (`./dist/acme.exe` on Windows) with Harnest and your pack embedded. For a Python launcher wheel (`--format wheel`) or cross-stamping (`--base-binary`), see [Run and ship](/harnest/build/project-packs/cli).
+  </Step>
 
-For existing agents, increment `schema_version`, add a [migration](/harnest/build/project-packs/migrations), and run `harnest upgrade ./sales --pack ./acme-pack --apply`. Initializers do not rerun during upgrade. Distribute the folder or [build a branded command](/harnest/build/project-packs/cli).
+  <Step title="Test the branded binary on a new agent">
+    Use your built binary to scaffold a new agent and compile that agent:
 
-## Declare identity in pack.yaml
+    ```bash
+    ./dist/acme init ./sales
+    ./dist/acme compile ./sales --format executable --output ./dist/sales-agent
+    ```
 
-```yaml pack.yaml
-apiVersion: harnest.dev/pack/v1
-name: acme
-version: 1.0.0
-title: Acme agents
-command: acme-agent
-```
-
-| Field | Required | Meaning |
-|---|---|---|
-| `apiVersion` | Yes | `harnest.dev/pack/v1`. |
-| `name` | Yes | Stable kebab-case identity recorded in `harnest-packs.lock`. |
-| `version` | Yes | Pack release used in wheel naming; separate from the project `schema_version`. |
-| `title` | Yes | Display name used in Studio and command help. |
-| `description` | No | Additional pack description. |
-| `command` | No | Branded executable name; defaults to `name`. |
-| `requires.harnest` | No | Harnest version range checked before importing `pack.py`. |
-| `requires.studio` | No | Studio version range checked when Studio loads or validates the sub-pack. |
-| `studio` | No | [Builder defaults, UI, and installable resources](/harnest/studio/packs). |
-
-Unknown manifest keys are rejected. Version ranges validate compatibility; they do not install dependencies.
-
-## Define project hooks in pack.py
-
-Export a module-level `pack`. The loader binds its name from `pack.yaml` and allows imports of helper modules beside `pack.py`.
-
-```python pack.py
-from enum import Enum
-from pydantic import BaseModel, Field
-from harnest.authoring import ChangePlan, ProjectContext, ProjectPack
-
-class Environment(str, Enum):
-    DEVELOPMENT = "development"
-    PRODUCTION = "production"
-
-class Options(BaseModel):
-    team: str = Field(min_length=1, description="Team responsible for this agent")
-    environment: Environment = Environment.DEVELOPMENT
-
-class Settings(BaseModel):
-    owner: str = Field(min_length=1)
-    environment: Environment
-
-pack = ProjectPack(
-    schema_version=1,
-    options=Options,
-    config_file="acme-agent.yaml",
-    config_model=Settings,
-)
-
-@pack.initialize
-def initialize(context: ProjectContext) -> ChangePlan:
-    return ChangePlan(
-        context.yaml.set(
-            "acme-agent.yaml", key=("owner",), value=context.options.team,
-        ),
-        context.yaml.set(
-            "acme-agent.yaml",
-            key=("environment",),
-            value=context.options.environment.value,
-        ),
-    )
-```
-
-`Options` validates caller inputs; `Settings` validates the resulting company configuration, including during upgrades without new inputs.
-
-## Pack properties
-
-See [ProjectPack configuration](/harnest/reference/api/authoring#pack-configuration) for required properties, validation, and defaults. Track `schema_version` separately from the package release version.
-
-Keep company properties in a separate file such as `acme-agent.yaml`. Use existing Harnest fields when changing Harnest configuration; arbitrary company fields do not extend Harnest's configuration schema.
-
-## Package templates
-
-A pack that generates a company workflow could have this structure:
-
-```text
-acme-pack/
-  pack.yaml
-  pack.py
-  templates/
-    ci.yml
-```
-
-Pass `templates="templates"` to [`ProjectPack`](/harnest/reference/api/authoring#projectpack) to resolve templates relative to the loaded pack folder. Templates are read as data; Harnest does not import or execute them.
-
-## Declare compilation dependencies
-
-Use ordinary pack operations to maintain optional dependency selections:
-
-```python
-@pack.initialize
-def initialize(context: ProjectContext) -> ChangePlan:
-    """Select the team's optional integration dependencies for compilation."""
-    return ChangePlan(
-        context.yaml.set("harnest-compile.yaml", key=("version",), value=1),
-        context.yaml.set("harnest-compile.yaml", key=("extras",), value=["crm"]),
-    )
-```
-
-Declare the matching `[project.optional-dependencies].crm` group in the agent's `pyproject.toml`, for example through the team's agent template. Package versions remain in Python metadata.
-
-Change existing agents through versioned pack migrations and coordinate ownership of shared fields. Compilation reads the resulting files without importing or shipping the authoring pack.
-
-See [compilation selections and reports](/harnest/build/testing-and-compilation#select-compilation-dependencies) for dependency selection, compiled content, and shared-runtime behavior.
-
-## Check the pack
-
-```bash
-harnest pack validate ./acme-pack
-```
-
-Validation reads the manifest, imports `pack.py` when present, and lists the project schema and company commands. It checks the Studio sub-pack when Studio is installed; otherwise, it reports that the Studio section has not been checked.
-
-## Choose what runs
-
-Select pack folders explicitly with `--pack DIR`. Python callers use [`load_pack`](/harnest/reference/api/authoring#load_pack) and pass its bound `project` hooks to [`ProjectPlanner`](/harnest/build/project-packs/plans-and-recovery).
+    While iterating locally before building a binary, you can also test the pack folder directly with `harnest init ./sales --pack ./acme-pack`.
+  </Step>
+</Steps>
 
 <Note>
-Pack callbacks run as trusted Python during planning, including previews. Return operations through `ChangePlan` and keep callbacks free of direct filesystem or network side effects.
+**Pack vs. agent commands:** `harnest pack build` builds a **pack folder** (`pack.yaml`) into a branded CLI binary. `compile` only compiles an **agent folder** (`config.yaml`)—running `harnest compile` inside a pack folder fails with a missing `config.yaml` error.
 </Note>
 
-Continue with the [`@pack.initialize` reference](/harnest/build/project-packs/initialize) or [build your company CLI](/harnest/build/project-packs/cli).
+## Customize your pack
+
+<CardGroup cols={2}>
+  <Card title="Manifest (pack.yaml)" icon="file-code" href="/harnest/build/project-packs/manifest">
+    Full `pack.yaml` example and field-by-field reference.
+  </Card>
+  <Card title="Project hooks (pack.py)" icon="code" href="/harnest/build/project-packs/hooks">
+    Add scaffolding templates, typed `--option` flags, company config validation, and custom commands.
+  </Card>
+  <Card title="Policies, plugins & bundles" icon="layer-group" href="/harnest/build/project-packs/capabilities">
+    Enforce policies with auto-loaded extensions, attach Agent Plugins to every agent, and bundle coding-IDE skills and protected packages.
+  </Card>
+  <Card title="Studio in your pack" icon="palette" href="/harnest/studio/packs">
+    Add Studio builder defaults, custom UI, and an installable component catalog.
+  </Card>
+</CardGroup>

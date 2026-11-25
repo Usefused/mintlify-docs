@@ -1,0 +1,227 @@
+---
+icon: "layer-group"
+title: "Policies, plugins, skills, packages, and extensions"
+sidebarTitle: "Policies, plugins & bundles"
+description: "Enforce company policies with auto-loaded extensions, attach Agent Plugins to every agent, and bundle coding-IDE skills and protected Python packages."
+---
+
+Pick the mechanism that matches what you want every agent or developer to get:
+
+| Goal | Mechanism | Configured in | Editable in agent repo? |
+|---|---|---|---|
+| Enforce output policies, tool/model guardrails, or shared runtime tools/MCP/skills | Auto-loaded extensions | `extensions:` in `pack.yaml` | No (auto-loaded at compile time) |
+| Ship approved internal Python SDKs or pinned dependencies | Protected packages | `packages:` in `pack.yaml` | No (blocked from `pyproject.toml` overrides) |
+| Give engineers coding-IDE guidance (`<command> skills install`) | Coding-IDE skills | `skills:` in `pack.yaml` | Installed into `.claude/`, `.cursor/`, `.agents/` |
+| Attach a portable [Agent Plugin](/harnest/build/agent-plugins) (`plugin.json`, `mcp.json`, skills) | `@pack.initialize` + `context.files` | `pack.py` + `templates/` | Yes (`plugins/<name>/`, updatable via `WritePolicy.MANAGED`) |
+| Opt new agents into optional extras from their own `pyproject.toml` | `harnest-compile.yaml` | `pack.py` + `templates/` | Yes |
+
+`skills`, `packages`, and `extensions` in `pack.yaml` are embedded by `harnest pack build` (`--format binary`, default).
+
+## Enforce policies with pack-owned extensions
+
+Bundle a canonical [Harnest Extension](/harnest/build/extensions/create) inside your pack to auto-attach policies, lifecycle hooks, tools, skills, MCP servers, or subagents to **every agent compiled with your branded binary**.
+
+```text
+acme-pack/
+  pack.yaml
+  extensions/
+    acme_guard/
+      extension.yaml
+      extension.py
+      lifecycle/
+        policy.py
+```
+
+```yaml extensions/acme_guard/extension.yaml
+apiVersion: harnest.dev/v1alpha1
+kind: Extension
+metadata:
+  name: acme_guard
+  version: 1.0.0
+runtime:
+  entrypoint: extension:extension
+capabilities:
+  - policy.output
+  - lifecycle.tool
+contributes:
+  lifecycle:
+    - lifecycle
+```
+
+```python extensions/acme_guard/extension.py
+from harnest.extensions import Extension
+
+class AcmeGuardExtension(Extension):
+    """Enforces Acme output and tool policies across every compiled agent."""
+
+extension = AcmeGuardExtension(name="acme_guard")
+```
+
+```python extensions/acme_guard/lifecycle/policy.py
+from harnest import lifecycle
+from harnest.output import AgentMetadataMode, OutputPolicy
+
+@lifecycle.output_policy
+def acme_output_policy() -> OutputPolicy:
+    return OutputPolicy(
+        tool_activity=False,
+        agent_metadata=AgentMetadataMode.SUPPRESS,
+    )
+
+@lifecycle.tool.before(order=-100)
+async def block_unapproved_tools(context, request):
+    if context.tool_name in {"delete_database", "drop_table"}:
+        return context.finish({"error": "blocked_by_company_policy"})
+    return context.next()
+```
+
+```yaml pack.yaml
+extensions:
+  - extensions/acme_guard
+```
+
+```bash
+harnest pack build ./acme-pack --output ./dist
+./dist/acme compile ./sales --format executable --output ./dist/sales-agent
+# acme_guard is auto-loaded into sales-agent — no files are copied into ./sales
+```
+
+Extensions can also contribute `tools`, `skills`, `mcp`, and `subagents` (`content.*` capabilities) plus `lifecycle.agent`, `lifecycle.model`, `lifecycle.mcp`, `lifecycle.http`, `lifecycle.session`, and `lifecycle.skills`. See [Output policy](/harnest/runtime/lifecycle/output-policy) and [Invocation hooks](/harnest/runtime/lifecycle/invocation-hooks).
+
+## Attach an Agent Plugin to every agent
+
+Put a portable [Agent Plugin](/harnest/build/agent-plugins) under `templates/plugins/<name>/` and copy it in `@pack.initialize`:
+
+```text
+acme-pack/
+  pack.yaml
+  pack.py
+  templates/
+    plugins/
+      acme-warehouse/
+        plugin.json
+        mcp.json
+        skills/
+          query-warehouse/
+            SKILL.md
+```
+
+```python pack.py
+from harnest.authoring import ChangePlan, ProjectContext, ProjectPack, WritePolicy
+
+pack = ProjectPack(schema_version=1, templates="templates")
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.files.from_file(
+            "plugins/acme-warehouse/plugin.json",
+            source="plugins/acme-warehouse/plugin.json",
+            policy=WritePolicy.MANAGED,
+        ),
+        context.files.from_file(
+            "plugins/acme-warehouse/mcp.json",
+            source="plugins/acme-warehouse/mcp.json",
+            policy=WritePolicy.MANAGED,
+        ),
+        context.files.from_file(
+            "plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
+            source="plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
+            policy=WritePolicy.MANAGED,
+        ),
+    )
+```
+
+```bash
+./dist/acme init ./sales
+# Creates sales/plugins/acme-warehouse/{plugin.json,mcp.json,skills/...}
+# Harnest auto-discovers it on managed ADK and LangGraph agents
+```
+
+## Coding-IDE skills
+
+Bundle company coding-agent guidance (separate from runtime agent `skills/` and Studio `builder-skill` entries):
+
+```text
+acme-pack/
+  pack.yaml
+  coding-skills/
+    acme-standards/
+      SKILL.md
+```
+
+```markdown coding-skills/acme-standards/SKILL.md
+---
+name: acme-standards
+description: Acme conventions for tools, logging, and credentials.
+---
+
+# Acme agent standards
+
+1. Never hardcode credentials; use environment placeholders.
+2. Add unit tests for every tool under `tests/unit/`.
+```
+
+```yaml pack.yaml
+skills:
+  - coding-skills/acme-standards
+  # Name a folder `harnest-authoring`, `harnest-authentication`,
+  # `harnest-studio`, or `harnest-studio-ui` to replace that built-in skill.
+```
+
+```bash
+./dist/acme skills show acme-standards
+./dist/acme skills install --target claude --project ./sales
+```
+
+## Protected Python packages
+
+Declare a single `packages:` list mixing PyPI/private-index requirements, local `pyproject.toml` folders (built into wheels automatically during `harnest pack build`), and prebuilt `.whl` files stored anywhere inside the pack:
+
+```yaml pack.yaml
+packages:
+  - acme-sdk==2.1.0                              # PyPI or private-index PEP 508 requirement
+  - sdks/acme-auth                               # local pyproject.toml folder (built into a wheel)
+  - vendor/acme_internal-1.0.0-py3-none-any.whl  # prebuilt wheel (<= 128 MiB)
+```
+
+- Agents built with `./dist/acme` can `import acme_auth` directly—no `pyproject.toml` entry needed.
+- Packs cannot declare direct URLs (`pkg @ https://...`), paths outside the pack, or compiler-owned packages (`harnest` or framework SDKs), and agent `pyproject.toml` files cannot override pack-owned packages.
+
+## Optional agent extras
+
+Use this when an agent (or agent template) defines optional feature groups in its own `pyproject.toml` and you want your pack to turn one on by default at compile time.
+
+By default, `compile` only bundles `[project].dependencies` and skips `[project.optional-dependencies]`:
+
+```toml sales/pyproject.toml
+[project]
+name = "sales"
+dependencies = ["httpx>=0.28"]
+
+[project.optional-dependencies]
+crm = ["salesforce-sdk>=1.4"]
+billing = ["stripe>=10"]
+```
+
+Write `harnest-compile.yaml` from `pack.py` to enable `crm` (while leaving `billing` out):
+
+```python pack.py
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.yaml.set("harnest-compile.yaml", key=("version",), value=1),
+        context.yaml.set("harnest-compile.yaml", key=("extras",), value=["crm"]),
+    )
+```
+
+```yaml sales/harnest-compile.yaml
+version: 1
+extras:
+  - crm
+```
+
+- **`packages:` in `pack.yaml`**: Platform-enforced. Every agent gets those packages automatically without editing `pyproject.toml`, and teams cannot override them.
+- **`harnest-compile.yaml` (`extras`)**: Agent-owned. Package versions stay in the agent's own `pyproject.toml`, and the team can change which extras are enabled later.
+
+See [select compilation dependencies](/harnest/build/testing-and-compilation#select-compilation-dependencies).

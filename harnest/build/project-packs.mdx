@@ -2,48 +2,70 @@
 icon: "box"
 title: "Harnest packs"
 sidebarTitle: "Overview"
-description: "Ship your company's agent defaults, migrations, commands, and Studio setup as one pack."
+description: "Ship your company's agent defaults, migrations, commands, IDE skills, protected packages, extensions, and Studio setup as one pack."
 ---
 
-A **pack** bundles company scaffolding, typed settings, versioned migrations, commands, and Studio setup. Teams use it with `harnest init`, `harnest upgrade`, or `harnest studio` and `--pack DIR`, or through the pack's own command, such as `acme`.
+A **pack** bundles company scaffolding, typed settings, versioned migrations, custom commands, coding-IDE skills, protected Python packages, pack-owned extensions, and Studio setup into a single branded CLI binary (such as `acme`). Teams can also test a pack folder directly with `harnest init`, `harnest upgrade`, or `harnest studio` and `--pack DIR`.
 
-Packs are authoring code. Their dependencies are not installed in deployed agents. Use a [Harnest Extension](/harnest/build/extensions) for capabilities that run inside the agent.
+## What you can do with a pack
+
+| What you want to ship | How to do it | Guide |
+|---|---|---|
+| Enforce company output policies or tool/model guardrails on every compiled agent | Add a pack-owned extension with `@lifecycle.output_policy` or invocation hooks under `extensions:` in `pack.yaml` | [Policies, plugins & bundles](/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions) |
+| Auto-attach shared runtime tools, MCP servers, skills, or subagents without editing agent repos | Add a pack-owned extension under `extensions:` in `pack.yaml` | [Policies, plugins & bundles](/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions) |
+| Attach a portable Agent Plugin (`plugin.json`, `mcp.json`, skills) to every new agent | Copy plugin files in `@pack.initialize` via `context.files.from_file` | [Attach an Agent Plugin](/harnest/build/project-packs/capabilities#attach-an-agent-plugin-to-every-agent) |
+| Ship approved internal Python SDKs that agents cannot override | List PEP 508 requirements, local package folders, or `.whl` files under `packages:` in `pack.yaml` | [Protected Python packages](/harnest/build/project-packs/capabilities#protected-python-packages) |
+| Distribute coding-IDE guidance (`<command> skills install`) | Declare `skills:` in `pack.yaml` (can override built-in skills) | [Coding-IDE skills](/harnest/build/project-packs/capabilities#coding-ide-skills) |
+| Scaffold templates, company YAML config, and versioned migrations | Define `pack = ProjectPack(...)` hooks in `pack.py` | [Project hooks (`pack.py`)](/harnest/build/project-packs/hooks) |
+| Customize Harnest Studio defaults, UI, and component catalog | Add a `studio:` section to `pack.yaml` | [Studio in your pack](/harnest/studio/packs) |
 
 ## What a pack contains
 
-A pack is one folder:
+Only `pack.yaml` (required) and `pack.py` (optional) have fixed names. Everything else—templates, coding-IDE skills, local packages or `.whl` files, extensions, and Studio assets—can live in any subfolder inside the pack, as long as you point to its path in `pack.yaml` or `pack.py`:
 
 ```text
 acme-pack/
-  pack.yaml        # name, version, command, and the optional Studio sub-pack
-  pack.py          # optional: init and migration hooks, company commands
-  templates/       # optional: files your hooks copy into agents
-  assets/          # optional: Studio UI files
+  pack.yaml        # required: identity, command, and paths to skills/packages/extensions/studio
+  pack.py          # optional: init and migration hooks, custom commands
+  ...              # any subfolders you reference (templates, skills, sdks, extensions, assets)
 ```
 
 | File | What it holds | Runs code? |
 |---|---|---|
-| `pack.yaml` | Identity, version ranges, the branded `command`, and an optional `studio:` sub-pack with builder defaults, UI, and installable resources. | No. Harnest and Studio read it as data. |
-| `pack.py` | `pack = ProjectPack(schema_version=...)` with `@pack.initialize`, `@pack.migration`, and `@pack.command`. | Imported for project planning, pack validation, wheel building, and company commands. Studio catalog loading reads only the manifest and declared assets. |
+| `pack.yaml` | Identity, version ranges, branded `command`, coding-IDE `skills`, protected `packages`, auto-loaded `extensions`, and an optional `studio:` sub-pack with builder defaults, UI, and installable resources. | No. Harnest and Studio read it as data. |
+| `pack.py` | `pack = ProjectPack(schema_version=...)` with `@pack.initialize`, `@pack.migration`, and `@pack.command`. | Imported for project planning, pack validation, pack building, and company commands. Studio catalog loading reads only the manifest and declared assets. |
 
 <CardGroup cols={2}>
   <Card title="Create a pack" icon="box" href="/harnest/build/project-packs/create">
-    Generate a starter, then define identity, options, and configuration.
+    Scaffold a starter pack, validate it, and build your branded CLI binary.
+  </Card>
+  <Card title="Manifest (pack.yaml)" icon="file-code" href="/harnest/build/project-packs/manifest">
+    Complete `pack.yaml` example and field reference.
+  </Card>
+  <Card title="Project hooks (pack.py)" icon="code" href="/harnest/build/project-packs/hooks">
+    Add scaffolding templates, typed `--option` flags, company config validation, and migrations.
   </Card>
   <Card title="Run and ship a pack" icon="terminal" href="/harnest/build/project-packs/cli">
-    Use `--pack`, build the branded command, and add company commands.
+    Distribute the standalone binary (or wheel), use `--pack`, and add custom commands.
   </Card>
 </CardGroup>
 
 ## Try it
 
 ```bash
+# 1. Scaffold a new pack folder
 harnest pack init acme --output ./acme-pack
-harnest init ./sales --pack ./acme-pack
+
+# 2. Validate and build the pack into a standalone branded CLI binary
+harnest pack validate ./acme-pack
 harnest pack build ./acme-pack --output ./dist
+
+# 3. Use the branded binary to scaffold and compile an agent
+./dist/acme init ./sales
+./dist/acme compile ./sales --format executable --output ./dist/sales-agent
 ```
 
-The wheel installs the branded `acme` command for use as `acme init ./sales`.
+`harnest pack build` defaults to `--format binary`, producing a standalone `./dist/acme` executable that embeds Harnest and the pack so downstream teams do not need to install Harnest separately. Pass `--format wheel` to build the lightweight launcher wheel instead.
 
 ## Supported decorators
 

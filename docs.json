@@ -442,14 +442,17 @@
                       "harnest/build/project-packs",
                       "harnest/build/project-packs/create",
                       {
-                        "group": "Decorators",
-                        "icon": "code",
+                        "group": "Customize a pack",
+                        "icon": "sliders",
                         "pages": [
+                          "harnest/build/project-packs/manifest",
+                          "harnest/build/project-packs/hooks",
+                          "harnest/build/project-packs/capabilities",
+                          "harnest/build/project-packs/changes",
                           "harnest/build/project-packs/initialize",
                           "harnest/build/project-packs/migrations"
                         ]
                       },
-                      "harnest/build/project-packs/changes",
                       "harnest/build/project-packs/cli",
                       "harnest/build/project-packs/plans-and-recovery"
                     ]

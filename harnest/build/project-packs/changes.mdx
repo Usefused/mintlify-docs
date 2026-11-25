@@ -1,54 +1,96 @@
 ---
 icon: "file-pen"
-title: "Declare project changes"
+title: "Files, YAML, and templates"
 sidebarTitle: "Files, YAML, and templates"
-description: "Build ChangePlan operations with explicit ownership and conflict behavior."
+description: "ProjectContext and ChangePlan operations for reading and editing agent files and YAML inside pack.py hooks."
 ---
 
-Return a [`ChangePlan`](/harnest/reference/api/authoring#changeplan) from your [initializer](/harnest/build/project-packs/initialize) or [migration](/harnest/build/project-packs/migrations). It holds ordered operations; constructing it does not write files.
+Every `@pack.initialize` and `@pack.migration` hook receives [`context: ProjectContext`](/harnest/reference/api/authoring#projectcontext) and returns a [`ChangePlan`](/harnest/reference/api/authoring#changeplan). Hooks never write directly to disk—Harnest validates and applies the plan atomically.
 
-```python
-from harnest.authoring import ChangePlan, ProjectContext, WritePolicy
+## `ProjectContext` and `ChangePlan` reference
 
-def add_defaults(context: ProjectContext) -> ChangePlan:
+| Member | Type / returns | Purpose |
+|---|---|---|
+| [`context.name`](/harnest/reference/api/authoring#projectcontext) | `str` | Target agent directory name (for example `"sales"`). |
+| [`context.options`](/harnest/reference/api/authoring#projectcontext) | `BaseModel \| None` | Validated CLI `--option` values, or `None`. |
+| [`context.files.read_text(path)`](/harnest/reference/api/authoring#projectcontext-files-read_text) | `str` | Read a staged UTF-8 file. |
+| [`context.files.write_text(path, content, *, policy=...)`](/harnest/reference/api/authoring#projectcontext-files-write_text) | Operation | Create or update a text file. |
+| [`context.files.from_template(path, *, template, values=None, policy=...)`](/harnest/reference/api/authoring#projectcontext-files-from_template) | Operation | Copy a UTF-8 file from `templates/` with optional `$var` substitution. |
+| [`context.files.from_file(path, *, source, policy=...)`](/harnest/reference/api/authoring#projectcontext-files-from_file) | Operation | Copy text or binary bytes verbatim from `templates/` (no `$` substitution). |
+| [`context.files.delete(path)`](/harnest/reference/api/authoring#projectcontext-files-delete) | Operation | Delete an unchanged pack-owned file. |
+| [`context.yaml.read(path)`](/harnest/reference/api/authoring#projectcontext-yaml-read) | `dict[str, Any]` | Read a staged YAML mapping (`{}` if absent). |
+| [`context.yaml.set(path, *, key, value, policy=...)`](/harnest/reference/api/authoring#projectcontext-yaml-set) | Operation | Set one nested YAML key tuple while keeping unrelated keys. |
+| [`context.yaml.rename_key(path, *, source, destination)`](/harnest/reference/api/authoring#projectcontext-yaml-rename_key) | Operation | Rename a YAML key while keeping the team's current value. |
+| [`ChangePlan(*operations)`](/harnest/reference/api/authoring#changeplan) | `ChangePlan` | Ordered operations to apply (`ChangePlan()` for no-op). |
+| [`WritePolicy`](/harnest/reference/api/authoring#writepolicy) | Enum | `WritePolicy.IF_MISSING` (default) or `WritePolicy.MANAGED`. |
+
+Set `templates="templates"` on [`ProjectPack`](/harnest/reference/api/authoring#projectpack) when using `from_template` or `from_file`.
+
+## Write text, templates, and verbatim files
+
+```text templates/team-notes.txt
+Agent: $agent
+Team: $team
+```
+
+```python pack.py
+from harnest.authoring import ChangePlan, ProjectContext, ProjectPack, WritePolicy
+
+pack = ProjectPack(schema_version=1, templates="templates")
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
     return ChangePlan(
-        context.yaml.set("acme-agent.yaml", key=("region",), value="eu-west"),
-        context.files.write_text("company-notes.md", "Contact the platform team.\n"),
+        # Inline text
+        context.files.write_text("company-notes.md", "Contact #platform.\n"),
+        # Render `$var` placeholders (use `$$` for a literal `$`; omit `values` for raw copy)
+        context.files.from_template(
+            "team-notes.txt",
+            template="team-notes.txt",
+            values={"agent": context.name, "team": context.options.team},
+        ),
+        # Copy verbatim (Markdown, JSON, PDFs, images — never substitutes `$`)
+        context.files.from_file("docs/handbook.pdf", source="handbook.pdf"),
+        # Copy an editable starter lifecycle hook
+        context.files.from_file("lifecycle/output.py", source="lifecycle/output.py"),
     )
 ```
 
-Register a function like this with the appropriate pack decorator. Return `ChangePlan()` when a hook has no work to propose.
+For full recipes on attaching an [Agent Plugin](/harnest/build/project-packs/capabilities#attach-an-agent-plugin-to-every-agent) (`plugins/`) or enforcing non-editable policies with auto-loaded [pack-owned extensions](/harnest/build/project-packs/capabilities#enforce-policies-with-pack-owned-extensions), see [Policies, plugins & bundles](/harnest/build/project-packs/capabilities).
 
-## File operations
+## Read, set, and rename YAML keys
 
-Use [ProjectContext.files](/harnest/reference/api/authoring#projectcontext-files) to read staged files or propose writes, copies, templates, and deletion. The [file operation reference](/harnest/reference/api/authoring#file-operations) explains the result of each operation.
+Keys are **tuples** of strings so dotted keys stay unambiguous:
 
-Paths must be canonical project-relative paths. Absolute paths, traversal, source symlinks, and reserved state paths such as `.git/`, `.harnest/`, and `harnest-packs.lock` are rejected. File/directory conversions require manual migration.
+```python pack.py
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        # Writes `deployment: { region: "eu-west" }`
+        context.yaml.set("acme-agent.yaml", key=("deployment", "region"), value="eu-west"),
+        # Writes literal key `"deployment.region": "eu-west"`
+        context.yaml.set("acme-agent.yaml", key=("deployment.region",), value="eu-west"),
+    )
 
-## YAML operations
-
-Use [ProjectContext.yaml](/harnest/reference/api/authoring#projectcontext-yaml) to read configuration and propose field edits while retaining unrelated values.
-
-Use tuples for key paths. `("deployment", "region")` identifies a nested field; `("deployment.region",)` identifies a literal key containing a dot. A rename cannot move a field into itself or its descendants. A scalar parent is a conflict, not an object to replace implicitly.
-
-<Note>
-YAML documents must be mappings with unique keys and a single document. Edits preserve unrelated values but normalise formatting and do not preserve comments.
-</Note>
+@pack.migration(from_version=1, to_version=2)
+def migrate(context: ProjectContext) -> ChangePlan:
+    current = context.yaml.read("acme-agent.yaml")
+    if "owner" not in current:
+        return ChangePlan()
+    return ChangePlan(
+        context.yaml.rename_key("acme-agent.yaml", source=("owner",), destination=("team",)),
+    )
+```
 
 ## Write policies
 
-Use the enum values from [`harnest.authoring`](/harnest/reference/api/authoring), rather than strings:
-
-| Policy | Absent file or field | Existing file or field |
+| Policy | Target absent | Target already exists |
 |---|---|---|
-| `WritePolicy.IF_MISSING` | Create it and record the pack's ownership baseline. | Preserve it without adopting unowned content. |
-| `WritePolicy.MANAGED` | Create it and record ownership. | Replace it only if it matches the pack's recorded baseline. |
+| `WritePolicy.IF_MISSING` *(default)* | Create and record ownership. | Leave untouched. |
+| `WritePolicy.MANAGED` | Create and record ownership. | Replace only if unchanged since the pack wrote it; otherwise block for review. |
 
-`IF_MISSING` is the default for file writes, verbatim copies, templates, and YAML sets. `MANAGED` is appropriate when a later pack release updates a generated workflow or an unchanged default.
-
-```python
-from harnest.authoring import ChangePlan, ProjectContext, WritePolicy
-
+```python pack.py
+@pack.migration(from_version=1, to_version=2)
 def update_workflow(context: ProjectContext) -> ChangePlan:
     return ChangePlan(
         context.files.from_template(
@@ -59,58 +101,8 @@ def update_workflow(context: ProjectContext) -> ChangePlan:
     )
 ```
 
-Local edits block managed replacement. YAML renames instead carry the user’s current value forward.
+## Constraints
 
-## Add team documentation to the project
-
-Teams can copy Markdown guides, API references, runbooks, PDFs, images, and other files into generated projects. Use `from_file` to preserve the original bytes without decoding text or substituting dollar expressions.
-
-Set `templates` on your [`ProjectPack`](/harnest/reference/api/authoring#projectpack) to the directory containing the packaged assets:
-
-```python
-@pack.initialize
-def initialize(context: ProjectContext) -> ChangePlan:
-    """Give teammates reference material in each generated project."""
-    return ChangePlan(
-        context.files.from_file("docs/runbook.md", source="runbook.md"),
-        context.files.from_file("docs/handbook.pdf", source="handbook.pdf"),
-    )
-```
-
-`source` is relative to the pack’s `templates` directory; `path` is relative to the generated agent. Sources must be regular files inside the template directory and included in the distributed package.
-
-Each operation copies one file for teammates; these documents are excluded from compilation. Use agent templates for model-facing instructions and skills.
-
-Use `policy=WritePolicy.MANAGED` in a migration to update an unchanged pack-owned document. Local edits block replacement.
-
-## Templates
-
-Set `templates=Path(__file__).parent / "templates"` when defining your pack. Without `values`, template content is copied literally, including dollar signs.
-
-Supplying `values` enables Python `string.Template` substitutions:
-
-```text team-notes.txt
-Agent: $agent
-Team: $team
-```
-
-```python
-from harnest.authoring import ChangePlan, ProjectContext
-
-def add_team_notes(context: ProjectContext) -> ChangePlan:
-    return ChangePlan(
-        context.files.from_template(
-            "team-notes.txt",
-            template="team-notes.txt",
-            values={"agent": context.name, "team": context.options.team},
-        ),
-    )
-```
-
-Provide every referenced variable and use `$$` for a literal dollar sign when substitution is enabled. Missing templates or substitutions fail the hook and block application.
-
-## Combine packs
-
-Different packs can own separate fields in the same YAML file. Ownership of a whole file overlaps all fields inside it; ownership of a parent key overlaps its descendants. Conflicting proposals block the combined plan even if their values are identical.
-
-Core Harnest migrations run first. A core rewrite of a pack-owned file also requires review because the planner does not assume that the two migrations are compatible. See [resolve blockers](/harnest/build/project-packs/plans-and-recovery#resolve-blockers).
+- **Paths:** Canonical agent-relative POSIX paths only—no `/`, `..`, symlinks, `.git/`, `.harnest/`, `.venv/`, or `harnest-packs.lock`.
+- **YAML:** Single-document mappings with unique keys; comments and formatting are normalized on write.
+- **Snapshots & conflicts:** Reads reflect the state before the current hook ran. Overlapping ownership between two packs blocks the plan; see [resolve blockers](/harnest/build/project-packs/plans-and-recovery#resolve-blockers).

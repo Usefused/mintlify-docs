@@ -151,18 +151,25 @@ Loading a pack freezes its referenced content for that Studio session. Restart S
 
 ## Package for your team
 
-Set `command: acme-studio` in the example's `pack.yaml`, then build and install it:
+Set `command: acme-studio` in the example's `pack.yaml`, then build the standalone branded binary:
 
 ```bash
 harnest pack build ./company-pack --output ./dist
+./dist/acme-studio studio --workspace ./agents
+```
+
+By default (`--format binary`), `harnest pack build` embeds Harnest and the pack folder into a single `./dist/acme-studio` executable so teammates do not need to install Harnest separately. It excludes caches, build output, virtual environments, `.env` files, and `node_modules/`. The executable attaches the embedded pack to `init`, `upgrade`, and `studio` automatically.
+
+Pass `--format wheel` if you prefer the lightweight `harnest-pack-acme-support` Python launcher wheel instead:
+
+```bash
+harnest pack build ./company-pack --format wheel --output ./dist
 python -m pip install ./dist/harnest_pack_acme_support-1.0.0-py3-none-any.whl
 acme-studio studio --workspace ./agents
 ```
 
-The `harnest-pack-acme-support` wheel contains the pack folder and a branded launcher. It excludes caches, build output, virtual environments, `.env` files, and `node_modules/`. The launcher attaches the installed pack to `init`, `upgrade`, and `studio`; other commands forward to Harnest.
-
 <Note>
-Pack wheels declare no Python dependencies and do not embed Python, Harnest, or Studio. Install Harnest separately. Its `studio` command prepares the bundled Studio runtime on first launch; standalone Python integrations need Studio installed in their environment. Manifest `requires` ranges are checked before loading; they do not install software. For offline installation, supply the required packages in a wheelhouse for the target operating system and Python version.
+When using `--format wheel`, pack wheels declare no Python dependencies and do not embed Python, Harnest, or Studio—install Harnest separately. Both formats prepare the bundled Studio runtime on first launch; standalone Python integrations need Studio installed in their environment. Manifest `requires` ranges are checked before loading; they do not install software. For offline installation, supply the required packages in a wheelhouse for the target operating system and Python version.
 </Note>
 
 Keep credentials out of packs. Internal service definitions should reference values such as `${COMPANY_MCP_URL}` and `${COMPANY_MCP_TOKEN}`, supplied through the employee's trusted launch environment or connection system.

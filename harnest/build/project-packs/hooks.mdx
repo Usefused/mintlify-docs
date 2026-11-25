@@ -1,0 +1,119 @@
+---
+icon: "code"
+title: "Project hooks (pack.py)"
+sidebarTitle: "Project hooks (pack.py)"
+description: "Add scaffolding hooks, typed CLI options, company config validation, and migrations in pack.py."
+---
+
+`pack.py` is optional. Export `pack =` [`ProjectPack(...)`](/harnest/reference/api/authoring#projectpack) and decorate hooks that receive [`ProjectContext`](/harnest/reference/api/authoring#projectcontext) and return a [`ChangePlan`](/harnest/reference/api/authoring#changeplan).
+
+## Start minimal: copy files into new agents
+
+```python pack.py
+from harnest.authoring import ChangePlan, ProjectContext, ProjectPack
+
+pack = ProjectPack(schema_version=1, templates="templates")
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.files.from_file("docs/team-guide.md", source="team-guide.md"),
+        context.files.from_template("harnest-compile.yaml", template="harnest-compile.yaml"),
+    )
+```
+
+Result when running `acme init ./sales`:
+
+```text
+sales/
+  docs/team-guide.md         # copied from acme-pack/templates/team-guide.md
+  harnest-compile.yaml       # copied from acme-pack/templates/harnest-compile.yaml
+  ...
+```
+
+## Add typed CLI options
+
+Pass a Pydantic model to `options=` to accept validated `--option key=value` flags:
+
+```python pack.py
+from enum import Enum
+from pydantic import BaseModel, Field
+from harnest.authoring import ChangePlan, ProjectContext, ProjectPack
+
+class Environment(str, Enum):
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
+
+class Options(BaseModel):
+    team: str = Field(min_length=1)
+    environment: Environment = Environment.DEVELOPMENT
+
+pack = ProjectPack(schema_version=1, templates="templates", options=Options)
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.yaml.set("acme-agent.yaml", key=("owner",), value=context.options.team),
+        context.yaml.set(
+            "acme-agent.yaml",
+            key=("environment",),
+            value=context.options.environment.value,
+        ),
+    )
+```
+
+```bash
+acme init ./sales --option team=sales --option environment=production
+```
+
+```yaml sales/acme-agent.yaml
+owner: sales
+environment: production
+```
+
+## Persist and validate company config
+
+Add `config_file` + `config_model` so Harnest validates the saved YAML file on both `init` and future `upgrade` runs (when no `--option` flags are passed):
+
+```python pack.py
+class Settings(BaseModel):
+    owner: str = Field(min_length=1)
+    environment: Environment
+
+pack = ProjectPack(
+    schema_version=1,
+    templates="templates",
+    options=Options,               # validates CLI --option flags at init time
+    config_file="acme-agent.yaml", # saved in the agent repo (keep separate from config.yaml)
+    config_model=Settings,         # validates acme-agent.yaml after init and every upgrade
+)
+```
+
+## `ProjectPack` arguments
+
+| Argument | Required | Purpose |
+|---|---|---|
+| `schema_version` | Yes | Integer stored in `harnest-packs.lock`; bump only when adding a `@pack.migration` (separate from `version` in `pack.yaml`). |
+| `templates` | No | Pack-relative folder for [`from_template`](/harnest/reference/api/authoring#projectcontext-files-from_template) and [`from_file`](/harnest/reference/api/authoring#projectcontext-files-from_file). |
+| `options` | No | Pydantic model validating `--option` flags into `context.options`. |
+| `config_file` | No | Agent-relative YAML file holding company settings. |
+| `config_model` | No | Pydantic model validating `config_file` after hooks finish (requires `config_file`). |
+
+See [`ProjectPack` API reference](/harnest/reference/api/authoring#pack-configuration).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Files, YAML, and templates" icon="file-pen" href="/harnest/build/project-packs/changes">
+    Every `ProjectContext` and `ChangePlan` operation with examples.
+  </Card>
+  <Card title="@pack.initialize" icon="seedling" href="/harnest/build/project-packs/initialize">
+    Initialization rules and dry-run previews.
+  </Card>
+  <Card title="@pack.migration" icon="arrow-right-arrow-left" href="/harnest/build/project-packs/migrations">
+    Migrate existing agents across schema versions.
+  </Card>
+  <Card title="@pack.command" icon="terminal" href="/harnest/build/project-packs/cli#add-a-company-command">
+    Add custom subcommands to your branded CLI.
+  </Card>
+</CardGroup>

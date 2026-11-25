@@ -5,7 +5,7 @@ sidebarTitle: "Run and ship"
 description: "Package a Harnest pack as a branded command with initialization, upgrades, Studio, and company actions."
 ---
 
-Build your [pack folder](/harnest/build/project-packs/create) into a wheel with `harnest pack build`. The generated executable forwards commands to Harnest and attaches your pack to initialization, upgrades, and Studio.
+Build your [pack folder](/harnest/build/project-packs/create) into a standalone branded CLI binary (or an optional Python launcher wheel) with `harnest pack build`. The generated executable rebrands Harnest with your pack's name, attaches your pack to initialization, upgrades, and Studio, merges your coding-IDE skills, enforces protected packages, and auto-loads pack-owned extensions.
 
 ## Use a pack directly
 
@@ -38,23 +38,35 @@ If `command` is omitted, the executable uses the pack name. Keep project hooks i
 ```bash
 harnest pack validate ./acme-pack
 harnest pack build ./acme-pack --output ./dist
+./dist/acme-agent --help
+```
+
+By default (`--format binary`), `harnest pack build` stamps Harnest together with your pack folder, coding-IDE `skills`, protected `packages` (prebuilt wheels, locally built wheels, and pinned requirements), auto-loaded `extensions`, and `studio:` assets into one native executable at `./dist/acme-agent` (`./dist/acme-agent.exe` on Windows). Downstream teams can run the executable directly without installing Harnest separately.
+
+- Pass `--base-binary PATH` with `--format binary` to stamp another target `harnest` binary (for example when cross-building for another OS or architecture in CI).
+- Pass `--format wheel` to build the lightweight `harnest-pack-<name>` Python launcher wheel instead:
+
+```bash
+harnest pack build ./acme-pack --format wheel --output ./dist
 python -m pip install ./dist/harnest_pack_acme-1.0.0-py3-none-any.whl
 acme-agent --help
 ```
 
-The wheel contains the pack and a launcher with no Python package dependencies. Install Harnest separately; set `HARNEST_CLI` to an executable path if it is not on `PATH`. The Harnest CLI prepares its bundled Studio runtime on first launch; standalone Python integrations need Studio installed in their environment. Pack `requires` ranges validate compatibility; they do not install dependencies.
+The wheel contains the pack folder and a standard-library launcher with no Python package dependencies; it delegates to `HARNEST_CLI` or `harnest` on `PATH` and does not embed standalone binary `skills`, `packages`, or `extensions`.
 
-Building validates the Studio sub-pack when Studio is installed. The wheel contains the pack folder except caches, build output, virtual environments, `node_modules/`, and `.env` files. Symlinks are rejected, and unchanged pack inputs produce a byte-identical wheel.
+Building validates the Studio sub-pack when Studio is installed. Both formats exclude caches, build output, virtual environments, `node_modules/`, and `.env` files, reject symlinks, and produce deterministic content digests for unchanged inputs. Pack `requires` ranges validate compatibility; they do not install dependencies.
 
 ## Commands and flags
 
 | Command | Behavior |
 |---|---|
-| `acme-agent init DIRECTORY` | Run Harnest initialization with the installed pack; `--dry-run` previews the combined plan. |
+| `acme-agent init DIRECTORY` | Run Harnest initialization with the embedded pack; `--dry-run` previews the combined plan. |
 | `acme-agent upgrade DIRECTORY` | Preview Harnest and pack migrations; `--apply` applies the combined plan. |
 | `acme-agent studio` | Open Studio with the pack's `studio:` resources, defaults, and UI. |
+| `acme-agent skills show\|install` | Show or install built-in Harnest coding-IDE skills merged with (or overridden by) the pack's `skills`. |
+| `acme-agent compile DIRECTORY --output PATH` | Compile an agent while injecting protected `packages` and auto-loading pack `extensions`. |
 | A registered company command | Run the pack handler with the remaining arguments. |
-| Any other command | Forward arguments to Harnest and preserve its exit code. |
+| Any other command | Run the standard Harnest command with the pack context and preserve its exit code. |
 
 ```bash
 acme-agent init support-bot --option team=customer-success --dry-run --json
@@ -119,23 +131,23 @@ def inspect_company(arguments: list[str]) -> int:
     return 0 if path.is_file() else 1
 ```
 
-Try the handler before building a wheel:
+Try the handler before building the branded command:
 
 ```bash
 harnest pack run ./acme-pack inspect-company ./support-bot
 ```
 
-After installing the wheel, use `acme-agent inspect-company ./support-bot`. Harnest command names are reserved. Custom handlers own their work and error handling; they do not automatically participate in a project transaction.
+After building the binary (or installing the wheel), use `acme-agent inspect-company ./support-bot`. Harnest command names are reserved. Custom handlers own their work and error handling; they do not automatically participate in a project transaction.
 
 ## Include your company's Studio
 
-Add a [`studio:` section](/harnest/studio/packs) to the same `pack.yaml`, then rebuild and install the wheel:
+Add a [`studio:` section](/harnest/studio/packs) to the same `pack.yaml`, then rebuild the branded binary:
 
 ```bash
 acme-agent studio --workspace ./agents
 ```
 
-The launcher attaches the installed pack automatically. Studio reads its manifest, resources, builder defaults, and UI without importing `pack.py`. JavaScript module contributions still require explicit trust, for example `--trust-ui-pack acme`.
+The branded executable attaches the embedded pack automatically. Studio reads its manifest, resources, builder defaults, and UI without importing `pack.py`. JavaScript module contributions still require explicit trust, for example `--trust-ui-pack acme`.
 
 Studio's **Create agent** action uses Harnest initialization with the loaded project packs. Supply required initialization values with `--option team=support` when launching Studio, or define defaults in the pack's options model. Resource-template installation remains a separate reviewed source-installation flow.
 

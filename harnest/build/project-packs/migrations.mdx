@@ -11,7 +11,7 @@ A migration advances one consecutive schema version and returns proposed changes
 
 ## Rename a company property
 
-The [first pack release](/harnest/build/project-packs/create) writes an `owner` property. Replace its `pack.py` with this second release to use `team` instead, and increase `version` in `pack.yaml` when publishing the new pack release:
+The [first pack release](/harnest/build/project-packs/hooks#persist-and-validate-company-config) writes an `owner` property. Replace its `pack.py` with this second release to use `team` instead, and increase `version` in `pack.yaml` when publishing the new pack release:
 
 ```python pack.py
 from enum import Enum
