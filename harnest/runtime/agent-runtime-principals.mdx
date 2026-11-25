@@ -78,6 +78,29 @@ def client():
 
 When you omit the client-wide permission, only operations named in `tool_permissions` can be available under a principal. Untagged MCP operations remain unavailable.
 
+For servers with many or changing tools, pass a synchronous classifier function to `tool_permissions=` instead of a static mapping. Harnest calls it with an [`MCPToolInfo`](/harnest/reference/api/mcp#mcptoolinfo) descriptor (unprefixed remote `name`, `description`, and `annotations`) for each discovered tool:
+
+```python mcp/catalog.py
+import os
+
+from harnest.mcp import MCPClient, MCPToolInfo
+
+def classify_catalog_tool(tool: MCPToolInfo) -> str | None:
+    if tool.annotations.read_only is True or tool.name.startswith(("get_", "list_")):
+        return "catalog.read"
+    if tool.name.startswith(("create_", "update_", "delete_")):
+        return "catalog.write"
+    return None
+
+def client():
+    return MCPClient.streamable_http(
+        os.environ["CATALOG_MCP_URL"],
+        tool_permissions=classify_catalog_tool,
+    )
+```
+
+A classifier can return one permission string, a collection of permission strings (all required), or `None` to leave the tool untagged and denied under an active principal. `tool.annotations.read_only` reflects the MCP server's `readOnlyHint` metadata, which is server-asserted rather than verified by Harnest—combine it with name checks or an explicit client-wide `permission=` when connecting to untrusted servers.
+
 ## Grant permissions on built-in routes
 
 Define one grant hook in the root agent’s `lifecycle/` directory. Harnest passes it the connection and the identity established by authentication. Use verified claims or look up permissions in your application.

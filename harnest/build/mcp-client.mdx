@@ -215,20 +215,24 @@ Harnest keeps connection identity and approval policy consistent. Same-named too
 
 ## Limit tools by runtime principal
 
-Use `permission=` to require one grant for every tool from a client. Use `tool_permissions=` to add a requirement to selected remote tools:
+Use `permission=` to require one grant for every tool from a client. Use `tool_permissions=` to map named remote tools—or classify discovered tools dynamically with a synchronous callable taking `MCPToolInfo`—to required permissions:
 
 ```python
+from harnest.mcp import MCPClient, MCPToolInfo
+
+def classify_tool(tool: MCPToolInfo) -> str | None:
+    if tool.annotations.read_only is True or tool.name.startswith(("get_", "list_")):
+        return "catalog.read"
+    return "catalog.write"
+
 return MCPClient.streamable_http(
     os.environ["CATALOG_MCP_URL"],
     permission="catalog.connect",
-    tool_permissions={
-        "search_products": "catalog.search",
-        "update_product": "catalog.write",
-    },
+    tool_permissions=classify_tool,
 )
 ```
 
-An active [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) must hold every permission required by the client and operation. Untagged operations are unavailable. Harnest checks exposure and execution; the remote server must still authorize requests.
+You can also pass a static dict such as `tool_permissions={"search_products": "catalog.search", "update_product": "catalog.write"}`. Returning `None` from a classifier leaves the tool untagged and unavailable under an active [Agent Runtime Principal](/harnest/runtime/agent-runtime-principals) unless a client-wide `permission=` applies. An active principal must hold every permission required by the client and operation. Harnest checks exposure and execution; the remote server must still authorize requests.
 
 ## Call MCP from trusted code
 
