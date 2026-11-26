@@ -12,6 +12,7 @@ Pick the mechanism that matches what you want every agent or developer to get:
 | Ship approved internal Python SDKs or pinned dependencies | Protected packages | `packages:` in `pack.yaml` | No (blocked from `pyproject.toml` overrides) |
 | Give engineers coding-IDE guidance (`<command> skills install`) | Coding-IDE skills | `skills:` in `pack.yaml` | Installed into `.claude/`, `.cursor/`, `.agents/` |
 | Attach a portable [Agent Plugin](/harnest/build/agent-plugins) (`plugin.json`, `mcp.json`, skills) | `@pack.initialize` + `context.files` | `pack.py` + `templates/` | Yes (`agent-plugins/<name>/`, updatable via `WritePolicy.MANAGED`) |
+| Copy importable Python helpers or schemas into every new agent | `lib/` or `models/` via `@pack.initialize` | `pack.py` + `templates/` | Yes (`from harnest.lib.*` / `from harnest.models.*`) |
 | Opt new agents into optional extras from their own `pyproject.toml` | `harnest-compile.yaml` | `pack.py` + `templates/` | Yes |
 
 `skills`, `packages`, and `extensions` in `pack.yaml` are embedded by `harnest pack build` (`--format binary`, default).
@@ -144,6 +145,58 @@ def initialize(context: ProjectContext) -> ChangePlan:
 # Creates sales/agent-plugins/acme-warehouse/{plugin.json,mcp.json,skills/...}
 # Harnest auto-discovers it on managed ADK and LangGraph agents
 ```
+
+## Scaffold importable Python modules (`lib/` and `models/`)
+
+To give every initialized agent Python files it can import directly in `agent.py`, `tools/`, or `lifecycle/`, copy them into the agent's `lib/` or `models/` folder in `@pack.initialize`:
+
+```text
+acme-pack/
+  pack.yaml
+  pack.py
+  templates/
+    lib/
+      acme_client.py
+    models/
+      ticket.py
+```
+
+```python pack.py
+from harnest.authoring import ChangePlan, ProjectContext, ProjectPack, WritePolicy
+
+pack = ProjectPack(schema_version=1, templates="templates")
+
+@pack.initialize
+def initialize(context: ProjectContext) -> ChangePlan:
+    return ChangePlan(
+        context.files.from_file(
+            "lib/acme_client.py",
+            source="lib/acme_client.py",
+            policy=WritePolicy.MANAGED,  # or WritePolicy.SEED so teams own edits after init
+        ),
+        context.files.from_file(
+            "models/ticket.py",
+            source="models/ticket.py",
+            policy=WritePolicy.SEED,
+        ),
+    )
+```
+
+Harnest mounts every agent's `lib/` and `models/` folders under `harnest.lib` and `harnest.models`, so agent code imports them as:
+
+```python sales/tools/lookup.py
+from harnest.agent import tool
+from harnest.lib.acme_client import fetch_account
+from harnest.models.ticket import Ticket
+
+@tool
+def lookup_ticket(ticket_id: str) -> Ticket:
+    """Fetch a company support ticket."""
+    return fetch_account(ticket_id)
+```
+
+- Use **`templates/lib/` or `templates/models/`** when you want starter or managed source files visible inside each agent repo.
+- Use **`packages:` in `pack.yaml`** (below) when you want a version-locked library installed as a Python package that agent repos cannot edit or override.
 
 ## Coding-IDE skills
 
