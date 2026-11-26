@@ -22,6 +22,24 @@ def audit_plugin():
 
 Wrong return types and duplicate ADK plugin names fail compilation. Harnest Extensions that contribute these factories declare the `framework.extension` capability.
 
+## Scoping to a framework & using context
+
+Pass `framework` as a single framework name (`"adk"`) or list (`["adk", "langgraph"]`) to control which agents invoke the factory. Factories can take **zero arguments** or one **`FrameworkExtensionContext`** (`ctx.framework`, `ctx.mode`, `ctx.agent_name`, `ctx.project_root`). Keep framework-specific imports inside the factory body so non-matching agents never import the other framework's SDK:
+
+```python extensions/audit_store/lifecycle/plugin.py
+from harnest import lifecycle
+
+@lifecycle.framework_extension(order=30, framework=["adk", "langgraph"])
+def audit_extension(ctx: lifecycle.FrameworkExtensionContext):
+    if ctx.framework == "adk":
+        from ..lib.adk_plugin import AuditPlugin
+        return AuditPlugin(agent_name=ctx.agent_name)
+    from ..lib.langgraph_middleware import AuditMiddleware
+    return AuditMiddleware(agent_name=ctx.agent_name)
+```
+
+Or define separate factories with `framework="adk"` and `framework="langgraph"`. Omitting `framework` applies the factory to every compiled agent (the default).
+
 ## Ownership
 
 Harnest keeps authentication, transports, portable lifecycle policy, and storage ownership checks. The framework extension handles framework-specific callbacks. Keep portable behavior in ordinary lifecycle hooks so it can survive a framework switch.

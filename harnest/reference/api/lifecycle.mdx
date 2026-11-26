@@ -1066,22 +1066,25 @@ example an ADK `BasePlugin` or a LangChain `AgentMiddleware`; the
 compiler validates it against the project's framework.
 
 ```python
-framework_extension(function: _Hook | None = None, *, order: int = 0) -> _Hook | Callable[[_Hook], _Hook]
+framework_extension(function: _Hook | None = None, *, order: int = 0, framework: str | Sequence[str] | set[str] | frozenset[str] | None = None) -> _Hook | Callable[[_Hook], _Hook]
 ```
 
 <Accordion title="Parameters and example">
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `function` | `_Hook \| None` | `None` | The decorated function. Filled in by bare `@decorator` use; omit it when passing options. |
+| `function` | `_Hook \| None` | `None` | The decorated factory (accepts zero args or one `FrameworkExtensionContext`). Filled in by bare `@decorator` use; omit it when passing options. |
 | `order` | `int` | `0` | Ordering among registrations of the same kind. Lower values run first. |
+| `framework` | `str \| Sequence[str] \| set[str] \| frozenset[str] \| None` | `None` | Optional framework filter (for example `"adk"` or `["adk", "langgraph"]`). When set, the factory only runs for agents targeting a listed framework. |
 
 ```python
 from harnest import lifecycle
 
-@lifecycle.framework_extension
-def extension():
-    ...  # return the configured framework's plugin or middleware
+@lifecycle.framework_extension(framework=["adk", "langgraph"])
+def extension(ctx: lifecycle.FrameworkExtensionContext):
+    if ctx.framework == "adk":
+        ...  # return an ADK BasePlugin
+    ...      # return a LangChain AgentMiddleware
 ```
 
 </Accordion>

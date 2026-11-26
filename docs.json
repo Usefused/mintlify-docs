@@ -654,7 +654,10 @@
   "seo": {
     "metatags": {
       "fused": "usefused.com",
-      "harnest": "https://github.com/usefused/harnest"
+      "harnest": "https://github.com/usefused/harnest",
+      "agent:instructions": "Use this search API to find relevant content across this site with keywords or natural-language queries, instead of crawling individual pages. Results are returned in Markdown.",
+      "agent:endpoint": "https://usefused.com/.well-known/search?q={query}",
+      "agent:method": "GET"
     }
   },
   "description": "Bring internal, partner, and third-party APIs into Fused. Reuse the same integrations across teams, side projects, and AI agents while staying in control of who can access what."
