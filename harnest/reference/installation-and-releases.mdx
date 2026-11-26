@@ -109,6 +109,7 @@ With no directory argument, `doctor` detects an agent in the current folder; oth
 | `HARNEST_INSTALL_DIR` | `$HOME/.local/bin` on Unix; `%LOCALAPPDATA%\Programs\Harnest` on Windows | Choosing the CLI destination through a script installer |
 | `HARNEST_RUNTIME_DIR` | `$HOME/.harnest/runtime` | Choosing the private managed runtime |
 | `HARNEST_BOOTSTRAP_PYTHON` | Auto-detected | Requiring one exact host Python |
+| `HARNEST_UV` | System `uv` on `PATH`, then embedded `uv` | Pinning a specific `uv` executable (such as a corporate wrapper) |
 | `HARNEST_PYTHON` | Managed runtime | Overriding Python for later CLI commands |
 | `GITHUB_TOKEN` | Unset | Reading a private fork's releases |
 
@@ -116,7 +117,11 @@ With no directory argument, `doctor` detects an agent in the current folder; oth
   You run `harnest`; you do not activate the private runtime or call `python -m harnest.cli`.
 </Note>
 
-If no Python 3.11 or newer is available, embedded `uv` installs a pinned CPython 3.12 under the Harnest data directory. It does not modify the system Python.
+Harnest prefers tools already installed on the host before falling back to embedded assets:
+
+- **`uv` resolution order**: `HARNEST_UV` -> system `uv` on `PATH` -> embedded `uv` (with stdlib `venv`/`pip` fallback only if no `uv` binary is available).
+- **Python resolution order**: `HARNEST_BOOTSTRAP_PYTHON` / compatible system Python 3.11+ -> managed Python installed under the Harnest data directory (without modifying the system Python).
+- **Custom PyPI indexes**: User and system `uv.toml` files plus `UV_DEFAULT_INDEX`, `UV_INDEX_URL`, and `UV_EXTRA_INDEX_URL` are respected across `runtime install`, `env sync`, `studio`, `pack build`, and `runtime build`. If neither `UV_DEFAULT_INDEX` nor `UV_INDEX_URL` is set, a legacy `PIP_INDEX_URL` is bridged automatically.
 
 ## Upgrade
 
