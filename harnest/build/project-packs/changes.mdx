@@ -16,6 +16,7 @@ Every `@pack.initialize` and `@pack.migration` hook receives [`context: ProjectC
 | [`context.files.write_text(path, content, *, policy=...)`](/harnest/reference/api/authoring#projectcontext-files-write_text) | Operation | Create or update a text file. |
 | [`context.files.from_template(path, *, template, values=None, policy=...)`](/harnest/reference/api/authoring#projectcontext-files-from_template) | Operation | Copy a UTF-8 file from `templates/` with optional `$var` substitution. |
 | [`context.files.from_file(path, *, source, policy=...)`](/harnest/reference/api/authoring#projectcontext-files-from_file) | Operation | Copy text or binary bytes verbatim from `templates/` (no `$` substitution). |
+| [`context.files.from_folder(path, *, source=None, policy=...)`](/harnest/reference/api/authoring#projectcontext-files-from_folder) | `ChangePlan` | Recursively copy every file in a folder under `templates/` (defaults `source` to `path`). |
 | [`context.files.delete(path)`](/harnest/reference/api/authoring#projectcontext-files-delete) | Operation | Delete an unchanged pack-owned file. |
 | [`context.yaml.read(path)`](/harnest/reference/api/authoring#projectcontext-yaml-read) | `dict[str, Any]` | Read a staged YAML mapping (`{}` if absent). |
 | [`context.yaml.set(path, *, key, value, policy=...)`](/harnest/reference/api/authoring#projectcontext-yaml-set) | Operation | Set one nested YAML key tuple while keeping unrelated keys. |
@@ -52,6 +53,8 @@ def initialize(context: ProjectContext) -> ChangePlan:
         context.files.from_file("docs/handbook.pdf", source="handbook.pdf"),
         # Copy an editable starter lifecycle hook
         context.files.from_file("lifecycle/output.py", source="lifecycle/output.py"),
+        # Recursively copy a whole folder from templates/ (source defaults to path)
+        context.files.from_folder("lib", policy=WritePolicy.MANAGED),
     )
 ```
 

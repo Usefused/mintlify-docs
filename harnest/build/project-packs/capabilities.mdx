@@ -122,19 +122,8 @@ pack = ProjectPack(schema_version=1, templates="templates")
 @pack.initialize
 def initialize(context: ProjectContext) -> ChangePlan:
     return ChangePlan(
-        context.files.from_file(
-            "agent-plugins/acme-warehouse/plugin.json",
-            source="agent-plugins/acme-warehouse/plugin.json",
-            policy=WritePolicy.MANAGED,
-        ),
-        context.files.from_file(
-            "agent-plugins/acme-warehouse/mcp.json",
-            source="agent-plugins/acme-warehouse/mcp.json",
-            policy=WritePolicy.MANAGED,
-        ),
-        context.files.from_file(
-            "agent-plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
-            source="agent-plugins/acme-warehouse/skills/query-warehouse/SKILL.md",
+        context.files.from_folder(
+            "agent-plugins/acme-warehouse",
             policy=WritePolicy.MANAGED,
         ),
     )
@@ -169,15 +158,13 @@ pack = ProjectPack(schema_version=1, templates="templates")
 @pack.initialize
 def initialize(context: ProjectContext) -> ChangePlan:
     return ChangePlan(
-        context.files.from_file(
-            "lib/acme_client.py",
-            source="lib/acme_client.py",
-            policy=WritePolicy.MANAGED,  # or WritePolicy.SEED so teams own edits after init
+        context.files.from_folder(
+            "lib",
+            policy=WritePolicy.MANAGED,      # pack updates unchanged files on upgrade
         ),
-        context.files.from_file(
-            "models/ticket.py",
-            source="models/ticket.py",
-            policy=WritePolicy.SEED,
+        context.files.from_folder(
+            "models",
+            policy=WritePolicy.IF_MISSING,   # starter files; teams own edits after init
         ),
     )
 ```

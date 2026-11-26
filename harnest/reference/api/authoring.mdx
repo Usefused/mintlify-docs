@@ -937,6 +937,39 @@ operation = context.files.from_file(path=..., source=...)
 
 </Accordion>
 
+### ProjectContext.files.from_folder
+
+```python
+ProjectContext.files.from_folder(
+    path: str,
+    *,
+    source: str | None = None,
+    policy: WritePolicy = <WritePolicy.IF_MISSING: 'if_missing'>,
+) -> ChangePlan
+```
+
+Copy every regular file inside a packaged template folder recursively through tracked file ownership. Returns a `ChangePlan` that can be returned directly from a hook or passed into `ChangePlan(...)` alongside other operations.
+
+<Accordion title="Parameters and example">
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `str` | Required | Destination directory, relative to the project. |
+| `source` | `str \| None` | `None` | Source directory relative to the pack's `templates` folder. Defaults to `path` when omitted. |
+| `policy` | `WritePolicy` | `<WritePolicy.IF_MISSING: 'if_missing'>` | `WritePolicy.IF_MISSING` creates only absent files; `WritePolicy.MANAGED` also replaces unchanged pack-owned files. |
+
+```python
+from harnest.authoring import ChangePlan, ProjectContext, WritePolicy
+
+context: ProjectContext
+plan = ChangePlan(
+    context.files.from_folder("lib", policy=WritePolicy.MANAGED),
+    context.files.from_folder("agent-plugins/acme", source="plugins/acme"),
+)
+```
+
+</Accordion>
+
 ### ProjectContext.files.delete
 
 ```python
