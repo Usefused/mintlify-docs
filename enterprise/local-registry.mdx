@@ -1,0 +1,169 @@
+---
+title: "Deploy Local Registry"
+sidebarTitle: "Deploy Local Registry"
+description: "Run Fused Enterprise Local Registry in your own infrastructure to keep internal API specifications on-premises."
+---
+
+Enterprise Local Registry (`ghcr.io/usefused/fused-registry`) lets your organization store internal API specifications, run discovery imports, and compile SDKs inside your own VPC or Kubernetes cluster. Your Fused Engine queries Local Registry first and falls back to Fused Cloud Registry only for permitted public lookups.
+
+## What you need
+
+- **An Enterprise license key** with Local Registry enabled. [Contact Fused](https://usefused.com/teams?plan=enterprise#enterprise-interest) if your workspace is not yet on Enterprise.
+- **PostgreSQL 16+** with the `vector` (`pgvector`), `pg_trgm`, and `pgcrypto` extensions enabled. You can reuse the same PostgreSQL database as your Fused Engine—Engine tables (`fused_*`) and Registry tables do not collide.
+- **Outbound HTTPS access to `https://registry.usefused.com`** from Local Registry for startup license verification and periodic signed lease heartbeats. No private API specifications, credentials, or request payloads are sent upstream.
+- **Docker** (or Kubernetes) to run `ghcr.io/usefused/fused-registry`. No NATS broker is required.
+
+## Deployment steps
+
+<Steps>
+  <Step title="Enable required PostgreSQL extensions">
+    Connect to your target PostgreSQL database (either your existing Fused Engine database or a dedicated database) and enable the three required extensions:
+
+    ```sql
+    CREATE EXTENSION IF NOT EXISTS vector;
+    CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    ```
+
+    Local Registry creates and upgrades its own tables automatically on startup.
+  </Step>
+
+  <Step title="Start Local Registry">
+    Run the published container image with your PostgreSQL connection string and Enterprise license key. Mount `/app/data` to durable storage so imported source artifacts and generated SDK archives persist across container restarts.
+
+    <Tabs>
+      <Tab title="Docker">
+        ```bash
+        docker run -d \
+          --name fused-registry \
+          -p 8080:8080 \
+          -v fused-registry-data:/app/data \
+          -e DATABASE_URL="postgres://<user>:<password>@<database-host>:5432/<database>?sslmode=require" \
+          -e FUSED_LICENSE_KEY="<your-enterprise-license-key>" \
+          ghcr.io/usefused/fused-registry:latest
+        ```
+      </Tab>
+      <Tab title="Docker Compose (with Engine)">
+        ```yaml compose.yaml
+        services:
+          fused-registry:
+            image: ghcr.io/usefused/fused-registry:latest
+            ports:
+              - "127.0.0.1:8080:8080"
+            environment:
+              DATABASE_URL: "postgres://<user>:<password>@<database-host>:5432/<database>?sslmode=require"
+              FUSED_LICENSE_KEY: "${FUSED_LICENSE_KEY}"
+            volumes:
+              - fused-registry-data:/app/data
+            restart: unless-stopped
+
+          fused-engine:
+            image: ghcr.io/usefused/engine:latest
+            depends_on:
+              - fused-registry
+            security_opt:
+              - "seccomp=./fused-worker/seccomp.json"
+            environment:
+              FUSED_UNIFIED_APP_WORKER_REQUIRED: "true"
+              FUSED_REGISTRY_ENDPOINT: "http://fused-registry:8080"
+            ports:
+              - "8081:8081"
+              - "50051:50051"
+            volumes:
+              - ./engine.yaml:/app/engine.yaml:ro
+              - fused-engine-data:/app/data
+            command: ["/app/fused-engine", "start", "--config", "/app/engine.yaml"]
+            restart: unless-stopped
+
+        volumes:
+          fused-registry-data:
+          fused-engine-data:
+        ```
+      </Tab>
+    </Tabs>
+
+    <Note>
+      Pin a specific version tag such as `ghcr.io/usefused/fused-registry:v0.1.0` in production rather than tracking `:latest`.
+    </Note>
+  </Step>
+
+  <Step title="Verify Local Registry health">
+    Check the startup logs and health endpoint to confirm PostgreSQL migrations and the Enterprise license handshake succeeded:
+
+    ```bash
+    docker logs fused-registry
+    curl --fail http://localhost:8080/health
+    ```
+
+    A healthy instance logs `Verified Enterprise Local Registry license with Fused Cloud` and returns HTTP `200`.
+  </Step>
+
+  <Step title="Point Fused Engine at Local Registry">
+    Set `engine.registry_endpoint` in your `engine.yaml` (or set `FUSED_REGISTRY_ENDPOINT` in the Engine environment) to your Local Registry base URL. You do not need to configure Fused Cloud Registry—it remains built in automatically for licensing and permitted public fallback.
+
+    <Tabs>
+      <Tab title="engine.yaml">
+        ```yaml engine.yaml
+        engine:
+          registry_endpoint: "https://fused-registry.internal:8080"
+        ```
+      </Tab>
+      <Tab title="Environment variable">
+        ```bash
+        export FUSED_REGISTRY_ENDPOINT="https://fused-registry.internal:8080"
+        ```
+      </Tab>
+    </Tabs>
+
+    Restart Fused Engine and confirm the startup log reports `Configured Enterprise Hybrid Local Registry`.
+  </Step>
+
+  <Step title="Import an internal API and verify isolation">
+    Use the CLI against your Engine to import an internal OpenAPI, Swagger, GraphQL, or Postman specification. Imports automatically route to Local Registry when Hybrid mode is active:
+
+    ```bash
+    fused-cli import plan ./internal-orders.openapi.json \
+      --name "Internal Orders" \
+      --slug internal-orders
+
+    fused-cli import apply
+    ```
+
+    The new service is stored in your Local Registry and appears with a **LOCAL** badge in the Engine dashboard.
+  </Step>
+</Steps>
+
+## Hybrid routing and permissions
+
+When `engine.registry_endpoint` is set on an Enterprise Engine, Fused enforces clear boundaries between your private catalog and Fused Cloud:
+
+| Action | Default destination | Required permission / flag |
+|---|---|---|
+| Browse catalog and look up services | Local Registry first; falls back to Fused Cloud on miss | `catalogue.cloud.read` required for Cloud fallback (granted to **Owner** and **Admin** by default) |
+| Import a service (`import plan` / `discover` / `apply`) | Local Registry | Standard workspace service import permission |
+| Publish a public service to Fused Cloud | Fused Cloud (explicit opt-in only) | `--cloud --public` in CLI (or the Cloud publish checkbox in UI) plus `catalogue.cloud.publish` |
+| Generate an SDK using any Local Registry service | Local Registry | Standard SDK creation permission; Cloud contracts are supplied inline as Engine snapshots so private specs never leave Local Registry |
+
+<Warning>
+  `fused-cli import plan --cloud --public=false` is rejected before any request is sent. Only intentionally public specifications can be published to Fused Cloud from a Hybrid Engine.
+</Warning>
+
+## Configuration reference
+
+Local Registry only requires `DATABASE_URL` and `FUSED_LICENSE_KEY`. All other variables have sensible defaults inside the container:
+
+| Environment variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | Required | PostgreSQL 16+ connection string (with `vector`, `pg_trgm`, and `pgcrypto` extensions). |
+| `FUSED_LICENSE_KEY` | Required | Enterprise license key used to authenticate startup handshakes and heartbeats with Fused Cloud. |
+| `PORT` | `8080` | HTTP listen port or `host:port` binding (for example `127.0.0.1:8080` as a loopback sidecar). |
+| `FUSED_SOURCE_ARTIFACT_BACKEND` | `file` | Artifact storage backend: `file` (local volume) or `s3` (S3-compatible object store). |
+| `FUSED_SOURCE_ARTIFACT_DIRECTORY` | `/app/data/artifacts` | Durable directory for imported specs and generated SDK archives when using `file` storage. |
+| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Unset | Configure S3-compatible object storage instead of local disk when running multiple Local Registry replicas. |
+| `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `DEEPSEEK_MODEL`, `FIRECRAWL_API_KEY` | Unset | Optional keys required only if you use documentation crawling (`fused-cli import discover`) or LLM enrichment on Local Registry. |
+
+## License verification and availability
+
+- **Fail-closed startup:** Local Registry verifies your Enterprise license against `https://registry.usefused.com` at boot and exits if the key is invalid, suspended, or not on an Enterprise plan.
+- **Periodic lease heartbeats:** After startup, Local Registry sends lightweight signed heartbeats to Fused Cloud. If a license is suspended, downgraded off Enterprise, or rotated, Local Registry reflects the change automatically without exposing private specs.
+- **Short Cloud outages:** Active heartbeats maintain a lease window so transient Fused Cloud connectivity blips do not interrupt internal Local Registry lookups or SDK builds.

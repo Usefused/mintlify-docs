@@ -1,0 +1,31 @@
+---
+title: "Enterprise"
+sidebarTitle: "Overview"
+description: "Run Fused Engine and Local Registry inside your own infrastructure with company SSO and workspace governance."
+---
+
+Fused Enterprise adds on-premises catalog hosting and organization-wide governance on top of the self-hosted Engine. You keep credentials, execution traffic, and private API specifications inside your own VPC or Kubernetes cluster.
+
+<CardGroup cols={2}>
+  <Card title="Deploy Local Registry" icon="database" href="/enterprise/local-registry">
+    Host `ghcr.io/usefused/fused-registry` alongside your Engine so internal API specifications and SDK generation never leave your network.
+  </Card>
+  <Card title="Self-host Fused Engine" icon="server" href="/setup/self-hosted">
+    Run Fused Engine in your infrastructure with your own PostgreSQL database and encryption key.
+  </Card>
+  <Card title="Share workspace access" icon="users" href="/workspace/share-access">
+    Configure role-based permissions, team boundaries, and scoped access for applications and agents.
+  </Card>
+  <Card title="Contact Enterprise sales" icon="building" href="https://usefused.com/teams?plan=enterprise#enterprise-interest">
+    Request an Enterprise license key, SSO setup, or deployment architecture review.
+  </Card>
+</CardGroup>
+
+## What Enterprise includes
+
+| Capability | Details |
+|---|---|
+| **Local Registry** | Self-hosted `ghcr.io/usefused/fused-registry` container for private API contracts, discovery artifacts, and offline SDK compilation, with permission-gated fallback to Fused Cloud for public APIs. |
+| **Company SSO & governance** | Organization identity integration, team-scoped roles, and fine-grained permissions including `catalogue.cloud.read` and `catalogue.cloud.publish`. |
+| **Unrestricted self-hosted capacity** | No artificial ceilings on buckets, services, SDKs, MCP servers, Unified Apps, concurrency, or execution history when you self-host the Engine. |
+| **Shared infrastructure footprint** | Local Registry requires no NATS broker and can share the same PostgreSQL database as your Fused Engine with zero table collisions. |

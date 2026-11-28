@@ -177,6 +177,13 @@
             ]
           },
           {
+            "group": "Enterprise",
+            "pages": [
+              "enterprise/overview",
+              "enterprise/local-registry"
+            ]
+          },
+          {
             "group": "Reference",
             "pages": [
               "notifications"
